@@ -1,0 +1,45 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users can only read/write their own document
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Users can only access their own subcollections
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Jobs collection is readable by authenticated users
+    match /jobs/{jobId} {
+      allow read: if request.auth != null;
+      allow write: if false; // Only backend can write
+    }
+
+    // Contact form — public create with strict shape/size (spam/abuse mitigation; rate limits belong in Functions/App Check)
+    match /contactMessages/{msgId} {
+      allow create: if request.resource.data.keys().hasOnly(['name','email','mobile','subject','message','createdAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.name.size() <= 120
+        && request.resource.data.email is string
+        && request.resource.data.email.size() <= 254
+        && request.resource.data.mobile is string
+        && request.resource.data.mobile.size() <= 20
+        && request.resource.data.subject is string
+        && request.resource.data.subject.size() <= 200
+        && request.resource.data.message is string
+        && request.resource.data.message.size() >= 10
+        && request.resource.data.message.size() <= 8000
+        && request.resource.data.createdAt is timestamp;
+      allow read, update, delete: if false;
+    }
+
+    // Site content — public read, admin-only write
+    match /siteContent/{docId} {
+      allow read: if true;  // Public read for landing page content
+      allow write: if request.auth != null && request.auth.token.admin == true;  // Admin-only write
+    }
+  }
+}

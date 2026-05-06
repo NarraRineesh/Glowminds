@@ -1,0 +1,22 @@
+/* Modal overlay & content */
+.mb{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.72);backdrop-filter:blur(8px);align-items:flex-start;justify-content:center;padding:52px 14px 36px;overflow-y:auto}
+.mb.on{display:flex}
+.mo{background:var(--color-surf);border:1px solid var(--color-bdr2);border-radius:18px;width:100%;max-width:540px;box-shadow:0 20px 60px rgba(0,0,0,.7);animation:moIn .22s ease;margin-bottom:28px;max-height:90vh;overflow-y:auto}
+.mo-lg{max-width:740px}
+.mh{padding:18px 22px;border-bottom:1px solid var(--color-bdr);display:flex;align-items:center;justify-content:space-between}
+.mh h2{font-size:.96rem;font-weight:800}
+.mx{width:30px;height:30px;border-radius:7px;background:var(--color-surf2);border:1px solid var(--color-bdr);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.85rem;transition:.15s}
+.mx:hover{background:var(--color-red2);border-color:var(--color-red);color:var(--color-red)}
+.mb2{padding:20px 22px}
+.mf{padding:13px 22px;border-top:1px solid var(--color-bdr);display:flex;align-items:center;justify-content:flex-end;gap:9px;flex-wrap:wrap}
+
+@media(max-width:768px){
+  .mb{padding:20px 8px 20px}
+  .mo{max-width:95vw;border-radius:14px}
+  .mo-lg{max-width:95vw}
+  .mh{padding:14px 16px}
+  .mh h2{font-size:.88rem}
+  .mb2{padding:14px 16px}
+  .mf{padding:10px 16px;gap:7px}
+  .mf .btn{font-size:.74rem;padding:6px 12px}
+}

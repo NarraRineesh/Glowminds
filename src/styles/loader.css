@@ -1,0 +1,81 @@
+/* ─── Glowminds shared loader ─────────────────────────────────────── */
+
+.gm-loader { display: inline-flex; align-items: center; justify-content: center; }
+
+.gm-loader__wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+
+.gm-loader__label {
+  font-size: 0.82rem;
+  color: var(--color-muted);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+/* Logo mark used for page-level loaders */
+.gm-loader__logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 13px;
+  background: linear-gradient(135deg, var(--color-blu), var(--color-grn));
+  box-shadow: 0 0 26px var(--color-glow);
+  animation: gm-loader-float 2s ease-in-out infinite;
+}
+
+/* Generic spinner ring */
+.gm-loader__ring {
+  display: inline-block;
+  border-radius: 50%;
+  border-style: solid;
+  border-color: var(--color-bdr);
+  border-top-color: var(--color-blu2);
+  animation: gm-loader-spin 0.85s linear infinite;
+}
+
+/* Three-dot bouncing loader (chat-style) */
+.gm-loader__dots { display: flex; gap: 5px; padding: 4px 0; }
+.gm-loader__dots span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-blu2);
+  display: inline-block;
+  animation: gm-loader-dots 1.2s ease-in-out infinite;
+}
+.gm-loader__dots span:nth-child(2) { animation-delay: 0.18s; }
+.gm-loader__dots span:nth-child(3) { animation-delay: 0.36s; }
+
+/* Layout variants */
+.gm-loader--page {
+  min-height: 100vh;
+  width: 100%;
+}
+.gm-loader--section {
+  min-height: 60vh;
+  width: 100%;
+}
+.gm-loader--block {
+  padding: 32px 16px;
+  width: 100%;
+}
+
+/* Animations */
+@keyframes gm-loader-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-10px); }
+}
+
+@keyframes gm-loader-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes gm-loader-dots {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40%           { transform: scale(1);   opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gm-loader__logo,
+  .gm-loader__ring,
+  .gm-loader__dots span { animation: none; }
+}

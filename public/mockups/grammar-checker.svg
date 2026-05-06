@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
+  <rect width="960" height="540" fill="#0d1117"/>
+  <rect x="16" y="16" width="620" height="508" rx="10" fill="#161b22" stroke="rgba(56,139,253,.08)" stroke-width="1"/>
+  <text x="36" y="46" font-family="sans-serif" font-size="14" fill="#e6edf3" font-weight="700">✍️ Grammar &amp; Writing Checker</text>
+  <rect x="32" y="64" width="588" height="200" rx="8" fill="#1a2436"/>
+  <text x="48" y="92" font-family="sans-serif" font-size="13" fill="#8b949e">Managed a team of </text>
+  <text x="200" y="92" font-family="sans-serif" font-size="13" fill="#f85149" text-decoration="line-through" opacity=".7">5 peoples</text>
+  <text x="286" y="92" font-family="sans-serif" font-size="13" fill="#3fb950" font-weight="700"> 5 people</text>
+  <text x="48" y="118" font-family="sans-serif" font-size="13" fill="#8b949e">to deliver the project </text>
+  <text x="242" y="118" font-family="sans-serif" font-size="13" fill="#f85149" text-decoration="line-through" opacity=".7">on time and under</text>
+  <text x="48" y="142" font-family="sans-serif" font-size="13" fill="#f85149" text-decoration="line-through" opacity=".7">budget which was great</text>
+  <text x="264" y="142" font-family="sans-serif" font-size="13" fill="#3fb950" font-weight="700"> on time and under budget.</text>
+  <text x="48" y="172" font-family="sans-serif" font-size="13" fill="#8b949e">Developed </text>
+  <text x="132" y="172" font-family="sans-serif" font-size="13" fill="#f85149" text-decoration="line-through" opacity=".7">a application</text>
+  <text x="248" y="172" font-family="sans-serif" font-size="13" fill="#3fb950" font-weight="700"> an application</text>
+  <text x="390" y="172" font-family="sans-serif" font-size="13" fill="#8b949e"> that </text>
+  <text x="48" y="198" font-family="sans-serif" font-size="13" fill="#f85149" text-decoration="line-through" opacity=".7">reduced costs significantly</text>
+  <text x="300" y="198" font-family="sans-serif" font-size="13" fill="#3fb950" font-weight="700"> reduced costs by 40%.</text>
+  <text x="48" y="236" font-family="sans-serif" font-size="13" fill="#8b949e">Collaborated with </text>
+  <text x="210" y="236" font-family="sans-serif" font-size="13" fill="#f85149" text-decoration="line-through" opacity=".7">cross functional teams</text>
+  <text x="416" y="236" font-family="sans-serif" font-size="13" fill="#3fb950" font-weight="700"> cross-functional teams</text>
+  <rect x="32" y="280" width="588" height="40" rx="6" fill="#0d1117"/>
+  <rect x="44" y="290" width="72" height="22" rx="11" fill="rgba(63,185,80,.1)"/><text x="80" y="305" font-family="sans-serif" font-size="9" fill="#3fb950" text-anchor="middle">Grammar</text>
+  <rect x="124" y="290" width="60" height="22" rx="11" fill="rgba(88,166,255,.1)"/><text x="154" y="305" font-family="sans-serif" font-size="9" fill="#58a6ff" text-anchor="middle">Clarity</text>
+  <rect x="192" y="290" width="80" height="22" rx="11" fill="rgba(20,184,166,.1)"/><text x="232" y="305" font-family="sans-serif" font-size="9" fill="#14b8a6" text-anchor="middle">Tone: Formal</text>
+  <rect x="32" y="336" width="588" height="44" rx="8" fill="rgba(56,139,253,.06)"/><text x="300" y="364" font-family="sans-serif" font-size="12" fill="#58a6ff" font-weight="700" text-anchor="middle">✓ Accept All Corrections</text>
+  <rect x="652" y="16" width="292" height="508" rx="10" fill="#161b22" stroke="rgba(56,139,253,.08)" stroke-width="1"/>
+  <text x="672" y="46" font-family="sans-serif" font-size="12" fill="#4a5568" font-weight="700">ANALYSIS</text>
+  <circle cx="798" cy="130" r="56" fill="none" stroke="#1a2436" stroke-width="6"/>
+  <circle cx="798" cy="130" r="56" fill="none" stroke="#14b8a6" stroke-width="6" stroke-dasharray="330" stroke-dashoffset="26" stroke-linecap="round" transform="rotate(-90 798 130)"/>
+  <text x="798" y="138" font-family="monospace" font-size="28" fill="#14b8a6" font-weight="900" text-anchor="middle">92</text>
+  <text x="798" y="158" font-family="sans-serif" font-size="9" fill="#4a5568" text-anchor="middle">SCORE</text>
+  <text x="672" y="220" font-family="sans-serif" font-size="11" fill="#4a5568" font-weight="700">ISSUES FOUND</text>
+  <rect x="672" y="234" width="256" height="36" rx="6" fill="rgba(248,81,73,.06)"/><text x="684" y="256" font-family="sans-serif" font-size="11" fill="#f85149">4 Grammar errors</text>
+  <rect x="672" y="280" width="256" height="36" rx="6" fill="rgba(210,153,34,.06)"/><text x="684" y="302" font-family="sans-serif" font-size="11" fill="#d29922">2 Clarity improvements</text>
+  <rect x="672" y="326" width="256" height="36" rx="6" fill="rgba(88,166,255,.06)"/><text x="684" y="348" font-family="sans-serif" font-size="11" fill="#58a6ff">1 Tone suggestion</text>
+  <text x="672" y="400" font-family="sans-serif" font-size="11" fill="#4a5568" font-weight="700">READABILITY</text>
+  <rect x="672" y="414" width="256" height="8" rx="4" fill="#1a2436"/><rect x="672" y="414" width="230" height="8" rx="4" fill="#14b8a6"/>
+  <text x="672" y="444" font-family="sans-serif" font-size="10" fill="#14b8a6">Professional level — Grade 12</text>
+</svg>

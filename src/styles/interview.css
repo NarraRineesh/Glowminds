@@ -1,0 +1,81 @@
+/* Interview Prep styles */
+
+/* Setup card */
+.iv-setup{background:var(--color-surf);border:1px solid var(--color-bdr);border-radius:14px;padding:clamp(20px,3vw,32px);max-width:600px;margin:0 auto}
+.iv-setup-title{font-size:1.1rem;font-weight:800;margin-bottom:4px;text-align:center}
+.iv-setup-sub{font-size:.78rem;color:var(--color-muted);text-align:center;margin-bottom:22px}
+
+/* Type selector cards */
+.iv-types{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:18px}
+.iv-type{padding:14px 12px;border-radius:10px;border:2px solid var(--color-bdr);background:var(--color-bg2);cursor:pointer;text-align:center;transition:.15s}
+.iv-type:hover{border-color:var(--color-bdr2);background:var(--color-surf2)}
+.iv-type.on{border-color:var(--color-blu);background:rgba(56,139,253,.06)}
+.iv-type-ic{font-size:1.5rem;margin-bottom:4px}
+.iv-type-lbl{font-size:.78rem;font-weight:700}
+.iv-type-desc{font-size:.64rem;color:var(--color-muted);margin-top:2px}
+
+/* Question flow */
+.iv-flow{max-width:720px;margin:0 auto}
+.iv-progress{display:flex;align-items:center;gap:6px;margin-bottom:16px;font-size:.72rem;color:var(--color-muted);font-weight:600}
+.iv-progress-bar{flex:1;height:5px;background:var(--color-bg3);border-radius:3px;overflow:hidden}
+.iv-progress-fill{height:100%;background:linear-gradient(90deg,var(--color-blu),var(--color-grn));border-radius:3px;transition:width .4s ease}
+
+/* Question card */
+.iv-qcard{background:var(--color-surf);border:1px solid var(--color-bdr);border-radius:14px;padding:clamp(18px,3vw,28px);margin-bottom:14px}
+.iv-q-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:6px}
+.iv-q-num{font-size:.68rem;font-weight:800;color:var(--color-blu2);text-transform:uppercase;letter-spacing:.8px}
+.iv-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 9px;border-radius:12px;font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+.iv-badge.technical{background:rgba(56,139,253,.1);color:var(--color-blu2)}
+.iv-badge.behavioral{background:rgba(46,160,67,.1);color:var(--color-grn)}
+.iv-badge.hr{background:rgba(210,168,255,.15);color:var(--color-prp)}
+.iv-badge.easy{background:rgba(46,160,67,.1);color:var(--color-grn)}
+.iv-badge.medium{background:rgba(210,168,67,.12);color:var(--color-gold)}
+.iv-badge.hard{background:rgba(248,81,73,.1);color:var(--color-red)}
+.iv-q-text{font-size:.95rem;font-weight:700;line-height:1.55;margin-bottom:8px}
+.iv-q-tips{font-size:.72rem;color:var(--color-muted);background:var(--color-bg2);border-radius:8px;padding:8px 12px;margin-bottom:14px;border-left:3px solid var(--color-gold)}
+
+/* Answer textarea */
+.iv-answer{width:100%;min-height:120px;background:var(--color-bg2);border:1px solid var(--color-bdr);border-radius:10px;padding:12px;color:var(--color-txt);font-size:.84rem;font-family:'Outfit',system-ui,sans-serif;outline:none;transition:.15s;resize:vertical;line-height:1.6}
+.iv-answer:focus{border-color:var(--color-blu);box-shadow:0 0 0 3px rgba(56,139,253,.1)}
+.iv-answer:disabled{opacity:.5;cursor:not-allowed}
+
+/* Feedback card */
+.iv-feedback{background:var(--color-surf);border:1px solid var(--color-bdr);border-radius:14px;padding:clamp(18px,3vw,28px);margin-bottom:14px}
+.iv-score-ring{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:900;margin:0 auto 12px;font-family:'JetBrains Mono',monospace}
+.iv-score-ring.good{background:rgba(46,160,67,.1);color:var(--color-grn);border:3px solid var(--color-grn)}
+.iv-score-ring.avg{background:rgba(210,168,67,.1);color:var(--color-gold);border:3px solid var(--color-gold)}
+.iv-score-ring.poor{background:rgba(248,81,73,.08);color:var(--color-red);border:3px solid var(--color-red)}
+.iv-fb-text{font-size:.82rem;line-height:1.65;text-align:center;color:var(--color-txt2);margin-bottom:16px}
+.iv-fb-section{margin-bottom:14px}
+.iv-fb-label{font-size:.68rem;font-weight:800;color:var(--color-muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+.iv-fb-list{list-style:none;padding:0;margin:0}
+.iv-fb-list li{font-size:.78rem;line-height:1.6;padding:3px 0;color:var(--color-txt2)}
+.iv-fb-list li::before{content:'';display:inline-block;width:5px;height:5px;border-radius:50%;margin-right:8px;vertical-align:middle}
+.iv-fb-list.strengths li::before{background:var(--color-grn)}
+.iv-fb-list.improvements li::before{background:var(--color-gold)}
+
+/* STAR breakdown */
+.iv-star{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.iv-star-item{background:var(--color-bg2);border-radius:8px;padding:10px 12px}
+.iv-star-lbl{font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;margin-bottom:3px}
+.iv-star-lbl.s{color:var(--color-blu2)}
+.iv-star-lbl.t{color:var(--color-prp)}
+.iv-star-lbl.a{color:var(--color-grn)}
+.iv-star-lbl.r{color:var(--color-gold)}
+.iv-star-val{font-size:.72rem;color:var(--color-txt2);line-height:1.5}
+
+/* Sample answer */
+.iv-sample{background:var(--color-bg2);border-radius:10px;padding:14px;font-size:.78rem;line-height:1.65;color:var(--color-txt2);border-left:3px solid var(--color-grn)}
+
+/* Summary card */
+.iv-summary{background:var(--color-surf);border:1px solid var(--color-bdr);border-radius:14px;padding:clamp(20px,3vw,32px);text-align:center;max-width:600px;margin:0 auto}
+.iv-summary-score{font-size:2.5rem;font-weight:900;font-family:'JetBrains Mono',monospace;margin-bottom:4px}
+.iv-summary-label{font-size:.78rem;color:var(--color-muted);margin-bottom:18px}
+
+/* Button row */
+.iv-btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+
+@media(max-width:600px){
+  .iv-star{grid-template-columns:1fr}
+  .iv-types{grid-template-columns:1fr 1fr}
+}

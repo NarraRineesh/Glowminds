@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
+  <rect width="960" height="540" fill="#0d1117"/>
+  <text x="36" y="40" font-family="sans-serif" font-size="16" fill="#e6edf3" font-weight="800">📊 Application Tracker</text>
+  <rect x="16" y="60" width="220" height="464" rx="10" fill="#161b22" stroke="rgba(88,166,255,.1)" stroke-width="1"/>
+  <rect x="28" y="72" width="196" height="28" rx="6" fill="rgba(88,166,255,.08)"/><text x="126" y="90" font-family="sans-serif" font-size="11" fill="#58a6ff" font-weight="700" text-anchor="middle">Applied (12)</text>
+  <rect x="28" y="110" width="196" height="60" rx="6" fill="#1a2436"/><text x="40" y="134" font-family="sans-serif" font-size="11" fill="#e6edf3" font-weight="700">Google — SDE Intern</text><text x="40" y="152" font-family="sans-serif" font-size="9" fill="#4a5568">Applied 2 days ago</text>
+  <rect x="28" y="180" width="196" height="60" rx="6" fill="#1a2436"/><text x="40" y="204" font-family="sans-serif" font-size="11" fill="#e6edf3" font-weight="700">Swiggy — Frontend</text><text x="40" y="222" font-family="sans-serif" font-size="9" fill="#4a5568">Applied 3 days ago</text>
+  <rect x="28" y="250" width="196" height="60" rx="6" fill="#1a2436"/><text x="40" y="274" font-family="sans-serif" font-size="11" fill="#e6edf3" font-weight="700">Amazon — Intern</text><text x="40" y="292" font-family="sans-serif" font-size="9" fill="#4a5568">Applied 5 days ago</text>
+  <rect x="252" y="60" width="220" height="464" rx="10" fill="#161b22" stroke="rgba(210,153,34,.1)" stroke-width="1"/>
+  <rect x="264" y="72" width="196" height="28" rx="6" fill="rgba(210,153,34,.08)"/><text x="362" y="90" font-family="sans-serif" font-size="11" fill="#d29922" font-weight="700" text-anchor="middle">Shortlisted (4)</text>
+  <rect x="264" y="110" width="196" height="60" rx="6" fill="#1a2436"/><text x="276" y="134" font-family="sans-serif" font-size="11" fill="#e6edf3" font-weight="700">Razorpay — Full Stack</text><text x="276" y="152" font-family="sans-serif" font-size="9" fill="#4a5568">Moved 1 day ago</text>
+  <rect x="264" y="180" width="196" height="60" rx="6" fill="#1a2436"/><text x="276" y="204" font-family="sans-serif" font-size="11" fill="#e6edf3" font-weight="700">PhonePe — Backend</text><text x="276" y="222" font-family="sans-serif" font-size="9" fill="#4a5568">Moved 2 days ago</text>
+  <rect x="488" y="60" width="220" height="464" rx="10" fill="#161b22" stroke="rgba(188,140,255,.1)" stroke-width="1"/>
+  <rect x="500" y="72" width="196" height="28" rx="6" fill="rgba(188,140,255,.08)"/><text x="598" y="90" font-family="sans-serif" font-size="11" fill="#bc8cff" font-weight="700" text-anchor="middle">Interview (5)</text>
+  <rect x="500" y="110" width="196" height="60" rx="6" fill="#1a2436"/><text x="512" y="134" font-family="sans-serif" font-size="11" fill="#e6edf3" font-weight="700">CRED — Frontend</text><text x="512" y="152" font-family="sans-serif" font-size="9" fill="#bc8cff">Interview tomorrow</text>
+  <rect x="500" y="180" width="196" height="60" rx="6" fill="#1a2436"/><text x="512" y="204" font-family="sans-serif" font-size="11" fill="#e6edf3" font-weight="700">Freshworks — SDE</text><text x="512" y="222" font-family="sans-serif" font-size="9" fill="#4a5568">Round 2 — Technical</text>
+  <rect x="724" y="60" width="220" height="464" rx="10" fill="#161b22" stroke="rgba(63,185,80,.12)" stroke-width="1"/>
+  <rect x="736" y="72" width="196" height="28" rx="6" fill="rgba(63,185,80,.08)"/><text x="834" y="90" font-family="sans-serif" font-size="11" fill="#3fb950" font-weight="700" text-anchor="middle">Offered (3)</text>
+  <rect x="736" y="110" width="196" height="60" rx="6" fill="#1a2436"/><text x="748" y="134" font-family="sans-serif" font-size="11" fill="#e6edf3" font-weight="700">Zoho — Full Stack</text><text x="748" y="152" font-family="sans-serif" font-size="9" fill="#3fb950">₹8L/yr · Accept by 15th</text>
+  <rect x="736" y="180" width="196" height="60" rx="6" fill="#1a2436"/><text x="748" y="204" font-family="sans-serif" font-size="11" fill="#e6edf3" font-weight="700">TCS — Developer</text><text x="748" y="222" font-family="sans-serif" font-size="9" fill="#3fb950">₹6.5L/yr</text>
+</svg>

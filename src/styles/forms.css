@@ -1,0 +1,16 @@
+/* Shared form elements */
+.fg{display:flex;flex-direction:column;gap:5px}
+.fl{font-size:.74rem;font-weight:600;color:var(--color-txt2);letter-spacing:.3px}
+.fi,.fsl,.fta{width:100%;padding:9px 12px;background:var(--color-surf2);border:1px solid var(--color-bdr);border-radius:8px;color:var(--color-txt);font-size:.85rem;font-family:'Outfit',system-ui,sans-serif;outline:none;transition:.15s}
+.fi:focus,.fsl:focus,.fta:focus{border-color:var(--color-blu);box-shadow:0 0 0 3px rgba(56,139,253,.13)}
+.fi::placeholder,.fta::placeholder{color:var(--color-muted)}
+.fta{resize:vertical;min-height:76px}
+.fg2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* Error states */
+.fi-error,.fta-error{border-color:var(--color-red);background:var(--color-red2)}
+.fi-error:focus,.fta-error:focus{border-color:var(--color-red);box-shadow:0 0 0 3px rgba(248,81,73,.15)}
+
+@media(max-width:768px){
+  .fg2{grid-template-columns:1fr}
+}

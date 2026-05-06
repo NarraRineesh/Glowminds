@@ -1,0 +1,192 @@
+/* Navbar-specific styles */
+.n-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    flex-shrink: 0
+}
+
+.n-logo:hover .n-gem {
+    transform: scale(1.05)
+}
+
+.n-gem {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #388bfd, #1a5ae0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 20px rgba(56,139,253,.35), inset 0 1px 0 rgba(255,255,255,.15);
+    flex-shrink: 0;
+    transition: transform .2s
+}
+
+.n-logo .n-brand {
+    font-size: 1.125rem;
+    font-weight: 900;
+    letter-spacing: -.3px;
+    color: var(--color-txt)
+}
+
+.n-logo .n-brand .grad-txt {
+    background: linear-gradient(90deg, var(--color-blu2), var(--color-grn));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent
+}
+
+.nl {
+    padding: 8px 14px;
+    border-radius: 12px;
+    font-size: .875rem;
+    font-weight: 500;
+    color: var(--color-txt2);
+    cursor: pointer;
+    transition: color .15s, background .15s
+}
+
+.nl:hover {
+    color: var(--color-txt);
+    background: var(--color-blu3)
+}
+
+.nl.on {
+    color: var(--color-blu2);
+    background: var(--color-blu3);
+    font-weight: 600
+}
+
+.nav-av {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--color-blu), var(--color-grn));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: .8rem;
+    cursor: pointer;
+    border: 2px solid var(--color-bdr2)
+}
+
+.ndot {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--color-red);
+    border: 2px solid var(--color-bg)
+}
+
+/* Notification dropdown */
+.notif-dropdown{position:absolute;top:calc(100% + 10px);right:-60px;width:360px;max-height:440px;display:flex;flex-direction:column;background:var(--color-surf);border:1px solid var(--color-bdr);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.25);z-index:300;overflow:hidden;animation:ndd-in .15s ease}
+@keyframes ndd-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.notif-dd-header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--color-bdr);flex-shrink:0}
+.notif-dd-btn{background:none;border:none;color:var(--color-blu2);font-size:.68rem;font-weight:700;cursor:pointer;padding:3px 7px;border-radius:5px;transition:.13s}
+.notif-dd-btn:hover{background:rgba(56,139,253,.1)}
+.notif-dd-list{overflow-y:auto;flex:1}
+.notif-dd-item{display:flex;align-items:flex-start;gap:9px;padding:10px 14px;border-bottom:1px solid var(--color-bdr);cursor:pointer;transition:.1s}
+.notif-dd-item:hover{background:var(--color-blu3)}
+.notif-dd-item:last-child{border-bottom:none}
+.notif-dd-item.unread{background:rgba(56,139,253,.04)}
+.notif-dd-ic{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.78rem;flex-shrink:0}
+.notif-dd-title{font-size:.74rem;font-weight:700;line-height:1.4;margin-bottom:1px}
+.notif-dd-desc{font-size:.66rem;color:var(--color-txt2);line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.notif-dd-time{font-size:.58rem;color:var(--color-muted);margin-top:2px;font-family:'JetBrains Mono',monospace}
+.notif-dd-del{background:none;border:none;color:var(--color-muted);font-size:.64rem;cursor:pointer;padding:2px 3px;border-radius:3px;transition:.13s;opacity:.5}
+.notif-dd-del:hover{color:var(--color-red);opacity:1}
+
+@media(max-width:480px){.notif-dropdown{width:calc(100vw - 24px);right:-100px}}
+
+/* Full-width panel when bell lives inside the dashboard drawer */
+.notif-dropdown.notif-dropdown--drawer {
+    right: 0;
+    left: 0;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    top: auto;
+    bottom: calc(100% + 10px);
+    animation: ndd-in-drawer .15s ease;
+}
+@keyframes ndd-in-drawer {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Mobile navbar */
+.n-links-desktop {
+    display: flex;
+}
+
+.hmb-btn {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .n-links-desktop {
+        display: none !important;
+    }
+    .hmb-btn {
+        display: flex !important;
+    }
+    .theme-toggle {
+        display: none !important;
+    }
+}
+
+/* Mobile menu animation */
+.mobile-menu {
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.hmb-btn span {
+    transition: all 0.3s ease;
+}
+
+.hmb-btn:hover span:nth-child(1) {
+    width: 24px;
+}
+
+.hmb-btn:hover span:nth-child(3) {
+    width: 16px;
+}
+
+/* Hamburger to X animation */
+.hmb-btn.active span:nth-child(1) {
+    transform: rotate(45deg) translate(5px, 5px);
+    width: 24px;
+}
+
+.hmb-btn.active span:nth-child(2) {
+    opacity: 0;
+    transform: translateX(-10px);
+}
+
+.hmb-btn.active span:nth-child(3) {
+    transform: rotate(-45deg) translate(5px, -5px);
+    width: 24px;
+}

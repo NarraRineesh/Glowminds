@@ -1,0 +1,8 @@
+[
+  {
+    "origin": ["https://ai-jobcopilot.web.app", "https://ai-jobcopilot.firebaseapp.com", "http://localhost:5173"],
+    "method": ["GET", "HEAD", "PUT", "POST", "DELETE"],
+    "maxAgeSeconds": 3600,
+    "responseHeader": ["Content-Type", "Authorization", "Content-Length", "User-Agent", "x-goog-resumable"]
+  }
+]
