@@ -1,17 +1,11 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // Landing page images are publicly readable
-    match /landing-images/{allPaths=**} {
-      allow read: if true;  // Public read for landing page images
-      allow write: if request.auth != null && request.auth.token.admin == true;  // Admin-only write
-    }
-    
     // User uploads are private to the user
     match /users/{userId}/{allPaths=**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
-    
+
     // Default deny
     match /{allPaths=**} {
       allow read, write: if false;

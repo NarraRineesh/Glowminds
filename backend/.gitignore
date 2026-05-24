@@ -1,0 +1,12 @@
+node_modules/
+.env
+.env.local
+.env.*.local
+service-account*.json
+*.log
+.DS_Store
+
+# python virtualenv
+python/.venv/
+python/__pycache__/
+python/*.pyc

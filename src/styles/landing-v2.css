@@ -780,6 +780,73 @@
   z-index: 1;
 }
 
+/* ── Hero scroll cue ── */
+/* Wrapper owns absolute positioning + horizontal centering so the inner */
+/* anchor's framer-motion transform doesn't fight the centering transform. */
+.lp-scroll-cue-wrap {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  z-index: 5;
+  pointer-events: none;
+}
+
+.lp-scroll-cue {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  color: var(--color-muted);
+  cursor: pointer;
+  opacity: 0.78;
+  transition: opacity .2s ease, transform .2s ease;
+  pointer-events: auto;
+}
+
+.lp-scroll-cue:hover {
+  opacity: 1;
+  transform: translateY(-2px);
+}
+
+.lp-scroll-cue-label {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-weight: 700;
+}
+
+.lp-scroll-cue-mouse {
+  position: relative;
+  width: 22px;
+  height: 34px;
+  border: 2px solid currentColor;
+  border-radius: 12px;
+  display: flex;
+  justify-content: center;
+}
+
+.lp-scroll-cue-dot {
+  display: block;
+  width: 3px;
+  height: 6px;
+  margin-top: 6px;
+  background: currentColor;
+  border-radius: 2px;
+  animation: lp-scroll-cue-dot 1.6s ease-in-out infinite;
+}
+
+@keyframes lp-scroll-cue-dot {
+  0% { transform: translateY(0); opacity: 0.2; }
+  35% { opacity: 1; }
+  100% { transform: translateY(12px); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-scroll-cue-dot { animation: none; }
+}
+
 /* ── Keyframes ── */
 @keyframes lp-grad-shift {
   0% { background-position: 0% 50%; }

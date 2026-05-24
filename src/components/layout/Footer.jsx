@@ -24,7 +24,7 @@ const footerLink = 'text-sm text-[var(--color-txt2)] transition-colors hover:tex
 export default function Footer() {
   return (
     <footer className="border-t border-[var(--color-bdr)] py-10 px-4 md:px-8 lg:px-16">
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
         {/* Brand */}
         <div className="md:col-span-2">
           <Link to="/" className="mb-3 flex items-center gap-2">
@@ -78,11 +78,6 @@ export default function Footer() {
             <Link to="/refund" className={footerLink}>Refund Policy</Link>
           </div>
         </div>
-      </div>
-
-      <div className="flex flex-col items-center justify-between gap-2 border-t border-[var(--color-bdr)] pt-6 text-sm text-[var(--color-muted)] md:flex-row">
-        <span>© {new Date().getFullYear()} Glowminds AI. Built with ❤️ in India.</span>
-        <span>Made for students, by students.</span>
       </div>
     </footer>
   )

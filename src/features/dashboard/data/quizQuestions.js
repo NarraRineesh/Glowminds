@@ -1,7 +1,7 @@
 // Pool of daily quiz questions — rotates by date so every user sees the same Q each day.
 // Mix of aptitude / job-search / behavioral / tech basics. Replace with API-fetched set later.
 
-export const QUIZ_POOL = [
+const QUIZ_POOL = [
   {
     id: 'q-ats-1',
     category: 'Resume',

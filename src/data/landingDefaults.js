@@ -1,6 +1,6 @@
-export const COMPANIES = ['Google', 'Microsoft', 'Amazon', 'Flipkart', 'Swiggy', 'Razorpay', 'Infosys', 'TCS', 'Zoho', 'Freshworks', 'PhonePe', 'CRED', 'Meesho', 'Groww']
+const COMPANIES = ['Google', 'Microsoft', 'Amazon', 'Flipkart', 'Swiggy', 'Razorpay', 'Infosys', 'TCS', 'Zoho', 'Freshworks', 'PhonePe', 'CRED', 'Meesho', 'Groww']
 
-export const FEATURES = [
+const FEATURES = [
   {
     badge: 'AI RESUME BUILDER', badgeBg: 'rgba(56,139,253,.08)', badgeColor: 'var(--color-blu)',
     title: 'Build Resumes That Actually Get Past ATS',
@@ -52,14 +52,14 @@ export const FEATURES = [
   },
 ]
 
-export const STEPS = [
+const STEPS = [
   { num: '01', ico: '📝', title: 'Create Your Profile', desc: 'Sign up in 30 seconds. Add your skills, education, experience, and job preferences — our AI does the rest.' },
   { num: '02', ico: '📄', title: 'Build Your Resume', desc: 'AI generates an ATS-optimized resume in minutes. Pick a template, get a real-time score, and export as PDF.' },
   { num: '03', ico: '🎯', title: 'Get Matched & Apply', desc: 'We scan 50+ portals daily, rank jobs by your match score, and let you apply with a single click.' },
   { num: '04', ico: '🎉', title: 'Land Your Dream Job', desc: 'Prep with AI mock interviews, track apps on your Kanban board, and celebrate when offers start rolling in!' },
 ]
 
-export const TOOLS = [
+const TOOLS = [
   { ico: '📄', title: 'Resume Builder', desc: 'ATS-optimized resumes with 6 templates, live preview, and one-click PDF export.', bg: 'var(--color-blu3)' },
   { ico: '🎯', title: 'Job Matching', desc: 'AI scans 50+ portals hourly and ranks jobs by your personal skill match score.', bg: 'var(--color-grn2)' },
   { ico: '🤖', title: 'AI Career Coach', desc: '24/7 career coaching with context memory — resumes, interviews, salary, and more.', bg: 'var(--color-gold2)' },
@@ -74,15 +74,15 @@ export const TOOLS = [
   { ico: '💻', title: 'Code Reviewer', desc: 'Get AI feedback on code quality, bugs, performance, and best practices.', bg: 'rgba(251,146,60,.08)' },
 ]
 
-export const TESTIMONIALS = [
+const TESTIMONIALS = [
   { name: 'Aditi Verma', role: 'SDE Intern @ Google', avatar: '👩‍💻', text: 'Glowminds matched me with my dream internship. The AI resume builder got me a 96 ATS score — I got 3 interview calls in the first week!' },
   { name: 'Rahul Gupta', role: 'Frontend Dev @ Swiggy', avatar: '👨‍💻', text: 'The AI career coach helped me prepare for 3 rounds of interviews. Got the offer in 2 weeks. This platform is a game-changer for freshers.' },
   { name: 'Karthik R', role: 'Full Stack @ Razorpay', avatar: '🧑‍💻', text: 'Best platform for freshers. Period. The job matching accuracy is insane — 94% relevant. Saved me hours of scrolling through job boards.' },
 ]
 
-export const TRUST_LOGOS = ['IIT Delhi', 'IIT Bombay', 'BITS Pilani', 'NIT Trichy', 'VIT', 'SRM', 'Manipal', 'IIIT Hyderabad', 'DTU', 'NSUT', 'PES University', 'Amity']
+const TRUST_LOGOS = ['IIT Delhi', 'IIT Bombay', 'BITS Pilani', 'NIT Trichy', 'VIT', 'SRM', 'Manipal', 'IIIT Hyderabad', 'DTU', 'NSUT', 'PES University', 'Amity']
 
-export const FAQS = [
+const FAQS = [
   { q: 'Is Glowminds free to use?', a: 'Yes! Glowminds offers a generous free tier with job search, 1 resume, and 5 app tracking slots. Our Pro plan unlocks everything — AI Coach, Interview Prep, unlimited resumes — for just ₹49/month or ₹399/year (save 32%).' },
   { q: 'How does the AI job matching work?', a: 'Our AI scans 50+ job portals daily and compares requirements with your skills, education, and preferences to generate a personalized match score from 0-100%.' },
   { q: 'What makes the resume builder ATS-optimized?', a: 'We follow industry-standard ATS formatting rules — clean structure, keyword optimization, proper headings, machine-readable layouts, and we check against 200+ ATS systems.' },
@@ -91,21 +91,21 @@ export const FAQS = [
   { q: 'Can I generate cover letters for any job?', a: 'Yes! Just paste the job description and our AI matches your resume data to the role requirements, generating a personalized cover letter in seconds. You can adjust the tone and export as PDF.' },
 ]
 
-export const STATS = {
+const STATS = {
   students: '52K+',
   dailyJobs: '12K+',
   matchRate: '94%',
   rating: '4.9★'
 }
 
-export const HERO_IMAGES = [
+const HERO_IMAGES = [
   { key: 'dashboard', label: 'Dashboard', src: '/mockups/dashboard.svg' },
   { key: 'resume', label: 'Resume Builder', src: '/mockups/resume-builder.svg' },
   { key: 'interview', label: 'Interview Prep', src: '/mockups/interview-prep.svg' },
   { key: 'grammar', label: 'Grammar Checker', src: '/mockups/grammar-checker.svg' },
 ]
 
-export const PRICING = {
+const PRICING = {
   free: {
     label: 'FREE',
     price: '₹0',
@@ -122,7 +122,7 @@ export const PRICING = {
   }
 }
 
-export const PRICING_COMPARISON = [
+const PRICING_COMPARISON = [
   { feature: 'Job Search', free: 'Basic', pro: 'Advanced + AI' },
   { feature: 'Resume Builder', free: '1 template', pro: '6 templates' },
   { feature: 'Application Tracker', free: '5 apps', pro: 'Unlimited' },
@@ -134,7 +134,7 @@ export const PRICING_COMPARISON = [
   { feature: 'Support', free: 'Community', pro: 'Priority' },
 ]
 
-export const PRICING_FAQS = [
+const PRICING_FAQS = [
   { q: 'What does the yearly plan include?', a: 'The Pro yearly plan gives you unlimited access to every feature — AI Career Coach, Interview Prep, all resume templates, cover letter generator, salary insights, and priority support. One payment, 12 months of full access.' },
   { q: 'Can I cancel anytime?', a: 'Yes. You can cancel your subscription at any time from your dashboard. You\'ll continue to have Pro access until the end of your billing period. No questions asked.' },
   { q: 'Is there a free trial?', a: 'We offer a generous free tier instead of a trial. You can use core features forever — job search, 1 resume, and 5 application tracking slots. Upgrade to Pro when you\'re ready.' },
@@ -142,7 +142,7 @@ export const PRICING_FAQS = [
   { q: 'Can I use this as a non-student?', a: 'Absolutely. While Glowminds is optimized for students and fresh graduates, anyone early in their career or looking to switch roles can benefit from our tools.' },
 ]
 
-export const FREE_FEATURES = [
+const FREE_FEATURES = [
   { text: 'Job Search & Browse', included: true },
   { text: 'Profile & Portfolio', included: true },
   { text: '1 Resume Template', included: true },
@@ -157,7 +157,7 @@ export const FREE_FEATURES = [
   { text: 'Priority Support', included: false },
 ]
 
-export const PRO_FEATURES = [
+const PRO_FEATURES = [
   { text: 'Everything in Free', included: true, highlight: false },
   { text: 'AI Career Coach (24/7)', included: true, highlight: true },
   { text: 'AI Interview Prep', included: true, highlight: true },
@@ -172,7 +172,6 @@ export const PRO_FEATURES = [
   { text: 'Priority Support', included: true, highlight: false },
 ]
 
-// Default landing content object for Firestore seeding
 export const DEFAULT_LANDING_CONTENT = {
   companies: COMPANIES,
   features: FEATURES,
@@ -188,5 +187,4 @@ export const DEFAULT_LANDING_CONTENT = {
   pricingFaqs: PRICING_FAQS,
   freeFeatures: FREE_FEATURES,
   proFeatures: PRO_FEATURES,
-  updatedAt: new Date().toISOString()
 }

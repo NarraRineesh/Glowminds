@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import Footer from '@/components/layout/Footer'
@@ -6,32 +6,25 @@ import SEO from '@/components/SEO'
 import { SITE_URL } from '@/config/site'
 import PublicFaqItem from '@/features/public/components/PublicFaqItem'
 import { fadeUp, motionEase, stagger } from '@/features/public/motionVariants'
-import useLandingStore from '@/store/landingStore'
+import { DEFAULT_LANDING_CONTENT } from '@/data/landingDefaults'
 import '@/styles/landing-v2.css'
 import '@/styles/landing.css'
 
+const {
+  companies,
+  features,
+  steps,
+  tools,
+  testimonials,
+  trustLogos,
+  faqs,
+  stats,
+  pricing,
+} = DEFAULT_LANDING_CONTENT
 
 export default function LandingPage() {
   const navigate = useNavigate()
   const [openFaq, setOpenFaq] = useState(null)
-  
-  // Get landing content from store
-  const {
-    companies,
-    features,
-    steps,
-    tools,
-    testimonials,
-    trustLogos,
-    faqs,
-    stats,
-    pricing,
-  } = useLandingStore()
-  
-  // Fetch content on mount
-  useEffect(() => {
-    useLandingStore.getState().fetchLandingContent()
-  }, [])
 
   return (
     <div className="lp">
@@ -153,10 +146,26 @@ export default function LandingPage() {
             <div className="fl-badge fb2">🔔 <strong>5 new jobs</strong> match today!</div>
           </motion.div>
         </div>
+
+        <div className="lp-scroll-cue-wrap">
+          <motion.a
+            href="#lp-marquee"
+            aria-label="Scroll to next section"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.0, duration: 0.6, ease: motionEase }}
+            className="lp-scroll-cue"
+          >
+            <span className="lp-scroll-cue-label">Scroll</span>
+            <span className="lp-scroll-cue-mouse" aria-hidden>
+              <span className="lp-scroll-cue-dot" />
+            </span>
+          </motion.a>
+        </div>
       </section>
 
       {/* ===== MARQUEE ===== */}
-      <motion.section initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ duration: .6, ease: motionEase }} className="lp-marquee-section">
+      <motion.section id="lp-marquee" initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ duration: .6, ease: motionEase }} className="lp-marquee-section py-6 md:py-8">
         <div className="lp-marquee-label">Trusted by students placed at top companies</div>
         <div className="lp-marquee-wrap">
           <div className="lp-marquee-track">
@@ -168,7 +177,7 @@ export default function LandingPage() {
       </motion.section>
 
       {/* ===== FEATURE ROWS ===== */}
-      <section className="py-20 md:py-28">
+      <section className="py-10 md:py-14">
         <div className="max-w-[1200px] mx-auto px-4 md:px-16">
           {features && features.map((f, idx) => (
             <motion.div key={f.title} initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-60px' }} transition={{ duration: .7, ease: motionEase }}
@@ -207,9 +216,9 @@ export default function LandingPage() {
       </section>
 
       {/* ===== HOW IT WORKS ===== */}
-      <section className="py-20 md:py-28 bg-[var(--color-bg2)]">
+      <section className="py-10 md:py-14 bg-[var(--color-bg2)]">
         <div className="max-w-[1200px] mx-auto px-4 md:px-16">
-          <motion.div initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-40px' }} transition={{ duration: .6, ease: motionEase }} className="text-center mb-16">
+          <motion.div initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-40px' }} transition={{ duration: .6, ease: motionEase }} className="text-center mb-8">
             <h2 className="text-3xl md:text-4xl font-black mb-4">From Zero to <span className="grad-txt">Offer Letter</span></h2>
             <p className="text-base md:text-lg text-[var(--color-txt2)] max-w-2xl mx-auto">Four simple steps. No experience needed. Our AI handles the heavy lifting.</p>
           </motion.div>
@@ -227,9 +236,9 @@ export default function LandingPage() {
       </section>
 
       {/* ===== ALL TOOLS GRID ===== */}
-      <section className="py-20 md:py-28">
+      <section className="py-10 md:py-14">
         <div className="max-w-[1200px] mx-auto px-4 md:px-16">
-          <motion.div initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-40px' }} transition={{ duration: .6, ease: motionEase }} className="text-center mb-16">
+          <motion.div initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-40px' }} transition={{ duration: .6, ease: motionEase }} className="text-center mb-8">
             <h2 className="text-3xl md:text-4xl font-black mb-4">Expand All <span className="grad-txt">AI Tools</span></h2>
             <p className="text-base md:text-lg text-[var(--color-txt2)] max-w-2xl mx-auto">15+ AI-powered tools to cover every step of your career journey — from resume to offer letter and beyond.</p>
           </motion.div>
@@ -246,9 +255,9 @@ export default function LandingPage() {
       </section>
 
       {/* ===== PRICING PREVIEW ===== */}
-      <section className="py-20 md:py-28 bg-[var(--color-bg2)]">
+      <section className="py-10 md:py-14 bg-[var(--color-bg2)]">
         <div className="max-w-[1200px] mx-auto px-4 md:px-16">
-          <motion.div initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-40px' }} transition={{ duration: .6, ease: motionEase }} className="text-center mb-16">
+          <motion.div initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-40px' }} transition={{ duration: .6, ease: motionEase }} className="text-center mb-8">
             <h2 className="text-3xl md:text-4xl font-black mb-4">Only Pay for What You <span className="grad-txt">Actually Use</span></h2>
             <p className="text-base md:text-lg text-[var(--color-txt2)] max-w-2xl mx-auto">Start free. Upgrade when you need more power.</p>
           </motion.div>
@@ -285,9 +294,9 @@ export default function LandingPage() {
 
 
       {/* ===== TESTIMONIALS ===== */}
-      <section className="py-20 md:py-28">
+      <section className="py-10 md:py-14">
         <div className="max-w-[1200px] mx-auto px-4 md:px-16">
-          <motion.div initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-40px' }} transition={{ duration: .6, ease: motionEase }} className="text-center mb-16">
+          <motion.div initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-40px' }} transition={{ duration: .6, ease: motionEase }} className="text-center mb-8">
             <h2 className="text-3xl md:text-4xl font-black mb-4">Students <span className="grad-txt">Love Us</span></h2>
             <p className="text-base md:text-lg text-[var(--color-txt2)] max-w-2xl mx-auto">Real stories from students who landed their dream jobs.</p>
           </motion.div>
@@ -310,9 +319,9 @@ export default function LandingPage() {
       </section>
 
       {/* ===== TRUST LOGOS ===== */}
-      <section className="py-20 md:py-28 bg-[var(--color-bg2)]">
+      <section className="py-10 md:py-14 bg-[var(--color-bg2)]">
         <div className="max-w-[1200px] mx-auto px-4 md:px-16">
-          <motion.div initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-40px' }} transition={{ duration: .6, ease: motionEase }} className="text-center mb-16">
+          <motion.div initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-40px' }} transition={{ duration: .6, ease: motionEase }} className="text-center mb-8">
             <h2 className="text-3xl md:text-4xl font-black mb-4">Trusted by Top <span className="grad-txt">Educational Institutions</span></h2>
           </motion.div>
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: .6, ease: motionEase, delay: .1 }} className="lp-trust-grid">
@@ -324,9 +333,9 @@ export default function LandingPage() {
       </section>
 
       {/* ===== FAQ ===== */}
-      <section className="py-20 md:py-28">
+      <section className="py-10 md:py-14">
         <div className="max-w-[1200px] mx-auto px-4 md:px-16">
-          <motion.div initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-40px' }} transition={{ duration: .6, ease: motionEase }} className="text-center mb-16">
+          <motion.div initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-40px' }} transition={{ duration: .6, ease: motionEase }} className="text-center mb-8">
             <h2 className="text-3xl md:text-4xl font-black mb-4">Frequently Asked <span className="grad-txt">Questions</span></h2>
           </motion.div>
           <motion.div variants={stagger} initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-40px' }} className="max-w-3xl mx-auto flex flex-col gap-2.5">
@@ -347,7 +356,7 @@ export default function LandingPage() {
       </section>
 
       {/* ===== CTA ===== */}
-      <section className="pb-20">
+      <section className="pb-10 md:pb-14">
         <div className="max-w-[1200px] mx-auto px-4 md:px-16">
           <motion.div initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true, margin: '-40px' }} transition={{ duration: .6, ease: motionEase }} className="lp-cta">
             <div className="lp-cta-mesh" />

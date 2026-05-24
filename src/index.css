@@ -15,6 +15,23 @@ body {
   -webkit-font-smoothing: antialiased; font-synthesis: none; letter-spacing: -0.005em;
 }
 
+/* Smooth in-page anchor scrolling (respects user motion preferences) */
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Offset anchored sections to clear the fixed top navbar (h-16 = 64px) */
+section[id],
+[data-scroll-target] {
+  scroll-margin-top: 80px;
+}
+
 @theme {
   --color-bg: #07090f;
   --color-bg2: #0d1117;

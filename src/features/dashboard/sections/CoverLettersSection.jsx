@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import SectionHeader from '@/components/dashboard/SectionHeader'
 import useAppStore from '@/store/authStore'
+import useProfileStore from '@/store/profileStore'
+import { apiFetch } from '@/services/apiClient'
 import '@/styles/cards.css'
 import '@/styles/dashboard.css'
 import '@/styles/forms.css'
@@ -87,12 +89,23 @@ export default function CoverLettersSection() {
   const { user, addToast } = useAppStore()
   const firstName = user?.firstName || user?.displayName?.split(' ')[0] || 'Your Name'
 
+  const profile = useProfileStore((s) => s.profile)
+  const loadProfile = useProfileStore((s) => s.load)
+
   const [template, setTemplate] = useState('concise')
   const [role, setRole] = useState('Frontend Engineer')
   const [company, setCompany] = useState('Acme Inc')
   const [skill, setSkill] = useState('React + TypeScript')
+  const [aiLetter, setAiLetter] = useState('')
+  const [aiLoading, setAiLoading] = useState(false)
 
-  const letter = buildLetter(template, { yourName: firstName, role, company, skill })
+  // Profile hydrated lazily so the AI draft button has full context.
+  useEffect(() => {
+    loadProfile().catch(() => {})
+  }, [loadProfile])
+
+  const localLetter = buildLetter(template, { yourName: firstName, role, company, skill })
+  const letter = aiLetter || localLetter
 
   const copy = async () => {
     try {
@@ -101,6 +114,57 @@ export default function CoverLettersSection() {
     } catch {
       addToast('error', '⚠️ Could not copy — please select & copy manually')
     }
+  }
+
+  const downloadTxt = () => {
+    try {
+      const safeRole = (role || 'role').replace(/[^a-z0-9]+/gi, '-').toLowerCase()
+      const safeCompany = (company || 'company').replace(/[^a-z0-9]+/gi, '-').toLowerCase()
+      const blob = new Blob([letter], { type: 'text/plain;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `cover-letter-${safeRole}-${safeCompany}.txt`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('downloadTxt:', err)
+      addToast('error', '⚠️ Could not download — try copying instead')
+    }
+  }
+
+  const generateAi = async () => {
+    setAiLoading(true)
+    try {
+      const userExperience = (profile?.experience || [])
+        .map((e) => `${e.role || ''} @ ${e.company || ''}`)
+        .filter(Boolean)
+        .join('; ')
+      const data = await apiFetch('/ai/cover-letter', {
+        body: {
+          profile: {
+            name: user?.displayName || firstName,
+            title: profile?.headline || role,
+            skills: profile?.skills?.technical || (skill ? [skill] : []),
+            education: '',
+            experience: userExperience,
+          },
+          jobTitle: role,
+          company,
+          jobDescription: template ? `Tone: ${template}` : '',
+        },
+      })
+      const text = data?.coverLetter || data?.letter || ''
+      if (!text) throw new Error('Empty response from AI')
+      setAiLetter(text)
+      addToast('success', '🤖 AI cover letter generated')
+    } catch (err) {
+      console.error('generateAi cover letter error:', err)
+      addToast('error', `⚠️ ${err.message || 'AI generation failed'}`)
+    }
+    setAiLoading(false)
   }
 
   return (
@@ -194,16 +258,15 @@ export default function CoverLettersSection() {
         >
           <div className="ch">
             <h3>📨 Preview</h3>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button type="button" className="btn btn-gh btn-sm" onClick={copy}>
                 Copy
               </button>
-              <button
-                type="button"
-                className="btn btn-p btn-sm"
-                onClick={() => addToast('info', '💾 Saving cover letters lands soon')}
-              >
-                Save
+              <button type="button" className="btn btn-gh btn-sm" onClick={downloadTxt}>
+                Download
+              </button>
+              <button type="button" className="btn btn-p btn-sm" onClick={generateAi} disabled={aiLoading}>
+                {aiLoading ? '⏳ Drafting…' : '🤖 AI draft'}
               </button>
             </div>
           </div>
@@ -211,6 +274,9 @@ export default function CoverLettersSection() {
             <pre className="whitespace-pre-wrap rounded-xl border border-[var(--color-bdr)] bg-[var(--color-bg2)] p-4 font-[Outfit,system-ui,sans-serif] text-[0.86rem] leading-relaxed text-[var(--color-txt)]">
               {letter}
             </pre>
+            <div className="mt-2 text-right text-[.66rem] text-[var(--color-muted)]">
+              Cover letters are not saved — copy or download once you’re happy with it.
+            </div>
           </div>
         </motion.div>
       </div>

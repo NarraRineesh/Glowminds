@@ -7,7 +7,7 @@ All-in-one career assistant for students and fresh graduates. Build ATS-optimize
 | # | Feature | Description |
 |---|---------|-------------|
 | 1 | **Firebase Auth** | Email/Password + Google Sign-In, protected routes, Firestore user profiles |
-| 2 | **Job Board** | Live Remotive API search, skill-based match scoring, save/unsave jobs |
+| 2 | **Job Board** | Live ATS-sourced jobs (Greenhouse/Lever/Ashby/BambooHR/Workday) with skill-based match scoring, save/unsave jobs |
 | 3 | **Application Tracker** | Firestore-backed Kanban board with status management and notes |
 | 4 | **Resume Builder** | 3 templates (Classic/Modern/Minimal), ATS score, multi-page PDF export |
 | 5 | **AI Career Coach** | Multi-turn Gemini chat with history persistence, suggestion chips |

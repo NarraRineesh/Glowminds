@@ -1,23 +1,49 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users can only read/write their own document
+
+    // ----- helpers -----
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+    function isAdmin() {
+      return request.auth != null && request.auth.token.admin == true;
+    }
+    // ----- users root doc -----
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
     }
 
-    // Users can only access their own subcollections
+    // ----- all user subcollections (resumes, applications, savedJobs,
+    // notifications, aiChats, interviewSessions, chat (legacy), ...).
+    // Note: cover letters, JD matches, and daily quiz answers are NOT
+    // persisted server-side; only gamification fields on the user doc are
+    // written (quiz → XP; login → streak). -----
     match /users/{userId}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if isOwner(userId);
     }
 
-    // Jobs collection is readable by authenticated users
+    // ----- jobs (curated, optional) -----
     match /jobs/{jobId} {
       allow read: if request.auth != null;
-      allow write: if false; // Only backend can write
+      allow write: if isAdmin();
     }
 
-    // Contact form — public create with strict shape/size (spam/abuse mitigation; rate limits belong in Functions/App Check)
+    // ----- badges catalog (public read, admin write) -----
+    match /badges/{badgeId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Per-user tool usage counters live on `users/{uid}.usage` and are
+    // covered by the existing users rule (owner-read, owner-write).
+    // Admin-wide aggregation is exposed via the backend endpoint
+    // `GET /api/usage/aggregate` (requires the `admin` custom claim).
+
+    // ----- contact form (unauthenticated create, no read) -----
     match /contactMessages/{msgId} {
       allow create: if request.resource.data.keys().hasOnly(['name','email','mobile','subject','message','createdAt'])
         && request.resource.data.name is string
@@ -34,12 +60,6 @@ service cloud.firestore {
         && request.resource.data.message.size() <= 8000
         && request.resource.data.createdAt is timestamp;
       allow read, update, delete: if false;
-    }
-
-    // Site content — public read, admin-only write
-    match /siteContent/{docId} {
-      allow read: if true;  // Public read for landing page content
-      allow write: if request.auth != null && request.auth.token.admin == true;  // Admin-only write
     }
   }
 }

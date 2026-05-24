@@ -25,7 +25,7 @@ function buildLast7Days(currentStreak) {
   })
 }
 
-export default function StreakCard({ currentStreak = 7, longestStreak = 14 }) {
+export default function StreakCard({ currentStreak = 0, longestStreak = 0 }) {
   const next = MILESTONES.find((m) => m.at > currentStreak) || MILESTONES[MILESTONES.length - 1]
   const daysToNext = Math.max(0, next.at - currentStreak)
   const milestoneProgress = Math.min(100, Math.round((currentStreak / next.at) * 100))
@@ -47,7 +47,7 @@ export default function StreakCard({ currentStreak = 7, longestStreak = 14 }) {
 
       <div className="relative mb-2 flex items-center justify-between gap-2">
         <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--color-muted)]">
-          Current streak
+          Active days
         </span>
         <span className="rounded-full border border-[var(--color-bdr)] bg-[var(--color-gold2)] px-1.5 py-0.5 text-[0.58rem] font-bold uppercase tracking-wider text-[var(--color-gold)]">
           🏆 Best {longestStreak}d

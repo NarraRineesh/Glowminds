@@ -1,76 +1,29 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import useAppStore from '@/store/authStore'
-import useLandingStore from '@/store/landingStore'
 import useUpgradePro from '@/hooks/useUpgradePro'
 import Footer from '@/components/layout/Footer'
 import SEO from '@/components/SEO'
 import { pageUrl } from '@/config/site'
 import PublicFaqItem from '@/features/public/components/PublicFaqItem'
 import { fadeUp, motionEase, staggerFast } from '@/features/public/motionVariants'
+import { DEFAULT_LANDING_CONTENT } from '@/data/landingDefaults'
 import '@/styles/pricing.css'
 
-const FREE_FEATURES = [
-  { text: 'Job Search & Browse', included: true },
-  { text: 'Profile & Portfolio', included: true },
-  { text: '1 Resume Template', included: true },
-  { text: '5 Application Tracking', included: true },
-  { text: 'Basic Job Alerts', included: true },
-  { text: 'AI Career Coach', included: false },
-  { text: 'Interview Prep AI', included: false },
-  { text: 'Cover Letter Generator', included: false },
-  { text: 'All Resume Templates', included: false },
-  { text: 'Unlimited Tracking', included: false },
-  { text: 'Salary Insights', included: false },
-  { text: 'Priority Support', included: false },
-]
-
-const PRO_FEATURES = [
-  { text: 'Everything in Free', included: true, highlight: false },
-  { text: 'AI Career Coach (24/7)', included: true, highlight: true },
-  { text: 'AI Interview Prep', included: true, highlight: true },
-  { text: 'All 6 Resume Templates', included: true, highlight: false },
-  { text: 'Cover Letter Generator', included: true, highlight: true },
-  { text: 'Unlimited Applications', included: true, highlight: false },
-  { text: 'Unlimited Resumes', included: true, highlight: false },
-  { text: 'Salary Insights & Analytics', included: true, highlight: false },
-  { text: 'Skill Gap Analysis', included: true, highlight: true },
-  { text: 'Real-time Job Alerts', included: true, highlight: false },
-  { text: '1-Click Apply', included: true, highlight: false },
-  { text: 'Priority Support', included: true, highlight: false },
-]
-
-const COMPARE = [
-  { feature: 'Job Search', free: 'Basic', pro: 'Advanced + AI' },
-  { feature: 'Resume Builder', free: '1 template', pro: '6 templates' },
-  { feature: 'Application Tracker', free: '5 apps', pro: 'Unlimited' },
-  { feature: 'AI Career Coach', free: '—', pro: '24/7 access' },
-  { feature: 'Interview Prep', free: '—', pro: 'AI evaluator' },
-  { feature: 'Cover Letters', free: '—', pro: 'AI generated' },
-  { feature: 'Salary Insights', free: '—', pro: 'Full data' },
-  { feature: 'Job Alerts', free: 'Daily digest', pro: 'Real-time' },
-  { feature: 'Support', free: 'Community', pro: 'Priority' },
-]
-
-const FAQS = [
-  { q: 'What does the yearly plan include?', a: 'The Pro yearly plan gives you unlimited access to every feature — AI Career Coach, Interview Prep, all resume templates, cover letter generator, salary insights, and priority support. One payment, 12 months of full access.' },
-  { q: 'Can I cancel anytime?', a: 'Yes. You can cancel your subscription at any time from your dashboard. You\'ll continue to have Pro access until the end of your billing period. No questions asked.' },
-  { q: 'Is there a free trial?', a: 'We offer a generous free tier instead of a trial. You can use core features forever — job search, 1 resume, and 5 application tracking slots. Upgrade to Pro when you\'re ready.' },
-  { q: 'How does payment work?', a: 'We use Razorpay for secure payments. You can pay with UPI, credit/debit card, net banking, or wallets. Your payment information is encrypted end-to-end.' },
-  { q: 'Can I use this as a non-student?', a: 'Absolutely. While Glowminds is optimized for students and fresh graduates, anyone early in their career or looking to switch roles can benefit from our tools.' },
-]
+const {
+  pricing,
+  pricingComparison,
+  pricingFaqs,
+  freeFeatures,
+  proFeatures,
+} = DEFAULT_LANDING_CONTENT
 
 export default function PricingPage() {
   const navigate = useNavigate()
   const { loggedIn } = useAppStore()
-  const { pricing, pricingComparison, pricingFaqs, freeFeatures, proFeatures, fetchLandingContent } = useLandingStore()
   const { startUpgrade, loading } = useUpgradePro()
   const [openFaq, setOpenFaq] = useState(null)
-
-  useEffect(() => {
-    fetchLandingContent()
-  }, [fetchLandingContent])
 
   // Calculate monthly price from yearly price
   const getMonthlyPrice = () => {
@@ -143,7 +96,7 @@ export default function PricingPage() {
               {loggedIn ? 'Go to Dashboard' : 'Start Free'}
             </motion.button>
             <div className="pp-features">
-              {(freeFeatures || FREE_FEATURES).map((f, i) => (
+              {freeFeatures.map((f, i) => (
                 <div key={i} className={`pp-feat ${!f.included ? 'pp-feat--disabled' : ''}`}>
                   <span className={`pp-feat-icon ${f.included ? 'pp-feat-icon--yes' : 'pp-feat-icon--no'}`}>
                     {f.included ? '✓' : '—'}
@@ -173,7 +126,7 @@ export default function PricingPage() {
               {loading ? 'Processing...' : `Get Pro — ${pricing?.pro?.price || '₹399'}${pricing?.pro?.period || '/year'}`}
             </motion.button>
             <div className="pp-features">
-              {(proFeatures || PRO_FEATURES).map((f, i) => (
+              {proFeatures.map((f, i) => (
                 <div key={i} className="pp-feat">
                   <span className="pp-feat-icon pp-feat-icon--yes">✓</span>
                   <span style={{ fontWeight: f.highlight ? 700 : 500, color: f.highlight ? 'var(--color-txt)' : undefined }}>{f.text}</span>
@@ -201,7 +154,7 @@ export default function PricingPage() {
             <span className="pp-table-th">Free</span>
             <span className="pp-table-th pp-table-th--pro">Pro</span>
           </div>
-          {(pricingComparison || COMPARE).map((row, i) => (
+          {pricingComparison.map((row, i) => (
             <div key={i} className="pp-table-row">
               <span className="pp-table-cell pp-table-cell--feature">{row.feature}</span>
               <span className="pp-table-cell" style={{ color: row.free === '—' ? 'var(--color-muted)' : 'var(--color-txt2)' }}>{row.free}</span>
@@ -238,7 +191,7 @@ export default function PricingPage() {
         </motion.div>
 
         <motion.div variants={staggerFast} initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-40px' }}>
-          {(pricingFaqs || FAQS).map((f, i) => (
+          {pricingFaqs.map((f, i) => (
             <motion.div key={i} variants={fadeUp} transition={{ duration: .4, ease: motionEase }}>
               <PublicFaqItem
                 q={f.q}

@@ -1,61 +1,70 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import useAppStore from '@/store/authStore'
-import { getDailyQuestion, getTodayKey } from '@/features/dashboard/data/quizQuestions'
+import useDailyQuizStore from '@/store/dailyQuizStore'
+import { todayKey as quizTodayKey } from '@/utils/dateKeys'
+import useGamificationStore from '@/store/gamificationStore'
+import { getDailyQuestion } from '@/features/dashboard/data/quizQuestions'
 
-const STORAGE_KEY = 'nx_daily_quiz_state'
-
-function loadState() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    return JSON.parse(raw)
-  } catch {
-    return null
-  }
-}
-
-function saveState(state) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
-  } catch {
-    /* swallow */
-  }
-}
+const LEGACY_STORAGE_KEY = 'nx_daily_quiz_state'
 
 /**
  * Reusable Daily Quiz card. Used both inside the DailyQuizSection and the
- * DailyQuizModal popup. Persists today's answer locally so it survives
- * navigation and reload.
+ * DailyQuizModal popup.
+ *
+ * The answer itself is NOT persisted; the only server-side effect is the
+ * gamification update on the user doc. We treat
+ * `gamification.dailyQuizLastAnsweredDate === today` as "answered today".
  */
 export default function DailyQuizCard({ onComplete, compact = false }) {
   const { addToast } = useAppStore()
+  const recordAnswer = useDailyQuizStore((s) => s.recordAnswer)
+  const lastAnsweredQuestionId = useDailyQuizStore((s) => s.lastAnsweredQuestionId)
+  const lastAnsweredCorrect = useDailyQuizStore((s) => s.lastAnsweredCorrect)
+  const quizLastAnsweredDate = useGamificationStore((s) => s.gamification?.dailyQuizLastAnsweredDate)
+
   const question = getDailyQuestion()
-  const todayKey = getTodayKey()
+  const today = quizTodayKey()
 
   const [selected, setSelected] = useState(null)
   const [submitted, setSubmitted] = useState(false)
+  const [revealCorrect, setRevealCorrect] = useState(false)
 
   useEffect(() => {
-    const state = loadState()
-    if (state?.date === todayKey && state?.questionId === question.id) {
-      setSelected(state.selected)
+    if (quizLastAnsweredDate === today && !submitted) {
       setSubmitted(true)
+      if (lastAnsweredQuestionId === question.id) {
+        setRevealCorrect(!!lastAnsweredCorrect)
+      }
     }
-  }, [todayKey, question.id])
+  }, [quizLastAnsweredDate, today, submitted, lastAnsweredQuestionId, question.id, lastAnsweredCorrect])
 
-  const isCorrect = submitted && selected === question.correct
+  // Best-effort cleanup of the legacy localStorage key.
+  useEffect(() => {
+    try { localStorage.removeItem(LEGACY_STORAGE_KEY) } catch { /* ignore */ }
+  }, [])
 
-  const handleSubmit = () => {
+  const isCorrect = (submitted && selected !== null && selected === question.correct) || (submitted && revealCorrect)
+
+  const handleSubmit = async () => {
     if (selected == null || submitted) return
     setSubmitted(true)
-    saveState({ date: todayKey, questionId: question.id, selected })
-    if (selected === question.correct) {
-      addToast('success', `🎉 +${question.xp} XP — nice work!`)
-    } else {
-      addToast('info', '❌ Not quite — check the explanation')
+    const correct = selected === question.correct
+    setRevealCorrect(correct)
+
+    try {
+      const result = await recordAnswer({ questionId: question.id, isCorrect: correct })
+      if (result?.skipped && result.reason === 'already-answered-today') {
+        addToast('info', '✅ You already played today — come back tomorrow!')
+      } else if (correct) {
+        addToast('success', `🎉 +${result?.xpDelta ?? question.xp} XP`)
+      } else {
+        addToast('info', '❌ Not quite — check the explanation')
+      }
+    } catch (err) {
+      console.error('record daily quiz answer:', err)
     }
-    onComplete?.(selected === question.correct)
+    onComplete?.(correct)
   }
 
   return (
@@ -136,18 +145,25 @@ export default function DailyQuizCard({ onComplete, compact = false }) {
             transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
             className="overflow-hidden"
           >
-            <div
-              className={`mb-4 rounded-xl border px-3.5 py-3 text-[0.82rem] leading-relaxed ${
-                isCorrect
-                  ? 'border-[var(--color-grn)]/40 bg-[var(--color-grn2)] text-[var(--color-txt)]'
-                  : 'border-[var(--color-gold)]/40 bg-[var(--color-gold2)] text-[var(--color-txt)]'
-              }`}
-            >
-              <div className="mb-1 font-bold">
-                {isCorrect ? '🎯 Correct!' : '💡 Heads up'}
+            {selected == null ? (
+              <div className="mb-4 rounded-xl border border-[var(--color-bdr)] bg-[var(--color-bg2)] px-3.5 py-3 text-[0.82rem] leading-relaxed">
+                <div className="mb-1 font-bold">✅ You already played today</div>
+                <div className="text-[var(--color-txt2)]">Come back tomorrow for a fresh question and more XP.</div>
               </div>
-              <div className="text-[var(--color-txt2)]">{question.explanation}</div>
-            </div>
+            ) : (
+              <div
+                className={`mb-4 rounded-xl border px-3.5 py-3 text-[0.82rem] leading-relaxed ${
+                  isCorrect
+                    ? 'border-[var(--color-grn)]/40 bg-[var(--color-grn2)] text-[var(--color-txt)]'
+                    : 'border-[var(--color-gold)]/40 bg-[var(--color-gold2)] text-[var(--color-txt)]'
+                }`}
+              >
+                <div className="mb-1 font-bold">
+                  {isCorrect ? '🎯 Correct!' : '💡 Heads up'}
+                </div>
+                <div className="text-[var(--color-txt2)]">{question.explanation}</div>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -171,5 +187,3 @@ export default function DailyQuizCard({ onComplete, compact = false }) {
     </div>
   )
 }
-
-export { STORAGE_KEY as DAILY_QUIZ_STORAGE_KEY }

@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
 import SectionHeader from '@/components/dashboard/SectionHeader'
 import useAppStore from '@/store/authStore'
-import { db, auth } from '@/services/firebase'
+import useProfileStore from '@/store/profileStore'
+import { auth } from '@/services/firebase'
 import Loader from '@/components/Loader'
 import '@/styles/cards.css'
 import '@/styles/dashboard.css'
@@ -107,9 +107,9 @@ export default function LinkedInOptimizerSection() {
       const uid = auth.currentUser?.uid
       if (!uid) { setLoadingProfile(false); return }
       try {
-        const snap = await getDoc(doc(db, 'users', uid))
+        await useProfileStore.getState().load({ force: false })
         if (cancelled) return
-        const url = snap.exists() ? (snap.data()?.profile?.preferences?.linkedIn || '') : ''
+        const url = useProfileStore.getState().profile?.links?.linkedin || ''
         setProfileUrl(url)
         setEditing(!url)
         setDraft(url)
@@ -132,13 +132,10 @@ export default function LinkedInOptimizerSection() {
     const normalized = normalizeLinkedIn(draft)
     setSaving(true)
     try {
-      const snap = await getDoc(doc(db, 'users', uid))
-      const existing = snap.exists() ? (snap.data()?.profile || {}) : {}
-      const merged = {
-        ...existing,
-        preferences: { ...(existing.preferences || {}), linkedIn: normalized },
-      }
-      await setDoc(doc(db, 'users', uid), { profile: merged, updatedAt: serverTimestamp() }, { merge: true })
+      const existingLinks = useProfileStore.getState().profile?.links || {}
+      await useProfileStore.getState().updateProfile({
+        links: { ...existingLinks, linkedin: normalized },
+      })
       setProfileUrl(normalized)
       setDraft(normalized)
       setEditing(false)

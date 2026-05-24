@@ -4,15 +4,16 @@ import { motion } from 'framer-motion'
 import useAppStore from '@/store/authStore'
 import useJobStore from '@/store/jobStore'
 import useTrackerStore from '@/store/trackerStore'
-import useNotifStore from '@/store/notifStore'
-import { doc, getDoc } from 'firebase/firestore'
-import { db, auth } from '@/services/firebase'
+import useProfileStore from '@/store/profileStore'
+import useGamificationStore from '@/store/gamificationStore'
+import { computeXpProgress } from '@/utils/gamification'
+import { profileHasEducation } from '@/utils/educationEntries'
+import { auth } from '@/services/firebase'
 import StreakCard from '@/components/dashboard/StreakCard'
 import LevelProgress from '@/components/dashboard/LevelProgress'
-import QuickStats from '@/components/dashboard/QuickStats'
 import BadgesShowcase from '@/components/dashboard/BadgesShowcase'
 import Loader from '@/components/Loader'
-import { OPEN_NOTIFS_EVENT } from '@/constants/events'
+import { APPLICATION_STATUS, APPLICATION_STATUS_LABEL } from '@/constants/schema'
 import '@/styles/dashboard.css'
 import '@/styles/cards.css'
 import '@/styles/jobs.css'
@@ -25,6 +26,29 @@ const DAILY_TIPS = [
   { ico: '🔗', tip: 'Add a LinkedIn URL to your resume — 87% of recruiters use LinkedIn to vet candidates.' },
   { ico: '📊', tip: 'Quantify your achievements — "Increased sales by 25%" beats "Improved sales performance".' },
   { ico: '🎓', tip: 'List relevant certifications prominently — they can compensate for less experience.' },
+  { ico: '⚡', tip: 'Lead with your strongest projects on your resume — recruiters spend ~7 seconds on the first screen.' },
+  { ico: '🧠', tip: 'Prepare 3 stories for behavioral rounds: conflict, failure, and leadership — reuse them across questions.' },
+  { ico: '💼', tip: 'Keep your resume to one page if you have under 3 years of experience — clarity beats length.' },
+  { ico: '🌐', tip: 'Mirror keywords from the job description in your skills and summary — without keyword stuffing.' },
+  { ico: '📧', tip: 'Use a professional email (firstname.lastname@) — avoid nicknames and numbers when possible.' },
+  { ico: '🏢', tip: 'Research the company’s product and recent news before interviews — it shows genuine interest.' },
+  { ico: '💬', tip: 'End interviews with one thoughtful question — "What does success look like in the first 90 days?" works well.' },
+  { ico: '🚀', tip: 'Freshers: highlight internships and academic projects with tech stack and measurable outcomes.' },
+  { ico: '🔍', tip: 'Set job alerts on 2–3 platforms and batch-apply weekly — consistency beats one marathon session.' },
+  { ico: '📱', tip: 'Optimize your LinkedIn headline for the role you want, not just your current title.' },
+  { ico: '⏱️', tip: 'Block 30 minutes daily for applications or skill practice — small habits compound.' },
+  { ico: '🛠️', tip: 'List tools you have actually used in projects — "familiar with" skills get tested in interviews.' },
+  { ico: '📄', tip: 'Export your resume as PDF with embedded fonts — avoids layout breaks on recruiter screens.' },
+  { ico: '🎤', tip: 'Practice answers out loud, not just in your head — it reduces filler words under pressure.' },
+  { ico: '💰', tip: 'Research salary ranges before HR calls — use levels.fyi, AmbitionBox, or peer networks.' },
+  { ico: '🧩', tip: 'For coding rounds, talk through your approach before typing — communication matters as much as code.' },
+  { ico: '✉️', tip: 'Personalize the first line of outreach emails — mention a specific post or product, not "Dear Sir/Madam".' },
+  { ico: '🔄', tip: 'Track every application in one place — follow-ups are easier when you know dates and contacts.' },
+  { ico: '🌟', tip: 'Ask teammates or professors for a one-line recommendation you can quote on LinkedIn or your resume.' },
+  { ico: '📅', tip: 'Schedule interviews when you are alert — morning slots often beat back-to-back evening slots.' },
+  { ico: '🧘', tip: 'After a rejection, request brief feedback — many recruiters will share one actionable improvement.' },
+  { ico: '🏆', tip: 'Put hackathons, open source, or club leadership in a dedicated section — they signal initiative.' },
+  { ico: '🔐', tip: 'Remove "References available upon request" — it wastes space; offer references only when asked.' },
 ]
 
 const TRENDING_SKILLS = [
@@ -47,46 +71,63 @@ export default function OverviewSection() {
   const navigate = useNavigate()
   const { user } = useAppStore()
   const { jobs, loading: jobsLoading, fetchJobs } = useJobStore()
+  const loadProfileForJobs = useProfileStore((s) => s.load)
   const { apps, loadApps } = useTrackerStore()
-  const unread = useNotifStore(s => s.notifs.filter(n => !n.read).length)
-
-  const [profileData, setProfileData] = useState(null)
+  const profileData = useProfileStore((s) => s.profile)
+  const loadProfileStore = useProfileStore((s) => s.load)
+  const gamification = useGamificationStore((s) => s.gamification)
+  const loadGamificationCatalog = useGamificationStore((s) => s.loadCatalog)
+  const syncEligibleBadges = useGamificationStore((s) => s.syncEligibleBadges)
+  const savedJobs = useJobStore((s) => s.savedJobs)
+  const loadSavedJobs = useJobStore((s) => s.loadSavedJobs)
 
   const loadProfileData = useCallback(async () => {
-    const uid = auth.currentUser?.uid
-    if (!uid) return
+    if (!auth.currentUser?.uid) return
     try {
-      const snap = await getDoc(doc(db, 'users', uid))
-      if (snap.exists() && snap.data().profile) setProfileData(snap.data().profile)
+      await loadProfileStore({ force: false })
     } catch (e) { console.error('Load profile for overview:', e) }
-  }, [])
+  }, [loadProfileStore])
 
   useEffect(() => {
+    // `jobs.length` is intentionally NOT in the deps array — it's only read
+    // as a gate, not consumed. Re-including it caused the whole bootstrap
+    // bundle (profile/apps/saved jobs/badges/jobs) to re-fire every time
+    // the jobs cache flipped from 0 → N. The store now also coalesces
+    // duplicate fetchJobs calls, so a stale read here is harmless.
     const id = requestAnimationFrame(() => {
-      if (jobs.length === 0) fetchJobs()
-      loadApps()
       loadProfileData()
+      loadProfileForJobs({ force: false }).then(() => {
+        if (useJobStore.getState().jobs.length === 0) fetchJobs()
+      })
+      loadApps()
+      loadSavedJobs()
+      loadGamificationCatalog()
+      syncEligibleBadges()
     })
     return () => cancelAnimationFrame(id)
-  }, [jobs.length, fetchJobs, loadApps, loadProfileData])
+  }, [fetchJobs, loadApps, loadProfileData, loadProfileForJobs, loadSavedJobs, loadGamificationCatalog, syncEligibleBadges])
 
-  const inReview = apps.filter(a => a.status === 'In Review').length
-  const interviews = apps.filter(a => a.status === 'Interview').length
+  const streak = gamification?.streak || {}
+  const xpProgress = computeXpProgress(gamification?.xp || 0, gamification?.level)
 
-  const pSkills = profileData?.skills || []
-  const pEdu = profileData?.education || {}
+  const inReview = apps.filter(a => a.status === APPLICATION_STATUS.IN_REVIEW).length
+  const interviews = apps.filter(a => a.status === APPLICATION_STATUS.INTERVIEW).length
+
+  const pSkillsTechnical = profileData?.skills?.technical || []
+  const pEduHas = profileHasEducation(profileData || {})
   const pExps = Array.isArray(profileData?.experience) ? profileData.experience : []
   const pPrefs = profileData?.preferences || {}
+  const pLinks = profileData?.links || {}
   const pSummary = profileData?.summary || ''
   const isFresher = profileData?.isFresher || false
 
   const tips = [
     [!!user?.displayName, 'Complete your profile'],
-    [pSkills.length >= 3, 'Add your skills'],
-    [!!pEdu.degree && !!pEdu.college, 'Add education'],
-    [pExps.some(e => e.company) || isFresher, 'Add experience'],
+    [pSkillsTechnical.length >= 3, 'Add your skills'],
+    [pEduHas, 'Add education'],
+    [isFresher || pExps.some((e) => e.company || e.role), 'Add experience'],
     [!!pPrefs.expectedCTC, 'Set salary expectations'],
-    [!!pPrefs.github || !!pPrefs.linkedIn, 'Add GitHub or LinkedIn'],
+    [!!pLinks.github || !!pLinks.linkedin, 'Add GitHub or LinkedIn'],
     [!!pSummary, 'Write a summary'],
     [!!user?.photoURL, 'Add profile photo'],
   ]
@@ -121,7 +162,7 @@ export default function OverviewSection() {
 
   const appsInWindow = useMemo(() => {
     return apps.filter((a) => {
-      const ad = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || a.date)
+      const ad = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || a.appliedDate)
       return ad >= windowStart
     })
   }, [apps, windowStart])
@@ -146,7 +187,7 @@ export default function OverviewSection() {
         ? b.start.toLocaleDateString('en-IN', { weekday: 'short' })
         : b.start.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
       b.count = apps.filter((a) => {
-        const ad = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || a.date)
+        const ad = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || a.appliedDate)
         return ad >= b.start && ad < end
       }).length
     })
@@ -157,41 +198,109 @@ export default function OverviewSection() {
 
   const responseRate = useMemo(() => {
     if (appsInWindow.length === 0) return { rate: 0, moved: 0, total: 0 }
-    const moved = appsInWindow.filter((a) => a.status !== 'Applied' && a.status !== 'Rejected').length
+    const moved = appsInWindow.filter((a) => a.status !== APPLICATION_STATUS.APPLIED && a.status !== APPLICATION_STATUS.REJECTED).length
     return { rate: Math.round((moved / appsInWindow.length) * 100), moved, total: appsInWindow.length }
   }, [appsInWindow])
 
   const avgDaysToResponse = useMemo(() => {
-    const responded = appsInWindow.filter((a) => a.status !== 'Applied')
+    const responded = appsInWindow.filter((a) => a.status !== APPLICATION_STATUS.APPLIED)
     if (responded.length === 0) return null
     const days = responded.map((a) => {
-      const created = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || a.date)
-      const updated = a.updatedAt?.toDate ? a.updatedAt.toDate() : new Date(a.updatedAt || a.date)
+      const created = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || a.appliedDate)
+      const updated = a.updatedAt?.toDate ? a.updatedAt.toDate() : new Date(a.updatedAt || a.appliedDate)
       return Math.max(1, Math.round((updated - created) / 86400000))
     })
     return Math.round(days.reduce((s, d) => s + d, 0) / days.length)
   }, [appsInWindow])
-
-  const activityGrid = useMemo(() => {
-    const days = windowDays
-    const grid = Array.from({ length: days }, (_, i) => {
-      const d = new Date(); d.setDate(d.getDate() - (days - 1 - i))
-      d.setHours(0, 0, 0, 0)
-      const next = new Date(d); next.setDate(next.getDate() + 1)
-      const count = apps.filter((a) => {
-        const ad = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || a.date)
-        return ad >= d && ad < next
-      }).length
-      return { date: d, count }
-    })
-    return grid
-  }, [apps, windowDays])
 
   const statusBreakdown = useMemo(() => {
     const m = {}
     appsInWindow.forEach((a) => { m[a.status] = (m[a.status] || 0) + 1 })
     return m
   }, [appsInWindow])
+
+  // Single highest-leverage next action, derived from the current user state.
+  // The order matters: earlier branches win, so list them most-blocking first.
+  const nextBestAction = useMemo(() => {
+    if (interviews > 0) {
+      return {
+        icon: '🎯',
+        label: 'You have an interview lined up',
+        body: 'Run a 10-question AI mock interview tailored to your role — practice beats nerves.',
+        cta: 'Open Interview Prep',
+        href: '/dashboard/interview',
+        tone: 'prp',
+      }
+    }
+    if (profileScore < 60) {
+      return {
+        icon: '👤',
+        label: 'Finish your profile first',
+        body: `You're at ${profileScore}% — every other tool gets sharper once we know your skills, experience and preferences.`,
+        cta: 'Complete Profile',
+        href: '/dashboard/profile',
+        tone: 'blu',
+      }
+    }
+    if (apps.length === 0) {
+      return {
+        icon: '🚀',
+        label: 'Apply to your first 3 roles',
+        body: 'We pulled live matches based on your skills. Bookmark, apply, and we’ll track everything for you.',
+        cta: 'Browse Job Board',
+        href: '/dashboard/jobs',
+        tone: 'grn',
+      }
+    }
+    if (savedJobs.length > 0 && apps.length > 0) {
+      const ratio = apps.length / Math.max(1, apps.length + savedJobs.length)
+      if (ratio < 0.5) {
+        return {
+          icon: '📤',
+          label: `You have ${savedJobs.length} saved jobs waiting`,
+          body: 'Convert your shortlist into applications — generate a tailored cover letter with one click.',
+          cta: 'See Saved Jobs',
+          href: '/dashboard/jobs',
+          tone: 'gold',
+        }
+      }
+    }
+    if (responseRate.total >= 5 && responseRate.rate < 25) {
+      return {
+        icon: '✨',
+        label: 'Boost your response rate',
+        body: `${responseRate.rate}% reply rate over ${responseRate.total} apps — let AI polish your resume and cover letters before the next batch.`,
+        cta: 'Run Profile Review',
+        href: '/dashboard/profile',
+        tone: 'gold',
+      }
+    }
+    if ((streak.current || 0) < 3) {
+      return {
+        icon: '🔥',
+        label: 'Build a 3-day apply streak',
+        body: 'Consistency compounds — even 1 application per day keeps recruiters seeing you near the top.',
+        cta: 'Browse Job Board',
+        href: '/dashboard/jobs',
+        tone: 'grn',
+      }
+    }
+    return {
+      icon: '🎓',
+      label: 'Sharpen your skills with the daily quiz',
+      body: 'Earn XP, keep your streak alive, and stay interview-ready while you wait for responses.',
+      cta: 'Practice now',
+      href: '/dashboard/interview',
+      tone: 'blu',
+    }
+  }, [apps.length, savedJobs.length, interviews, profileScore, responseRate, streak.current])
+
+  const NBA_TONE = {
+    blu: { bg: 'rgba(56,139,253,.08)', bd: 'rgba(56,139,253,.25)', fg: 'var(--color-blu2)' },
+    grn: { bg: 'rgba(46,160,67,.08)', bd: 'rgba(46,160,67,.25)', fg: 'var(--color-grn)' },
+    gold: { bg: 'rgba(210,168,67,.08)', bd: 'rgba(210,168,67,.25)', fg: 'var(--color-gold)' },
+    prp: { bg: 'rgba(163,113,247,.08)', bd: 'rgba(163,113,247,.25)', fg: 'var(--color-prp)' },
+  }
 
   return (
     <>
@@ -211,7 +320,7 @@ export default function OverviewSection() {
         <div className="relative mt-1 flex flex-wrap items-center gap-x-2 text-sm leading-relaxed text-[var(--color-txt2)]">
           <span className="inline-block h-2 w-2 shrink-0 animate-pulse rounded-full bg-[var(--color-grn)] shadow-[0_0_8px_var(--color-grn)]" />
           <span>
-            Live job feed active · Remotive API ·{' '}
+            Live job feed active ·{' '}
             {new Date().toLocaleDateString('en-IN', { weekday: 'long', month: 'short', day: 'numeric' })}
           </span>
         </div>
@@ -227,17 +336,17 @@ export default function OverviewSection() {
         <motion.div variants={{ hidden: { opacity: 0, y: 18 }, visible: { opacity: 1, y: 0 } }} transition={{ duration: .45, ease: [0.16,1,0.3,1] }} className="kpi k2 cursor-pointer" onClick={() => navigate('/dashboard/applications')}>
           <div className="kpi-ic">📋</div><div className="kpi-lbl">Applications</div>
           <div className="kpi-val">{apps.length}</div>
-          <div className="kpi-sub">{inReview > 0 ? `${inReview} in review` : ''}{inReview > 0 && interviews > 0 ? ' · ' : ''}{interviews > 0 ? `${interviews} interview` : ''}{!inReview && !interviews ? 'Start applying!' : ''}</div>
+          <div className="kpi-sub">{apps.length === 0 ? 'Start applying!' : inReview > 0 ? `${inReview} in review` : 'Track every apply'}</div>
         </motion.div>
-        <motion.div variants={{ hidden: { opacity: 0, y: 18 }, visible: { opacity: 1, y: 0 } }} transition={{ duration: .45, ease: [0.16,1,0.3,1] }} className="kpi k3 cursor-pointer" onClick={() => navigate('/dashboard/profile')}>
-          <div className="kpi-ic">📄</div><div className="kpi-lbl">Profile Score</div>
-          <div className="kpi-val">{profileScore}%</div>
-          <div className="kpi-sub">{profileScore < 60 ? 'Needs work' : profileScore < 80 ? 'Getting there' : 'Looking great!'}</div>
+        <motion.div variants={{ hidden: { opacity: 0, y: 18 }, visible: { opacity: 1, y: 0 } }} transition={{ duration: .45, ease: [0.16,1,0.3,1] }} className="kpi k3 cursor-pointer" onClick={() => navigate('/dashboard/jobs')}>
+          <div className="kpi-ic">🔖</div><div className="kpi-lbl">Saved Jobs</div>
+          <div className="kpi-val">{savedJobs.length}</div>
+          <div className="kpi-sub">{savedJobs.length > 0 ? 'Ready to apply' : 'Bookmark roles you like'}</div>
         </motion.div>
-        <motion.div variants={{ hidden: { opacity: 0, y: 18 }, visible: { opacity: 1, y: 0 } }} transition={{ duration: .45, ease: [0.16,1,0.3,1] }} className="kpi k4 cursor-pointer" onClick={() => window.dispatchEvent(new CustomEvent(OPEN_NOTIFS_EVENT))}>
-          <div className="kpi-ic">🔔</div><div className="kpi-lbl">Alerts</div>
-          <div className="kpi-val">{unread}</div>
-          <div className="kpi-sub">{unread > 0 ? 'Unread notifications' : 'All caught up!'}</div>
+        <motion.div variants={{ hidden: { opacity: 0, y: 18 }, visible: { opacity: 1, y: 0 } }} transition={{ duration: .45, ease: [0.16,1,0.3,1] }} className="kpi k4 cursor-pointer" onClick={() => navigate('/dashboard/applications')}>
+          <div className="kpi-ic">🎤</div><div className="kpi-lbl">Interviews</div>
+          <div className="kpi-val">{interviews}</div>
+          <div className="kpi-sub">{interviews > 0 ? `${interviews} scheduled · prep with AI` : 'None yet — keep applying!'}</div>
         </motion.div>
       </motion.div>
 
@@ -253,7 +362,7 @@ export default function OverviewSection() {
                 <div className="jml bg-[var(--color-bg3)]">{j.logo}</div>
                 <div className="flex-1 min-w-0">
                   <div className="jmt">{j.title}</div>
-                  <div className="jmc">{j.co} · {j.loc}</div>
+                  <div className="jmc">{j.company || j.co} · {j.location || j.loc}</div>
                 </div>
                 <div className="text-right">
                   <div className="jmm">{j.match}%</div>
@@ -308,20 +417,26 @@ export default function OverviewSection() {
               </div>
             ) : (
               recentApps.map((a) => {
-                const statusColors = { Applied: 'var(--color-blu)', 'In Review': 'var(--color-gold)', Interview: 'var(--color-prp)', Offer: 'var(--color-grn)' }
+                const statusColors = {
+                  [APPLICATION_STATUS.APPLIED]: 'var(--color-blu)',
+                  [APPLICATION_STATUS.IN_REVIEW]: 'var(--color-gold)',
+                  [APPLICATION_STATUS.INTERVIEW]: 'var(--color-prp)',
+                  [APPLICATION_STATUS.OFFER]: 'var(--color-grn)',
+                  [APPLICATION_STATUS.REJECTED]: 'var(--color-red, #e5534b)',
+                }
                 const sc = statusColors[a.status] || 'var(--color-blu)'
                 return (
                   <div key={a.id} className="flex items-center gap-3 border-b border-[var(--color-bdr)] px-3 py-2.5 last:border-b-0">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--color-bg3)] text-base">{a.logo || '💼'}</div>
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[0.82rem] font-bold text-[var(--color-txt)]">{a.role}</div>
-                      <div className="text-[0.72rem] text-[var(--color-muted)]">{a.co} · {a.date}</div>
+                      <div className="text-[0.72rem] text-[var(--color-muted)]">{a.company} · {a.appliedDate}</div>
                     </div>
                     <span
                       className="shrink-0 whitespace-nowrap rounded-md px-2 py-0.5 text-[0.68rem] font-bold"
                       style={{ background: `${sc}18`, color: sc }}
                     >
-                      {a.status}
+                      {APPLICATION_STATUS_LABEL[a.status] || a.status}
                     </span>
                   </div>
                 )
@@ -426,37 +541,46 @@ export default function OverviewSection() {
       </div>
 
       <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-        {/* Activity Heatmap */}
-        <div className="card">
-          <div className="ch"><h3>🟩 Activity (Last {windowDays} days)</h3></div>
-          <div className="cb px-3.5 py-3">
-            <div className={`grid gap-1 ${windowDays === 7 ? 'grid-cols-7' : 'grid-cols-10'}`}>
-              {activityGrid.map((d, i) => (
-                <div
-                  key={i}
-                  title={`${d.date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}: ${d.count} apps`}
-                  className="aspect-square rounded-[3px] transition-colors"
-                  style={{
-                    background: d.count === 0 ? 'var(--color-bg3)' : d.count === 1 ? 'rgba(46,160,67,.25)' : d.count === 2 ? 'rgba(46,160,67,.5)' : 'rgba(46,160,67,.8)',
-                  }}
-                />
-              ))}
-            </div>
-            <div className="mt-2 flex items-center justify-between">
-              <span className="text-[0.6rem] text-[var(--color-muted)]">Less</span>
-              <div className="flex gap-1">
-                {[0, 1, 2, 3].map((l) => (
-                  <div
-                    key={l}
-                    className="h-2.5 w-2.5 rounded-sm"
-                    style={{
-                      background: l === 0 ? 'var(--color-bg3)' : l === 1 ? 'rgba(46,160,67,.25)' : l === 2 ? 'rgba(46,160,67,.5)' : 'rgba(46,160,67,.8)',
-                    }}
-                  />
-                ))}
+        {/* Next Best Action — smart, data-driven nudge that replaces the
+            heatmap (which duplicated the timeline series). Picks ONE thing
+            to do next based on profile completion, app pipeline state,
+            response rate and streak. */}
+        <div
+          className="card"
+          style={{
+            borderColor: NBA_TONE[nextBestAction.tone].bd,
+            background: NBA_TONE[nextBestAction.tone].bg,
+          }}
+        >
+          <div className="ch"><h3>🧭 Next best action</h3></div>
+          <div className="cb px-4 py-4 flex flex-col gap-3">
+            <div className="flex items-start gap-3">
+              <div
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xl"
+                style={{ background: 'var(--color-surf)', border: `1px solid ${NBA_TONE[nextBestAction.tone].bd}` }}
+                aria-hidden
+              >
+                {nextBestAction.icon}
               </div>
-              <span className="text-[0.6rem] text-[var(--color-muted)]">More</span>
+              <div className="min-w-0 flex-1">
+                <div
+                  className="text-[0.86rem] font-extrabold leading-tight"
+                  style={{ color: NBA_TONE[nextBestAction.tone].fg }}
+                >
+                  {nextBestAction.label}
+                </div>
+                <div className="mt-1 text-[0.78rem] leading-relaxed text-[var(--color-txt2)]">
+                  {nextBestAction.body}
+                </div>
+              </div>
             </div>
+            <button
+              type="button"
+              className="btn btn-p btn-sm self-start"
+              onClick={() => navigate(nextBestAction.href)}
+            >
+              {nextBestAction.cta} →
+            </button>
           </div>
         </div>
 
@@ -468,20 +592,21 @@ export default function OverviewSection() {
             ) : (
               <div className="flex flex-col gap-2.5">
                 {[
-                  { status: 'Applied', color: 'var(--color-blu)', ico: '📤' },
-                  { status: 'In Review', color: 'var(--color-gold)', ico: '👀' },
-                  { status: 'Interview', color: 'var(--color-prp)', ico: '🎙️' },
-                  { status: 'Offer', color: 'var(--color-grn)', ico: '🎉' },
-                  { status: 'Rejected', color: 'var(--color-red)', ico: '❌' },
+                  { status: APPLICATION_STATUS.APPLIED, color: 'var(--color-blu)', ico: '📤' },
+                  { status: APPLICATION_STATUS.IN_REVIEW, color: 'var(--color-gold)', ico: '👀' },
+                  { status: APPLICATION_STATUS.INTERVIEW, color: 'var(--color-prp)', ico: '🎙️' },
+                  { status: APPLICATION_STATUS.OFFER, color: 'var(--color-grn)', ico: '🎉' },
+                  { status: APPLICATION_STATUS.REJECTED, color: 'var(--color-red)', ico: '❌' },
                 ].map((s) => {
                   const count = statusBreakdown[s.status] || 0
                   const pct = appsInWindow.length > 0 ? Math.round((count / appsInWindow.length) * 100) : 0
+                  const label = APPLICATION_STATUS_LABEL[s.status] || s.status
                   return (
                     <div key={s.status} className="flex items-center gap-2.5">
                       <span className="w-5 shrink-0 text-center text-[0.82rem]">{s.ico}</span>
                       <div className="min-w-0 flex-1">
                         <div className="mb-1 flex justify-between gap-2">
-                          <span className="text-[0.74rem] font-semibold text-[var(--color-txt)]">{s.status}</span>
+                          <span className="text-[0.74rem] font-semibold text-[var(--color-txt)]">{label}</span>
                           <span className="shrink-0 font-mono text-[0.68rem] font-extrabold" style={{ color: s.color }}>{count} ({pct}%)</span>
                         </div>
                         <div className="h-1.5 overflow-hidden rounded-md bg-[var(--color-bg3)]">
@@ -544,10 +669,9 @@ export default function OverviewSection() {
         </div>
       </div>
 
-      <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2 md:items-stretch lg:grid-cols-3 lg:gap-3.5 [&>*]:min-h-0">
-        <StreakCard currentStreak={7} longestStreak={14} />
-        <LevelProgress level={5} xp={650} xpToNext={350} />
-        <QuickStats apps={apps.length} jobsSaved={12} xpEarned={250} activeDays={5} />
+      <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2 md:items-stretch md:gap-3.5 [&>*]:min-h-0">
+        <StreakCard currentStreak={streak.current || 0} longestStreak={streak.longest || 0} />
+        <LevelProgress level={xpProgress.level} xp={xpProgress.xp} xpToNext={xpProgress.xpToNext} />
       </div>
 
       {/* Achievements */}

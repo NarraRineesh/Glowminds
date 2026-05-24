@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect } from 'react'
 import { MotionConfig } from 'framer-motion'
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom'
 import useAuthListener from '@/hooks/useAuthListener'
 import DashboardNavProvider from '@/context/DashboardNavProvider'
 import Navbar from '@/components/layout/Navbar'
@@ -30,12 +30,14 @@ const ApplicationsSection = lazy(() => import('@/features/dashboard/sections/App
 const ProfileSection = lazy(() => import('@/features/dashboard/sections/ProfileSection'))
 const InterviewSection = lazy(() => import('@/features/dashboard/sections/InterviewSection'))
 const DailyQuizSection = lazy(() => import('@/features/dashboard/sections/DailyQuizSection'))
-const JDMatcherSection = lazy(() => import('@/features/dashboard/sections/JDMatcherSection'))
 const CoverLettersSection = lazy(() => import('@/features/dashboard/sections/CoverLettersSection'))
 const LinkedInOptimizerSection = lazy(() => import('@/features/dashboard/sections/LinkedInOptimizerSection'))
 const SalaryInsightsSection = lazy(() => import('@/features/dashboard/sections/SalaryInsightsSection'))
 const BadgesSection = lazy(() => import('@/features/dashboard/sections/BadgesSection'))
 const SettingsSection = lazy(() => import('@/features/dashboard/sections/SettingsSection'))
+const GrammarCheckSection = lazy(() => import('@/features/dashboard/sections/GrammarCheckSection'))
+const ParaphrasingSection = lazy(() => import('@/features/dashboard/sections/ParaphrasingSection'))
+const AdminSection = lazy(() => import('@/features/dashboard/sections/AdminSection'))
 
 function PageLoader() {
   return <Loader variant="section" />
@@ -107,11 +109,7 @@ function AnimatedRoutes() {
             <DailyQuizSection />
           </Suspense>
         } />
-        <Route path="jd-matcher" element={
-          <Suspense fallback={<PageLoader />}>
-            <JDMatcherSection />
-          </Suspense>
-        } />
+        <Route path="jd-matcher" element={<Navigate to="/dashboard/jobs" replace />} />
         <Route path="cover-letters" element={
           <Suspense fallback={<PageLoader />}>
             <CoverLettersSection />
@@ -135,6 +133,21 @@ function AnimatedRoutes() {
         <Route path="settings" element={
           <Suspense fallback={<PageLoader />}>
             <SettingsSection />
+          </Suspense>
+        } />
+        <Route path="grammar-check" element={
+          <Suspense fallback={<PageLoader />}>
+            <GrammarCheckSection />
+          </Suspense>
+        } />
+        <Route path="paraphrase" element={
+          <Suspense fallback={<PageLoader />}>
+            <ParaphrasingSection />
+          </Suspense>
+        } />
+        <Route path="admin" element={
+          <Suspense fallback={<PageLoader />}>
+            <AdminSection />
           </Suspense>
         } />
       </Route>

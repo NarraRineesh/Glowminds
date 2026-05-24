@@ -7,13 +7,7 @@ export const fadeUp = {
   visible: { opacity: 1, y: 0 },
 }
 
-/** Hero-style fade with smaller vertical nudge */
-export const fadeUpSm = {
-  hidden: { opacity: 0, y: 24 },
-  visible: { opacity: 1, y: 0 },
-}
-
-export function staggerChildren(stagger = 0.12, delayChildren = 0) {
+function staggerChildren(stagger = 0.12, delayChildren = 0) {
   return {
     hidden: {},
     visible: { transition: { staggerChildren: stagger, delayChildren } },

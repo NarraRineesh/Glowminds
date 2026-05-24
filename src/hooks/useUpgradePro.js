@@ -1,12 +1,7 @@
 import { useCallback, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getFunctions, httpsCallable } from 'firebase/functions'
-import app from '@/services/firebase'
+import { apiFetch } from '@/services/apiClient'
 import useAppStore from '@/store/authStore'
-
-const functions = getFunctions(app)
-const createOrderFn = httpsCallable(functions, 'createOrder')
-const verifyPaymentFn = httpsCallable(functions, 'verifyPayment')
 
 function loadRazorpayScript() {
   return new Promise((resolve) => {
@@ -47,7 +42,7 @@ export default function useUpgradePro() {
           return
         }
 
-        const { data } = await createOrderFn({ plan })
+        const data = await apiFetch('/payments/create-order', { body: { plan } })
         const { orderId, amount, currency, key } = data
 
         const options = {
@@ -59,10 +54,12 @@ export default function useUpgradePro() {
           order_id: orderId,
           handler: async (response) => {
             try {
-              await verifyPaymentFn({
-                orderId: response.razorpay_order_id,
-                paymentId: response.razorpay_payment_id,
-                signature: response.razorpay_signature,
+              await apiFetch('/payments/verify-payment', {
+                body: {
+                  orderId: response.razorpay_order_id,
+                  paymentId: response.razorpay_payment_id,
+                  signature: response.razorpay_signature,
+                },
               })
               addToast('success', '🎉 Welcome to Glowminds Pro!')
               if (typeof onSuccess === 'function') {

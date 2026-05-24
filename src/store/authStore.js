@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, signOut, updateProfile } from 'firebase/auth'
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
 import { auth, googleProvider, db } from '@/services/firebase'
+import { createDefaultUserDoc } from '@/constants/schema'
 
 const useAppStore = create((set) => ({
   authLoading: true,
@@ -29,22 +30,17 @@ const useAppStore = create((set) => ({
     const displayName = `${firstName} ${lastName}`.trim()
     await updateProfile(cred.user, { displayName })
 
-    await setDoc(doc(db, 'users', cred.user.uid), {
+    const userDoc = createDefaultUserDoc({
+      uid: cred.user.uid,
       email: cred.user.email,
-      displayName,
       firstName,
       lastName: lastName || '',
-      photoURL: null,
+      displayName,
+    })
+    await setDoc(doc(db, 'users', cred.user.uid), {
+      ...userDoc,
       createdAt: serverTimestamp(),
-      profile: {
-        skills: [],
-        experience: 0,
-        preferredRoles: [],
-        locations: [],
-      },
-      settings: {
-        emailNotifications: true,
-      },
+      updatedAt: serverTimestamp(),
     })
 
     return cred.user
@@ -52,25 +48,21 @@ const useAppStore = create((set) => ({
 
   doGoogleLogin: async () => {
     const cred = await signInWithPopup(auth, googleProvider)
-    const userDoc = await getDoc(doc(db, 'users', cred.user.uid))
-    if (!userDoc.exists()) {
+    const existing = await getDoc(doc(db, 'users', cred.user.uid))
+    if (!existing.exists()) {
       const gName = cred.user.displayName || ''
-      await setDoc(doc(db, 'users', cred.user.uid), {
+      const userDoc = createDefaultUserDoc({
+        uid: cred.user.uid,
         email: cred.user.email,
-        displayName: gName,
         firstName: gName.split(' ')[0] || '',
         lastName: gName.split(' ').slice(1).join(' ') || '',
+        displayName: gName,
         photoURL: cred.user.photoURL,
+      })
+      await setDoc(doc(db, 'users', cred.user.uid), {
+        ...userDoc,
         createdAt: serverTimestamp(),
-        profile: {
-          skills: [],
-          experience: 0,
-          preferredRoles: [],
-          locations: [],
-        },
-        settings: {
-          emailNotifications: true,
-        },
+        updatedAt: serverTimestamp(),
       })
     }
     return cred.user
@@ -102,6 +94,22 @@ const useAppStore = create((set) => ({
     await setDoc(doc(db, 'users', user.uid), { photoURL }, { merge: true })
     set(s => ({ user: { ...s.user, photoURL } }))
     return photoURL
+  },
+
+  removePhotoURL: async () => {
+    const user = auth.currentUser
+    if (!user) return
+    // Clear in Firestore (UI key) and on the Firebase Auth user so
+    // displayName-driven fallbacks (initials) take over everywhere.
+    await setDoc(doc(db, 'users', user.uid), { photoURL: null }, { merge: true })
+    try {
+      await updateProfile(user, { photoURL: null })
+    } catch (err) {
+      // Auth side can be flaky if user signed in via a different provider —
+      // Firestore is the source of truth so we don't block on it.
+      console.warn('removePhotoURL auth profile clear:', err?.message || err)
+    }
+    set(s => ({ user: { ...s.user, photoURL: null } }))
   },
 
   updateDisplayName: async (firstName, lastName) => {

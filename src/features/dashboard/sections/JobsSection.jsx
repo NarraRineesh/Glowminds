@@ -2,27 +2,25 @@ import { useState, useEffect } from 'react'
 import useAppStore from '@/store/authStore'
 import useJobStore from '@/store/jobStore'
 import useTrackerStore from '@/store/trackerStore'
-import { getFunctions, httpsCallable } from 'firebase/functions'
-import { doc, getDoc } from 'firebase/firestore'
-import { db, auth } from '@/services/firebase'
-import app from '@/services/firebase'
+import useProfileStore from '@/store/profileStore'
+import { apiFetch } from '@/services/apiClient'
 import Loader from '@/components/Loader'
+import { APPLICATION_STATUS } from '@/constants/schema'
+import { formatDateRange } from '@/utils/profileDates'
+import { formatPrimaryEducationSummary } from '@/utils/educationEntries'
 import '@/styles/dashboard.css'
 import '@/styles/jobs.css'
 import '@/styles/cards.css'
 import '@/styles/forms.css'
 import '@/styles/modal.css'
 
-const functions = getFunctions(app)
-const jobMatchFn = httpsCallable(functions, 'jobMatch')
-const coverLetterFn = httpsCallable(functions, 'generateCoverLetter')
-
 const JF = ['All', 'Best Match', 'Full-time', 'Contract', 'New Today']
 const PER_PAGE = 8
 
 export default function JobsSection() {
   const { addToast } = useAppStore()
-  const { jobs, loading, error, fetchJobs, saveJob, unsaveJob, isJobSaved, loadSavedJobs } = useJobStore()
+  const { jobs, loading, error, fetchJobs, saveJob, unsaveJob, isJobSaved, loadSavedJobs, queryUsed, skillTerms } = useJobStore()
+  const loadProfile = useProfileStore((s) => s.load)
   const { addApp } = useTrackerStore()
   const [activeF, setActiveF] = useState('All')
   const [search, setSearch] = useState('')
@@ -38,9 +36,16 @@ export default function JobsSection() {
   const [clCopied, setClCopied] = useState(false)
 
   useEffect(() => {
-    fetchJobs()
-    loadSavedJobs()
-  }, [fetchJobs, loadSavedJobs])
+    // Don't unconditionally refetch — OverviewSection may have already
+    // populated the store moments ago. The store also coalesces concurrent
+    // calls and honors a short freshness window, so this is doubly safe.
+    loadProfile({ force: false }).then(() => {
+      const { jobs: cached, lastFetched } = useJobStore.getState()
+      const stale = !lastFetched || Date.now() - lastFetched > 60_000
+      if (cached.length === 0 || stale) fetchJobs()
+      loadSavedJobs()
+    })
+  }, [fetchJobs, loadSavedJobs, loadProfile])
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setPage(1))
@@ -64,8 +69,20 @@ export default function JobsSection() {
   const paged = list.slice((page - 1) * PER_PAGE, page * PER_PAGE)
 
   const quickApply = async (j) => {
-    const app = await addApp({ co: j.co, role: j.title, status: 'Applied', date: new Date().toISOString().split('T')[0], sal: j.sal || '', notes: 'Applied via Glowminds', logo: j.logo, source: 'remotive', jobUrl: j.url })
-    if (app) addToast('success', `✅ Applied to ${j.title} at ${j.co}!`)
+    const company = j.company || j.co || ''
+    const application = await addApp({
+      company,
+      role: j.title,
+      status: APPLICATION_STATUS.APPLIED,
+      appliedDate: new Date().toISOString().split('T')[0],
+      salary: j.salary || j.sal || '',
+      notes: 'Applied via Glowminds',
+      logo: j.logo,
+      source: j.source || 'ats',
+      jobUrl: j.url,
+      jobId: j.id,
+    })
+    if (application) addToast('success', `✅ Applied to ${j.title} at ${company}!`)
     else addToast('error', '⚠️ Failed to track application')
   }
 
@@ -84,7 +101,10 @@ export default function JobsSection() {
     <>
       <div className="mb-4">
         <div className="dsh-title">Job Board 💼</div>
-        <div className="dsh-sub"><span className="pulse" /> Live remote jobs from Remotive API · {list.length} results</div>
+        <div className="dsh-sub"><span className="pulse" /> {queryUsed
+            ? <>Matched to <strong>{queryUsed}</strong>{skillTerms.length > 0 && !search ? ` · ${skillTerms.slice(0, 4).join(', ')}` : ''} · </>
+            : 'Live jobs from top company career sites · '}
+          {list.length} results</div>
       </div>
 
       {/* Search & Filter Bar */}
@@ -117,7 +137,7 @@ export default function JobsSection() {
         </div>
       </div>
 
-      {loading && <Loader variant="block" label="Fetching jobs from Remotive…" />}
+      {loading && <Loader variant="block" label="Searching jobs matched to your skills…" />}
 
       {error && !loading && (
         <div className="text-center p-10">
@@ -138,7 +158,7 @@ export default function JobsSection() {
                   <div className="jc-logo">{j.logo}</div>
                   <div className="flex-1 min-w-0">
                     <div className="jc-title">{j.title}</div>
-                    <div className="jc-co">{j.co} · {j.loc}</div>
+                    <div className="jc-co">{j.co} · {j.loc}{j.source ? ` · ${j.source}` : ''}</div>
                   </div>
                 </div>
                 <div className="text-[.7rem] text-[--color-muted] mb-[7px]">{j.type} · {j.posted}</div>
@@ -246,20 +266,17 @@ export default function JobsSection() {
                       if (matchCache[modalJob.id]) { setAiMatch(matchCache[modalJob.id]); return }
                       setAiLoading(true)
                       try {
-                        const uid = auth.currentUser?.uid
-                        let skills = '', experience = ''
-                        if (uid) {
-                          const snap = await getDoc(doc(db, 'users', uid))
-                          if (snap.exists()) {
-                            const p = snap.data().profile || {}
-                            skills = Array.isArray(p.skills) ? p.skills.join(', ') : (p.skills || '')
-                            experience = p.experience ? `${p.experience} years` : ''
-                          }
-                        }
-                        const { data } = await jobMatchFn({
-                          userSkills: skills, userExperience: experience,
-                          jobTitle: modalJob.title, jobCompany: modalJob.co,
-                          jobDesc: modalJob.desc, jobTags: modalJob.tags,
+                        await useProfileStore.getState().load({ force: false })
+                        const p = useProfileStore.getState().profile || {}
+                        const skills = (p.skills?.technical || []).join(', ')
+                        const experienceCount = Array.isArray(p.experience) ? p.experience.length : 0
+                        const experience = p.isFresher ? 'Fresher' : (experienceCount ? `${experienceCount} role${experienceCount > 1 ? 's' : ''}` : '')
+                        const data = await apiFetch('/ai/job-match', {
+                          body: {
+                            userSkills: skills, userExperience: experience,
+                            jobTitle: modalJob.title, jobCompany: modalJob.company || modalJob.co,
+                            jobDesc: modalJob.description || modalJob.desc, jobTags: modalJob.tags,
+                          },
                         })
                         setAiMatch(data)
                         setMatchCache(prev => ({ ...prev, [modalJob.id]: data }))
@@ -348,23 +365,33 @@ export default function JobsSection() {
               <button className="btn btn-o" disabled={clLoading} onClick={async () => {
                 setClLoading(true)
                 try {
-                  const uid = auth.currentUser?.uid
-                  let profile = { name: '', title: '', skills: [], education: '', experience: '' }
-                  if (uid) {
-                    const snap = await getDoc(doc(db, 'users', uid))
-                    if (snap.exists()) {
-                      const p = snap.data().profile || {}
-                      const u = snap.data()
-                      profile = {
-                        name: u.firstName ? `${u.firstName} ${u.lastName || ''}`.trim() : (p.name || ''),
-                        title: p.title || '',
-                        skills: Array.isArray(p.skills) ? p.skills : [],
-                        education: p.deg ? `${p.deg} from ${p.col || 'University'}` : '',
-                        experience: p.experience || '',
-                      }
-                    }
+                  await useProfileStore.getState().load({ force: false })
+                  const userDoc = useProfileStore.getState().user || {}
+                  const p = useProfileStore.getState().profile || {}
+                  const expSummary = (Array.isArray(p.experience) ? p.experience : [])
+                    .filter((e) => e && (e.company || e.role))
+                    .map((e) => {
+                      const dates = formatDateRange(e.startDate, e.endDate, e.duration || '')
+                      const bits = [e.description, e.bullets].filter(Boolean).join(' — ')
+                      return `${e.role || ''} at ${e.company || ''}${dates ? ` (${dates})` : ''}${bits ? ` — ${bits}` : ''}`
+                    })
+                    .join('; ') || (p.isFresher ? 'Fresher' : '')
+                  const profilePayload = {
+                    name: userDoc.firstName ? `${userDoc.firstName} ${userDoc.lastName || ''}`.trim() : (userDoc.displayName || ''),
+                    title: p.headline || '',
+                    skills: p.skills?.technical || [],
+                    education: formatPrimaryEducationSummary(p),
+                    experience: expSummary,
                   }
-                  const { data } = await coverLetterFn({ profile, jobTitle: modalJob.title, company: modalJob.co, jobDescription: modalJob.desc?.slice(0, 1500) })
+                  const company = modalJob.company || modalJob.co
+                  const data = await apiFetch('/ai/cover-letter', {
+                    body: {
+                      profile: profilePayload,
+                      jobTitle: modalJob.title,
+                      company,
+                      jobDescription: (modalJob.description || modalJob.desc || '').slice(0, 1500),
+                    },
+                  })
                   setCoverLetter(data.coverLetter)
                 } catch (err) {
                   console.error('Cover letter error:', err)

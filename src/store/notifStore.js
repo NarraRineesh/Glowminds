@@ -91,16 +91,17 @@ const useNotifStore = create((set, get) => ({
   },
 
   /** Add a notification (used by other parts of the app) */
-  addNotif: async (uid, { icon, title, desc, color, type }) => {
+  addNotif: async (uid, { icon, title, description, desc, color, type, link }) => {
     if (!uid) return
     try {
       await addDoc(collection(db, 'users', uid, 'notifications'), {
         icon: icon || '🔔',
         title,
-        desc: desc || '',
+        description: description || desc || '',
         color: color || 'var(--color-blu)',
         type: type || 'general',
         read: false,
+        link: link || null,
         createdAt: serverTimestamp(),
       })
     } catch (e) {

@@ -1,46 +1,30 @@
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import useAppStore from '@/store/authStore'
 import useDashboardNav from '@/hooks/useDashboardNav'
 import useIsLg from '@/hooks/useIsLg'
 import useTheme from '@/hooks/useTheme'
 import useUpgradePro from '@/hooks/useUpgradePro'
+import {
+  SIDEBAR_GROUPS as NAV_GROUPS,
+  SIDEBAR_FOOTER_NAV as FOOTER_NAV,
+  SIDEBAR_GROUPS_STORAGE_KEY,
+} from '@/constants/sidebarNav'
 
-const NAV_GROUPS = [
-  {
-    label: 'Main',
-    items: [
-      { path: '/dashboard', end: true, icon: '📊', label: 'Dashboard' },
-    ],
-  },
-  {
-    label: 'Job Search',
-    items: [
-      { path: '/dashboard/resume', icon: '📄', label: 'Resume Studio' },
-      { path: '/dashboard/jobs', icon: '💼', label: 'Job Board' },
-      { path: '/dashboard/jd-matcher', icon: '🎯', label: 'JD Matcher' },
-      { path: '/dashboard/cover-letters', icon: '✉️', label: 'Cover Letters' },
-      { path: '/dashboard/linkedin', icon: '🔗', label: 'LinkedIn Optimizer' },
-    ],
-  },
-  {
-    label: 'Practice',
-    items: [
-      { path: '/dashboard/interview', icon: '📚', label: 'Interview Prep' },
-    ],
-  },
-  {
-    label: 'Career',
-    items: [
-      { path: '/dashboard/ai', icon: '🧭', label: 'AI Coach' },
-      { path: '/dashboard/salary', icon: '💰', label: 'Salary Insights' },
-    ],
-  },
-]
+function loadGroupState() {
+  try {
+    const raw = localStorage.getItem(SIDEBAR_GROUPS_STORAGE_KEY)
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
 
-const FOOTER_NAV = [
-  { path: '/dashboard/settings', icon: '⚙️', label: 'Settings' },
-]
+function saveGroupState(state) {
+  try {
+    localStorage.setItem(SIDEBAR_GROUPS_STORAGE_KEY, JSON.stringify(state))
+  } catch { /* swallow */ }
+}
 
 const SIDEBAR_FONT = "'Outfit', 'Inter', system-ui, -apple-system, sans-serif"
 
@@ -74,6 +58,57 @@ export default function DashboardSidebar({ collapsed, setCollapsed }) {
   const isLg = useIsLg()
   const desktopCollapsed = collapsed && isLg
   const labelCls = (base) => (desktopCollapsed ? `${base} lg:hidden` : base)
+
+  // Persisted collapsible-group open/closed state.
+  const [groupState, setGroupState] = useState(loadGroupState)
+  const isGroupOpen = useCallback(
+    (group) => {
+      if (!group.collapsibleId) return true
+      const stored = groupState[group.collapsibleId]
+      return typeof stored === 'boolean' ? stored : group.defaultOpen !== false
+    },
+    [groupState],
+  )
+  const toggleGroup = useCallback((group) => {
+    if (!group.collapsibleId) return
+    setGroupState((prev) => {
+      const current = typeof prev[group.collapsibleId] === 'boolean'
+        ? prev[group.collapsibleId]
+        : group.defaultOpen !== false
+      const next = { ...prev, [group.collapsibleId]: !current }
+      saveGroupState(next)
+      return next
+    })
+  }, [])
+
+  // Auto-expand a group if the active route matches one of its items.
+  useEffect(() => {
+    NAV_GROUPS.forEach((group) => {
+      if (!group.collapsibleId) return
+      const matches = group.items.some((it) => pathname.startsWith(it.path))
+      if (matches && groupState[group.collapsibleId] === false) {
+        setGroupState((prev) => {
+          const next = { ...prev, [group.collapsibleId]: true }
+          saveGroupState(next)
+          return next
+        })
+      }
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname])
+
+  // Strip out admin-only groups/items unless the signed-in user has the
+  // `admin: true` custom claim (surfaced as user.isAdmin in useAuthListener).
+  const visibleGroups = useMemo(() => {
+    const isAdmin = !!user?.isAdmin
+    return NAV_GROUPS
+      .filter((g) => !g.requiresAdmin || isAdmin)
+      .map((g) => ({
+        ...g,
+        items: g.items.filter((it) => !it.requiresAdmin || isAdmin),
+      }))
+      .filter((g) => g.items.length > 0)
+  }, [user?.isAdmin])
 
   const initials = useMemo(() => {
     const name = user?.displayName
@@ -192,20 +227,46 @@ export default function DashboardSidebar({ collapsed, setCollapsed }) {
         </button>
 
         <nav className="mt-2 flex max-h-[55vh] flex-1 flex-col gap-4 overflow-x-hidden overflow-y-auto pb-3 [-ms-overflow-style:none] [scrollbar-width:none] lg:mt-3 lg:max-h-none lg:min-h-0 lg:pb-3 [&::-webkit-scrollbar]:hidden">
-          {NAV_GROUPS.map((group) => (
-            <div key={group.label} className="flex flex-col gap-0.5">
-              <div
-                className={cx(
-                  'px-3 pb-1.5 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-[var(--color-muted)]',
-                  desktopCollapsed && 'lg:hidden',
+          {visibleGroups.map((group) => {
+            const open = isGroupOpen(group)
+            const headingCommon =
+              'px-3 pb-1.5 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-[var(--color-muted)]'
+            return (
+              <div key={group.label} className="flex flex-col gap-0.5">
+                {group.collapsibleId ? (
+                  <button
+                    type="button"
+                    onClick={() => toggleGroup(group)}
+                    className={cx(
+                      headingCommon,
+                      'flex w-full items-center justify-between rounded-md text-left transition-colors hover:text-[var(--color-txt2)]',
+                      desktopCollapsed && 'lg:hidden',
+                    )}
+                    aria-expanded={open}
+                    aria-controls={`navgroup-${group.collapsibleId}`}
+                  >
+                    <span>{group.label}</span>
+                    <span aria-hidden className="text-[0.7rem] text-[var(--color-muted)] transition-transform" style={{ transform: open ? 'rotate(0deg)' : 'rotate(-90deg)' }}>▾</span>
+                  </button>
+                ) : (
+                  <div
+                    className={cx(headingCommon, desktopCollapsed && 'lg:hidden')}
+                    aria-hidden={desktopCollapsed}
+                  >
+                    {group.label}
+                  </div>
                 )}
-                aria-hidden={desktopCollapsed}
-              >
-                {group.label}
+                {(open || desktopCollapsed) && (
+                  <div
+                    id={group.collapsibleId ? `navgroup-${group.collapsibleId}` : undefined}
+                    className="flex flex-col gap-0.5"
+                  >
+                    {group.items.map(renderNavItem)}
+                  </div>
+                )}
               </div>
-              {group.items.map(renderNavItem)}
-            </div>
-          ))}
+            )
+          })}
         </nav>
 
         <div className="shrink-0 border-t border-[var(--color-bdr)] pt-3">

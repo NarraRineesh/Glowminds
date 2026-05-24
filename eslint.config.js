@@ -13,7 +13,7 @@ export default defineConfig([
     'path/to/**',
   ]),
   {
-    files: ['vite.config.js', 'seedLandingContent.js'],
+    files: ['vite.config.js'],
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.node,

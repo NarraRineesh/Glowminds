@@ -1,52 +1,140 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import useAppStore from '@/store/authStore'
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
-import { db, auth } from '@/services/firebase'
-import { getFunctions, httpsCallable } from 'firebase/functions'
-import app from '@/services/firebase'
+import useProfileStore from '@/store/profileStore'
+import { auth } from '@/services/firebase'
+import { apiFetch } from '@/services/apiClient'
 import Loader from '@/components/Loader'
+import { createDefaultProfile, normalizeProfile, normalizeSkills, stampAiReview } from '@/constants/schema'
+import { formatDateRange, formatYearOrMonthDisplay, toMonthInputValue } from '@/utils/profileDates'
+import EducationModal from '@/features/dashboard/sections/profile/EducationModal'
+import ExperienceModal from '@/features/dashboard/sections/profile/ExperienceModal'
+import ExperienceDetailModal from '@/features/dashboard/sections/profile/ExperienceDetailModal'
+import InternshipModal from '@/features/dashboard/sections/profile/InternshipModal'
+import InternshipDetailModal from '@/features/dashboard/sections/profile/InternshipDetailModal'
+import ProjectModal from '@/features/dashboard/sections/profile/ProjectModal'
+import ProjectDetailModal from '@/features/dashboard/sections/profile/ProjectDetailModal'
+import {
+  normalizeEducationList,
+  sortEducationEntries,
+  getPrimaryEducationEntry,
+  educationEntryTitle,
+  educationEntrySubtitle,
+  profileHasEducation,
+  entryHasContent as educationEntryHasContent,
+} from '@/utils/educationEntries'
+import {
+  normalizeExperienceList,
+  sortExperienceEntries,
+  experienceEntrySubtitle,
+  experienceEntryPreview,
+  experienceHasDetails,
+  finalizeExperienceEntry,
+  entryHasContent as experienceEntryHasContent,
+  profileHasExperience,
+} from '@/utils/experienceEntries'
+import {
+  normalizeInternshipList,
+  sortInternshipEntries,
+  internshipEntrySubtitle,
+  internshipEntryPreview,
+  internshipHasDetails,
+  finalizeInternshipEntry,
+  internshipHasContent,
+} from '@/utils/internshipEntries'
+import {
+  normalizeProjectList,
+  sortProjectEntries,
+  projectEntrySubtitle,
+  projectEntryPreview,
+  projectHasDetails,
+  finalizeProjectEntry,
+  projectHasContent,
+} from '@/utils/projectEntries'
 import '@/styles/dashboard.css'
 import '@/styles/profile.css'
 import '@/styles/cards.css'
 import '@/styles/forms.css'
 import '@/styles/modal.css'
 
-const functions = getFunctions(app)
-const profileReviewFn = httpsCallable(functions, 'profileReview')
+const EMPTY_PROFILE = createDefaultProfile()
 
-const EMPTY_PROFILE = {
-  personal: { phone: '', location: '', gender: '', dob: '', languages: '' },
-  education: { degree: '', college: '', institute: '', board: '', year: '', cgpa: '', marks10: '', board10: '', marks12: '', board12: '' },
-  skills: [],
-  softSkills: [],
-  isFresher: false,
-  experience: [{ company: '', role: '', duration: '', bullets: '' }],
-  internships: [{ company: '', role: '', duration: '', bullets: '' }],
-  projects: [{ title: '', tech: '', desc: '', url: '' }],
-  certifications: [{ name: '', issuer: '', year: '', url: '' }],
-  preferences: { jobType: '', location: '', expectedCTC: '', noticePeriod: '', linkedIn: '', github: '' },
-  summary: '',
+// ----- helpers to bridge UI input (strings) <-> v2 (arrays) -----
+
+function toCsv(arr) {
+  return Array.isArray(arr) ? arr.join(', ') : (arr || '')
+}
+function fromCsv(csv) {
+  return String(csv || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+}
+function uid() {
+  return Math.random().toString(36).slice(2, 10)
 }
 
 export default function ProfileSection() {
-  const { user, addToast, updatePhotoURL, updateDisplayName } = useAppStore()
+  const { user, addToast, updatePhotoURL, removePhotoURL } = useAppStore()
+  const profileFromStore = useProfileStore((s) => s.profile)
+  const loadStore = useProfileStore((s) => s.load)
+  const replaceProfile = useProfileStore((s) => s.replaceProfile)
+  const updateProfile = useProfileStore((s) => s.updateProfile)
+
   const [profile, setProfile] = useState(EMPTY_PROFILE)
   const [loading, setLoading] = useState(true)
-  const [editing, setEditing] = useState(null) // 'education' | 'skills' | 'experience' | 'preferences' | 'summary'
+  const [editing, setEditing] = useState(null)
   const [form, setForm] = useState({})
   const [saving, setSaving] = useState(false)
   const [skillInput, setSkillInput] = useState('')
   const [softSkillInput, setSoftSkillInput] = useState('')
-  const [aiReview, setAiReview] = useState(null)
+  const [skillsDraft, setSkillsDraft] = useState({ technical: [], soft: [] })
   const [reviewLoading, setReviewLoading] = useState(false)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
-  const [editingName, setEditingName] = useState(false)
-  const [nameForm, setNameForm] = useState({ firstName: '', lastName: '' })
   const [lastUpdated, setLastUpdated] = useState(null)
+  const [educationModalOpen, setEducationModalOpen] = useState(false)
+  const [educationModalEntry, setEducationModalEntry] = useState(null)
+  const [experienceModalOpen, setExperienceModalOpen] = useState(false)
+  const [experienceModalEntry, setExperienceModalEntry] = useState(null)
+  const [experienceDetailOpen, setExperienceDetailOpen] = useState(false)
+  const [experienceDetailEntry, setExperienceDetailEntry] = useState(null)
+  const [internshipModalOpen, setInternshipModalOpen] = useState(false)
+  const [internshipModalEntry, setInternshipModalEntry] = useState(null)
+  const [internshipDetailOpen, setInternshipDetailOpen] = useState(false)
+  const [internshipDetailEntry, setInternshipDetailEntry] = useState(null)
+  const [projectModalOpen, setProjectModalOpen] = useState(false)
+  const [projectModalEntry, setProjectModalEntry] = useState(null)
+  const [projectDetailOpen, setProjectDetailOpen] = useState(false)
+  const [projectDetailEntry, setProjectDetailEntry] = useState(null)
   const photoRef = useRef(null)
+  const profileRef = useRef(EMPTY_PROFILE)
+
+  useEffect(() => {
+    profileRef.current = profile
+  }, [profile])
+
+  const isProfileBusy =
+    !!editing
+    || educationModalOpen
+    || experienceModalOpen
+    || experienceDetailOpen
+    || internshipModalOpen
+    || internshipDetailOpen
+    || projectModalOpen
+    || projectDetailOpen
 
   const name = user?.displayName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'User'
+
+  const mergeProfilePatch = useCallback((patch) => {
+    const current = normalizeProfile(profileRef.current)
+    const partial = typeof patch === 'function' ? patch(current) : patch
+    const updated = { ...current, ...partial }
+    if (partial.personal) updated.personal = { ...current.personal, ...partial.personal }
+    if (partial.skills) updated.skills = normalizeSkills(partial.skills)
+    if (partial.links) updated.links = { ...current.links, ...partial.links }
+    if (partial.preferences) updated.preferences = { ...current.preferences, ...partial.preferences }
+    return updated
+  }, [])
 
   const handlePhotoUpload = async (e) => {
     const file = e.target.files?.[0]
@@ -64,35 +152,33 @@ export default function ProfileSection() {
     setUploadingPhoto(false)
   }
 
-  const handleNameSave = async () => {
-    if (!nameForm.firstName.trim()) { addToast('error', '⚠️ First name is required'); return }
-    setSaving(true)
+  const handlePhotoDelete = async (e) => {
+    e?.stopPropagation?.()
+    if (!user?.photoURL) return
+    if (!window.confirm('Remove your profile photo? We’ll fall back to your initials.')) return
+    setUploadingPhoto(true)
     try {
-      await updateDisplayName(nameForm.firstName.trim(), nameForm.lastName.trim())
-      setEditingName(false)
-      addToast('success', '✅ Name updated!')
+      await removePhotoURL()
+      addToast('success', '🗑️ Profile photo removed')
     } catch (err) {
-      console.error('Name update:', err)
-      addToast('error', '⚠️ Failed to update name')
+      console.error('Photo delete:', err)
+      addToast('error', '⚠️ Failed to remove photo')
     }
-    setSaving(false)
+    setUploadingPhoto(false)
   }
 
   const loadProfile = useCallback(async () => {
     const uid = auth.currentUser?.uid
     if (!uid) { setLoading(false); return }
     try {
-      const snap = await getDoc(doc(db, 'users', uid))
-      if (snap.exists()) {
-        const d = snap.data()
-        if (d.profile) setProfile({ ...EMPTY_PROFILE, ...d.profile })
-        if (d.aiReview) setAiReview(d.aiReview)
-        if (d.updatedAt?.toDate) setLastUpdated(d.updatedAt.toDate())
-        else if (d.updatedAt) setLastUpdated(new Date(d.updatedAt))
-      }
+      const data = await loadStore({ force: true })
+      const p = normalizeProfile(useProfileStore.getState().profile)
+      setProfile(p)
+      if (data?.updatedAt?.toDate) setLastUpdated(data.updatedAt.toDate())
+      else if (data?.updatedAt) setLastUpdated(new Date(data.updatedAt))
     } catch (e) { console.error('Load profile:', e) }
     setLoading(false)
-  }, [])
+  }, [loadStore])
 
   useEffect(() => {
     const id = requestAnimationFrame(() => {
@@ -101,14 +187,44 @@ export default function ProfileSection() {
     return () => cancelAnimationFrame(id)
   }, [loadProfile])
 
-  const saveSection = async (section, data) => {
-    const uid = auth.currentUser?.uid
-    if (!uid) return
+  // Sync from store when idle (avoids wiping in-progress modal / inline edits).
+  useEffect(() => {
+    if (profileFromStore && !loading && !isProfileBusy) {
+      setProfile(normalizeProfile(profileFromStore))
+    }
+  }, [profileFromStore, loading, isProfileBusy])
+
+  const openSkillsEdit = () => {
+    const s = normalizeSkills(profile.skills)
+    setSkillsDraft({ technical: [...s.technical], soft: [...s.soft] })
+    setSkillInput('')
+    setSoftSkillInput('')
+    setEditing('skills')
+  }
+
+  const saveSkills = async () => {
+    const skills = normalizeSkills(skillsDraft)
     setSaving(true)
     try {
-      const updated = { ...profile, [section]: data }
-      await setDoc(doc(db, 'users', uid), { profile: updated, updatedAt: serverTimestamp() }, { merge: true })
+      await updateProfile({ skills })
+      setProfile((p) => ({ ...p, skills }))
+      setLastUpdated(new Date())
+      setEditing(null)
+      addToast('success', '✅ Skills saved!')
+    } catch (e) {
+      console.error('Save skills:', e)
+      addToast('error', '⚠️ Failed to save skills')
+    }
+    setSaving(false)
+  }
+
+  // Save a single top-level profile field merged into Firestore + store.
+  const saveSection = async (patch) => {
+    setSaving(true)
+    try {
+      const updated = mergeProfilePatch(patch)
       setProfile(updated)
+      await replaceProfile(updated)
       setLastUpdated(new Date())
       setEditing(null)
       addToast('success', '✅ Profile updated!')
@@ -120,50 +236,348 @@ export default function ProfileSection() {
   }
 
   const startEdit = (section) => {
+    const p = profile
     const map = {
-      personal: profile.personal || EMPTY_PROFILE.personal,
-      education: profile.education,
-      preferences: profile.preferences,
-      summary: { summary: profile.summary },
-      experience: { isFresher: profile.isFresher || false, experience: Array.isArray(profile.experience) ? profile.experience : [] },
-      internships: { internships: Array.isArray(profile.internships) ? profile.internships : [{ company: '', role: '', duration: '', bullets: '' }] },
-      projects: { projects: Array.isArray(profile.projects) ? profile.projects : [{ title: '', tech: '', desc: '', url: '' }] },
-      certifications: { certifications: Array.isArray(profile.certifications) ? profile.certifications : [{ name: '', issuer: '', year: '', url: '' }] },
+      personal: {
+        phone: p.personal?.phone || '',
+        location: p.personal?.location || '',
+        gender: p.personal?.gender || '',
+        dob: p.personal?.dob || '',
+        languages: toCsv(p.personal?.languages),
+      },
+      preferences: {
+        jobType: p.preferences?.jobType || '',
+        location: toCsv(p.preferences?.preferredLocations),
+        expectedCTC: p.preferences?.expectedCTC || '',
+        noticePeriod: p.preferences?.noticePeriod || '',
+        linkedin: p.links?.linkedin || '',
+        github: p.links?.github || '',
+        portfolio: p.links?.portfolio || '',
+      },
+      summary: { headline: p.headline || '', summary: p.summary || '' },
+      certifications: {
+        certifications: Array.isArray(p.certifications) && p.certifications.length
+          ? p.certifications.map((e) => ({ id: e.id || uid(), ...e }))
+          : [{ id: uid(), name: '', issuer: '', year: '', url: '' }],
+      },
     }
     setForm(JSON.parse(JSON.stringify(map[section] || {})))
     setEditing(section)
   }
 
-  const { personal: pers, education: edu, skills, softSkills, experience: rawExps, internships: rawInterns, projects: rawProjects, certifications: rawCerts, preferences: prefs, summary, isFresher } = profile
-  const personalInfo = pers || EMPTY_PROFILE.personal
-  const exps = Array.isArray(rawExps) ? rawExps : []
-  const interns = Array.isArray(rawInterns) ? rawInterns : []
-  const projects = Array.isArray(rawProjects) ? rawProjects : []
-  const certs = Array.isArray(rawCerts) ? rawCerts : []
+  // ----- derived view-model -----
+  const personal = profile.personal || EMPTY_PROFILE.personal
+  const educationList = sortEducationEntries(normalizeEducationList(profile))
+  const primaryEdu = getPrimaryEducationEntry(educationList)
+  const { technical: skillsTechnical, soft: skillsSoft } = normalizeSkills(profile.skills)
+  const experienceList = sortExperienceEntries(normalizeExperienceList(profile))
+  const internshipList = sortInternshipEntries(normalizeInternshipList(profile))
+  const projectList = sortProjectEntries(normalizeProjectList(profile))
+  const certs = Array.isArray(profile.certifications) ? profile.certifications : []
+  const prefs = profile.preferences || EMPTY_PROFILE.preferences
+  const links = profile.links || EMPTY_PROFILE.links
+  const summary = profile.summary || ''
+  const headline = profile.headline || ''
+  const isFresher = !!profile.isFresher
+  const aiReview = profile.aiReview || null
 
   const checks = [
     !!name && name !== 'User',
-    skills.length >= 3,
-    !!edu.degree && !!edu.college,
-    (exps?.some(e => e.company) || isFresher),
+    skillsTechnical.length >= 3,
+    profileHasEducation(profile),
+    profileHasExperience(profile),
     !!prefs.expectedCTC,
-    !!prefs.github || !!prefs.linkedIn,
+    !!links.github || !!links.linkedin,
     !!summary,
-    !!user?.photoURL
+    !!user?.photoURL,
   ]
   const profileScore = Math.round((checks.filter(Boolean).length / checks.length) * 100)
-  const nextTip = !checks[0] ? 'Add your name' : !checks[1] ? 'Add at least 3 skills' : !checks[2] ? 'Add your education' : !checks[3] ? 'Add work experience' : !checks[4] ? 'Set salary expectations' : !checks[5] ? 'Add GitHub or LinkedIn URL' : !checks[6] ? 'Write a short summary' : 'Profile is complete!'
+  const nextTip = !checks[0] ? 'Add your name'
+    : !checks[1] ? 'Add at least 3 skills'
+    : !checks[2] ? 'Add your education'
+    : !checks[3] ? 'Add work experience'
+    : !checks[4] ? 'Set salary expectations'
+    : !checks[5] ? 'Add GitHub or LinkedIn URL'
+    : !checks[6] ? 'Write a short summary'
+    : 'Profile is complete!'
 
-  const latestExp = exps.find(e => e.company) || null
+  const latestExp = experienceList.find(experienceEntryHasContent) || null
   const currentRole = latestExp?.role || (isFresher ? 'Fresher' : '')
   const currentCompany = latestExp?.company || ''
-  const currentDuration = latestExp?.duration || ''
+  const currentDuration = formatDateRange(latestExp?.startDate, latestExp?.endDate, latestExp?.duration || '')
+  const collegeName = primaryEdu?.college || ''
+  const degreeLine = primaryEdu ? educationEntryTitle(primaryEdu) : ''
+  const eduYearDisplay = primaryEdu?.educationEnd
+    ? String(primaryEdu.educationEnd).slice(0, 4)
+    : ''
+
+  const openAddEducation = () => {
+    setEducationModalEntry(null)
+    setEducationModalOpen(true)
+  }
+
+  const openEditEducation = (entry) => {
+    setEducationModalEntry(entry)
+    setEducationModalOpen(true)
+  }
+
+  const saveEducationEntry = async (entry) => {
+    const current = normalizeProfile(profileRef.current)
+    const baseList = sortEducationEntries(normalizeEducationList(current))
+    let next = [...baseList]
+    const idx = next.findIndex((e) => e.id === entry.id)
+    if (idx >= 0) next[idx] = entry
+    else next.push(entry)
+
+    if (entry.primaryGraduation) {
+      next = next.map((e) => ({
+        ...e,
+        primaryGraduation: e.id === entry.id,
+      }))
+    }
+
+    setSaving(true)
+    try {
+      const updated = { ...current, educationList: next }
+      setProfile(updated)
+      await replaceProfile(updated)
+      setLastUpdated(new Date())
+      setEducationModalOpen(false)
+      setEducationModalEntry(null)
+      addToast('success', '✅ Education saved!')
+    } catch (e) {
+      console.error('Save education:', e)
+      addToast('error', '⚠️ Failed to save education')
+    }
+    setSaving(false)
+  }
+
+  const deleteEducationEntry = async (id) => {
+    if (!window.confirm('Remove this education entry?')) return
+    const current = normalizeProfile(profileRef.current)
+    const next = sortEducationEntries(normalizeEducationList(current)).filter((e) => e.id !== id)
+    setSaving(true)
+    try {
+      const updated = { ...current, educationList: next }
+      setProfile(updated)
+      await replaceProfile(updated)
+      setLastUpdated(new Date())
+      addToast('success', '✅ Education removed')
+    } catch (e) {
+      console.error('Delete education:', e)
+      addToast('error', '⚠️ Failed to remove education')
+    }
+    setSaving(false)
+  }
+
+  const openAddExperience = () => {
+    if (isFresher) {
+      addToast('info', 'Turn off “Fresher” below to add work experience')
+      return
+    }
+    setExperienceModalEntry(null)
+    setExperienceModalOpen(true)
+  }
+
+  const openEditExperience = (entry) => {
+    setExperienceModalEntry(entry)
+    setExperienceModalOpen(true)
+  }
+
+  const openViewExperience = (entry) => {
+    setExperienceDetailEntry(entry)
+    setExperienceDetailOpen(true)
+  }
+
+  const saveExperienceEntry = async (entry) => {
+    const finalized = finalizeExperienceEntry(entry)
+    const current = normalizeProfile(profileRef.current)
+    const baseList = sortExperienceEntries(normalizeExperienceList(current))
+    let next = [...baseList]
+    const idx = next.findIndex((e) => e.id === finalized.id)
+    if (idx >= 0) next[idx] = finalized
+    else next.push(finalized)
+
+    setSaving(true)
+    try {
+      const updated = { ...current, experience: next, isFresher: false }
+      setProfile(updated)
+      await replaceProfile(updated)
+      setLastUpdated(new Date())
+      setExperienceModalOpen(false)
+      setExperienceModalEntry(null)
+      addToast('success', '✅ Experience saved!')
+    } catch (e) {
+      console.error('Save experience:', e)
+      addToast('error', '⚠️ Failed to save experience')
+    }
+    setSaving(false)
+  }
+
+  const deleteExperienceEntry = async (id) => {
+    if (!window.confirm('Remove this work experience?')) return
+    const current = normalizeProfile(profileRef.current)
+    const next = sortExperienceEntries(normalizeExperienceList(current)).filter((e) => e.id !== id)
+    setSaving(true)
+    try {
+      const updated = { ...current, experience: next }
+      setProfile(updated)
+      await replaceProfile(updated)
+      setLastUpdated(new Date())
+      addToast('success', '✅ Experience removed')
+    } catch (e) {
+      console.error('Delete experience:', e)
+      addToast('error', '⚠️ Failed to remove experience')
+    }
+    setSaving(false)
+  }
+
+  const openAddInternship = () => {
+    setInternshipModalEntry(null)
+    setInternshipModalOpen(true)
+  }
+
+  const openEditInternship = (entry) => {
+    setInternshipModalEntry(entry)
+    setInternshipModalOpen(true)
+  }
+
+  const openViewInternship = (entry) => {
+    setInternshipDetailEntry(entry)
+    setInternshipDetailOpen(true)
+  }
+
+  const saveInternshipEntry = async (entry) => {
+    const finalized = finalizeInternshipEntry(entry)
+    const current = normalizeProfile(profileRef.current)
+    const baseList = sortInternshipEntries(normalizeInternshipList(current))
+    let next = [...baseList]
+    const idx = next.findIndex((e) => e.id === finalized.id)
+    if (idx >= 0) next[idx] = finalized
+    else next.push(finalized)
+
+    setSaving(true)
+    try {
+      const updated = { ...current, internships: next }
+      setProfile(updated)
+      await replaceProfile(updated)
+      setLastUpdated(new Date())
+      setInternshipModalOpen(false)
+      setInternshipModalEntry(null)
+      addToast('success', '✅ Internship saved!')
+    } catch (e) {
+      console.error('Save internship:', e)
+      addToast('error', '⚠️ Failed to save internship')
+    }
+    setSaving(false)
+  }
+
+  const deleteInternshipEntry = async (id) => {
+    if (!window.confirm('Remove this internship?')) return
+    const current = normalizeProfile(profileRef.current)
+    const next = sortInternshipEntries(normalizeInternshipList(current)).filter((e) => e.id !== id)
+    setSaving(true)
+    try {
+      const updated = { ...current, internships: next }
+      setProfile(updated)
+      await replaceProfile(updated)
+      setLastUpdated(new Date())
+      addToast('success', '✅ Internship removed')
+    } catch (e) {
+      console.error('Delete internship:', e)
+      addToast('error', '⚠️ Failed to remove internship')
+    }
+    setSaving(false)
+  }
+
+  const openAddProject = () => {
+    setProjectModalEntry(null)
+    setProjectModalOpen(true)
+  }
+
+  const openEditProject = (entry) => {
+    setProjectModalEntry(entry)
+    setProjectModalOpen(true)
+  }
+
+  const openViewProject = (entry) => {
+    setProjectDetailEntry(entry)
+    setProjectDetailOpen(true)
+  }
+
+  const saveProjectEntry = async (entry) => {
+    const finalized = finalizeProjectEntry(entry)
+    const current = normalizeProfile(profileRef.current)
+    const baseList = sortProjectEntries(normalizeProjectList(current))
+    let next = [...baseList]
+    const idx = next.findIndex((e) => e.id === finalized.id)
+    if (idx >= 0) next[idx] = finalized
+    else next.push(finalized)
+
+    setSaving(true)
+    try {
+      const updated = { ...current, projects: next }
+      setProfile(updated)
+      await replaceProfile(updated)
+      setLastUpdated(new Date())
+      setProjectModalOpen(false)
+      setProjectModalEntry(null)
+      addToast('success', '✅ Project saved!')
+    } catch (e) {
+      console.error('Save project:', e)
+      addToast('error', '⚠️ Failed to save project')
+    }
+    setSaving(false)
+  }
+
+  const deleteProjectEntry = async (id) => {
+    if (!window.confirm('Remove this project?')) return
+    const current = normalizeProfile(profileRef.current)
+    const next = sortProjectEntries(normalizeProjectList(current)).filter((e) => e.id !== id)
+    setSaving(true)
+    try {
+      const updated = { ...current, projects: next }
+      setProfile(updated)
+      await replaceProfile(updated)
+      setLastUpdated(new Date())
+      addToast('success', '✅ Project removed')
+    } catch (e) {
+      console.error('Delete project:', e)
+      addToast('error', '⚠️ Failed to remove project')
+    }
+    setSaving(false)
+  }
+
+  const setFresherStatus = async (nextFresher) => {
+    const current = normalizeProfile(profileRef.current)
+    const currentExperience = sortExperienceEntries(normalizeExperienceList(current))
+    if (nextFresher && currentExperience.some(experienceEntryHasContent)) {
+      if (!window.confirm('Mark as fresher? This will remove your listed work experience from the profile.')) return
+    }
+    setSaving(true)
+    try {
+      const updated = {
+        ...current,
+        isFresher: nextFresher,
+        experience: nextFresher ? [] : currentExperience,
+      }
+      setProfile(updated)
+      await replaceProfile(updated)
+      setLastUpdated(new Date())
+      addToast('success', nextFresher ? '🌱 Marked as fresher' : '✅ Ready to add experience')
+    } catch (e) {
+      console.error('Set fresher:', e)
+      addToast('error', '⚠️ Failed to update')
+    }
+    setSaving(false)
+  }
+
   const lastUpdatedStr = lastUpdated
     ? lastUpdated.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
     : null
 
   const quickLinks = [
-    { id: 'profile-summary', label: 'Profile summary',  },
+    { id: 'profile-summary', label: 'Profile summary' },
     { id: 'profile-skills', label: 'Key skills' },
     { id: 'profile-experience', label: 'Employment' },
     { id: 'profile-education', label: 'Education' },
@@ -175,6 +589,20 @@ export default function ProfileSection() {
     { id: 'profile-ai-review', label: 'AI review' },
   ]
 
+  const personalLanguagesDisplay = Array.isArray(personal.languages)
+    ? personal.languages.join(', ')
+    : (personal.languages || '')
+
+  const personalEmpty = !personal.phone && !personal.location && !personal.gender && !personalLanguagesDisplay
+  const educationEmpty = !educationList.some(educationEntryHasContent)
+  const skillsEmpty = skillsTechnical.length === 0 && skillsSoft.length === 0
+  const experienceEmpty = !isFresher && !experienceList.some(experienceEntryHasContent)
+  const preferencesEmpty = !prefs.jobType && !(prefs.preferredLocations || []).length && !prefs.expectedCTC
+  const projectsEmpty = !projectList.some(projectHasContent)
+  const internshipsEmpty = !internshipList.some(internshipHasContent)
+  const certsEmpty = !certs.some((c) => c.name)
+  const summaryEmpty = !summary && !headline
+
   if (loading) return <Loader variant="section" />
 
   return (
@@ -182,7 +610,6 @@ export default function ProfileSection() {
       {/* Naukri-style profile hero */}
       <div className="mb-5 overflow-hidden rounded-2xl border border-[var(--color-bdr)] bg-[var(--color-surf)] px-5 py-5 sm:px-7 sm:py-6">
         <div className="flex flex-col items-start gap-5 sm:flex-row">
-          {/* Avatar + completion ring + percent label below */}
           <div className="flex flex-col items-center gap-1.5 shrink-0">
             <div
               className="relative cursor-pointer"
@@ -232,6 +659,18 @@ export default function ProfileSection() {
               >
                 📷
               </div>
+              {user?.photoURL && (
+                <button
+                  type="button"
+                  onClick={handlePhotoDelete}
+                  disabled={uploadingPhoto}
+                  className="absolute top-0 right-1 flex h-7 w-7 items-center justify-center rounded-full border-2 border-[var(--color-surf)] bg-[var(--color-red)] text-xs text-white transition-transform hover:scale-110 disabled:opacity-50"
+                  title="Remove photo"
+                  aria-label="Remove profile photo"
+                >
+                  ✕
+                </button>
+              )}
             </div>
             <div
               className={`text-[0.78rem] font-extrabold tabular-nums ${
@@ -242,29 +681,26 @@ export default function ProfileSection() {
             </div>
           </div>
 
-          {/* Name / role / company / last updated */}
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
-                <h1 className="flex flex-wrap items-center gap-2 text-[clamp(1.35rem,2.4vw,1.7rem)] font-black leading-tight tracking-[-0.01em] text-[var(--color-txt)]">
+                <h1
+                  className="flex flex-wrap items-center gap-2 text-[clamp(1.35rem,2.4vw,1.7rem)] font-black leading-tight tracking-[-0.01em] text-[var(--color-txt)]"
+                  title="Name is set during onboarding and can’t be changed"
+                >
                   <span>{name}</span>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setNameForm({
-                        firstName: user?.firstName || name.split(' ')[0] || '',
-                        lastName: user?.lastName || name.split(' ').slice(1).join(' ') || '',
-                      })
-                      setEditingName(true)
-                    }}
-                    className="rounded-md px-1.5 py-0.5 text-[0.78rem] text-[var(--color-blu2)] transition-colors hover:bg-[var(--color-blu3)]"
-                    title="Edit name"
-                    aria-label="Edit name"
+                  <span
+                    aria-hidden
+                    className="inline-flex items-center rounded-md border border-[var(--color-bdr)] bg-[var(--color-bg3)] px-1.5 py-0.5 text-[0.6rem] font-bold uppercase tracking-[0.08em] text-[var(--color-muted)]"
                   >
-                    ✏️
-                  </button>
+                    🔒 locked
+                  </span>
                 </h1>
+                {headline && (
+                  <div className="mt-0.5 text-[0.95rem] font-bold text-[var(--color-txt)]">
+                    {headline}
+                  </div>
+                )}
                 {currentRole && (
                   <div className="mt-0.5 text-[0.92rem] font-semibold text-[var(--color-txt2)]">
                     {currentRole}
@@ -275,6 +711,12 @@ export default function ProfileSection() {
                     at {currentCompany}
                   </div>
                 )}
+                {collegeName && (
+                  <div className="mt-1 inline-flex items-center gap-1.5 text-[0.78rem] text-[var(--color-txt2)]">
+                    <span aria-hidden>🎓</span>
+                    <span className="font-semibold">{degreeLine ? `${degreeLine} · ` : ''}{collegeName}{eduYearDisplay ? ` · Class of ${eduYearDisplay}` : ''}</span>
+                  </div>
+                )}
               </div>
               {lastUpdatedStr && (
                 <div className="text-[0.74rem] text-[var(--color-muted)] sm:text-right">
@@ -283,20 +725,19 @@ export default function ProfileSection() {
               )}
             </div>
 
-            {/* Two-column info grid (mirrors Naukri layout) */}
             <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-2 border-t border-[var(--color-bdr)] pt-3 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center gap-2 text-[0.84rem] text-[var(--color-txt2)]">
                   <span aria-hidden>📍</span>
-                  <span>{personalInfo.location || <span className="text-[var(--color-muted)]">Add location</span>}</span>
+                  <span>{personal.location || <span className="text-[var(--color-muted)]">Add location</span>}</span>
                 </div>
                 <div className="flex items-center gap-2 text-[0.84rem] text-[var(--color-txt2)]">
                   <span aria-hidden>💼</span>
                   <span>
                     {isFresher
                       ? 'Fresher'
-                      : currentDuration || (exps.some(e => e.company)
-                        ? `${exps.filter(e => e.company).length} role${exps.filter(e => e.company).length > 1 ? 's' : ''}`
+                      : currentDuration || (experienceList.some(experienceEntryHasContent)
+                        ? `${experienceList.filter(experienceEntryHasContent).length} role${experienceList.filter(experienceEntryHasContent).length > 1 ? 's' : ''}`
                         : <span className="text-[var(--color-muted)]">Add experience</span>)}
                   </span>
                 </div>
@@ -310,8 +751,8 @@ export default function ProfileSection() {
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center gap-2 text-[0.84rem] text-[var(--color-txt2)]">
                   <span aria-hidden>📞</span>
-                  <span>{personalInfo.phone || <span className="text-[var(--color-muted)]">Add phone</span>}</span>
-                  {personalInfo.phone && <span className="text-[var(--color-grn)]" title="Verified" aria-label="Verified">✓</span>}
+                  <span>{personal.phone || <span className="text-[var(--color-muted)]">Add phone</span>}</span>
+                  {personal.phone && <span className="text-[var(--color-grn)]" title="Verified" aria-label="Verified">✓</span>}
                 </div>
                 <div className="flex items-center gap-2 text-[0.84rem] text-[var(--color-txt2)]">
                   <span aria-hidden>✉️</span>
@@ -334,7 +775,6 @@ export default function ProfileSection() {
         </div>
       </div>
 
-      {/* Two-column body — Quick links aside (desktop only) + section cards */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
         <aside className="hidden lg:block">
           <div
@@ -365,9 +805,14 @@ export default function ProfileSection() {
 
       {/* Personal Info Card */}
       <div id="profile-personal" className="card scroll-mt-20">
-        <div className="ch"><h3>🪪 Personal Information</h3><button className="btn btn-gh btn-xs" onClick={() => startEdit('personal')}>Edit</button></div>
+        <div className="ch">
+          <h3>🪪 Personal Information</h3>
+          {!personalEmpty && (
+            <button type="button" className="btn btn-gh btn-xs" onClick={() => startEdit('personal')}>Edit</button>
+          )}
+        </div>
         <div className="cb">
-          {!personalInfo.phone && !personalInfo.location && !personalInfo.gender && !personalInfo.languages ? (
+          {personalEmpty ? (
             <div style={{ textAlign: 'center', padding: '16px 0' }}>
               <div style={{ fontSize: '1.4rem', marginBottom: 6 }}>📋</div>
               <div style={{ fontSize: '.8rem', color: 'var(--color-muted)', marginBottom: 10 }}>Add your personal details — phone, location, gender, languages</div>
@@ -375,65 +820,102 @@ export default function ProfileSection() {
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 16px' }}>
-              <div className="ir"><span className="ik">Phone</span><span className="iv">{personalInfo.phone || '—'}</span></div>
-              <div className="ir"><span className="ik">Location</span><span className="iv">{personalInfo.location || '—'}</span></div>
-              <div className="ir"><span className="ik">Gender</span><span className="iv">{personalInfo.gender || '—'}</span></div>
-              <div className="ir"><span className="ik">Date of Birth</span><span className="iv">{personalInfo.dob || '—'}</span></div>
-              <div className="ir" style={{ gridColumn: '1/-1' }}><span className="ik">Languages</span><span className="iv">{personalInfo.languages || '—'}</span></div>
+              <div className="ir"><span className="ik">Phone</span><span className="iv">{personal.phone || '—'}</span></div>
+              <div className="ir"><span className="ik">Location</span><span className="iv">{personal.location || '—'}</span></div>
+              <div className="ir"><span className="ik">Gender</span><span className="iv">{personal.gender || '—'}</span></div>
+              <div className="ir"><span className="ik">Date of Birth</span><span className="iv">{personal.dob || '—'}</span></div>
+              <div className="ir" style={{ gridColumn: '1/-1' }}><span className="ik">Languages</span><span className="iv">{personalLanguagesDisplay || '—'}</span></div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Cards Grid */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {/* Education */}
         <div id="profile-education" className="card scroll-mt-20">
-          <div className="ch"><h3>📚 Education</h3><button className="btn btn-gh btn-xs" onClick={() => startEdit('education')}>Edit</button></div>
+          <div className="ch">
+            <h3>📚 Education</h3>
+            {!educationEmpty && (
+              <button type="button" className="btn btn-p btn-xs" onClick={openAddEducation}>+ Add</button>
+            )}
+          </div>
           <div className="cb">
-            {!edu.degree && !edu.college ? (
+            {educationEmpty ? (
               <div style={{ textAlign: 'center', padding: '16px 0' }}>
                 <div style={{ fontSize: '1.4rem', marginBottom: 6 }}>🎓</div>
-                <div style={{ fontSize: '.8rem', color: 'var(--color-muted)', marginBottom: 10 }}>Add your education details</div>
-                <button className="btn btn-p btn-xs" onClick={() => startEdit('education')}>+ Add Education</button>
+                <div style={{ fontSize: '.8rem', color: 'var(--color-muted)', marginBottom: 10 }}>
+                  Add 10th, 12th, degree, masters — one qualification at a time
+                </div>
+                <button type="button" className="btn btn-p btn-xs" onClick={openAddEducation}>+ Add Education</button>
               </div>
             ) : (
-              <>
-                <div className="ir"><span className="ik">Degree</span><span className="iv">{edu.degree || '—'}</span></div>
-                <div className="ir"><span className="ik">College / University</span><span className="iv">{edu.college || '—'}</span></div>
-                {edu.institute && <div className="ir"><span className="ik">Institute Type</span><span className="iv">{edu.institute}</span></div>}
-                {edu.board && <div className="ir"><span className="ik">Board / University</span><span className="iv">{edu.board}</span></div>}
-                <div className="ir"><span className="ik">Year</span><span className="iv">{edu.year ? `Class of ${edu.year}` : '—'}</span></div>
-                <div className="ir"><span className="ik">CGPA / %</span><span className="iv">{edu.cgpa || '—'}</span></div>
-                {(edu.marks12 || edu.board12) && <div className="ir"><span className="ik">12th</span><span className="iv">{[edu.marks12, edu.board12].filter(Boolean).join(' · ')}</span></div>}
-                {(edu.marks10 || edu.board10) && <div className="ir"><span className="ik">10th</span><span className="iv">{[edu.marks10, edu.board10].filter(Boolean).join(' · ')}</span></div>}
-              </>
+              educationList.filter(educationEntryHasContent).map((entry, i, arr) => (
+                <div
+                  key={entry.id}
+                  style={{
+                    paddingBottom: 12,
+                    marginBottom: 12,
+                    borderBottom: i < arr.length - 1 ? '1px solid var(--color-bdr)' : 'none',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '.84rem', fontWeight: 800 }}>{educationEntryTitle(entry)}</div>
+                      {educationEntrySubtitle(entry) && (
+                        <div style={{ fontSize: '.76rem', color: 'var(--color-blu2)', marginTop: 2 }}>{educationEntrySubtitle(entry)}</div>
+                      )}
+                      {formatDateRange(entry.educationStart, entry.educationEnd, '') && (
+                        <div style={{ fontSize: '.72rem', color: 'var(--color-muted)', marginTop: 2 }}>
+                          {formatDateRange(entry.educationStart, entry.educationEnd, '')}
+                        </div>
+                      )}
+                      {entry.marks && (
+                        <div style={{ fontSize: '.72rem', color: 'var(--color-txt2)', marginTop: 4 }}>
+                          {entry.gradingSystem ? `${entry.gradingSystem}: ` : ''}{entry.marks}
+                        </div>
+                      )}
+                      {entry.primaryGraduation && (
+                        <span className="tag tb" style={{ marginTop: 6, fontSize: '.65rem' }}>Primary graduation</span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                      <button type="button" className="btn btn-gh btn-xs" onClick={() => openEditEducation(entry)}>Edit</button>
+                      <button type="button" className="btn btn-gh btn-xs" onClick={() => deleteEducationEntry(entry.id)} disabled={saving}>✕</button>
+                    </div>
+                  </div>
+                </div>
+              ))
             )}
           </div>
         </div>
 
         {/* Skills */}
         <div id="profile-skills" className="card scroll-mt-20">
-          <div className="ch"><h3>🛠️ Skills</h3><button className="btn btn-gh btn-xs" onClick={() => startEdit('skills')}>Edit</button></div>
+          <div className="ch">
+            <h3>🛠️ Skills</h3>
+            {!skillsEmpty && (
+              <button type="button" className="btn btn-gh btn-xs" onClick={openSkillsEdit}>Edit</button>
+            )}
+          </div>
           <div className="cb">
-            {skills.length === 0 && softSkills.length === 0 ? (
+            {skillsEmpty ? (
               <div style={{ textAlign: 'center', padding: '16px 0' }}>
                 <div style={{ fontSize: '1.4rem', marginBottom: 6 }}>🎯</div>
                 <div style={{ fontSize: '.8rem', color: 'var(--color-muted)', marginBottom: 10 }}>Add your technical & soft skills</div>
-                <button className="btn btn-p btn-xs" onClick={() => startEdit('skills')}>+ Add Skills</button>
+                <button className="btn btn-p btn-xs" onClick={openSkillsEdit}>+ Add Skills</button>
               </div>
             ) : (
               <>
-                {skills.length > 0 && (
+                {skillsTechnical.length > 0 && (
                   <div style={{ marginBottom: 10 }}>
                     <div style={{ fontSize: '.7rem', fontWeight: 700, color: 'var(--color-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '.5px' }}>Technical</div>
-                    <div className="flex flex-wrap gap-[6px]">{skills.map(s => <span key={s} className="tag tb">{s}</span>)}</div>
+                    <div className="flex flex-wrap gap-[6px]">{skillsTechnical.map(s => <span key={s} className="tag tb">{s}</span>)}</div>
                   </div>
                 )}
-                {softSkills.length > 0 && (
+                {skillsSoft.length > 0 && (
                   <div>
                     <div style={{ fontSize: '.7rem', fontWeight: 700, color: 'var(--color-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '.5px' }}>Soft Skills</div>
-                    <div className="flex flex-wrap gap-[6px]">{softSkills.map(s => <span key={s} className="tag tg">{s}</span>)}</div>
+                    <div className="flex flex-wrap gap-[6px]">{skillsSoft.map(s => <span key={s} className="tag tg">{s}</span>)}</div>
                   </div>
                 )}
               </>
@@ -445,37 +927,119 @@ export default function ProfileSection() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {/* Experience */}
         <div id="profile-experience" className="card scroll-mt-20">
-          <div className="ch"><h3>💼 Experience</h3><button className="btn btn-gh btn-xs" onClick={() => startEdit('experience')}>Edit</button></div>
+          <div className="ch">
+            <h3>💼 Experience</h3>
+            {!isFresher && !experienceEmpty && (
+              <button type="button" className="btn btn-p btn-xs" onClick={openAddExperience}>+ Add</button>
+            )}
+          </div>
           <div className="cb">
-            {isFresher ? (
-              <div style={{ textAlign: 'center', padding: '16px 0' }}>
-                <div style={{ fontSize: '1.4rem', marginBottom: 6 }}>🌱</div>
-                <div style={{ fontSize: '.82rem', fontWeight: 700, color: 'var(--color-grn)', marginBottom: 4 }}>Fresher</div>
-                <div style={{ fontSize: '.76rem', color: 'var(--color-muted)' }}>No prior full-time experience</div>
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '10px 12px',
+                marginBottom: 12,
+                borderRadius: 10,
+                border: '1px solid var(--color-bdr)',
+                background: isFresher ? 'rgba(63,185,80,.08)' : 'var(--color-bg3)',
+                cursor: saving ? 'wait' : 'pointer',
+              }}
+              onClick={() => !saving && setFresherStatus(!isFresher)}
+            >
+              <div style={{
+                width: 18, height: 18, borderRadius: 4, border: '2px solid', flexShrink: 0,
+                borderColor: isFresher ? 'var(--color-grn)' : 'var(--color-bdr)',
+                background: isFresher ? 'var(--color-grn)' : 'transparent',
+                color: '#fff', fontSize: '.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>{isFresher ? '✓' : ''}</div>
+              <div>
+                <div style={{ fontSize: '.8rem', fontWeight: 700 }}>I&apos;m a fresher / recent graduate</div>
+                <div style={{ fontSize: '.7rem', color: 'var(--color-muted)' }}>No full-time work experience yet</div>
               </div>
-            ) : !exps.some(e => e.company) ? (
-              <div style={{ textAlign: 'center', padding: '16px 0' }}>
+            </label>
+
+            {isFresher ? (
+              <div style={{ textAlign: 'center', padding: '8px 0 4px', fontSize: '.76rem', color: 'var(--color-muted)' }}>
+                Add internships and projects in the sections below.
+              </div>
+            ) : experienceEmpty ? (
+              <div style={{ textAlign: 'center', padding: '12px 0' }}>
                 <div style={{ fontSize: '1.4rem', marginBottom: 6 }}>💼</div>
-                <div style={{ fontSize: '.8rem', color: 'var(--color-muted)', marginBottom: 10 }}>Add jobs or work experience</div>
-                <button className="btn btn-p btn-xs" onClick={() => startEdit('experience')}>+ Add Experience</button>
+                <div style={{ fontSize: '.8rem', color: 'var(--color-muted)', marginBottom: 10 }}>
+                  Add each job one at a time — company, role, and dates
+                </div>
+                <button type="button" className="btn btn-p btn-xs" onClick={openAddExperience}>+ Add Experience</button>
               </div>
             ) : (
-              exps.filter(e => e.company).map((e, i) => (
-                <div key={i} style={{ paddingBottom: 12, marginBottom: 12, borderBottom: i < exps.filter(x => x.company).length - 1 ? '1px solid var(--color-bdr)' : 'none' }}>
-                  <div style={{ fontSize: '.84rem', fontWeight: 800 }}>{e.company}</div>
-                  <div style={{ fontSize: '.76rem', color: 'var(--color-blu2)' }}>{e.role}{e.duration ? ` · ${e.duration}` : ''}</div>
-                  {e.bullets && <div style={{ fontSize: '.76rem', color: 'var(--color-txt2)', whiteSpace: 'pre-wrap', lineHeight: 1.6, marginTop: 6 }}>{e.bullets}</div>}
-                </div>
-              ))
+              experienceList.filter(experienceEntryHasContent).map((entry, i, arr) => {
+                const preview = experienceEntryPreview(entry)
+                const hasDetails = experienceHasDetails(entry)
+                return (
+                  <div
+                    key={entry.id}
+                    style={{
+                      paddingBottom: 8,
+                      marginBottom: 8,
+                      borderBottom: i < arr.length - 1 ? '1px solid var(--color-bdr)' : 'none',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '.84rem', fontWeight: 800, lineHeight: 1.3 }}>{entry.company}</div>
+                        <div style={{ fontSize: '.74rem', color: 'var(--color-blu2)', marginTop: 2, lineHeight: 1.35 }}>
+                          {experienceEntrySubtitle(entry)}
+                        </div>
+                        {preview && (
+                          <div
+                            style={{
+                              fontSize: '.72rem',
+                              color: 'var(--color-muted)',
+                              marginTop: 4,
+                              lineHeight: 1.4,
+                              overflow: 'hidden',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                            }}
+                          >
+                            {preview}
+                          </div>
+                        )}
+                        {hasDetails && (
+                          <button
+                            type="button"
+                            className="btn btn-gh btn-xs"
+                            style={{ marginTop: 6, padding: '2px 8px', fontSize: '.68rem' }}
+                            onClick={() => openViewExperience(entry)}
+                          >
+                            View details
+                          </button>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', gap: 4, flexShrink: 0, alignItems: 'flex-start' }}>
+                        <button type="button" className="btn btn-gh btn-xs" onClick={() => openEditExperience(entry)}>Edit</button>
+                        <button type="button" className="btn btn-gh btn-xs" onClick={() => deleteExperienceEntry(entry.id)} disabled={saving}>✕</button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })
             )}
           </div>
         </div>
 
         {/* Job Preferences & Salary */}
         <div id="profile-preferences" className="card scroll-mt-20">
-          <div className="ch"><h3>⚙️ Preferences & Salary</h3><button className="btn btn-gh btn-xs" onClick={() => startEdit('preferences')}>Edit</button></div>
+          <div className="ch">
+            <h3>⚙️ Preferences & Salary</h3>
+            {!preferencesEmpty && (
+              <button type="button" className="btn btn-gh btn-xs" onClick={() => startEdit('preferences')}>Edit</button>
+            )}
+          </div>
           <div className="cb">
-            {!prefs.jobType && !prefs.location && !prefs.expectedCTC ? (
+            {preferencesEmpty ? (
               <div style={{ textAlign: 'center', padding: '16px 0' }}>
                 <div style={{ fontSize: '1.4rem', marginBottom: 6 }}>💰</div>
                 <div style={{ fontSize: '.8rem', color: 'var(--color-muted)', marginBottom: 10 }}>Set your job type, location & salary expectations</div>
@@ -484,11 +1048,11 @@ export default function ProfileSection() {
             ) : (
               <>
                 <div className="ir"><span className="ik">Job Type</span><span className="iv">{prefs.jobType || '—'}</span></div>
-                <div className="ir"><span className="ik">Location</span><span className="iv">{prefs.location || '—'}</span></div>
+                <div className="ir"><span className="ik">Location</span><span className="iv">{(prefs.preferredLocations || []).join(', ') || '—'}</span></div>
                 <div className="ir"><span className="ik">Expected CTC</span><span className="iv" style={{ color: 'var(--color-grn)', fontWeight: 800 }}>{prefs.expectedCTC || '—'}</span></div>
                 <div className="ir"><span className="ik">Notice Period</span><span className="iv">{prefs.noticePeriod || '—'}</span></div>
-                <div className="ir"><span className="ik">LinkedIn</span><span className="iv">{prefs.linkedIn ? <a href={prefs.linkedIn} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-blu2)' }}>🔗 View</a> : '—'}</span></div>
-                <div className="ir"><span className="ik">GitHub</span><span className="iv">{prefs.github ? <a href={prefs.github} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-blu2)' }}>🔗 View</a> : '—'}</span></div>
+                <div className="ir"><span className="ik">LinkedIn</span><span className="iv">{links.linkedin ? <a href={links.linkedin} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-blu2)' }}>🔗 View</a> : '—'}</span></div>
+                <div className="ir"><span className="ik">GitHub</span><span className="iv">{links.github ? <a href={links.github} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-blu2)' }}>🔗 View</a> : '—'}</span></div>
               </>
             )}
           </div>
@@ -497,60 +1061,166 @@ export default function ProfileSection() {
 
       {/* Projects */}
       <div id="profile-projects" className="card scroll-mt-20">
-        <div className="ch"><h3>🚀 Projects</h3><button className="btn btn-gh btn-xs" onClick={() => startEdit('projects')}>Edit</button></div>
+        <div className="ch">
+          <h3>🚀 Projects</h3>
+          {!projectsEmpty && (
+            <button type="button" className="btn btn-p btn-xs" onClick={openAddProject}>+ Add</button>
+          )}
+        </div>
         <div className="cb">
-          {!projects.some(p => p.title) ? (
+          {projectsEmpty ? (
             <div style={{ textAlign: 'center', padding: '16px 0' }}>
               <div style={{ fontSize: '1.4rem', marginBottom: 6 }}>🚀</div>
               <div style={{ fontSize: '.8rem', color: 'var(--color-muted)', marginBottom: 10 }}>Add your key projects — crucial for freshers</div>
-              <button className="btn btn-p btn-xs" onClick={() => startEdit('projects')}>+ Add Project</button>
+              <button type="button" className="btn btn-p btn-xs" onClick={openAddProject}>+ Add Project</button>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              {projects.filter(p => p.title).map((p, i) => (
-                <div key={i} style={{ padding: 12, borderRadius: 10, border: '1px solid var(--color-bdr)', background: 'var(--color-bg3)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                    <span style={{ fontSize: '.84rem', fontWeight: 800 }}>{p.title}</span>
-                    {p.url && <a href={p.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '.68rem', color: 'var(--color-blu2)' }}>🔗</a>}
+            projectList.filter(projectHasContent).map((entry, i, arr) => {
+              const preview = projectEntryPreview(entry)
+              const hasDetails = projectHasDetails(entry)
+              const subtitle = projectEntrySubtitle(entry)
+              return (
+                <div
+                  key={entry.id}
+                  style={{
+                    paddingBottom: 8,
+                    marginBottom: 8,
+                    borderBottom: i < arr.length - 1 ? '1px solid var(--color-bdr)' : 'none',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: '.84rem', fontWeight: 800, lineHeight: 1.3 }}>{entry.title}</span>
+                        {entry.url?.trim() && (
+                          <a href={entry.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '.68rem', color: 'var(--color-blu2)' }}>🔗</a>
+                        )}
+                      </div>
+                      {subtitle && (
+                        <div style={{ fontSize: '.74rem', color: 'var(--color-blu2)', marginTop: 2, lineHeight: 1.35 }}>{subtitle}</div>
+                      )}
+                      {preview && (
+                        <div
+                          style={{
+                            fontSize: '.72rem',
+                            color: 'var(--color-muted)',
+                            marginTop: 4,
+                            lineHeight: 1.4,
+                            overflow: 'hidden',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                          }}
+                        >
+                          {preview}
+                        </div>
+                      )}
+                      {hasDetails && (
+                        <button
+                          type="button"
+                          className="btn btn-gh btn-xs"
+                          style={{ marginTop: 6, padding: '2px 8px', fontSize: '.68rem' }}
+                          onClick={() => openViewProject(entry)}
+                        >
+                          View details
+                        </button>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: 4, flexShrink: 0, alignItems: 'flex-start' }}>
+                      <button type="button" className="btn btn-gh btn-xs" onClick={() => openEditProject(entry)}>Edit</button>
+                      <button type="button" className="btn btn-gh btn-xs" onClick={() => deleteProjectEntry(entry.id)} disabled={saving}>✕</button>
+                    </div>
                   </div>
-                  {p.tech && <div style={{ fontSize: '.72rem', color: 'var(--color-blu2)', fontWeight: 600, marginBottom: 4 }}>{p.tech}</div>}
-                  {p.desc && <div style={{ fontSize: '.74rem', color: 'var(--color-txt2)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{p.desc}</div>}
                 </div>
-              ))}
-            </div>
+              )
+            })
           )}
         </div>
       </div>
 
       {/* Internships + Certifications */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {/* Internships */}
         <div id="profile-internships" className="card scroll-mt-20">
-          <div className="ch"><h3>🎓 Internships</h3><button className="btn btn-gh btn-xs" onClick={() => startEdit('internships')}>Edit</button></div>
+          <div className="ch">
+            <h3>🎓 Internships</h3>
+            {!internshipsEmpty && (
+              <button type="button" className="btn btn-p btn-xs" onClick={openAddInternship}>+ Add</button>
+            )}
+          </div>
           <div className="cb">
-            {!interns.some(i => i.company) ? (
+            {internshipsEmpty ? (
               <div style={{ textAlign: 'center', padding: '16px 0' }}>
                 <div style={{ fontSize: '1.4rem', marginBottom: 6 }}>🏢</div>
                 <div style={{ fontSize: '.8rem', color: 'var(--color-muted)', marginBottom: 10 }}>Add your internship experiences</div>
-                <button className="btn btn-p btn-xs" onClick={() => startEdit('internships')}>+ Add Internship</button>
+                <button type="button" className="btn btn-p btn-xs" onClick={openAddInternship}>+ Add Internship</button>
               </div>
             ) : (
-              interns.filter(i => i.company).map((i, idx) => (
-                <div key={idx} style={{ paddingBottom: 10, marginBottom: 10, borderBottom: idx < interns.filter(x => x.company).length - 1 ? '1px solid var(--color-bdr)' : 'none' }}>
-                  <div style={{ fontSize: '.84rem', fontWeight: 800 }}>{i.company}</div>
-                  <div style={{ fontSize: '.76rem', color: 'var(--color-prp)' }}>{i.role}{i.duration ? ` · ${i.duration}` : ''}</div>
-                  {i.bullets && <div style={{ fontSize: '.76rem', color: 'var(--color-txt2)', whiteSpace: 'pre-wrap', lineHeight: 1.6, marginTop: 4 }}>{i.bullets}</div>}
-                </div>
-              ))
+              internshipList.filter(internshipHasContent).map((entry, i, arr) => {
+                const preview = internshipEntryPreview(entry)
+                const hasDetails = internshipHasDetails(entry)
+                return (
+                  <div
+                    key={entry.id}
+                    style={{
+                      paddingBottom: 8,
+                      marginBottom: 8,
+                      borderBottom: i < arr.length - 1 ? '1px solid var(--color-bdr)' : 'none',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '.84rem', fontWeight: 800, lineHeight: 1.3 }}>{entry.company}</div>
+                        <div style={{ fontSize: '.74rem', color: 'var(--color-blu2)', marginTop: 2, lineHeight: 1.35 }}>
+                          {internshipEntrySubtitle(entry)}
+                        </div>
+                        {preview && (
+                          <div
+                            style={{
+                              fontSize: '.72rem',
+                              color: 'var(--color-muted)',
+                              marginTop: 4,
+                              lineHeight: 1.4,
+                              overflow: 'hidden',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                            }}
+                          >
+                            {preview}
+                          </div>
+                        )}
+                        {hasDetails && (
+                          <button
+                            type="button"
+                            className="btn btn-gh btn-xs"
+                            style={{ marginTop: 6, padding: '2px 8px', fontSize: '.68rem' }}
+                            onClick={() => openViewInternship(entry)}
+                          >
+                            View details
+                          </button>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', gap: 4, flexShrink: 0, alignItems: 'flex-start' }}>
+                        <button type="button" className="btn btn-gh btn-xs" onClick={() => openEditInternship(entry)}>Edit</button>
+                        <button type="button" className="btn btn-gh btn-xs" onClick={() => deleteInternshipEntry(entry.id)} disabled={saving}>✕</button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })
             )}
           </div>
         </div>
 
-        {/* Certifications */}
         <div id="profile-certifications" className="card scroll-mt-20">
-          <div className="ch"><h3>🏆 Certifications</h3><button className="btn btn-gh btn-xs" onClick={() => startEdit('certifications')}>Edit</button></div>
+          <div className="ch">
+            <h3>🏆 Certifications</h3>
+            {!certsEmpty && (
+              <button type="button" className="btn btn-gh btn-xs" onClick={() => startEdit('certifications')}>Edit</button>
+            )}
+          </div>
           <div className="cb">
-            {!certs.some(c => c.name) ? (
+            {certsEmpty ? (
               <div style={{ textAlign: 'center', padding: '16px 0' }}>
                 <div style={{ fontSize: '1.4rem', marginBottom: 6 }}>📜</div>
                 <div style={{ fontSize: '.8rem', color: 'var(--color-muted)', marginBottom: 10 }}>Add your certifications & courses</div>
@@ -558,12 +1228,12 @@ export default function ProfileSection() {
               </div>
             ) : (
               certs.filter(c => c.name).map((c, idx) => (
-                <div key={idx} style={{ paddingBottom: 10, marginBottom: 10, borderBottom: idx < certs.filter(x => x.name).length - 1 ? '1px solid var(--color-bdr)' : 'none' }}>
+                <div key={c.id || idx} style={{ paddingBottom: 10, marginBottom: 10, borderBottom: idx < certs.filter(x => x.name).length - 1 ? '1px solid var(--color-bdr)' : 'none' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{ fontSize: '.84rem', fontWeight: 800 }}>{c.name}</span>
                     {c.url && <a href={c.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '.68rem', color: 'var(--color-blu2)' }}>🔗</a>}
                   </div>
-                  <div style={{ fontSize: '.76rem', color: 'var(--color-gold)' }}>{c.issuer}{c.year ? ` · ${c.year}` : ''}</div>
+                  <div style={{ fontSize: '.76rem', color: 'var(--color-gold)' }}>{c.issuer}{c.year ? ` · ${formatYearOrMonthDisplay(c.year)}` : ''}</div>
                 </div>
               ))
             )}
@@ -573,16 +1243,24 @@ export default function ProfileSection() {
 
       {/* Summary */}
       <div id="profile-summary" className="card scroll-mt-20">
-        <div className="ch"><h3>📝 Professional Summary</h3><button className="btn btn-gh btn-xs" onClick={() => startEdit('summary')}>Edit</button></div>
+        <div className="ch">
+          <h3>📝 Professional Summary</h3>
+          {!summaryEmpty && (
+            <button type="button" className="btn btn-gh btn-xs" onClick={() => startEdit('summary')}>Edit</button>
+          )}
+        </div>
         <div className="cb">
-          {!summary ? (
+          {summaryEmpty ? (
             <div style={{ textAlign: 'center', padding: '16px 0' }}>
               <div style={{ fontSize: '1.4rem', marginBottom: 6 }}>✍️</div>
-              <div style={{ fontSize: '.8rem', color: 'var(--color-muted)', marginBottom: 10 }}>Write a 2–3 line summary for recruiters</div>
+              <div style={{ fontSize: '.8rem', color: 'var(--color-muted)', marginBottom: 10 }}>Add a headline + 2–3 line summary for recruiters</div>
               <button className="btn btn-p btn-xs" onClick={() => startEdit('summary')}>+ Add Summary</button>
             </div>
           ) : (
-            <p style={{ fontSize: '.84rem', color: 'var(--color-txt2)', lineHeight: 1.75 }}>{summary}</p>
+            <>
+              {headline && <p style={{ fontSize: '.92rem', fontWeight: 700, color: 'var(--color-txt)', marginBottom: 6 }}>{headline}</p>}
+              {summary && <p style={{ fontSize: '.84rem', color: 'var(--color-txt2)', lineHeight: 1.75 }}>{summary}</p>}
+            </>
           )}
         </div>
       </div>
@@ -594,10 +1272,15 @@ export default function ProfileSection() {
           <button className="btn btn-p btn-xs" disabled={reviewLoading} onClick={async () => {
             setReviewLoading(true)
             try {
-              const { data } = await profileReviewFn({ profile })
-              setAiReview(data)
-              const uid = auth.currentUser?.uid
-              if (uid) await setDoc(doc(db, 'users', uid), { aiReview: { ...data, updatedAt: new Date().toISOString() } }, { merge: true })
+              const data = await apiFetch('/ai/profile-review', {
+                body: { profile: profileRef.current },
+              })
+              const stamped = stampAiReview(data)
+              const updated = { ...normalizeProfile(profileRef.current), aiReview: stamped }
+              setProfile(updated)
+              await replaceProfile(updated)
+              setLastUpdated(new Date())
+              addToast('success', '✅ AI review ready!')
             } catch (err) {
               console.error('Profile review error:', err)
               addToast('error', '⚠️ Failed to get AI review')
@@ -628,7 +1311,6 @@ export default function ProfileSection() {
 
           {aiReview && !reviewLoading && (
             <div>
-              {/* Score + Verdict */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
                 <div style={{ width: 60, height: 60, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: '1.1rem', fontWeight: 900, fontFamily: "'JetBrains Mono',monospace", flexShrink: 0,
@@ -639,11 +1321,14 @@ export default function ProfileSection() {
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '.92rem', fontWeight: 800 }}>{aiReview.verdict}</div>
                   <div style={{ fontSize: '.74rem', color: 'var(--color-muted)' }}>AI Profile Score</div>
-                  {aiReview.updatedAt && <div style={{ fontSize: '.64rem', color: 'var(--color-muted)', marginTop: 2 }}>Last analyzed: {new Date(aiReview.updatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>}
+                  {aiReview.lastReviewedAt && (
+                    <div style={{ fontSize: '.64rem', color: 'var(--color-muted)', marginTop: 2 }}>
+                      Last reviewed: {new Date(aiReview.lastReviewedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Strengths & Weaknesses */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
                 {aiReview.strengths?.length > 0 && (
                   <div style={{ background: 'rgba(46,160,67,.05)', border: '1px solid rgba(46,160,67,.15)', borderRadius: 9, padding: 11 }}>
@@ -663,7 +1348,6 @@ export default function ProfileSection() {
                 )}
               </div>
 
-              {/* Skill Suggestions */}
               {aiReview.skillSuggestions?.length > 0 && (
                 <div style={{ marginBottom: 14 }}>
                   <div style={{ fontSize: '.68rem', fontWeight: 800, color: 'var(--color-blu2)', textTransform: 'uppercase', letterSpacing: '.6px', marginBottom: 6 }}>💡 Recommended Skills</div>
@@ -682,7 +1366,6 @@ export default function ProfileSection() {
                 </div>
               )}
 
-              {/* Actionable Tips */}
               {aiReview.tips?.length > 0 && (
                 <div style={{ marginBottom: 14 }}>
                   <div style={{ fontSize: '.68rem', fontWeight: 800, color: 'var(--color-prp)', textTransform: 'uppercase', letterSpacing: '.6px', marginBottom: 6 }}>🎯 Action Items</div>
@@ -698,7 +1381,6 @@ export default function ProfileSection() {
                 </div>
               )}
 
-              {/* Summary Draft */}
               {aiReview.summaryDraft && (
                 <div style={{ background: 'var(--color-bg3)', border: '1px solid var(--color-bdr)', borderRadius: 9, padding: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
@@ -716,7 +1398,7 @@ export default function ProfileSection() {
         </div>
       </div>
 
-      {/* ===== EDIT MODALS (rendered via portal so position:fixed escapes any ancestor with transform) ===== */}
+      {/* ===== EDIT MODALS (rendered via portal) ===== */}
       {createPortal(
         <>
       {editing === 'personal' && (
@@ -731,7 +1413,7 @@ export default function ProfileSection() {
               <div className="fg2">
                 <div className="fg"><label className="fl">Gender</label>
                   <select className="fsl" value={form.gender || ''} onChange={e => setForm({ ...form, gender: e.target.value })}>
-                    <option value="">Select…</option><option>Male</option><option>Female</option><option>Non-binary</option><option>Prefer not to say</option>
+                    <option value="">Select…</option><option value="male">Male</option><option value="female">Female</option><option value="non-binary">Non-binary</option><option value="prefer-not-to-say">Prefer not to say</option>
                   </select>
                 </div>
                 <div className="fg"><label className="fl">Date of Birth</label><input className="fi" type="date" value={form.dob || ''} onChange={e => setForm({ ...form, dob: e.target.value })} /></div>
@@ -740,51 +1422,12 @@ export default function ProfileSection() {
             </div>
             <div className="mf">
               <button className="btn btn-gh" onClick={() => setEditing(null)}>Cancel</button>
-              <button className="btn btn-p" disabled={saving} onClick={() => saveSection('personal', form)}>{saving ? 'Saving…' : 'Save'}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Education Edit */}
-      {editing === 'education' && (
-        <div className="mb on" onClick={e => e.target === e.currentTarget && setEditing(null)}>
-          <div className="mo mo-lg">
-            <div className="mh"><h2>📚 Edit Education</h2><div className="mx" onClick={() => setEditing(null)}>✕</div></div>
-            <div className="mb2 flex flex-col gap-3" style={{ maxHeight: 450, overflow: 'auto' }}>
-              <div style={{ fontSize: '.72rem', fontWeight: 700, color: 'var(--color-blu2)', textTransform: 'uppercase', letterSpacing: '.5px' }}>Higher Education</div>
-              <div className="fg"><label className="fl">Degree & Branch *</label><input className="fi" placeholder="B.Tech Computer Science" value={form.degree || ''} onChange={e => setForm({ ...form, degree: e.target.value })} /></div>
-              <div className="fg"><label className="fl">College / University *</label><input className="fi" placeholder="IIT Delhi" value={form.college || ''} onChange={e => setForm({ ...form, college: e.target.value })} /></div>
-              <div className="fg2">
-                <div className="fg"><label className="fl">Institute Type</label>
-                  <select className="fsl" value={form.institute || ''} onChange={e => setForm({ ...form, institute: e.target.value })}>
-                    <option value="">Select…</option><option>IIT</option><option>NIT</option><option>IIIT</option><option>Central University</option><option>State University</option><option>Deemed University</option><option>Private University</option><option>Autonomous College</option><option>Other</option>
-                  </select>
-                </div>
-                <div className="fg"><label className="fl">Board / Affiliating University</label><input className="fi" placeholder="VTU, Anna University, AKTU…" value={form.board || ''} onChange={e => setForm({ ...form, board: e.target.value })} /></div>
-              </div>
-              <div className="fg2">
-                <div className="fg"><label className="fl">Graduation Year</label><input className="fi" placeholder="2024" value={form.year || ''} onChange={e => setForm({ ...form, year: e.target.value })} /></div>
-                <div className="fg"><label className="fl">CGPA / Percentage</label><input className="fi" placeholder="8.5 or 85%" value={form.cgpa || ''} onChange={e => setForm({ ...form, cgpa: e.target.value })} /></div>
-              </div>
-              <div style={{ borderTop: '1px solid var(--color-bdr)', paddingTop: 12, marginTop: 4 }}>
-                <div style={{ fontSize: '.72rem', fontWeight: 700, color: 'var(--color-blu2)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 8 }}>Class 12th</div>
-                <div className="fg2">
-                  <div className="fg"><label className="fl">Marks / Percentage</label><input className="fi" placeholder="92% or 460/500" value={form.marks12 || ''} onChange={e => setForm({ ...form, marks12: e.target.value })} /></div>
-                  <div className="fg"><label className="fl">Board</label><input className="fi" placeholder="CBSE, ICSE, State Board…" value={form.board12 || ''} onChange={e => setForm({ ...form, board12: e.target.value })} /></div>
-                </div>
-              </div>
-              <div style={{ borderTop: '1px solid var(--color-bdr)', paddingTop: 12, marginTop: 4 }}>
-                <div style={{ fontSize: '.72rem', fontWeight: 700, color: 'var(--color-blu2)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 8 }}>Class 10th</div>
-                <div className="fg2">
-                  <div className="fg"><label className="fl">Marks / Percentage</label><input className="fi" placeholder="95% or 475/500" value={form.marks10 || ''} onChange={e => setForm({ ...form, marks10: e.target.value })} /></div>
-                  <div className="fg"><label className="fl">Board</label><input className="fi" placeholder="CBSE, ICSE, State Board…" value={form.board10 || ''} onChange={e => setForm({ ...form, board10: e.target.value })} /></div>
-                </div>
-              </div>
-            </div>
-            <div className="mf">
-              <button className="btn btn-gh" onClick={() => setEditing(null)}>Cancel</button>
-              <button className="btn btn-p" disabled={saving} onClick={() => saveSection('education', form)}>{saving ? 'Saving…' : 'Save'}</button>
+              <button className="btn btn-p" disabled={saving} onClick={() => saveSection({
+                personal: {
+                  phone: form.phone || '', location: form.location || '', gender: form.gender || '', dob: form.dob || '',
+                  languages: fromCsv(form.languages),
+                },
+              })}>{saving ? 'Saving…' : 'Save'}</button>
             </div>
           </div>
         </div>
@@ -799,130 +1442,41 @@ export default function ProfileSection() {
               <div className="fg">
                 <label className="fl">Technical Skills</label>
                 <div className="flex flex-wrap gap-[6px] mb-2">
-                  {skills.map(s => (
-                    <span key={s} className="tag tb" style={{ cursor: 'pointer' }} onClick={() => { const n = skills.filter(x => x !== s); setProfile(p => ({ ...p, skills: n })) }}>
+                  {skillsDraft.technical.map((s) => (
+                    <span key={s} className="tag tb" style={{ cursor: 'pointer' }} onClick={() => {
+                      setSkillsDraft((d) => ({ ...d, technical: d.technical.filter((x) => x !== s) }))
+                    }}>
                       {s} ✕
                     </span>
                   ))}
                 </div>
                 <div style={{ display: 'flex', gap: 6 }}>
                   <input className="fi" placeholder="e.g. React, Python, AWS…" value={skillInput} onChange={e => setSkillInput(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter' && skillInput.trim()) { e.preventDefault(); setProfile(p => ({ ...p, skills: [...p.skills, skillInput.trim()] })); setSkillInput('') } }} />
-                  <button className="btn btn-p btn-sm" type="button" onClick={() => { if (skillInput.trim()) { setProfile(p => ({ ...p, skills: [...p.skills, skillInput.trim()] })); setSkillInput('') } }}>Add</button>
+                    onKeyDown={e => { if (e.key === 'Enter' && skillInput.trim()) { e.preventDefault(); const v = skillInput.trim(); setSkillsDraft((d) => ({ ...d, technical: d.technical.includes(v) ? d.technical : [...d.technical, v] })); setSkillInput('') } }} />
+                  <button className="btn btn-p btn-sm" type="button" onClick={() => { if (skillInput.trim()) { const v = skillInput.trim(); setSkillsDraft((d) => ({ ...d, technical: d.technical.includes(v) ? d.technical : [...d.technical, v] })); setSkillInput('') } }}>Add</button>
                 </div>
               </div>
               <div className="fg">
                 <label className="fl">Soft Skills</label>
                 <div className="flex flex-wrap gap-[6px] mb-2">
-                  {softSkills.map(s => (
-                    <span key={s} className="tag tg" style={{ cursor: 'pointer' }} onClick={() => { const n = softSkills.filter(x => x !== s); setProfile(p => ({ ...p, softSkills: n })) }}>
+                  {skillsDraft.soft.map((s) => (
+                    <span key={s} className="tag tg" style={{ cursor: 'pointer' }} onClick={() => {
+                      setSkillsDraft((d) => ({ ...d, soft: d.soft.filter((x) => x !== s) }))
+                    }}>
                       {s} ✕
                     </span>
                   ))}
                 </div>
                 <div style={{ display: 'flex', gap: 6 }}>
                   <input className="fi" placeholder="e.g. Leadership, Communication…" value={softSkillInput} onChange={e => setSoftSkillInput(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter' && softSkillInput.trim()) { e.preventDefault(); setProfile(p => ({ ...p, softSkills: [...p.softSkills, softSkillInput.trim()] })); setSoftSkillInput('') } }} />
-                  <button className="btn btn-p btn-sm" type="button" onClick={() => { if (softSkillInput.trim()) { setProfile(p => ({ ...p, softSkills: [...p.softSkills, softSkillInput.trim()] })); setSoftSkillInput('') } }}>Add</button>
+                    onKeyDown={e => { if (e.key === 'Enter' && softSkillInput.trim()) { e.preventDefault(); const v = softSkillInput.trim(); setSkillsDraft((d) => ({ ...d, soft: d.soft.includes(v) ? d.soft : [...d.soft, v] })); setSoftSkillInput('') } }} />
+                  <button className="btn btn-p btn-sm" type="button" onClick={() => { if (softSkillInput.trim()) { const v = softSkillInput.trim(); setSkillsDraft((d) => ({ ...d, soft: d.soft.includes(v) ? d.soft : [...d.soft, v] })); setSoftSkillInput('') } }}>Add</button>
                 </div>
               </div>
             </div>
             <div className="mf">
               <button className="btn btn-gh" onClick={() => setEditing(null)}>Cancel</button>
-              <button className="btn btn-p" disabled={saving} onClick={() => { saveSection('skills', skills); saveSection('softSkills', softSkills) }}>{saving ? 'Saving…' : 'Save Skills'}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Experience Edit */}
-      {editing === 'experience' && (
-        <div className="mb on" onClick={e => e.target === e.currentTarget && setEditing(null)}>
-          <div className="mo mo-lg">
-            <div className="mh"><h2>💼 Edit Experience</h2><div className="mx" onClick={() => setEditing(null)}>✕</div></div>
-            <div className="mb2 flex flex-col gap-4" style={{ maxHeight: 450, overflow: 'auto' }}>
-              {/* Fresher checkbox */}
-              <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, border: '1px solid var(--color-bdr)', background: form.isFresher ? 'rgba(63,185,80,.08)' : 'var(--color-bg3)', cursor: 'pointer' }}
-                onClick={() => setForm(f => ({ ...f, isFresher: !f.isFresher }))}>
-                <div style={{ width: 20, height: 20, borderRadius: 5, border: '2px solid', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '.7rem',
-                  borderColor: form.isFresher ? 'var(--color-grn)' : 'var(--color-bdr)',
-                  background: form.isFresher ? 'var(--color-grn)' : 'transparent',
-                  color: '#fff' }}>{form.isFresher ? '✓' : ''}</div>
-                <div>
-                  <div style={{ fontSize: '.82rem', fontWeight: 700 }}>I'm a fresher / recent graduate</div>
-                  <div style={{ fontSize: '.7rem', color: 'var(--color-muted)' }}>No prior full-time work experience</div>
-                </div>
-              </label>
-
-              {!form.isFresher && (
-                <>
-                  {(form.experience || [{ company: '', role: '', duration: '', bullets: '' }]).map((exp, i) => (
-                    <div key={i} style={{ padding: 14, borderRadius: 10, border: '1px solid var(--color-bdr)', background: 'var(--color-bg3)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                        <span style={{ fontSize: '.76rem', fontWeight: 700 }}>Experience {i + 1}</span>
-                        {(form.experience || []).length > 1 && (
-                          <button style={{ fontSize: '.7rem', color: 'var(--color-muted)', cursor: 'pointer', background: 'none', border: 'none' }}
-                            onClick={() => setForm(f => ({ ...f, experience: f.experience.filter((_, j) => j !== i) }))}>Remove</button>
-                        )}
-                      </div>
-                      <div className="flex flex-col gap-2.5">
-                        <div className="fg"><label className="fl">Company *</label><input className="fi" placeholder="Google, TCS, Startup…" value={exp.company} onChange={e => { const u = [...form.experience]; u[i] = { ...u[i], company: e.target.value }; setForm({ ...form, experience: u }) }} /></div>
-                        <div className="fg2">
-                          <div className="fg"><label className="fl">Role *</label><input className="fi" placeholder="Software Engineer" value={exp.role} onChange={e => { const u = [...form.experience]; u[i] = { ...u[i], role: e.target.value }; setForm({ ...form, experience: u }) }} /></div>
-                          <div className="fg"><label className="fl">Duration</label><input className="fi" placeholder="Jan 2023 – Present" value={exp.duration} onChange={e => { const u = [...form.experience]; u[i] = { ...u[i], duration: e.target.value }; setForm({ ...form, experience: u }) }} /></div>
-                        </div>
-                        <div className="fg"><label className="fl">Key Achievements</label><textarea className="fta min-h-[60px]" placeholder="• Built REST APIs&#10;• Improved performance by 30%" value={exp.bullets} onChange={e => { const u = [...form.experience]; u[i] = { ...u[i], bullets: e.target.value }; setForm({ ...form, experience: u }) }} /></div>
-                      </div>
-                    </div>
-                  ))}
-                  <button className="btn btn-o btn-sm" onClick={() => setForm(f => ({ ...f, experience: [...(f.experience || []), { company: '', role: '', duration: '', bullets: '' }] }))}>+ Add Another</button>
-                </>
-              )}
-
-              {form.isFresher && (
-                <div style={{ textAlign: 'center', padding: '12px 0', fontSize: '.82rem', color: 'var(--color-muted)' }}>
-                  No worries! Add your internships, projects, and certifications in the other sections.
-                </div>
-              )}
-            </div>
-            <div className="mf">
-              <button className="btn btn-gh" onClick={() => setEditing(null)}>Cancel</button>
-              <button className="btn btn-p" disabled={saving} onClick={async () => { await saveSection('isFresher', form.isFresher); if (!form.isFresher) await saveSection('experience', form.experience) }}>{saving ? 'Saving…' : 'Save'}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Internships Edit */}
-      {editing === 'internships' && (
-        <div className="mb on" onClick={e => e.target === e.currentTarget && setEditing(null)}>
-          <div className="mo mo-lg">
-            <div className="mh"><h2>🎓 Edit Internships</h2><div className="mx" onClick={() => setEditing(null)}>✕</div></div>
-            <div className="mb2 flex flex-col gap-4" style={{ maxHeight: 400, overflow: 'auto' }}>
-              {(form.internships || [{ company: '', role: '', duration: '', bullets: '' }]).map((intern, i) => (
-                <div key={i} style={{ padding: 14, borderRadius: 10, border: '1px solid var(--color-bdr)', background: 'var(--color-bg3)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <span style={{ fontSize: '.76rem', fontWeight: 700 }}>Internship {i + 1}</span>
-                    {(form.internships || []).length > 1 && (
-                      <button style={{ fontSize: '.7rem', color: 'var(--color-muted)', cursor: 'pointer', background: 'none', border: 'none' }}
-                        onClick={() => setForm(f => ({ ...f, internships: f.internships.filter((_, j) => j !== i) }))}>Remove</button>
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-2.5">
-                    <div className="fg"><label className="fl">Company *</label><input className="fi" placeholder="Google, Microsoft, Startup…" value={intern.company} onChange={e => { const u = [...form.internships]; u[i] = { ...u[i], company: e.target.value }; setForm({ ...form, internships: u }) }} /></div>
-                    <div className="fg2">
-                      <div className="fg"><label className="fl">Role *</label><input className="fi" placeholder="Software Intern" value={intern.role} onChange={e => { const u = [...form.internships]; u[i] = { ...u[i], role: e.target.value }; setForm({ ...form, internships: u }) }} /></div>
-                      <div className="fg"><label className="fl">Duration</label><input className="fi" placeholder="Jun–Aug 2024" value={intern.duration} onChange={e => { const u = [...form.internships]; u[i] = { ...u[i], duration: e.target.value }; setForm({ ...form, internships: u }) }} /></div>
-                    </div>
-                    <div className="fg"><label className="fl">Key Work</label><textarea className="fta min-h-[60px]" placeholder="• Built feature X&#10;• Collaborated with team Y" value={intern.bullets} onChange={e => { const u = [...form.internships]; u[i] = { ...u[i], bullets: e.target.value }; setForm({ ...form, internships: u }) }} /></div>
-                  </div>
-                </div>
-              ))}
-              <button className="btn btn-o btn-sm" onClick={() => setForm(f => ({ ...f, internships: [...(f.internships || []), { company: '', role: '', duration: '', bullets: '' }] }))}>+ Add Another Internship</button>
-            </div>
-            <div className="mf">
-              <button className="btn btn-gh" onClick={() => setEditing(null)}>Cancel</button>
-              <button className="btn btn-p" disabled={saving} onClick={() => saveSection('internships', form.internships)}>{saving ? 'Saving…' : 'Save'}</button>
+              <button className="btn btn-p" disabled={saving} onClick={saveSkills}>{saving ? 'Saving…' : 'Save Skills'}</button>
             </div>
           </div>
         </div>
@@ -934,8 +1488,8 @@ export default function ProfileSection() {
           <div className="mo mo-lg">
             <div className="mh"><h2>🏆 Edit Certifications</h2><div className="mx" onClick={() => setEditing(null)}>✕</div></div>
             <div className="mb2 flex flex-col gap-4" style={{ maxHeight: 400, overflow: 'auto' }}>
-              {(form.certifications || [{ name: '', issuer: '', year: '', url: '' }]).map((cert, i) => (
-                <div key={i} style={{ padding: 14, borderRadius: 10, border: '1px solid var(--color-bdr)', background: 'var(--color-bg3)' }}>
+              {(form.certifications || []).map((cert, i) => (
+                <div key={cert.id || i} style={{ padding: 14, borderRadius: 10, border: '1px solid var(--color-bdr)', background: 'var(--color-bg3)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                     <span style={{ fontSize: '.76rem', fontWeight: 700 }}>Certification {i + 1}</span>
                     {(form.certifications || []).length > 1 && (
@@ -947,52 +1501,19 @@ export default function ProfileSection() {
                     <div className="fg"><label className="fl">Certification Name *</label><input className="fi" placeholder="AWS Cloud Practitioner" value={cert.name} onChange={e => { const u = [...form.certifications]; u[i] = { ...u[i], name: e.target.value }; setForm({ ...form, certifications: u }) }} /></div>
                     <div className="fg2">
                       <div className="fg"><label className="fl">Issuer *</label><input className="fi" placeholder="Amazon, Google, Coursera…" value={cert.issuer} onChange={e => { const u = [...form.certifications]; u[i] = { ...u[i], issuer: e.target.value }; setForm({ ...form, certifications: u }) }} /></div>
-                      <div className="fg"><label className="fl">Year</label><input className="fi" placeholder="2024" value={cert.year} onChange={e => { const u = [...form.certifications]; u[i] = { ...u[i], year: e.target.value }; setForm({ ...form, certifications: u }) }} /></div>
+                      <div className="fg"><label className="fl">Month / Year</label><input className="fi" type="month" value={toMonthInputValue(cert.year)} onChange={e => { const u = [...form.certifications]; u[i] = { ...u[i], year: e.target.value ? e.target.value.slice(0, 7) : '' }; setForm({ ...form, certifications: u }) }} /></div>
                     </div>
                     <div className="fg"><label className="fl">Certificate URL (optional)</label><input className="fi" placeholder="https://credential.net/…" value={cert.url} onChange={e => { const u = [...form.certifications]; u[i] = { ...u[i], url: e.target.value }; setForm({ ...form, certifications: u }) }} /></div>
                   </div>
                 </div>
               ))}
-              <button className="btn btn-o btn-sm" onClick={() => setForm(f => ({ ...f, certifications: [...(f.certifications || []), { name: '', issuer: '', year: '', url: '' }] }))}>+ Add Another Certification</button>
+              <button className="btn btn-o btn-sm" onClick={() => setForm(f => ({ ...f, certifications: [...(f.certifications || []), { id: uid(), name: '', issuer: '', year: '', url: '' }] }))}>+ Add Another Certification</button>
             </div>
             <div className="mf">
               <button className="btn btn-gh" onClick={() => setEditing(null)}>Cancel</button>
-              <button className="btn btn-p" disabled={saving} onClick={() => saveSection('certifications', form.certifications)}>{saving ? 'Saving…' : 'Save'}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Projects Edit */}
-      {editing === 'projects' && (
-        <div className="mb on" onClick={e => e.target === e.currentTarget && setEditing(null)}>
-          <div className="mo mo-lg">
-            <div className="mh"><h2>🚀 Edit Projects</h2><div className="mx" onClick={() => setEditing(null)}>✕</div></div>
-            <div className="mb2 flex flex-col gap-4" style={{ maxHeight: 400, overflow: 'auto' }}>
-              {(form.projects || [{ title: '', tech: '', desc: '', url: '' }]).map((proj, i) => (
-                <div key={i} style={{ padding: 14, borderRadius: 10, border: '1px solid var(--color-bdr)', background: 'var(--color-bg3)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <span style={{ fontSize: '.76rem', fontWeight: 700 }}>Project {i + 1}</span>
-                    {(form.projects || []).length > 1 && (
-                      <button style={{ fontSize: '.7rem', color: 'var(--color-muted)', cursor: 'pointer', background: 'none', border: 'none' }}
-                        onClick={() => setForm(f => ({ ...f, projects: f.projects.filter((_, j) => j !== i) }))}>Remove</button>
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-2.5">
-                    <div className="fg"><label className="fl">Project Title *</label><input className="fi" placeholder="E-Commerce Platform" value={proj.title} onChange={e => { const u = [...form.projects]; u[i] = { ...u[i], title: e.target.value }; setForm({ ...form, projects: u }) }} /></div>
-                    <div className="fg2">
-                      <div className="fg"><label className="fl">Tech Stack</label><input className="fi" placeholder="React, Node.js, MongoDB" value={proj.tech} onChange={e => { const u = [...form.projects]; u[i] = { ...u[i], tech: e.target.value }; setForm({ ...form, projects: u }) }} /></div>
-                      <div className="fg"><label className="fl">Live URL / GitHub</label><input className="fi" placeholder="https://github.com/…" value={proj.url} onChange={e => { const u = [...form.projects]; u[i] = { ...u[i], url: e.target.value }; setForm({ ...form, projects: u }) }} /></div>
-                    </div>
-                    <div className="fg"><label className="fl">Description</label><textarea className="fta min-h-[60px]" placeholder={"• Built REST APIs with 150+ endpoints\n• Deployed on AWS with CI/CD"} value={proj.desc} onChange={e => { const u = [...form.projects]; u[i] = { ...u[i], desc: e.target.value }; setForm({ ...form, projects: u }) }} /></div>
-                  </div>
-                </div>
-              ))}
-              <button className="btn btn-o btn-sm" onClick={() => setForm(f => ({ ...f, projects: [...(f.projects || []), { title: '', tech: '', desc: '', url: '' }] }))}>+ Add Another Project</button>
-            </div>
-            <div className="mf">
-              <button className="btn btn-gh" onClick={() => setEditing(null)}>Cancel</button>
-              <button className="btn btn-p" disabled={saving} onClick={() => saveSection('projects', form.projects)}>{saving ? 'Saving…' : 'Save'}</button>
+              <button className="btn btn-p" disabled={saving} onClick={() => saveSection({
+                certifications: (form.certifications || []).filter(c => c.name).map(c => ({ id: c.id || uid(), name: c.name || '', issuer: c.issuer || '', year: c.year || '', url: c.url || '' })),
+              })}>{saving ? 'Saving…' : 'Save'}</button>
             </div>
           </div>
         </div>
@@ -1009,19 +1530,33 @@ export default function ProfileSection() {
                   <option value="">Select…</option><option>Full-time</option><option>Internship</option><option>Full-time / Internship</option><option>Contract</option><option>Part-time</option><option>Freelance</option>
                 </select>
               </div>
-              <div className="fg"><label className="fl">Preferred Location *</label><input className="fi" placeholder="Bangalore, Remote, Hyderabad…" value={form.location || ''} onChange={e => setForm({ ...form, location: e.target.value })} /></div>
+              <div className="fg"><label className="fl">Preferred Locations (comma-separated) *</label><input className="fi" placeholder="Bangalore, Remote, Hyderabad…" value={form.location || ''} onChange={e => setForm({ ...form, location: e.target.value })} /></div>
               <div className="fg"><label className="fl">Expected CTC / Salary *</label><input className="fi" placeholder="6–12 LPA or $80K–$120K" value={form.expectedCTC || ''} onChange={e => setForm({ ...form, expectedCTC: e.target.value })} /></div>
               <div className="fg"><label className="fl">Notice Period</label>
                 <select className="fsl" value={form.noticePeriod || ''} onChange={e => setForm({ ...form, noticePeriod: e.target.value })}>
                   <option value="">Select…</option><option>Immediate</option><option>15 days</option><option>30 days</option><option>60 days</option><option>90 days</option>
                 </select>
               </div>
-              <div className="fg"><label className="fl">LinkedIn URL</label><input className="fi" placeholder="https://linkedin.com/in/yourname" value={form.linkedIn || ''} onChange={e => setForm({ ...form, linkedIn: e.target.value })} /></div>
+              <div className="fg"><label className="fl">LinkedIn URL</label><input className="fi" placeholder="https://linkedin.com/in/yourname" value={form.linkedin || ''} onChange={e => setForm({ ...form, linkedin: e.target.value })} /></div>
               <div className="fg"><label className="fl">GitHub URL</label><input className="fi" placeholder="https://github.com/yourname" value={form.github || ''} onChange={e => setForm({ ...form, github: e.target.value })} /></div>
+              <div className="fg"><label className="fl">Portfolio URL</label><input className="fi" placeholder="https://yourname.dev" value={form.portfolio || ''} onChange={e => setForm({ ...form, portfolio: e.target.value })} /></div>
             </div>
             <div className="mf">
               <button className="btn btn-gh" onClick={() => setEditing(null)}>Cancel</button>
-              <button className="btn btn-p" disabled={saving} onClick={() => saveSection('preferences', form)}>{saving ? 'Saving…' : 'Save'}</button>
+              <button className="btn btn-p" disabled={saving} onClick={() => saveSection({
+                preferences: {
+                  jobType: form.jobType || '',
+                  preferredLocations: fromCsv(form.location),
+                  expectedCTC: form.expectedCTC || '',
+                  noticePeriod: form.noticePeriod || '',
+                },
+                links: {
+                  ...(profile.links || {}),
+                  linkedin: form.linkedin || '',
+                  github: form.github || '',
+                  portfolio: form.portfolio || '',
+                },
+              })}>{saving ? 'Saving…' : 'Save'}</button>
             </div>
           </div>
         </div>
@@ -1032,37 +1567,76 @@ export default function ProfileSection() {
         <div className="mb on" onClick={e => e.target === e.currentTarget && setEditing(null)}>
           <div className="mo">
             <div className="mh"><h2>📝 Professional Summary</h2><div className="mx" onClick={() => setEditing(null)}>✕</div></div>
-            <div className="mb2">
+            <div className="mb2 flex flex-col gap-3">
+              <div className="fg"><label className="fl">Headline (1 line)</label>
+                <input className="fi" placeholder="B.Tech CS, aspiring SDE" value={form.headline || ''} onChange={e => setForm({ ...form, headline: e.target.value })} />
+              </div>
               <div className="fg"><label className="fl">Summary (2–3 lines for recruiters)</label>
                 <textarea className="fta min-h-[100px]" placeholder="Motivated B.Tech graduate with strong skills in Python, React and cloud. Built 3 full-stack projects deployed to production. Seeking software engineering roles." value={form.summary || ''} onChange={e => setForm({ ...form, summary: e.target.value })} />
               </div>
             </div>
             <div className="mf">
               <button className="btn btn-gh" onClick={() => setEditing(null)}>Cancel</button>
-              <button className="btn btn-p" disabled={saving} onClick={() => saveSection('summary', form.summary)}>{saving ? 'Saving…' : 'Save'}</button>
+              <button className="btn btn-p" disabled={saving} onClick={() => saveSection({ headline: form.headline || '', summary: form.summary || '' })}>{saving ? 'Saving…' : 'Save'}</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Name Edit Modal */}
-      {editingName && (
-        <div className="mb on" onClick={e => e.target === e.currentTarget && setEditingName(false)}>
-          <div className="mo">
-            <div className="mh"><h2>✏️ Edit Name</h2><div className="mx" onClick={() => setEditingName(false)}>✕</div></div>
-            <div className="mb2">
-              <div className="fg2">
-                <div className="fg"><label className="fl">First Name *</label><input className="fi" value={nameForm.firstName} onChange={e => setNameForm({ ...nameForm, firstName: e.target.value })} placeholder="John" /></div>
-                <div className="fg"><label className="fl">Last Name</label><input className="fi" value={nameForm.lastName} onChange={e => setNameForm({ ...nameForm, lastName: e.target.value })} placeholder="Doe" /></div>
-              </div>
-            </div>
-            <div className="mf">
-              <button className="btn btn-gh" onClick={() => setEditingName(false)}>Cancel</button>
-              <button className="btn btn-p" disabled={saving} onClick={handleNameSave}>{saving ? 'Saving…' : 'Save Name'}</button>
-            </div>
-          </div>
-        </div>
-      )}
+
+      <InternshipDetailModal
+        open={internshipDetailOpen}
+        entry={internshipDetailEntry}
+        onClose={() => { setInternshipDetailOpen(false); setInternshipDetailEntry(null) }}
+        onEdit={(e) => openEditInternship(e)}
+      />
+
+      <InternshipModal
+        open={internshipModalOpen}
+        entry={internshipModalEntry}
+        saving={saving}
+        onClose={() => { setInternshipModalOpen(false); setInternshipModalEntry(null) }}
+        onSave={saveInternshipEntry}
+      />
+
+      <ProjectDetailModal
+        open={projectDetailOpen}
+        entry={projectDetailEntry}
+        onClose={() => { setProjectDetailOpen(false); setProjectDetailEntry(null) }}
+        onEdit={(e) => openEditProject(e)}
+      />
+
+      <ProjectModal
+        open={projectModalOpen}
+        entry={projectModalEntry}
+        saving={saving}
+        onClose={() => { setProjectModalOpen(false); setProjectModalEntry(null) }}
+        onSave={saveProjectEntry}
+      />
+
+      <ExperienceDetailModal
+        open={experienceDetailOpen}
+        entry={experienceDetailEntry}
+        onClose={() => { setExperienceDetailOpen(false); setExperienceDetailEntry(null) }}
+        onEdit={(e) => openEditExperience(e)}
+      />
+
+      <ExperienceModal
+        open={experienceModalOpen}
+        entry={experienceModalEntry}
+        saving={saving}
+        onClose={() => { setExperienceModalOpen(false); setExperienceModalEntry(null) }}
+        onSave={saveExperienceEntry}
+      />
+
+      <EducationModal
+        open={educationModalOpen}
+        entry={educationModalEntry}
+        saving={saving}
+        onClose={() => { setEducationModalOpen(false); setEducationModalEntry(null) }}
+        onSave={saveEducationEntry}
+      />
+
         </>,
         document.body
       )}

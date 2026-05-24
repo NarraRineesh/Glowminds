@@ -143,7 +143,7 @@ export default function NotificationsBell({ variant = 'nav' }) {
               </div>
               <div className="min-w-0 flex-1">
                 <div className="notif-dd-title">{n.title}</div>
-                {n.desc && <div className="notif-dd-desc">{n.desc}</div>}
+                {(n.description || n.desc) && <div className="notif-dd-desc">{n.description || n.desc}</div>}
                 <div className="notif-dd-time">{timeAgo(n.createdAt)}</div>
               </div>
               <div className="flex shrink-0 items-center gap-1">

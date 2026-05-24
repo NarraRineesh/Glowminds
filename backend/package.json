@@ -1,0 +1,25 @@
+{
+  "name": "ai-job-copilot-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "dev": "nodemon --watch src --ext js,json --exec 'node --env-file=.env src/server.js'",
+    "start": "node --env-file=.env src/server.js",
+    "sync": "node --env-file=.env src/sync.js",
+    "test": "node --test 'test/**/*.test.js'"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "firebase-admin": "^13.0.2",
+    "node-cron": "^3.0.3",
+    "razorpay": "^2.9.6"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}

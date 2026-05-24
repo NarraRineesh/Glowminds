@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import SectionHeader from '@/components/dashboard/SectionHeader'
 import useAppStore from '@/store/authStore'
+import useProfileStore from '@/store/profileStore'
+import useGamificationStore from '@/store/gamificationStore'
 import useTheme from '@/hooks/useTheme'
+import { auth } from '@/services/firebase'
 import '@/styles/cards.css'
 import '@/styles/dashboard.css'
 import '@/styles/forms.css'
-
-const ONBOARDING_KEY = 'nx_onboarding_done'
-const DAILY_QUIZ_KEY = 'nx_daily_quiz_state'
 
 const SECTIONS = [
   {
@@ -68,25 +68,90 @@ function Toggle({ checked, onChange, label, hint }) {
 export default function SettingsSection() {
   const { user, addToast, doLogout } = useAppStore()
   const { theme, toggleTheme } = useTheme()
+  const userDoc = useProfileStore((s) => s.user)
+  const profileLoaded = useProfileStore((s) => s.loaded)
+  const patchUserDoc = useProfileStore((s) => s.patchUserDoc)
 
   const [active, setActive] = useState('account')
   const [emailNotifs, setEmailNotifs] = useState(true)
-  const [pushNotifs, setPushNotifs] = useState(true)
+  const [pushNotifs, setPushNotifs] = useState(false)
   const [reducedMotion, setReducedMotion] = useState(false)
   const [compact, setCompact] = useState(false)
+
+  // Hydrate from the stored settings the first time we have them.
+  useEffect(() => {
+    if (!profileLoaded) return
+    const s = userDoc?.settings || {}
+    setEmailNotifs(s.emailNotifications !== false)
+    setPushNotifs(!!s.pushNotifications)
+    setReducedMotion(!!s.reducedMotion)
+    setCompact(!!s.compactDensity)
+  }, [profileLoaded, userDoc])
 
   useEffect(() => {
     document.documentElement.style.setProperty('--prefers-reduced-motion', reducedMotion ? 'reduce' : 'no-preference')
   }, [reducedMotion])
 
-  const replayOnboarding = () => {
-    localStorage.removeItem(ONBOARDING_KEY)
-    addToast('info', '👋 Onboarding will replay on next dashboard visit')
+  // Persist toggle changes (debounced via microtask) to users/{uid}.settings.
+  const persistSettings = (partial) => {
+    const current = useProfileStore.getState().user?.settings || {}
+    patchUserDoc({ settings: { ...current, ...partial } }).catch((err) => {
+      console.error('persist settings:', err)
+    })
   }
 
-  const replayQuiz = () => {
-    localStorage.removeItem(DAILY_QUIZ_KEY)
-    addToast('info', '🧠 Today’s quiz reset')
+  const onToggleEmail = (v) => { setEmailNotifs(v); persistSettings({ emailNotifications: v }) }
+  const onTogglePush = (v) => { setPushNotifs(v); persistSettings({ pushNotifications: v }) }
+  const onToggleMotion = (v) => { setReducedMotion(v); persistSettings({ reducedMotion: v }) }
+  const onToggleCompact = (v) => { setCompact(v); persistSettings({ compactDensity: v }) }
+  const onToggleTheme = () => {
+    toggleTheme()
+    const next = theme === 'dark' ? 'light' : 'dark'
+    persistSettings({ theme: next })
+  }
+
+  const replayOnboarding = async () => {
+    try {
+      const flags = useProfileStore.getState().user?.flags || {}
+      await useProfileStore.getState().patchUserDoc({
+        flags: { ...flags, onboardingCompleted: false, onboardingStep: 0 },
+      })
+      addToast('info', '👋 Onboarding will replay on next dashboard visit')
+    } catch (err) {
+      console.error('replayOnboarding:', err)
+      addToast('error', '⚠️ Could not reset onboarding')
+    }
+  }
+
+  const replayQuiz = async () => {
+    try {
+      const flags = useProfileStore.getState().user?.flags || {}
+      const gam = useGamificationStore.getState().gamification || {}
+      // Clear the prompt flag and today's quiz date so the card/modal can
+      // fire again. Login streak is unchanged.
+      await useProfileStore.getState().patchUserDoc({
+        flags: { ...flags, quizPromptSeenAt: null },
+        gamification: {
+          ...gam,
+          dailyQuizLastAnsweredDate: '',
+        },
+      })
+      useGamificationStore.setState((s) => ({
+        gamification: {
+          ...s.gamification,
+          dailyQuizLastAnsweredDate: '',
+        },
+      }))
+
+      const uid = auth.currentUser?.uid
+      try {
+        if (uid) localStorage.removeItem(`nx_quiz_prompt_seen_${uid}`)
+      } catch { /* ignore */ }
+      addToast('info', '🧠 Today’s quiz reset')
+    } catch (err) {
+      console.error('replayQuiz:', err)
+      addToast('error', '⚠️ Could not reset today’s quiz')
+    }
   }
 
   return (
@@ -175,19 +240,19 @@ export default function SettingsSection() {
               <div className="cb flex flex-col gap-3">
                 <Toggle
                   checked={theme === 'dark'}
-                  onChange={toggleTheme}
+                  onChange={onToggleTheme}
                   label="Dark mode"
                   hint="Follow OS by default — toggle to override."
                 />
                 <Toggle
                   checked={compact}
-                  onChange={setCompact}
+                  onChange={onToggleCompact}
                   label="Compact density"
                   hint="Tighter spacing across all sections (preview)."
                 />
                 <Toggle
                   checked={reducedMotion}
-                  onChange={setReducedMotion}
+                  onChange={onToggleMotion}
                   label="Reduced motion"
                   hint="Minimise transitions and animations."
                 />
@@ -199,8 +264,8 @@ export default function SettingsSection() {
             <div className="card">
               <div className="ch"><h3>🔔 Notifications</h3></div>
               <div className="cb flex flex-col gap-3">
-                <Toggle checked={emailNotifs} onChange={setEmailNotifs} label="Email notifications" hint="Job alerts, weekly digest, application updates." />
-                <Toggle checked={pushNotifs} onChange={setPushNotifs} label="In-app notifications" hint="Live job feed pings, streak reminders." />
+                <Toggle checked={emailNotifs} onChange={onToggleEmail} label="Email notifications" hint="Job alerts, weekly digest, application updates." />
+                <Toggle checked={pushNotifs} onChange={onTogglePush} label="In-app notifications" hint="Live job feed pings, streak reminders." />
 
                 <div className="mt-2 border-t border-[var(--color-bdr)] pt-3">
                   <div className="mb-2 text-[0.66rem] font-bold uppercase tracking-wider text-[var(--color-muted)]">Replays</div>

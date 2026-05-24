@@ -51,7 +51,7 @@ export default function DailyQuizModal({ open, onClose }) {
                 </span>
               </h2>
               <p className="mt-1.5 max-w-md text-[0.86rem] text-[var(--color-txt2)]">
-                Build your streak — answer right, earn XP, unlock badges.
+                Answer right to earn XP and level up. Open the app daily to grow your streak.
               </p>
             </div>
 
