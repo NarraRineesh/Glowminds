@@ -178,8 +178,6 @@ export default function AISection() {
   const loadChats = useAiChatStore((s) => s.loadChats)
   const loadChat = useAiChatStore((s) => s.loadChat)
   const appendMessage = useAiChatStore((s) => s.appendMessage)
-  const resetChats = useAiChatStore((s) => s.reset)
-
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [hydrated, setHydrated] = useState(false)
@@ -287,9 +285,11 @@ export default function AISection() {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input) }
   }
 
-  const startNewChat = async () => {
-    resetChats()
-    await loadChats()
+  const startNewChat = () => {
+    // We don't blow away the cached chats[] list — just clear the active
+    // pointer so the next message lazily creates a new chat doc (the
+    // store mirrors that into chats[] for us).
+    useAiChatStore.setState({ currentChatId: null, currentMessages: [] })
     addToast('info', '✨ Started a new chat')
   }
 

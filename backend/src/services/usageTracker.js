@@ -40,7 +40,6 @@ export async function recordUsage(uid, toolKey, count = 1) {
       .collection("users")
       .doc(uid)
       .set({ usage: { [toolKey]: inc } }, { merge: true });
-    invalidateAggregateCache();
   } catch (err) {
     // Never let metrics failures bubble up to user-facing errors.
     console.warn(`[usage] failed toolKey=${toolKey} uid=${uid}:`, err.message);

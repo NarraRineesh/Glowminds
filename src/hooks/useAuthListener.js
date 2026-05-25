@@ -1,10 +1,13 @@
 import { useEffect } from 'react'
 import { onAuthStateChanged } from 'firebase/auth'
-import { doc, getDoc } from 'firebase/firestore'
-import { auth, db } from '@/services/firebase'
+import { auth } from '@/services/firebase'
 import useAppStore from '@/store/authStore'
 import useProfileStore from '@/store/profileStore'
 import useGamificationStore from '@/store/gamificationStore'
+import useTrackerStore from '@/store/trackerStore'
+import useJobStore from '@/store/jobStore'
+import useInterviewStore from '@/store/interviewStore'
+import useAiChatStore from '@/store/aiChatStore'
 import { resetUnauthorizedGuard } from '@/services/apiClient'
 
 export default function useAuthListener() {
@@ -36,30 +39,33 @@ export default function useAuthListener() {
           console.warn('useAuthListener: failed to read token claims', e)
         }
 
+        // Single users/{uid} read — load it through profileStore so the rest
+        // of the app shares the same cached snapshot. Previously we also did
+        // a direct getDoc here, doubling the read cost of every login/refresh.
+        let userDoc = null
         try {
-          const snap = await getDoc(doc(db, 'users', firebaseUser.uid))
-          const data = snap.exists() ? snap.data() : null
-
-          if (data) {
-            baseUser.firstName = data.firstName || baseUser.firstName
-            baseUser.lastName = data.lastName || baseUser.lastName
-            baseUser.displayName = data.displayName || baseUser.displayName
-            if (data.photoURL) baseUser.photoURL = data.photoURL
-            if (data.subscription) baseUser.subscription = data.subscription
-            if (data.settings) baseUser.settings = data.settings
-            if (data.flags) baseUser.flags = data.flags
-            if (data.gamification) baseUser.gamification = data.gamification
-          }
+          userDoc = await useProfileStore.getState().load({ force: true })
         } catch (e) {
           console.warn('useAuthListener: failed to load user doc', e)
         }
 
+        if (userDoc) {
+          baseUser.firstName = userDoc.firstName || baseUser.firstName
+          baseUser.lastName = userDoc.lastName || baseUser.lastName
+          baseUser.displayName = userDoc.displayName || baseUser.displayName
+          if (userDoc.photoURL) baseUser.photoURL = userDoc.photoURL
+          if (userDoc.subscription) baseUser.subscription = userDoc.subscription
+          if (userDoc.settings) baseUser.settings = userDoc.settings
+          if (userDoc.flags) baseUser.flags = userDoc.flags
+          if (userDoc.gamification) baseUser.gamification = userDoc.gamification
+        }
+
         setUser(baseUser)
 
-        useProfileStore.getState().load({ force: true }).then((userDoc) => {
-          useGamificationStore.getState().hydrateFromUser(userDoc)
-          useGamificationStore.getState().recordDailyVisit().catch(() => {})
-        }).catch(() => {})
+        // hydrateFromUser is a pure local op; recordDailyVisit short-circuits
+        // when the in-memory `lastActiveDate` already equals today.
+        if (userDoc) useGamificationStore.getState().hydrateFromUser(userDoc)
+        useGamificationStore.getState().recordDailyVisit().catch(() => {})
         useGamificationStore.getState().loadCatalog().catch(() => {})
 
         try {
@@ -74,6 +80,13 @@ export default function useAuthListener() {
         setUser(null)
         useProfileStore.getState().reset()
         useGamificationStore.getState().reset()
+        // Per-user caches must be cleared on logout so a different account
+        // signing in on the same browser tab never sees the previous user's
+        // applications / saved jobs / interview history / chat list.
+        useTrackerStore.getState().reset()
+        useJobStore.getState().reset()
+        useInterviewStore.getState().reset()
+        useAiChatStore.getState().reset()
       }
       setAuthLoading(false)
     })

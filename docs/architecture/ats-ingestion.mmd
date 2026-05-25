@@ -1,83 +1,86 @@
-%% India-First Job Platform · ATS Ingestion + Search Architecture (Single-VPS + JSearch Fallback)
-%% Render with:  npx -y -p @mermaid-js/mermaid-cli mmdc -i ats-ingestion.mmd -o ats-ingestion.png -w 2800 -H 3600 -b transparent
+%% Glowminds — ATS Ingestion Pipeline (current)
+%% Covers the deep flow of how a job goes from an ATS provider into
+%% Firestore. For the wider system view (frontend, all backend APIs,
+%% AI services, payments, data model), see system-architecture.mmd.
+%% Render with:
+%%   npx -y -p @mermaid-js/mermaid-cli mmdc -i ats-ingestion.mmd \
+%%     -o ats-ingestion.png -w 2800 -H 3400 -b transparent
 flowchart TB
-    %% ========================================
-    %% INGESTION (Hetzner VPS)
-    %% ========================================
-    subgraph hetzner ["🖥️ Hetzner VPS (Node + Python, single host)"]
+    %% ====================================================================
+    %% TRIGGERS — sync starts either from a cron tick or an admin click.
+    %% ====================================================================
+    subgraph triggers ["⏱️ Sync triggers"]
+        direction LR
+        CRON["⏰ <b>node-cron</b><br/>(in-process scheduler)<br/>Greenhouse 2h · Lever 2h<br/>Ashby 4h · Bamboo 6h"]
+        ADMIN["🛡️ <b>Admin Console</b><br/>POST /api/admin/sync<br/>POST /api/admin/companies/:slug/sync"]
+    end
+
+    %% ====================================================================
+    %% HETZNER VPS — Node + Python on a single host.
+    %% ====================================================================
+    subgraph hetzner ["🖥️ Hetzner VPS (single host)"]
         direction TB
 
-        CRON["⏰ <b>systemd timer</b><br/>Greenhouse 2h · Lever 2h<br/>Ashby 4h · Bamboo 6h"]
-
-        subgraph node ["🟢 Node.js Sync Worker"]
+        subgraph runner ["🟢 Node.js Sync Runner"]
             direction TB
-            FETCH["🪶 <b>Lightweight ATS Fetch</b><br/>id · title · location<br/>updated_at · apply_url"]
-            SNAP["🧮 <b>Snapshot</b><br/>newJobCount · newIndiaCount<br/>newLatestUpdatedAt"]
+            RS["🚀 <b>runProvider / runAllProviders</b><br/>per-platform concurrency<br/>writes sync_runs/{id} progress"]
+            FETCH["🪶 <b>Lightweight ATS Listing</b><br/>id · title · location<br/>updatedAt · applyUrl"]
+            SNAP["🧮 <b>Snapshot company counters</b><br/>newJobCount · newIndiaCount<br/>newLatestUpdatedAt"]
             W0[/"📝 lastSyncAt = now"/]
-            G1{"🚦 <b>Company Gate</b><br/>jobCount &amp; indiaJobCount<br/>&amp; latestUpdatedAt<br/>all unchanged?"}
+            G1{"🚦 <b>Company Gate</b><br/>jobCount · indiaJobCount · latestUpdatedAt<br/>all unchanged?"}
             IND["🇮🇳 <b>India Filter</b><br/>India · Remote India<br/>BLR · HYD · PUN · CHN<br/>GGN · MUM · DEL"]
-            G2{"🧬 <b>Job Gate</b><br/>fp = hash(title + location + updated_at)<br/>matches stored?"}
+            G2{"🧬 <b>Job Gate</b><br/>fp = hash(title + location + updatedAt)<br/>matches stored?"}
             DET["📄 <b>Detail Fetch</b><br/>only new / changed India jobs"]
             ENRICH["🔌 <b>POST localhost:5000/enrich</b><br/>rawHtml + plainText"]
             MERGE["🧩 <b>Merge enriched JSON</b>"]
-            SAVE["💾 <b>Save FINAL Doc</b><br/>source = ats:&lt;ats&gt;<br/>status = ACTIVE"]
-            W1[/"📝 jobCount, indiaJobCount,<br/>latestUpdatedAt ← new<br/>syncFailures = 0"/]
+            SAVE["💾 <b>Save FINAL job doc</b><br/>source = ats:&lt;ats&gt;<br/>status = ACTIVE · indexedAt = now"]
+            W1[/"📝 jobCount · indiaJobCount<br/>latestUpdatedAt · syncFailures = 0"/]
         end
 
-        subgraph py ["🐍 Python Enrich Service (localhost:5000)"]
+        subgraph py ["🐍 Python Enrich Service (Flask · localhost:5000)"]
             direction TB
             CLEAN["🧹 <b>HTML Cleaning</b><br/>BeautifulSoup · lxml"]
-            AI["🤖 <b>NLP Extract</b><br/>skills · experience · seniority<br/>role · remote · employmentType"]
+            EXTRACT["🤖 <b>Regex / NLP Extract</b><br/>skills · experience · seniority<br/>role · remote · employmentType<br/>derive searchText"]
             RESP["📤 <b>Return enriched JSON</b>"]
         end
 
-        subgraph bg ["🛠️ Background Workers (same host)"]
+        subgraph bg ["🛠️ Background workers (node-cron · same process)"]
             direction LR
-            BW1["⏳ <b>Expiration</b><br/>lastSeenAt &lt; now-7d<br/>→ EXPIRED"]
-            BW2["🔁 <b>Retry Queue</b><br/>reprocess failures"]
-            BW3["🩺 <b>Health Monitor</b><br/>syncFailures &gt; N<br/>→ active = false"]
+            BW1["⏳ <b>Expiration · daily 02:00</b><br/>lastSeenAt &lt; now-14d<br/>→ status = EXPIRED"]
+            BW2["🔁 <b>Retry Queue · every 15m</b><br/>reprocess failed_jobs entries"]
+            BW3["🩺 <b>Health Monitor · every 1h</b><br/>syncFailures &gt; N<br/>→ active = false"]
         end
     end
 
+    %% Branch outcomes
     SKIP1["⛔ Skip company"]
     DROP["🗑️ Drop non-India"]
     SKIP2["⏭️ Skip job"]
-    DETFAIL["❌ retry_queue"]
-    FALL["⚠️ Partial fallback"]
+    DETFAIL["❌ retry_queue/{id}"]
+    FALL["⚠️ Partial fallback<br/>(skip enrichment, save plain text)"]
 
-    %% ========================================
+    %% ====================================================================
     %% FIRESTORE
-    %% ========================================
-    FS[("🔥 <b>Firestore</b><br/>companies · jobs<br/>retry_queue · failed_jobs<br/>━━━━━━━<br/>jobs: { source, title, company,<br/>location, skills, experience,<br/>searchText, applyUrl, status,<br/>indexedAt, lastSeenAt }")]
-
-    %% ========================================
-    %% NEXT.JS API + SEARCH FALLBACK
-    %% ========================================
-    subgraph vercel ["▲ Next.js API (Vercel)"]
+    %% ====================================================================
+    subgraph fs ["🔥 Firestore"]
         direction TB
-        QIN["📥 <b>/api/jobs?q=react+developer</b><br/>filters: location · remote · experience · skills"]
-        FSQ["🔍 <b>Firestore Query</b><br/>status=ACTIVE<br/>searchText contains tokens<br/>indexedAt desc · limit 50"]
-        COUNT{"📊 <b>results &gt;= 20?</b>"}
-        RET_FULL["✅ Return results"]
-        RET_PARTIAL["📤 Return partial<br/>(non-blocking)"]
-        FIRE["🚀 <b>fire-and-forget</b><br/>backfillFromJSearch(q, location)"]
+        FS_COMP[("companies/{slug}<br/>━━━━━━━<br/>name · ats · slug · active<br/>jobsApi · careersUrl<br/>jobCount · indiaJobCount<br/>lastSyncAt · syncFailures · lastError")]
+        FS_JOBS[("jobs/{jobId}<br/>━━━━━━━<br/>source · title · company<br/>location · skills · experience<br/>searchText · applyUrl<br/>status · indexedAt · lastSeenAt")]
+        FS_RUNS[("sync_runs/{id}<br/>━━━━━━━<br/>provider · startedAt · finishedAt<br/>companiesScanned · companiesSkipped<br/>jobsAdded · jobsUpdated · jobsExpired<br/>errors[]")]
+        FS_RT[("retry_queue/{id}<br/>stage · payload · attempts<br/>nextAttemptAt")]
     end
 
-    %% ========================================
-    %% JSEARCH BACKFILL (runs inside Next.js handler · async)
-    %% ========================================
-    subgraph backfill ["🌐 JSearch Backfill (async · runs after response)"]
-        direction TB
-        JS_API["🔎 <b>JSearch API</b><br/>RapidAPI · q=react+developer<br/>country=in · num_pages=2"]
-        JS_DEDUP["🧬 <b>Dedup</b><br/>fingerprint = lower(title + company + location)<br/>skip if exists in jobs/"]
-        JS_NORM["🔧 <b>Normalize to our schema</b><br/>map jsearch fields → our fields<br/>derive skills from description"]
-        JS_SAVE["💾 <b>Write to Firestore</b><br/>source = jsearch<br/>status = ACTIVE<br/>indexedAt = now"]
-    end
+    %% ====================================================================
+    %% TRIGGER FLOWS
+    %% ====================================================================
+    CRON --> RS
+    ADMIN -->|"fire-and-forget · 202 Accepted"| RS
+    ADMIN -.->|"GET /api/admin/sync/status<br/>GET /api/admin/sync-runs"| FS_RUNS
 
-    UI["🎨 <b>React Frontend</b><br/>Search box · result list<br/>'more results loading' badge"]
-
-    %% ===== INGESTION FLOW =====
-    CRON --> FETCH --> SNAP --> W0 --> G1
+    %% ====================================================================
+    %% INGESTION FLOW (per company)
+    %% ====================================================================
+    RS --> FETCH --> SNAP --> W0 --> G1
     G1 -- "all same" --> SKIP1
     G1 -- "any changed" --> IND
     IND -- "non-india" --> DROP
@@ -86,33 +89,28 @@ flowchart TB
     G2 -- "new / changed" --> DET
     DET -- "fail" --> DETFAIL
     DET --> ENRICH
-    ENRICH --> CLEAN --> AI --> RESP
+    ENRICH --> CLEAN --> EXTRACT --> RESP
     RESP -- "fail / timeout" --> FALL
     RESP --> MERGE
     FALL --> MERGE
     MERGE --> SAVE --> W1
-    SAVE --> FS
-    W1 -.-> FS
-    W0 -.-> FS
 
-    %% ===== BG WORKERS =====
-    BW1 -.-> FS
-    BW2 -.-> DETFAIL
-    BW3 -.-> FS
+    %% Firestore writes
+    SAVE --> FS_JOBS
+    W1 -.-> FS_COMP
+    W0 -.-> FS_COMP
+    DETFAIL -.-> FS_RT
+    RS -.->|"per-batch progress"| FS_RUNS
 
-    %% ===== SEARCH FLOW =====
-    UI --> QIN --> FSQ --> FS
-    FS --> COUNT
-    COUNT -- "&gt;= 20" --> RET_FULL --> UI
-    COUNT -- "&lt; 20" --> RET_PARTIAL --> UI
-    COUNT -- "&lt; 20 (parallel)" --> FIRE
+    %% Background workers
+    BW1 -.-> FS_JOBS
+    BW2 -.-> FS_RT
+    BW2 -.-> DET
+    BW3 -.-> FS_COMP
 
-    %% ===== JSEARCH BACKFILL FLOW =====
-    FIRE --> JS_API --> JS_DEDUP
-    JS_DEDUP -- "duplicate" --> SKIP_JS["⏭️ Skip duplicate"]
-    JS_DEDUP -- "new" --> JS_NORM --> JS_SAVE --> FS
-
-    %% ===== Styling =====
+    %% ====================================================================
+    %% STYLES
+    %% ====================================================================
     classDef trigger fill:#0f172a,stroke:#38bdf8,color:#fff,stroke-width:2px
     classDef stage fill:#0f766e,stroke:#5eead4,color:#fff
     classDef gate fill:#7c2d12,stroke:#fbbf24,color:#fff,stroke-width:2px
@@ -121,20 +119,14 @@ flowchart TB
     classDef ai fill:#581c87,stroke:#d8b4fe,color:#fff
     classDef done fill:#15803d,stroke:#86efac,color:#fff,stroke-width:2px
     classDef db fill:#b45309,stroke:#fcd34d,color:#fff,stroke-width:2px
-    classDef api fill:#9f1239,stroke:#fda4af,color:#fff
-    classDef ui fill:#0c4a6e,stroke:#7dd3fc,color:#fff
     classDef bg fill:#374151,stroke:#9ca3af,color:#fff
-    classDef jsearch fill:#831843,stroke:#fbcfe8,color:#fff,stroke-width:2px
 
-    class CRON trigger
-    class FETCH,SNAP,IND,DET,ENRICH,MERGE stage
-    class G1,G2,COUNT gate
+    class CRON,ADMIN trigger
+    class RS,FETCH,SNAP,IND,DET,ENRICH,MERGE stage
+    class G1,G2 gate
     class W0,W1 write
-    class SKIP1,SKIP2,DROP,DETFAIL,FALL,SKIP_JS skip
-    class CLEAN,AI,RESP ai
-    class SAVE,JS_SAVE done
-    class FS db
-    class QIN,FSQ,RET_FULL,RET_PARTIAL,FIRE api
-    class UI ui
+    class SKIP1,SKIP2,DROP,DETFAIL,FALL skip
+    class CLEAN,EXTRACT,RESP ai
+    class SAVE done
+    class FS_COMP,FS_JOBS,FS_RUNS,FS_RT db
     class BW1,BW2,BW3 bg
-    class JS_API,JS_DEDUP,JS_NORM jsearch

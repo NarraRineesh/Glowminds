@@ -39,6 +39,7 @@ let inflightKey = null
 const useJobStore = create((set, get) => ({
   jobs: [],
   savedJobs: [],
+  savedJobsLoaded: false,
   loading: false,
   error: null,
   lastFetched: null,
@@ -47,6 +48,20 @@ const useJobStore = create((set, get) => ({
   queryUsed: '',
   skillTerms: [],
   sources: {},
+
+  reset: () => set({
+    jobs: [],
+    savedJobs: [],
+    savedJobsLoaded: false,
+    loading: false,
+    error: null,
+    lastFetched: null,
+    lastFetchedKey: null,
+    searchQuery: '',
+    queryUsed: '',
+    skillTerms: [],
+    sources: {},
+  }),
 
   fetchJobs: async ({ search = '', category = '', force = false } = {}) => {
     const key = cacheKey({ search, category })
@@ -124,13 +139,17 @@ const useJobStore = create((set, get) => ({
     return get().savedJobs.some((j) => j.id === jobId)
   },
 
-  loadSavedJobs: async () => {
+  // Cached by default. The store stays in sync via saveJob/unsaveJob, so
+  // re-mounting JobsSection / OverviewSection doesn't have to rescan the
+  // collection on every navigation.
+  loadSavedJobs: async ({ force = false } = {}) => {
     const uid = auth.currentUser?.uid
     if (!uid) return
+    if (!force && get().savedJobsLoaded) return
     try {
       const snap = await getDocs(collection(db, 'users', uid, 'savedJobs'))
       const saved = snap.docs.map((d) => ({ ...d.data(), id: d.id }))
-      set({ savedJobs: saved })
+      set({ savedJobs: saved, savedJobsLoaded: true })
     } catch (err) {
       console.error('Load saved jobs failed:', err)
     }

@@ -42,20 +42,24 @@ function normalizeMcq(q, fallbackType) {
 
 const useInterviewStore = create((set, get) => ({
   loading: false,
+  loaded: false,
   sessions: [],         // recent sessions for history list
   currentSessionId: null,
 
-  reset: () => set({ sessions: [], currentSessionId: null, loading: false }),
+  reset: () => set({ sessions: [], currentSessionId: null, loading: false, loaded: false }),
 
-  loadHistory: async () => {
+  // Cached: revisiting the Interview section uses the in-memory list. Pass
+  // force:true to refresh (e.g. pull-to-refresh button if we add one).
+  loadHistory: async ({ force = false } = {}) => {
     const uid = auth.currentUser?.uid
-    if (!uid) return []
+    if (!uid) return get().sessions
+    if (!force && get().loaded) return get().sessions
     set({ loading: true })
     try {
       const q = query(sessionsColl(uid), orderBy('createdAt', 'desc'), limit(20))
       const snap = await getDocs(q)
       const sessions = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
-      set({ sessions, loading: false })
+      set({ sessions, loading: false, loaded: true })
       return sessions
     } catch (err) {
       console.error('interviewStore.loadHistory:', err)
@@ -68,16 +72,34 @@ const useInterviewStore = create((set, get) => ({
     const uid = auth.currentUser?.uid
     if (!uid) return null
     try {
+      const normalizedQs = (questions || []).map((q) => normalizeMcq(q, type))
       const ref = await addDoc(sessionsColl(uid), {
         role: role || '',
         type: type || 'general',
         status: 'in-progress',
-        questions: (questions || []).map((q) => normalizeMcq(q, type)),
+        questions: normalizedQs,
         totalScore: 0,
         createdAt: serverTimestamp(),
         completedAt: null,
       })
-      set({ currentSessionId: ref.id })
+      // Mirror the new session into the in-memory list so cached loadHistory
+      // calls keep showing the latest state without another Firestore read.
+      set((s) => ({
+        currentSessionId: ref.id,
+        sessions: [
+          {
+            id: ref.id,
+            role: role || '',
+            type: type || 'general',
+            status: 'in-progress',
+            questions: normalizedQs,
+            totalScore: 0,
+            createdAt: new Date(),
+            completedAt: null,
+          },
+          ...s.sessions,
+        ],
+      }))
       return ref.id
     } catch (err) {
       console.error('interviewStore.startSession:', err)

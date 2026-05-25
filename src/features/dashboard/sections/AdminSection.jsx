@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import SectionHeader from '@/components/dashboard/SectionHeader'
@@ -19,6 +19,12 @@ import '@/styles/dashboard.css'
 import '@/styles/cards.css'
 
 const ATS_OPTIONS = ['greenhouse', 'lever', 'ashby', 'bamboohr', 'workday']
+
+// How often to poll /admin/sync/status while a sync is in progress. Was
+// previously left as an undefined identifier — `setInterval(fn, undefined)`
+// clamps to the browser minimum (~4ms), which fired ~250 polls/sec and
+// chewed through the Firestore daily read quota in seconds.
+const SYNC_STATUS_POLL_MS = 5000
 
 // ----------------------------------------------------------------------
 // Small presentational helpers
@@ -679,26 +685,38 @@ export default function AdminSection() {
     loadCompanies({ cursor: null, pageIndex: 0 })
   }, [user?.isAdmin, filterAts, filterActive, pageSize, debouncedSearch, loadCompanies])
 
-  // While a background sync is running, periodically refresh status, runs,
-  // overview, and the current company page (in place — same cursor).
+  // Track which page/cursor is currently shown so the polling tick can read
+  // the latest value without restarting the interval every time the user
+  // pages through the table.
+  const cursorRef = useRef(null)
+  const pageIdxRef = useRef(0)
+  useEffect(() => { cursorRef.current = cursors[pageIdx] || null }, [cursors, pageIdx])
+  useEffect(() => { pageIdxRef.current = pageIdx }, [pageIdx])
+
+  // While a background sync is running we only poll the status endpoint
+  // (cheap — one in-memory check on the backend). Companies/runs/overview
+  // are refreshed exactly once when the sync transitions running → idle,
+  // not on every tick. Previously this fan-out fired ~250×/sec because the
+  // interval delay constant was undefined.
+  const wasRunningRef = useRef(false)
   useEffect(() => {
-    if (!syncStatus.running) return undefined
-    const id = setInterval(() => {
-      loadSyncStatus()
+    const wasRunning = wasRunningRef.current
+    wasRunningRef.current = syncStatus.running
+
+    if (syncStatus.running) {
+      const id = setInterval(() => { loadSyncStatus() }, SYNC_STATUS_POLL_MS)
+      return () => clearInterval(id)
+    }
+
+    // Just finished — pull fresh counts + runs + the current company page
+    // exactly once so the UI reflects the new state.
+    if (wasRunning) {
       loadRuns()
       loadOverview({ fresh: true })
-      loadCompanies({ cursor: cursors[pageIdx] || null, pageIndex: pageIdx })
-    }, SYNC_STATUS_POLL_MS)
-    return () => clearInterval(id)
-  }, [
-    syncStatus.running,
-    loadSyncStatus,
-    loadRuns,
-    loadOverview,
-    loadCompanies,
-    cursors,
-    pageIdx,
-  ])
+      loadCompanies({ cursor: cursorRef.current, pageIndex: pageIdxRef.current })
+    }
+    return undefined
+  }, [syncStatus.running, loadSyncStatus, loadRuns, loadOverview, loadCompanies])
 
   // ----- actions -----
   const onCreateOrUpdate = async (form, isEdit) => {

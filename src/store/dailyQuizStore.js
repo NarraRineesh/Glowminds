@@ -92,7 +92,21 @@ const useDailyQuizStore = create((set) => ({
           dailyQuizLastAnsweredDate: today,
         },
       }))
-      useProfileStore.getState().load({ force: true }).catch(() => {})
+      // Update the cached user doc locally so we don't have to re-read
+      // users/{uid} just to refresh xp/level after a quiz answer.
+      useProfileStore.setState((s) => ({
+        user: s.user
+          ? {
+            ...s.user,
+            gamification: {
+              ...(s.user.gamification || {}),
+              xp: result.newXp,
+              level: result.newLevel,
+              dailyQuizLastAnsweredDate: today,
+            },
+          }
+          : s.user,
+      }))
 
       set({ loading: false, lastAnsweredQuestionId: questionId, lastAnsweredCorrect: !!isCorrect })
       return { skipped: false, ...result }

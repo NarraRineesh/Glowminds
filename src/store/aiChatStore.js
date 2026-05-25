@@ -24,15 +24,19 @@ function chatColl(uid) {
 
 const useAiChatStore = create((set, get) => ({
   loading: false,
+  loaded: false,
   chats: [],            // metadata list [{ id, title, updatedAt, ... }]
   currentChatId: null,
   currentMessages: [],
 
-  reset: () => set({ chats: [], currentChatId: null, currentMessages: [], loading: false }),
+  reset: () => set({ chats: [], currentChatId: null, currentMessages: [], loading: false, loaded: false }),
 
-  loadChats: async () => {
+  // Cached by default. The local `chats` list is kept in sync by createChat /
+  // appendMessage so re-mounting the AI section doesn't re-query Firestore.
+  loadChats: async ({ force = false } = {}) => {
     const uid = auth.currentUser?.uid
     if (!uid) return []
+    if (!force && get().loaded) return get().chats
     set({ loading: true })
     try {
       const q = query(chatColl(uid), orderBy('updatedAt', 'desc'), limit(20))
@@ -46,7 +50,7 @@ const useAiChatStore = create((set, get) => ({
           updatedAt: data.updatedAt,
         }
       })
-      set({ chats, loading: false })
+      set({ chats, loading: false, loaded: true })
       return chats
     } catch (err) {
       console.error('aiChatStore.loadChats:', err)
@@ -82,7 +86,16 @@ const useAiChatStore = create((set, get) => ({
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       })
-      set({ currentChatId: ref.id, currentMessages: [] })
+      // Mirror into the cached chats[] so the picker stays accurate without
+      // forcing another loadChats round-trip.
+      set((s) => ({
+        currentChatId: ref.id,
+        currentMessages: [],
+        chats: [
+          { id: ref.id, title, messageCount: 0, updatedAt: new Date() },
+          ...s.chats,
+        ],
+      }))
       return ref.id
     } catch (err) {
       console.error('aiChatStore.createChat:', err)
@@ -107,7 +120,14 @@ const useAiChatStore = create((set, get) => ({
       text: String(message.text || ''),
       timestamp: new Date().toISOString(),
     }
-    set((s) => ({ currentMessages: [...s.currentMessages, stamped] }))
+    set((s) => ({
+      currentMessages: [...s.currentMessages, stamped],
+      chats: s.chats.map((c) =>
+        c.id === chatId
+          ? { ...c, messageCount: (c.messageCount || 0) + 1, updatedAt: new Date() }
+          : c,
+      ),
+    }))
     try {
       await setDoc(
         doc(db, 'users', uid, 'aiChats', chatId),

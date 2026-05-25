@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { collection, getDocs, query, orderBy, getDoc, doc, runTransaction, serverTimestamp } from 'firebase/firestore'
+import { collection, getDocs, query, orderBy, doc, runTransaction, serverTimestamp } from 'firebase/firestore'
 import { db, auth } from '@/services/firebase'
 import { createDefaultGamification } from '@/constants/schema'
 import { BADGES_CATALOG } from '@/constants/badgesCatalog'
@@ -16,57 +16,75 @@ import useTrackerStore from '@/store/trackerStore'
 import useInterviewStore from '@/store/interviewStore'
 import useAiChatStore from '@/store/aiChatStore'
 
+// Session-scoped memo for the three counters that previously triggered up
+// to three separate Firestore scans on every syncEligibleBadges call. The
+// store mutators (interview completeSession / chat appendMessage / resume
+// save) keep these in sync, and we re-derive on demand from store state
+// before falling back to anything more expensive.
+//
+// Keyed by uid so a user-switch on the same tab doesn't reuse stale numbers.
+const ctxCache = { uid: null, interviewCount: null, resumeCount: null, aiChatCount: null }
+
+function resetCtxCache(uid) {
+  ctxCache.uid = uid || null
+  ctxCache.interviewCount = null
+  ctxCache.resumeCount = null
+  ctxCache.aiChatCount = null
+}
+
+function deriveInterviewCount() {
+  const sessions = useInterviewStore.getState().sessions || []
+  if (sessions.length === 0) return null
+  return sessions.filter((s) => s.status === 'completed').length
+}
+
+function deriveAiChatCount() {
+  const chats = useAiChatStore.getState().chats || []
+  if (chats.length === 0) return null
+  return chats.filter((c) => (c.messageCount || 0) > 0).length
+}
+
+function deriveResumeCount() {
+  // Resume metadata lives on the user doc — no fallback scan needed once
+  // profileStore is loaded.
+  const userDoc = useProfileStore.getState().user
+  if (!userDoc) return null
+  return userDoc.flags?.defaultResumeId ? 1 : 0
+}
+
 async function gatherBadgeContext(overrides = {}) {
   const uid = auth.currentUser?.uid
   if (!uid) return null
+  if (ctxCache.uid !== uid) resetCtxCache(uid)
 
   const profile = useProfileStore.getState().profile
-  const userDoc = useProfileStore.getState().user
   const authUser = useAppStore.getState().user
   const gam = useGamificationStore.getState().gamification
   const apps = useTrackerStore.getState().apps || []
 
-  let interviewCount = (useInterviewStore.getState().sessions || []).filter(
-    (s) => s.status === 'completed',
-  ).length
-  if (interviewCount === 0) {
-    try {
-      const snap = await getDocs(collection(db, 'users', uid, 'interviewSessions'))
-      interviewCount = snap.docs.filter((d) => d.data().status === 'completed').length
-    } catch { /* ignore */ }
-  }
+  // For each counter: caller override > store-derived value > cached value
+  // > zero. We never re-scan a Firestore collection here — the read-once
+  // patterns in interview/aiChat/profile stores handle the initial load.
+  const interviewCount =
+    overrides.interviewCount ??
+    deriveInterviewCount() ??
+    ctxCache.interviewCount ??
+    0
+  ctxCache.interviewCount = interviewCount
 
-  let resumeCount = overrides.resumeCount
-  if (resumeCount == null) {
-    try {
-      const primary = await getDoc(doc(db, 'users', uid, 'resumes', 'primary'))
-      if (primary.exists()) resumeCount = 1
-      else {
-        const legacy = await getDocs(collection(db, 'users', uid, 'resumes'))
-        resumeCount = legacy.size
-      }
-    } catch {
-      resumeCount = userDoc?.flags?.defaultResumeId ? 1 : 0
-    }
-  }
+  const resumeCount =
+    overrides.resumeCount ??
+    deriveResumeCount() ??
+    ctxCache.resumeCount ??
+    0
+  ctxCache.resumeCount = resumeCount
 
-  let aiChatCount = overrides.aiChatCount
-  if (aiChatCount == null) {
-    const chats = useAiChatStore.getState().chats || []
-    if (chats.length > 0) {
-      aiChatCount = chats.filter((c) => (c.messageCount || 0) > 0).length
-    } else {
-      try {
-        const snap = await getDocs(collection(db, 'users', uid, 'aiChats'))
-        aiChatCount = snap.docs.filter((d) => {
-          const msgs = d.data().messages
-          return Array.isArray(msgs) && msgs.length > 0
-        }).length
-      } catch {
-        aiChatCount = 0
-      }
-    }
-  }
+  const aiChatCount =
+    overrides.aiChatCount ??
+    deriveAiChatCount() ??
+    ctxCache.aiChatCount ??
+    0
+  ctxCache.aiChatCount = aiChatCount
 
   return {
     earnedBadgeIds: gam.earnedBadgeIds || [],
@@ -76,8 +94,8 @@ async function gatherBadgeContext(overrides = {}) {
     applicationCount: apps.length,
     hasOffer: hasApplicationStatus(apps, 'offer'),
     interviewCount,
-    resumeCount: resumeCount || 0,
-    aiChatCount: aiChatCount || 0,
+    resumeCount,
+    aiChatCount,
     ...overrides,
   }
 }
@@ -91,13 +109,16 @@ const useGamificationStore = create((set, get) => ({
   syncingBadges: false,
   recordingVisit: false,
 
-  reset: () => set({
-    gamification: createDefaultGamification(),
-    catalog: [],
-    catalogLoaded: false,
-    syncingBadges: false,
-    recordingVisit: false,
-  }),
+  reset: () => {
+    resetCtxCache(null)
+    set({
+      gamification: createDefaultGamification(),
+      catalog: [],
+      catalogLoaded: false,
+      syncingBadges: false,
+      recordingVisit: false,
+    })
+  },
 
   loadCatalog: async ({ force = false } = {}) => {
     if (!force && get().catalogLoaded) return get().catalog
@@ -184,16 +205,30 @@ const useGamificationStore = create((set, get) => ({
       })
 
       if (!result.skipped) {
+        const newStreak = {
+          current: result.newStreak,
+          longest: result.newLongest,
+          lastActiveDate: today,
+        }
         set((s) => ({
           gamification: {
             ...s.gamification,
-            streak: {
-              ...s.gamification.streak,
-              current: result.newStreak,
-              longest: result.newLongest,
-              lastActiveDate: today,
-            },
+            streak: { ...s.gamification.streak, ...newStreak },
           },
+        }))
+        // Mirror into profileStore.user so other consumers (e.g. the next
+        // recordDailyVisit early-return check) see the latest streak without
+        // a forced users/{uid} re-read.
+        useProfileStore.setState((s) => ({
+          user: s.user
+            ? {
+              ...s.user,
+              gamification: {
+                ...(s.user.gamification || {}),
+                streak: { ...((s.user.gamification && s.user.gamification.streak) || {}), ...newStreak },
+              },
+            }
+            : s.user,
         }))
         get().syncEligibleBadges({ streakCurrent: result.newStreak }).catch(() => {})
       }
@@ -265,8 +300,20 @@ const useGamificationStore = create((set, get) => ({
         const earned = new Set(get().gamification.earnedBadgeIds || [])
         earned.add(badgeId)
         set((s) => ({ gamification: { ...s.gamification, earnedBadgeIds: Array.from(earned) } }))
+        // Mirror into the cached user doc so consumers of profileStore.user
+        // stay in sync without a forced users/{uid} re-read.
+        useProfileStore.setState((s) => ({
+          user: s.user
+            ? {
+              ...s.user,
+              gamification: {
+                ...(s.user.gamification || {}),
+                earnedBadgeIds: Array.from(earned),
+              },
+            }
+            : s.user,
+        }))
       }
-      useProfileStore.getState().load({ force: true }).catch(() => {})
       return { success: true, ...result }
     } catch (err) {
       console.error('gamificationStore.awardBadge:', err)

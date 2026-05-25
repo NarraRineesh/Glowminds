@@ -77,7 +77,6 @@ export default function OverviewSection() {
   const loadProfileStore = useProfileStore((s) => s.load)
   const gamification = useGamificationStore((s) => s.gamification)
   const loadGamificationCatalog = useGamificationStore((s) => s.loadCatalog)
-  const syncEligibleBadges = useGamificationStore((s) => s.syncEligibleBadges)
   const savedJobs = useJobStore((s) => s.savedJobs)
   const loadSavedJobs = useJobStore((s) => s.loadSavedJobs)
 
@@ -91,9 +90,16 @@ export default function OverviewSection() {
   useEffect(() => {
     // `jobs.length` is intentionally NOT in the deps array — it's only read
     // as a gate, not consumed. Re-including it caused the whole bootstrap
-    // bundle (profile/apps/saved jobs/badges/jobs) to re-fire every time
-    // the jobs cache flipped from 0 → N. The store now also coalesces
-    // duplicate fetchJobs calls, so a stale read here is harmless.
+    // bundle to re-fire every time the jobs cache flipped from 0 → N.
+    //
+    // Every load below is cache-aware (see profileStore.loaded,
+    // trackerStore.loaded, jobStore.savedJobsLoaded / lastFetched,
+    // gamificationStore.catalogLoaded), so revisiting the Overview tab is
+    // free in Firestore reads. syncEligibleBadges was removed from this
+    // bootstrap on purpose — it ran on every mount and triggered up to
+    // three collection scans per call. Badge re-evaluation now only happens
+    // after the mutations that could actually unlock a badge (recordDailyVisit,
+    // addApp/updateApp, appendMessage, completeSession, profile save).
     const id = requestAnimationFrame(() => {
       loadProfileData()
       loadProfileForJobs({ force: false }).then(() => {
@@ -102,10 +108,9 @@ export default function OverviewSection() {
       loadApps()
       loadSavedJobs()
       loadGamificationCatalog()
-      syncEligibleBadges()
     })
     return () => cancelAnimationFrame(id)
-  }, [fetchJobs, loadApps, loadProfileData, loadProfileForJobs, loadSavedJobs, loadGamificationCatalog, syncEligibleBadges])
+  }, [fetchJobs, loadApps, loadProfileData, loadProfileForJobs, loadSavedJobs, loadGamificationCatalog])
 
   const streak = gamification?.streak || {}
   const xpProgress = computeXpProgress(gamification?.xp || 0, gamification?.level)
