@@ -4,6 +4,7 @@ const CODE_TO_STATUS = {
   "permission-denied": 403,
   "not-found": 404,
   "already-exists": 409,
+  "failed-precondition": 412,
   "resource-exhausted": 429,
   internal: 500,
   unavailable: 503,

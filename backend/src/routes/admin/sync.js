@@ -9,9 +9,11 @@ import { Router } from "express";
 import { requireAuth } from "../../middleware/auth.js";
 import { requireAdmin } from "../../middleware/admin.js";
 import { ApiError } from "../../middleware/errors.js";
+import { env } from "../../config/env.js";
 import { getFirestore } from "../../config/firebase.js";
 import { ATS_IDS } from "../../config/platforms.js";
 import { runAllProviders, runProvider } from "../../sync/runSync.js";
+import { enrichIsReachable } from "../../sync/callEnrich.js";
 
 const router = Router();
 
@@ -20,7 +22,7 @@ const router = Router();
 let activeRun = null;
 
 // POST /api/admin/sync — body: { provider?, slugs?, force?, dryRun?, limit?, concurrency? }
-router.post("/sync", requireAuth, requireAdmin, (req, res, next) => {
+router.post("/sync", requireAuth, requireAdmin, async (req, res, next) => {
   try {
     if (activeRun) {
       throw new ApiError(
@@ -34,6 +36,14 @@ router.post("/sync", requireAuth, requireAdmin, (req, res, next) => {
       throw new ApiError(
         "invalid-argument",
         `provider must be one of: ${ATS_IDS.join(", ")}`,
+      );
+    }
+
+    // dry-run skips Firestore writes anyway, so we don't gate it on enrich.
+    if (body.dryRun !== true && !(await enrichIsReachable())) {
+      throw new ApiError(
+        "failed-precondition",
+        `Enrich service unreachable at ${env.enrichUrl}. Start it with \`npm run dev:py\` (or PM2 \`enrich\` process) and retry.`,
       );
     }
 

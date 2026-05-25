@@ -15,10 +15,13 @@ module.exports = {
     },
     {
       name: "enrich",
-      script: "gunicorn",
-      args: "-b 127.0.0.1:5000 -w 2 main:app",
+      script: "./python/.venv/bin/gunicorn",
+      args: "-b 127.0.0.1:5001 -w 2 main:app",
       cwd: "./python",
       interpreter: "none",
+      env: {
+        PORT: 5001,
+      },
     },
   ],
 };

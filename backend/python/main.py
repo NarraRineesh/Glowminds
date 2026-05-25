@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import time
 
 from flask import Flask, jsonify, request
@@ -71,5 +72,9 @@ def server_error(err):
     return jsonify({"error": {"code": "internal", "message": str(err)}}), 500
 
 
+# Port is configurable so we can sidestep macOS AirPlay Receiver (port 5000).
+# The Node sync worker reads ENRICH_URL from backend/.env — keep them aligned.
+PORT = int(os.environ.get("PORT") or os.environ.get("ENRICH_PORT") or 5001)
+
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5000, debug=False)
+    app.run(host="127.0.0.1", port=PORT, debug=False)
