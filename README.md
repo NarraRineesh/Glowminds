@@ -1,6 +1,6 @@
 # Glowminds — AI-Powered Career Platform
 
-All-in-one career assistant for students and fresh graduates. Build ATS-optimized resumes, discover AI-matched jobs, ace interviews with AI coaching, and track every application — powered by Gemini 2.0 Flash.
+All-in-one career assistant for students and fresh graduates. Build ATS-optimized resumes, discover AI-matched jobs, ace interviews with AI coaching, and track every application — powered by Gemini.
 
 ## Features
 
@@ -24,42 +24,33 @@ All-in-one career assistant for students and fresh graduates. Build ATS-optimize
 - **Routing**: React Router v7
 - **State**: Zustand 5
 - **Auth & DB**: Firebase Auth + Cloud Firestore
-- **AI Backend**: Firebase Cloud Functions (Node.js 22) + Google Gemini 2.0 Flash
+- **API**: Firebase Cloud Functions Gen 2 (Express adapter, single `api` HTTPS function)
+- **AI**: Google Gemini (primary) + OpenRouter (fallback)
 - **PDF**: html2canvas-pro + jsPDF (code-split)
 - **Resume Parsing**: pdfjs-dist (PDF) + mammoth (DOCX)
-- **SEO**: react-helmet-async with Open Graph + Twitter cards
-
-## Cloud Functions (7 deployed)
-
-| Function | Purpose |
-|----------|---------|
-| `parseResume` | AI resume parsing from uploaded PDF/DOCX text |
-| `careerChat` | Multi-turn AI career coaching conversation |
-| `generateInterviewQuestions` | Role-specific interview question generation |
-| `evaluateAnswer` | STAR-method answer evaluation with scoring |
-| `jobMatch` | AI skill vs job description analysis |
-| `profileReview` | AI profile enhancement review |
-| `onUserCreated` | Firestore trigger — seeds welcome notifications |
+- **Job ingestion**: Local CLI in sibling folder `../job-pipeline/` (Ollama → Firestore)
 
 ## Quick Start
 
 ```bash
-# 1. Install frontend dependencies
+# 1. Install frontend + functions dependencies
 npm install
+npm --prefix functions install
 
 # 2. Copy env and add your Firebase config
 cp .env.example .env
 # Edit .env with your Firebase project values
 
-# 3. Install functions dependencies
-cd functions && npm install && cd ..
+# 3. Functions config (non-secrets)
+cp functions/.env.example functions/.env
+# For local emulator, also add API keys to functions/.env:
+#   GEMINI_API_KEY, OPENROUTER_API_KEY, RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET
 
-# 4. Add Gemini API key for Cloud Functions
-echo "GEMINI_API_KEY=your-key-here" > functions/.env
-
-# 5. Start dev server
+# 4. Start dev (Vite + Functions emulator)
 npm run dev
 ```
+
+Vite proxies `/api/*` to the Functions emulator on port 5001.
 
 ## Firebase Setup
 
@@ -67,42 +58,22 @@ npm run dev
 2. Enable **Authentication** → Email/Password + Google providers
 3. Create **Cloud Firestore** database
 4. Create a **Web app** → copy config values into `.env`
-5. Deploy functions: `firebase deploy --only functions`
-6. Deploy rules: `firebase deploy --only firestore:rules`
+5. Upgrade to **Blaze** plan (required for outbound HTTP to Gemini/OpenRouter/Razorpay)
+6. Set function secrets:
+   ```bash
+   firebase functions:secrets:set GEMINI_API_KEY
+   firebase functions:secrets:set OPENROUTER_API_KEY
+   firebase functions:secrets:set RAZORPAY_KEY_ID
+   firebase functions:secrets:set RAZORPAY_KEY_SECRET
+   ```
+7. Deploy: `npm run deploy`
 
 ## Project Structure
 
 ```
-src/
-├── components/
-│   ├── layout/           # Navbar, Footer
-│   ├── ProtectedRoute.jsx
-│   ├── SEO.jsx
-│   └── Toast.jsx
-├── features/
-│   ├── auth/             # LoginPage, SignupPage
-│   ├── dashboard/
-│   │   ├── DashboardShell.jsx
-│   │   └── sections/
-│   │       ├── OverviewSection.jsx    # Dashboard + Analytics
-│   │       ├── JobsSection.jsx        # Job board
-│   │       ├── ResumeSection.jsx      # Resume builder
-│   │       ├── AISection.jsx          # AI career coach
-│   │       ├── InterviewSection.jsx   # Mock interviews
-│   │       ├── ApplicationsSection.jsx # Kanban tracker
-│   │       └── ProfileSection.jsx     # User profile
-│   └── public/           # LandingPage, AboutPage, FeaturesPage, ContactPage
-├── hooks/                # useAuthListener, useReveal
-├── services/             # firebase.js, jobApis.js, resumeParser.js
-├── store/                # authStore, jobStore, trackerStore, notifStore
-├── styles/               # 15 CSS modules
-├── App.jsx               # Router setup
-└── main.jsx              # Entry point
-
-functions/
-├── index.js              # 7 Cloud Functions (Gemini AI)
-├── .env                  # GEMINI_API_KEY
-└── package.json
+src/                    # React SPA
+functions/src/          # Express API (single Cloud Function `api`)
+../job-pipeline/        # Local job scraper + Ollama enricher → Firestore (outside repo)
 ```
 
 ## Environment Variables
@@ -115,29 +86,36 @@ VITE_FIREBASE_PROJECT_ID=
 VITE_FIREBASE_STORAGE_BUCKET=
 VITE_FIREBASE_MESSAGING_SENDER_ID=
 VITE_FIREBASE_APP_ID=
-VITE_FIREBASE_MEASUREMENT_ID=
+VITE_API_BASE_URL=/api
 ```
 
-**Functions** (`functions/.env`):
+**Functions** (`functions/.env` — non-secrets; secrets via `firebase functions:secrets:set`):
 ```
-GEMINI_API_KEY=your-gemini-api-key
+CORS_ORIGINS=http://localhost:5173,http://localhost:4173
+OPENROUTER_SITE_URL=https://ai-jobcopilot.web.app
+OPENROUTER_APP_NAME=Glowminds AI Job Copilot
+```
+
+## Job pipeline (local)
+
+Job ingestion runs outside this repo:
+
+```bash
+cd ../job-pipeline
+npm install
+cp .env.example .env   # FIREBASE_SA_PATH, Ollama URL, etc.
+npm run enrich
+npm run push
 ```
 
 ## Deployment
 
 ```bash
-# Build frontend
 npm run build
-
-# Deploy Cloud Functions
-firebase deploy --only functions
-
-# Deploy Firestore rules
-firebase deploy --only firestore:rules
-
-# Deploy everything
-firebase deploy
+firebase deploy --only functions,hosting,firestore
 ```
+
+Or: `npm run deploy`
 
 ## License
 

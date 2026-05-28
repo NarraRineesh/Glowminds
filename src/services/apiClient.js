@@ -3,8 +3,7 @@ import { auth } from './firebase'
 import useAppStore from '@/store/authStore'
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') ||
-  'http://localhost:3001/api'
+  import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') || '/api'
 
 class ApiError extends Error {
   constructor(message, { status, code, payload } = {}) {

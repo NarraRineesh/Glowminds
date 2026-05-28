@@ -10,7 +10,19 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const siteUrl = (env.VITE_PUBLIC_SITE_URL || 'https://studentsai.in').replace(/\/$/, '')
 
+  const firebaseProjectId = env.VITE_FIREBASE_PROJECT_ID || 'glowminds-abc84'
+
   return {
+    server: {
+      proxy: {
+        '/api': {
+          target: 'http://127.0.0.1:5001',
+          changeOrigin: true,
+          rewrite: (path) =>
+            `/${firebaseProjectId}/asia-south1/api${path}`,
+        },
+      },
+    },
     plugins: [
       react(),
       tailwindcss(),

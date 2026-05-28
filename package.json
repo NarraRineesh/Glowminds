@@ -4,13 +4,14 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently -n web,api,py -c blue,green,yellow --kill-others-on-fail \"npm:dev:web\" \"npm:dev:api\" \"npm:dev:py\"",
+    "dev": "concurrently -n web,fn -c blue,green --kill-others-on-fail \"npm:dev:web\" \"npm:dev:fn\"",
     "dev:web": "vite",
-    "dev:api": "npm --prefix backend run dev",
-    "dev:py": "cd backend/python && .venv/bin/gunicorn -b 127.0.0.1:${ENRICH_PORT:-5001} -w 1 --reload main:app",
+    "dev:fn": "firebase emulators:start --only functions",
+    "dev:fn:full": "firebase emulators:start --only functions,firestore",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "npm run build && firebase deploy --only functions,hosting,firestore"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.3",

@@ -11,11 +11,6 @@ export function getAdminOverview({ fresh = false } = {}) {
   return apiFetch(`/admin/overview${fresh ? '?fresh=true' : ''}`, { method: 'GET' })
 }
 
-// ----- Tool usage -----
-export function getUsageAggregate({ fresh = false } = {}) {
-  return apiFetch(`/usage/aggregate${fresh ? '?fresh=true' : ''}`, { method: 'GET' })
-}
-
 // ----- Companies -----
 //
 // Server-side paginated. Returns { companies, nextCursor, hasMore }.
@@ -137,24 +132,12 @@ export function deleteCompany(slug) {
   })
 }
 
-export function syncOneCompany(slug, { force = false } = {}) {
-  return apiFetch(
-    `/admin/companies/${encodeURIComponent(slug)}/sync${force ? '?force=true' : ''}`,
-    { body: {} },
-  )
-}
-
-// ----- Bulk sync + history -----
-export function syncAll({ provider, force = false, dryRun = false } = {}) {
-  return apiFetch('/admin/sync', {
-    body: { provider, force, dryRun },
-  })
-}
-
-export function getSyncStatus() {
-  return apiFetch('/admin/sync/status', { method: 'GET' })
-}
-
+// ----- Sync history (read-only) -----
+//
+// Live sync triggers (bulk + per-company) are no longer exposed by the API:
+// the backend was migrated to Firebase Functions and bulk job ingestion now
+// runs from the local `pipeline/` CLI (Ollama -> Firestore). The history
+// endpoint below still drives the "Recent sync runs" admin panel.
 export function listSyncRuns({ limit = 25, provider } = {}) {
   const qs = new URLSearchParams()
   qs.set('limit', String(limit))

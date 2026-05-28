@@ -16,6 +16,9 @@ dist-ssr
 .env
 functions/.env
 
+# Pipeline CLI output (large JSON snapshots — local only)
+pipeline/out/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

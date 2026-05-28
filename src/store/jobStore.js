@@ -118,7 +118,6 @@ const useJobStore = create((set, get) => ({
         savedAt: serverTimestamp(),
       })
       set((s) => ({ savedJobs: [...s.savedJobs, { ...snapshot, savedAt: new Date() }] }))
-      import('@/services/usageTracker').then((m) => m.trackToolUsage('savedJobs.toggle')).catch(() => {})
     } catch (err) {
       console.error('Save job failed:', err)
     }

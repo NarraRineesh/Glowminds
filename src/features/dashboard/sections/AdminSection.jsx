@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import SectionHeader from '@/components/dashboard/SectionHeader'
@@ -8,23 +8,14 @@ import {
   createCompany,
   deleteCompany,
   getAdminOverview,
-  getSyncStatus,
-  getUsageAggregate,
   listCompanies,
   listSyncRuns,
-  syncAll,
   updateCompany,
 } from '@/services/adminApi'
 import '@/styles/dashboard.css'
 import '@/styles/cards.css'
 
 const ATS_OPTIONS = ['greenhouse', 'lever', 'ashby', 'bamboohr', 'workday']
-
-// How often to poll /admin/sync/status while a sync is in progress. Was
-// previously left as an undefined identifier — `setInterval(fn, undefined)`
-// clamps to the browser minimum (~4ms), which fired ~250 polls/sec and
-// chewed through the Firestore daily read quota in seconds.
-const SYNC_STATUS_POLL_MS = 5000
 
 // ----------------------------------------------------------------------
 // Small presentational helpers
@@ -579,10 +570,8 @@ export default function AdminSection() {
   // Hooks must run before any early returns — admin gate uses Navigate below.
 
   const [overview, setOverview] = useState(null)
-  const [usage, setUsage] = useState(null)
   const [companies, setCompanies] = useState([])
   const [runs, setRuns] = useState([])
-  const [syncStatus, setSyncStatus] = useState({ running: false, activeRun: null })
 
   const [loading, setLoading] = useState(true)
   const [filterAts, setFilterAts] = useState('')
@@ -611,15 +600,6 @@ export default function AdminSection() {
       setOverview(r)
     } catch (e) {
       console.warn('admin overview:', e)
-    }
-  }, [])
-
-  const loadUsage = useCallback(async ({ fresh = false } = {}) => {
-    try {
-      const r = await getUsageAggregate({ fresh })
-      setUsage(r)
-    } catch (e) {
-      console.warn('admin usage:', e)
     }
   }, [])
 
@@ -657,20 +637,13 @@ export default function AdminSection() {
     }
   }, [])
 
-  const loadSyncStatus = useCallback(async () => {
-    try {
-      const r = await getSyncStatus()
-      setSyncStatus(r)
-    } catch (e) { /* status is best-effort */ void e }
-  }, [])
-
   // initial fan-out (companies loads via the filter/cursor effect below)
   useEffect(() => {
     if (!user?.isAdmin) return
     setLoading(true)
-    Promise.all([loadOverview(), loadUsage(), loadRuns(), loadSyncStatus()])
+    Promise.all([loadOverview(), loadRuns()])
       .finally(() => setLoading(false))
-  }, [user?.isAdmin, loadOverview, loadUsage, loadRuns, loadSyncStatus])
+  }, [user?.isAdmin, loadOverview, loadRuns])
 
   // Debounce the search box so each keystroke isn't a backend hit.
   useEffect(() => {
@@ -684,39 +657,6 @@ export default function AdminSection() {
     setCursors([null])
     loadCompanies({ cursor: null, pageIndex: 0 })
   }, [user?.isAdmin, filterAts, filterActive, pageSize, debouncedSearch, loadCompanies])
-
-  // Track which page/cursor is currently shown so the polling tick can read
-  // the latest value without restarting the interval every time the user
-  // pages through the table.
-  const cursorRef = useRef(null)
-  const pageIdxRef = useRef(0)
-  useEffect(() => { cursorRef.current = cursors[pageIdx] || null }, [cursors, pageIdx])
-  useEffect(() => { pageIdxRef.current = pageIdx }, [pageIdx])
-
-  // While a background sync is running we only poll the status endpoint
-  // (cheap — one in-memory check on the backend). Companies/runs/overview
-  // are refreshed exactly once when the sync transitions running → idle,
-  // not on every tick. Previously this fan-out fired ~250×/sec because the
-  // interval delay constant was undefined.
-  const wasRunningRef = useRef(false)
-  useEffect(() => {
-    const wasRunning = wasRunningRef.current
-    wasRunningRef.current = syncStatus.running
-
-    if (syncStatus.running) {
-      const id = setInterval(() => { loadSyncStatus() }, SYNC_STATUS_POLL_MS)
-      return () => clearInterval(id)
-    }
-
-    // Just finished — pull fresh counts + runs + the current company page
-    // exactly once so the UI reflects the new state.
-    if (wasRunning) {
-      loadRuns()
-      loadOverview({ fresh: true })
-      loadCompanies({ cursor: cursorRef.current, pageIndex: pageIdxRef.current })
-    }
-    return undefined
-  }, [syncStatus.running, loadSyncStatus, loadRuns, loadOverview, loadCompanies])
 
   // ----- actions -----
   const onCreateOrUpdate = async (form, isEdit) => {
@@ -765,16 +705,6 @@ export default function AdminSection() {
     return r
   }
 
-  const onSyncAll = async () => {
-    try {
-      await syncAll({})
-      addToast?.('info', '⏳ Sync started in the background')
-      loadSyncStatus()
-    } catch (e) {
-      addToast?.('error', `⚠️ ${e?.message || 'Could not start sync'}`)
-    }
-  }
-
   // ----- derived -----
   // Range shown in the pagination footer. Cursor pagination doesn't know
   // total pages, so we render "Showing X–Y" and rely on the overview
@@ -801,11 +731,6 @@ export default function AdminSection() {
     loadCompanies({ cursor: cursors[prevIdx] || null, pageIndex: prevIdx })
   }, [pageIdx, cursors, loadCompanies])
 
-  const sortedUsage = useMemo(() => {
-    const tools = usage?.tools || {}
-    return Object.entries(tools).sort((a, b) => b[1] - a[1])
-  }, [usage])
-
   // Gate the whole page on the admin claim AFTER hooks have run.
   if (!user) return null
   if (!user.isAdmin) return <Navigate to="/dashboard" replace />
@@ -817,16 +742,11 @@ export default function AdminSection() {
         badgeColor="white"
         badgeBg="var(--color-prp)"
         title="Admin Console"
-        subtitle="Manage companies that feed the job board, trigger syncs, and watch usage."
-        actions={
-          <Btn onClick={onSyncAll} variant="primary" disabled={syncStatus.running}>
-            {syncStatus.running ? '⏳ Sync running…' : '⟳ Sync All'}
-          </Btn>
-        }
+        subtitle="Manage companies that feed the job board. Bulk job ingestion runs from the local pipeline CLI."
       />
 
       {/* ---------- KPIs ---------- */}
-      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {[
           { ic: '👥', lbl: 'Users', val: overview?.users?.total, sub: 'Signed up' },
           { ic: '🏢', lbl: 'Companies', val: overview?.companies?.total, sub: `${overview?.companies?.active || 0} active` },
@@ -839,12 +759,6 @@ export default function AdminSection() {
               ? `+${overview.latestRun.jobsAdded} ~${overview.latestRun.jobsUpdated} −${overview.latestRun.jobsExpired}`
               : 'No syncs yet',
             isText: true,
-          },
-          {
-            ic: '🧪',
-            lbl: 'Tool Calls',
-            val: usage?.total,
-            sub: `${usage?.userCount || 0} users tracked`,
           },
         ].map((kpi, idx) => (
           <motion.div
@@ -865,37 +779,6 @@ export default function AdminSection() {
           </motion.div>
         ))}
       </div>
-
-      {/* ---------- Tool usage ---------- */}
-      <Card
-        title="Tool usage — all users"
-        action={
-          <Btn onClick={() => loadUsage({ fresh: true })} size="xs" variant="ghost">↻ Refresh</Btn>
-        }
-      >
-        {sortedUsage.length === 0 ? (
-          <p className="text-[0.84rem] text-[var(--color-txt2)]">No usage tracked yet.</p>
-        ) : (
-          <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
-            {sortedUsage.map(([key, count]) => (
-              <div
-                key={key}
-                className="flex items-center justify-between rounded-lg border border-[var(--color-bdr)] bg-[var(--color-bg2)] px-3 py-2"
-              >
-                <span className="truncate font-mono text-[0.78rem] text-[var(--color-txt)]">{key}</span>
-                <span className="ml-2 font-extrabold tabular-nums text-[var(--color-blu)]">
-                  {fmtNumber(count)}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-        {usage?.computedAt && (
-          <p className="mt-3 text-[0.7rem] text-[var(--color-txt2)]">
-            Computed {fmtRelative(usage.computedAt)} {usage.cached ? '(cached)' : ''}
-          </p>
-        )}
-      </Card>
 
       {/* ---------- Companies ---------- */}
       <Card

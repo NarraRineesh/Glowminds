@@ -1,0 +1,24 @@
+{
+  "name": "ai-job-copilot-functions",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Firebase Functions (Gen 2) hosting the Glowminds API — single HTTPS function wrapping the Express app.",
+  "engines": {
+    "node": "22"
+  },
+  "main": "src/index.js",
+  "scripts": {
+    "serve": "firebase emulators:start --only functions",
+    "shell": "firebase functions:shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "firebase-admin": "^13.0.2",
+    "firebase-functions": "^6.1.0",
+    "razorpay": "^2.9.6"
+  }
+}
