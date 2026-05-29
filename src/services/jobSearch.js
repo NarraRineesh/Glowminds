@@ -12,6 +12,7 @@ export async function searchJobs({
   pageSize = 10,
   useProfile = true,
   filters = {},
+  includeRankedList = false,
 } = {}) {
   const trimmed = String(search || '').trim()
   return apiFetch('/jobs/search', {
@@ -22,6 +23,7 @@ export async function searchJobs({
       pageSize,
       useProfile: trimmed ? false : useProfile,
       filters,
+      includeRankedList,
     },
   })
 }

@@ -284,10 +284,10 @@ const useGamificationStore = create((set, get) => ({
 
         const notifRef = doc(collection(db, 'users', uid, 'notifications'))
         tx.set(notifRef, {
-          icon: badge.icon || '🏆',
+          icon: badge.icon || 'trophy',
           title: `Badge unlocked: ${badge.name}`,
           description: badge.description || '',
-          color: 'var(--color-prp)',
+          color: '#a855f7',
           type: 'badge',
           read: false,
           createdAt: serverTimestamp(),

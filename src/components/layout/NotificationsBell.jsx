@@ -1,8 +1,16 @@
-import { useState, useEffect, useLayoutEffect, useRef } from 'react'
-import { createPortal } from 'react-dom'
+import { useEffect, useState } from 'react'
 import useAppStore from '@/store/authStore'
 import useNotifStore from '@/store/notifStore'
 import { OPEN_NOTIFS_EVENT } from '@/constants/events'
+import AppIcon from '@/components/icons/AppIcon'
+import {
+  Badge,
+  Button,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+  ScrollArea,
+} from '@/components/ui'
 
 function timeAgo(ts) {
   if (!ts) return ''
@@ -15,176 +23,156 @@ function timeAgo(ts) {
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
 }
 
-/**
- * @param {'nav' | 'drawer'} variant — dropdown alignment (toolbar vs sidebar drawer)
- */
-export default function NotificationsBell({ variant = 'nav' }) {
+export function NotificationsPanel({ className, scrollClassName }) {
   const { user } = useAppStore()
   const { notifs, markRead, markAllRead, deleteNotif, clearAll } = useNotifStore()
   const unread = notifs.filter((n) => !n.read).length
-  const [bellOpen, setBellOpen] = useState(false)
-  const [pos, setPos] = useState({ top: 0, right: 16 })
-  const triggerRef = useRef(null)
-  const dropdownRef = useRef(null)
 
-  useEffect(() => {
-    const openNotifs = () => setBellOpen(true)
-    window.addEventListener(OPEN_NOTIFS_EVENT, openNotifs)
-    return () => window.removeEventListener(OPEN_NOTIFS_EVENT, openNotifs)
-  }, [])
-
-  // Compute portal position from trigger rect (nav variant only)
-  useLayoutEffect(() => {
-    if (!bellOpen || variant !== 'nav' || !triggerRef.current) return
-    const update = () => {
-      const r = triggerRef.current?.getBoundingClientRect()
-      if (!r) return
-      setPos({
-        top: Math.round(r.bottom + 10),
-        right: Math.max(8, Math.round(window.innerWidth - r.right)),
-      })
-    }
-    update()
-    window.addEventListener('resize', update)
-    window.addEventListener('scroll', update, true)
-    return () => {
-      window.removeEventListener('resize', update)
-      window.removeEventListener('scroll', update, true)
-    }
-  }, [bellOpen, variant])
-
-  // Click-outside (works for both inline and portaled dropdown)
-  useEffect(() => {
-    if (!bellOpen) return
-    const handler = (e) => {
-      if (triggerRef.current?.contains(e.target)) return
-      if (dropdownRef.current?.contains(e.target)) return
-      setBellOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [bellOpen])
-
-  // Esc to close
-  useEffect(() => {
-    if (!bellOpen) return
-    const onKey = (e) => { if (e.key === 'Escape') setBellOpen(false) }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [bellOpen])
-
-  const dropdownClass =
-    variant === 'drawer' ? 'notif-dropdown notif-dropdown--drawer' : 'notif-dropdown'
-
-  const dropdown = (
-    <div
-      ref={dropdownRef}
-      className={dropdownClass}
-      style={
-        variant === 'nav'
-          ? { position: 'fixed', top: pos.top, right: pos.right, left: 'auto', zIndex: 1000 }
-          : undefined
-      }
-    >
-      <div className="notif-dd-header">
-        <span className="text-[0.82rem] font-extrabold">
+  return (
+    <div className={className}>
+      <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
+        <span className="text-sm font-bold text-foreground">
           Notifications{' '}
-          {unread > 0 && <span className="font-mono text-[var(--color-blu2)]">({unread})</span>}
+          {unread > 0 && (
+            <Badge variant="secondary" className="ms-1 font-mono text-primary">
+              {unread}
+            </Badge>
+          )}
         </span>
         <div className="flex gap-1.5">
           {unread > 0 && (
-            <button type="button" className="notif-dd-btn" onClick={() => markAllRead(user?.uid)}>
-              ✓ Read all
-            </button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => markAllRead(user?.uid)}>
+              <AppIcon name="check" className="me-1 size-3.5" />
+              Read all
+            </Button>
           )}
           {notifs.length > 0 && (
-            <button
-              type="button"
-              className="notif-dd-btn"
-              onClick={() => {
-                clearAll(user?.uid)
-                setBellOpen(false)
-              }}
-            >
+            <Button type="button" variant="ghost" size="sm" onClick={() => clearAll(user?.uid)}>
               Clear
-            </button>
+            </Button>
           )}
         </div>
       </div>
 
-      <div className="notif-dd-list">
+      <ScrollArea className={scrollClassName || 'max-h-80'}>
         {notifs.length === 0 ? (
-          <div className="px-4 py-8 text-center text-[var(--color-muted)]">
-            <div className="mb-1 text-2xl">🔕</div>
-            <div className="text-[0.74rem]">No notifications</div>
+          <div className="px-4 py-8 text-center text-muted-foreground">
+            <AppIcon name="bell-slash" className="mx-auto mb-2 size-8 opacity-50" />
+            <div className="text-xs">No notifications</div>
           </div>
         ) : (
-          notifs.map((n) => (
-            <div
-              key={n.id}
-              role="button"
-              tabIndex={0}
-              className={`notif-dd-item${!n.read ? ' unread' : ''}`}
-              onClick={() => {
-                if (!n.read) markRead(user?.uid, n.id)
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault()
-                  if (!n.read) markRead(user?.uid, n.id)
-                }
-              }}
-            >
-              <div
-                className="notif-dd-ic"
-                style={{ background: `${n.color || 'var(--color-blu)'}18` }}
-              >
-                {n.icon || '🔔'}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="notif-dd-title">{n.title}</div>
-                {(n.description || n.desc) && <div className="notif-dd-desc">{n.description || n.desc}</div>}
-                <div className="notif-dd-time">{timeAgo(n.createdAt)}</div>
-              </div>
-              <div className="flex shrink-0 items-center gap-1">
-                {!n.read && <div className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-blu)]" />}
-                <button
-                  type="button"
-                  className="notif-dd-del"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    deleteNotif(user?.uid, n.id)
+          <ul className="divide-y divide-border">
+            {notifs.map((n) => (
+              <li key={n.id}>
+                <div
+                  role="button"
+                  tabIndex={0}
+                  className={`flex w-full cursor-pointer gap-3 px-4 py-3 text-left transition-colors hover:bg-accent ${
+                    !n.read ? 'bg-accent/50' : ''
+                  }`}
+                  onClick={() => {
+                    if (!n.read) markRead(user?.uid, n.id)
                   }}
-                  title="Delete"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      if (!n.read) markRead(user?.uid, n.id)
+                    }
+                  }}
                 >
-                  ✕
-                </button>
-              </div>
-            </div>
-          ))
+                  <div
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+                    style={n.color ? { backgroundColor: `${n.color}18`, color: n.color } : undefined}
+                  >
+                    <AppIcon name={n.icon || 'bell'} className="size-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold text-foreground">{n.title}</div>
+                    {(n.description || n.desc) && (
+                      <div className="text-xs text-muted-foreground">{n.description || n.desc}</div>
+                    )}
+                    <div className="mt-0.5 text-[0.7rem] text-muted-foreground">
+                      {timeAgo(n.createdAt)}
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1">
+                    {!n.read && (
+                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                    )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        deleteNotif(user?.uid, n.id)
+                      }}
+                      title="Delete"
+                    >
+                      <AppIcon name="x" className="size-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
-      </div>
+      </ScrollArea>
     </div>
   )
+}
+
+export function useNotificationUnreadCount() {
+  const { notifs } = useNotifStore()
+  return notifs.filter((n) => !n.read).length
+}
+
+/** Standalone bell + popover. Sidebar uses profile menu instead. */
+export default function NotificationsBell({ variant = 'nav' }) {
+  const { user } = useAppStore()
+  const { loadNotifs, notifs } = useNotifStore()
+  const unread = notifs.filter((n) => !n.read).length
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    const openNotifs = () => setOpen(true)
+    window.addEventListener(OPEN_NOTIFS_EVENT, openNotifs)
+    return () => window.removeEventListener(OPEN_NOTIFS_EVENT, openNotifs)
+  }, [])
 
   return (
-    <div className="relative">
-      <button
-        ref={triggerRef}
-        type="button"
-        className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-base text-[var(--color-txt)] transition-colors hover:bg-[var(--color-bg3)]"
-        onClick={() => setBellOpen((p) => !p)}
-        aria-expanded={bellOpen}
-        aria-haspopup="true"
-        aria-label={`Notifications${unread > 0 ? `, ${unread} unread` : ''}`}
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next)
+        if (next && user?.uid) loadNotifs(user.uid, { force: true })
+      }}
+    >
+      <PopoverTrigger
+        render={
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="relative shrink-0"
+            aria-label={`Notifications${unread > 0 ? `, ${unread} unread` : ''}`}
+          >
+            <AppIcon name="bell" className="size-5" />
+            {unread > 0 && (
+              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary ring-2 ring-popover" />
+            )}
+          </Button>
+        }
+      />
+      <PopoverContent
+        align={variant === 'drawer' ? 'start' : 'end'}
+        side="bottom"
+        sideOffset={10}
+        className={variant === 'drawer' ? 'w-full max-w-none p-0 sm:w-80' : 'w-80 p-0'}
       >
-        🔔
-        {unread > 0 && <span className="ndot" />}
-      </button>
-
-      {bellOpen && (
-        variant === 'nav' ? createPortal(dropdown, document.body) : dropdown
-      )}
-    </div>
+        <NotificationsPanel scrollClassName={variant === 'drawer' ? 'max-h-64' : 'max-h-80'} />
+      </PopoverContent>
+    </Popover>
   )
 }

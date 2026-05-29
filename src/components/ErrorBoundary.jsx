@@ -1,4 +1,5 @@
 import { Component } from 'react'
+import { AppIcon, Button, Card, CardContent } from '@/components/ui'
 
 export default class ErrorBoundary extends Component {
   constructor(props) {
@@ -17,21 +18,21 @@ export default class ErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ minHeight: '40vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
-          <div style={{ textAlign: 'center', maxWidth: 420 }}>
-            <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>⚠️</div>
-            <h2 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: 8 }}>Something went wrong</h2>
-            <p style={{ fontSize: '.82rem', color: 'var(--color-txt2)', lineHeight: 1.7, marginBottom: 20 }}>
-              {this.state.error?.message || 'An unexpected error occurred. Please try again.'}
-            </p>
-            <button
-              className="btn btn-p"
-              onClick={() => { this.setState({ hasError: false, error: null }); window.location.reload() }}
-              style={{ padding: '10px 24px' }}
-            >
-              Reload Page
-            </button>
-          </div>
+        <div className="flex min-h-[40vh] items-center justify-center p-8">
+          <Card className="max-w-md">
+            <CardContent className="p-8 text-center">
+              <AppIcon name="warning" className="mx-auto mb-3 size-10 text-amber-500" />
+              <h2 className="mb-2 text-lg font-extrabold">Something went wrong</h2>
+              <p className="mb-5 text-sm leading-relaxed text-muted-foreground">
+                {this.state.error?.message || 'An unexpected error occurred. Please try again.'}
+              </p>
+              <Button
+                onClick={() => { this.setState({ hasError: false, error: null }); window.location.reload() }}
+              >
+                Reload Page
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       )
     }

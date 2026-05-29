@@ -1,6 +1,28 @@
-import Footer from '@/components/layout/Footer'
 import SEO from '@/components/SEO'
-import '@/styles/landing.css'
+import { AppIcon, Badge, Card, CardContent } from '@/components/ui'
+
+function LegalSection({ title, children }) {
+  return (
+    <div className="mb-8 last:mb-0">
+      <h2 className="mb-3 text-xl font-extrabold text-foreground">{title}</h2>
+      {children}
+    </div>
+  )
+}
+
+function LegalP({ children, className = '' }) {
+  return <p className={`text-sm leading-relaxed text-muted-foreground ${className}`}>{children}</p>
+}
+
+function LegalList({ items }) {
+  return (
+    <ul className="list-disc space-y-1 pl-6 text-sm leading-relaxed text-muted-foreground">
+      {items.map((item) => (
+        <li key={item}>{item}</li>
+      ))}
+    </ul>
+  )
+}
 
 export default function PrivacyPage() {
   return (
@@ -12,130 +34,110 @@ export default function PrivacyPage() {
         keywords="Glowminds privacy policy, data protection policy, student data privacy, secure career platform, GDPR compliance India, data security"
       />
 
-      {/* Hero */}
-      <section style={{ padding: 'calc(60px + 40px) 0 40px', position: 'relative', overflow: 'hidden' }}>
-        <div className="page-container">
-          <div className="hero-bg" />
-          <div className="hero-grid" />
-          <div style={{ position: 'relative', zIndex: 1, maxWidth: 800, margin: '0 auto', textAlign: 'center' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 13px', borderRadius: 100,
-            background: 'var(--color-blu3)', border: '1px solid rgba(56,139,253,.22)', color: 'var(--color-blu2)',
-            fontSize: '.72rem', fontWeight: 700, letterSpacing: '.5px', marginBottom: 18 }}>🔒 PRIVACY POLICY</div>
-          <h1 style={{ fontSize: 'clamp(2rem,4vw,3rem)', fontWeight: 900, lineHeight: 1.1, letterSpacing: '-.5px', marginBottom: 16 }}>
-            Your Privacy <span className="grad-txt">Matters</span>
+      <section className="relative overflow-hidden px-4 pb-10 pt-8 md:px-8">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,color-mix(in_oklab,var(--primary)_12%,transparent),transparent)]" />
+        <div className="relative z-10 mx-auto max-w-6xl px-4 text-center md:px-8">
+          <Badge variant="secondary" className="mb-4 border-primary/20 bg-primary/10 text-primary">
+            PRIVACY POLICY
+          </Badge>
+          <h1 className="mb-4 text-[clamp(2rem,4vw,3rem)] font-black leading-tight tracking-tight text-foreground">
+            Your Privacy <span className="bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">Matters</span>
           </h1>
-          <p style={{ fontSize: 'clamp(.88rem,1.6vw,1rem)', color: 'var(--color-txt2)', lineHeight: 1.75, maxWidth: 600, margin: '0 auto 12px' }}>
-            Last updated: May 4, 2026
-          </p>
-        </div>
+          <p className="mx-auto max-w-xl text-sm text-muted-foreground md:text-base">Last updated: May 4, 2026</p>
         </div>
       </section>
 
-      {/* Content */}
-      <section style={{ paddingBottom: 80 }}>
-        <div className="page-container" style={{ maxWidth: 900 }}>
-        <div style={{ background: 'var(--color-surf)', border: '1px solid var(--color-bdr)', borderRadius: 16, padding: 'clamp(24px,4vw,48px)' }}>
-          
-          <div style={{ marginBottom: 32 }}>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: 12 }}>1. Information We Collect</h2>
-            <p style={{ fontSize: '.9rem', color: 'var(--color-txt2)', lineHeight: 1.75, marginBottom: 12 }}>
-              We collect information you provide directly to us when you:
-            </p>
-            <ul style={{ fontSize: '.9rem', color: 'var(--color-txt2)', lineHeight: 1.75, paddingLeft: 24, marginBottom: 12 }}>
-              <li>Create an account (name, email, password)</li>
-              <li>Build your profile (education, experience, skills)</li>
-              <li>Use our services (resumes, job applications, AI interactions)</li>
-              <li>Contact us (support requests, feedback)</li>
-            </ul>
-            <p style={{ fontSize: '.9rem', color: 'var(--color-txt2)', lineHeight: 1.75 }}>
-              We automatically collect certain information about your device and usage patterns through cookies and similar technologies.
-            </p>
-          </div>
+      <section className="pb-16 md:pb-20">
+        <div className="mx-auto max-w-3xl px-4 md:px-8">
+          <Card>
+            <CardContent className="p-6 md:p-10">
+              <LegalSection title="1. Information We Collect">
+                <LegalP className="mb-3">We collect information you provide directly to us when you:</LegalP>
+                <LegalList
+                  items={[
+                    'Create an account (name, email, password)',
+                    'Build your profile (education, experience, skills)',
+                    'Use our services (resumes, job applications, AI interactions)',
+                    'Contact us (support requests, feedback)',
+                  ]}
+                />
+                <LegalP className="mt-3">
+                  We automatically collect certain information about your device and usage patterns through cookies and similar technologies.
+                </LegalP>
+              </LegalSection>
 
-          <div style={{ marginBottom: 32 }}>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: 12 }}>2. How We Use Your Information</h2>
-            <p style={{ fontSize: '.9rem', color: 'var(--color-txt2)', lineHeight: 1.75, marginBottom: 12 }}>
-              We use the information we collect to:
-            </p>
-            <ul style={{ fontSize: '.9rem', color: 'var(--color-txt2)', lineHeight: 1.75, paddingLeft: 24 }}>
-              <li>Provide, maintain, and improve our services</li>
-              <li>Match you with relevant job opportunities</li>
-              <li>Generate AI-powered career recommendations</li>
-              <li>Send you service updates and notifications</li>
-              <li>Respond to your requests and support inquiries</li>
-              <li>Protect against fraud and abuse</li>
-            </ul>
-          </div>
+              <LegalSection title="2. How We Use Your Information">
+                <LegalP className="mb-3">We use the information we collect to:</LegalP>
+                <LegalList
+                  items={[
+                    'Provide, maintain, and improve our services',
+                    'Match you with relevant job opportunities',
+                    'Generate AI-powered career recommendations',
+                    'Send you service updates and notifications',
+                    'Respond to your requests and support inquiries',
+                    'Protect against fraud and abuse',
+                  ]}
+                />
+              </LegalSection>
 
-          <div style={{ marginBottom: 32 }}>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: 12 }}>3. Information Sharing</h2>
-            <p style={{ fontSize: '.9rem', color: 'var(--color-txt2)', lineHeight: 1.75, marginBottom: 12 }}>
-              <strong style={{ color: 'var(--color-txt)' }}>We never sell your personal information.</strong> We may share your information only in these limited circumstances:
-            </p>
-            <ul style={{ fontSize: '.9rem', color: 'var(--color-txt2)', lineHeight: 1.75, paddingLeft: 24 }}>
-              <li><strong style={{ color: 'var(--color-txt)' }}>With your consent:</strong> When you apply to jobs, we share your resume with employers</li>
-              <li><strong style={{ color: 'var(--color-txt)' }}>Service providers:</strong> Third-party vendors who help us operate our platform (hosting, analytics, payment processing)</li>
-              <li><strong style={{ color: 'var(--color-txt)' }}>Legal requirements:</strong> When required by law or to protect our rights</li>
-            </ul>
-          </div>
+              <LegalSection title="3. Information Sharing">
+                <LegalP className="mb-3">
+                  <strong className="text-foreground">We never sell your personal information.</strong> We may share your information only in these limited circumstances:
+                </LegalP>
+                <LegalList
+                  items={[
+                    'With your consent: When you apply to jobs, we share your resume with employers',
+                    'Service providers: Third-party vendors who help us operate our platform (hosting, analytics, payment processing)',
+                    'Legal requirements: When required by law or to protect our rights',
+                  ]}
+                />
+              </LegalSection>
 
-          <div style={{ marginBottom: 32 }}>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: 12 }}>4. Data Security</h2>
-            <p style={{ fontSize: '.9rem', color: 'var(--color-txt2)', lineHeight: 1.75 }}>
-              We implement industry-standard security measures to protect your data, including encryption, secure servers, and regular security audits. However, no method of transmission over the internet is 100% secure.
-            </p>
-          </div>
+              <LegalSection title="4. Data Security">
+                <LegalP>
+                  We implement industry-standard security measures to protect your data, including encryption, secure servers, and regular security audits. However, no method of transmission over the internet is 100% secure.
+                </LegalP>
+              </LegalSection>
 
-          <div style={{ marginBottom: 32 }}>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: 12 }}>5. Your Rights</h2>
-            <p style={{ fontSize: '.9rem', color: 'var(--color-txt2)', lineHeight: 1.75, marginBottom: 12 }}>
-              You have the right to:
-            </p>
-            <ul style={{ fontSize: '.9rem', color: 'var(--color-txt2)', lineHeight: 1.75, paddingLeft: 24 }}>
-              <li>Access and download your personal data</li>
-              <li>Correct inaccurate information</li>
-              <li>Delete your account and data</li>
-              <li>Opt-out of marketing communications</li>
-              <li>Request data portability</li>
-            </ul>
-          </div>
+              <LegalSection title="5. Your Rights">
+                <LegalP className="mb-3">You have the right to:</LegalP>
+                <LegalList
+                  items={[
+                    'Access and download your personal data',
+                    'Correct inaccurate information',
+                    'Delete your account and data',
+                    'Opt-out of marketing communications',
+                    'Request data portability',
+                  ]}
+                />
+              </LegalSection>
 
-          <div style={{ marginBottom: 32 }}>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: 12 }}>6. Cookies</h2>
-            <p style={{ fontSize: '.9rem', color: 'var(--color-txt2)', lineHeight: 1.75 }}>
-              We use cookies and similar technologies to improve your experience, analyze usage, and provide personalized content. You can control cookies through your browser settings.
-            </p>
-          </div>
+              <LegalSection title="6. Cookies">
+                <LegalP>
+                  We use cookies and similar technologies to improve your experience, analyze usage, and provide personalized content. You can control cookies through your browser settings.
+                </LegalP>
+              </LegalSection>
 
-          <div style={{ marginBottom: 32 }}>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: 12 }}>7. Children's Privacy</h2>
-            <p style={{ fontSize: '.9rem', color: 'var(--color-txt2)', lineHeight: 1.75 }}>
-              Our services are not intended for children under 13. We do not knowingly collect information from children under 13.
-            </p>
-          </div>
+              <LegalSection title="7. Children's Privacy">
+                <LegalP>Our services are not intended for children under 13. We do not knowingly collect information from children under 13.</LegalP>
+              </LegalSection>
 
-          <div style={{ marginBottom: 32 }}>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: 12 }}>8. Changes to This Policy</h2>
-            <p style={{ fontSize: '.9rem', color: 'var(--color-txt2)', lineHeight: 1.75 }}>
-              We may update this privacy policy from time to time. We will notify you of significant changes via email or through our platform.
-            </p>
-          </div>
+              <LegalSection title="8. Changes to This Policy">
+                <LegalP>
+                  We may update this privacy policy from time to time. We will notify you of significant changes via email or through our platform.
+                </LegalP>
+              </LegalSection>
 
-          <div style={{ padding: 20, borderRadius: 12, background: 'var(--color-bg2)', border: '1px solid var(--color-bdr)' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: 8 }}>Contact Us</h3>
-            <p style={{ fontSize: '.9rem', color: 'var(--color-txt2)', lineHeight: 1.75 }}>
-              If you have questions about this privacy policy or our data practices, please contact us at:
-            </p>
-            <p style={{ fontSize: '.9rem', color: 'var(--color-blu2)', marginTop: 8 }}>
-              📧 privacy@studentsai.in
-            </p>
-          </div>
-
-        </div>
+              <div className="rounded-xl border border-border bg-muted/50 p-5">
+                <h3 className="mb-2 text-lg font-extrabold text-foreground">Contact Us</h3>
+                <LegalP>If you have questions about this privacy policy or our data practices, please contact us at:</LegalP>
+                <p className="mt-2 text-sm text-primary">privacy@studentsai.in</p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </section>
 
-      <Footer />
     </div>
   )
 }

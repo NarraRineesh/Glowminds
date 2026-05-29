@@ -1,7 +1,20 @@
+import AppIcon from '@/components/icons/AppIcon'
 import { useCallback, useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import SectionHeader from '@/components/dashboard/SectionHeader'
+import {
+  AppDialog,
+  Badge,
+  Button,
+  Checkbox,
+  DashboardCard,
+  FormField,
+  Input,
+  Select,
+  Textarea,
+  cn,
+} from '@/components/ui'
 import useAppStore from '@/store/authStore'
 import {
   bulkCreateCompanies,
@@ -12,10 +25,30 @@ import {
   listSyncRuns,
   updateCompany,
 } from '@/services/adminApi'
-import '@/styles/dashboard.css'
-import '@/styles/cards.css'
 
 const ATS_OPTIONS = ['greenhouse', 'lever', 'ashby', 'bamboohr', 'workday']
+
+const BADGE_TONES = {
+  gray: 'border-border bg-secondary text-muted-foreground',
+  green: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+  red: 'border-destructive/20 bg-destructive/10 text-destructive',
+  blue: 'border-primary/20 bg-primary/10 text-primary',
+  amber: 'border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400',
+}
+
+function AdminBadge({ children, tone = 'gray' }) {
+  return (
+    <Badge
+      variant="outline"
+      className={cn(
+        'rounded-full px-2.5 py-0.5 text-[0.62rem] font-bold uppercase tracking-[0.1em]',
+        BADGE_TONES[tone] || BADGE_TONES.gray,
+      )}
+    >
+      {children}
+    </Badge>
+  )
+}
 
 // ----------------------------------------------------------------------
 // Small presentational helpers
@@ -54,72 +87,6 @@ function fmtNumber(n) {
   return String(n)
 }
 
-function Pill({ children, tone = 'gray' }) {
-  const palette = {
-    gray: { bg: 'var(--color-bg3)', fg: 'var(--color-txt2)' },
-    green: { bg: 'rgba(34,197,94,.12)', fg: 'rgb(22,163,74)' },
-    red: { bg: 'rgba(239,68,68,.12)', fg: 'rgb(220,38,38)' },
-    blue: { bg: 'var(--color-blu3)', fg: 'var(--color-blu2)' },
-    amber: { bg: 'rgba(245,158,11,.12)', fg: 'rgb(217,119,6)' },
-  }[tone] || { bg: 'var(--color-bg3)', fg: 'var(--color-txt2)' }
-  return (
-    <span
-      className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[0.62rem] font-bold uppercase tracking-[0.1em]"
-      style={{ background: palette.bg, color: palette.fg }}
-    >
-      {children}
-    </span>
-  )
-}
-
-function Card({ title, action, children, padding = true }) {
-  return (
-    <motion.section
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-      className="mb-6 rounded-2xl border border-[var(--color-bdr)] bg-[var(--color-bg)]"
-    >
-      {(title || action) && (
-        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-bdr)] px-4 py-3 sm:px-5 sm:py-4">
-          <h2 className="text-[0.98rem] font-bold tracking-tight text-[var(--color-txt)]">
-            {title}
-          </h2>
-          {action && <div className="flex items-center gap-2">{action}</div>}
-        </header>
-      )}
-      <div className={padding ? 'px-4 py-4 sm:px-5 sm:py-5' : ''}>{children}</div>
-    </motion.section>
-  )
-}
-
-function Btn({ children, onClick, variant = 'default', size = 'sm', disabled, title }) {
-  const base =
-    'inline-flex items-center justify-center gap-1.5 rounded-lg font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50'
-  const sizing = size === 'xs' ? 'px-2 py-1 text-[0.72rem]' : 'px-3 py-1.5 text-[0.78rem]'
-  const variants = {
-    default:
-      'border border-[var(--color-bdr)] bg-[var(--color-bg2)] text-[var(--color-txt)] hover:bg-[var(--color-bg3)]',
-    primary:
-      'bg-[var(--color-blu)] text-white hover:brightness-110',
-    danger:
-      'border border-[rgba(239,68,68,.4)] bg-[rgba(239,68,68,.08)] text-[rgb(220,38,38)] hover:bg-[rgba(239,68,68,.16)]',
-    ghost:
-      'text-[var(--color-txt2)] hover:bg-[var(--color-bg3)]',
-  }
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      title={title}
-      className={`${base} ${sizing} ${variants[variant] || variants.default}`}
-    >
-      {children}
-    </button>
-  )
-}
-
 // ----------------------------------------------------------------------
 // Add / Edit Company modal
 // ----------------------------------------------------------------------
@@ -149,8 +116,6 @@ function CompanyModal({ open, initial, onClose, onSave }) {
     }
   }, [open, initial])
 
-  if (!open) return null
-
   const submit = async () => {
     setBusy(true)
     setErr('')
@@ -165,102 +130,77 @@ function CompanyModal({ open, initial, onClose, onSave }) {
   }
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4"
-      onClick={onClose}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md rounded-2xl border border-[var(--color-bdr)] bg-[var(--color-bg)] shadow-xl"
-      >
-        <header className="border-b border-[var(--color-bdr)] px-5 py-4">
-          <h3 className="text-[1.02rem] font-bold text-[var(--color-txt)]">
-            {isEdit ? `Edit ${initial?.name || 'company'}` : 'Add company'}
-          </h3>
-          <p className="mt-1 text-[0.78rem] text-[var(--color-txt2)]">
-            {isEdit
-              ? 'Slug and ATS are immutable. Update name, website, or active state.'
-              : `jobsApi + careersUrl are auto-derived from the ATS.`}
-          </p>
-        </header>
-        <div className="space-y-3 px-5 py-4">
-          <Field label="Name">
-            <input
-              value={form.name}
-              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              className="admin-input"
-              placeholder="Codalinc"
-            />
-          </Field>
-          <Field label="Slug" hint={form.ats === 'workday' ? 'workday: company|wdN|siteId' : 'lowercase, hyphens ok'}>
-            <input
-              value={form.slug}
-              disabled={isEdit}
-              onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value.toLowerCase() }))}
-              className="admin-input disabled:opacity-50"
-              placeholder="codalinc"
-            />
-          </Field>
-          <Field label="ATS">
-            <select
-              value={form.ats}
-              disabled={isEdit}
-              onChange={(e) => setForm((f) => ({ ...f, ats: e.target.value }))}
-              className="admin-input disabled:opacity-50"
-            >
-              {ATS_OPTIONS.map((id) => (
-                <option key={id} value={id}>{id}</option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Website (optional)">
-            <input
-              value={form.website}
-              onChange={(e) => setForm((f) => ({ ...f, website: e.target.value }))}
-              className="admin-input"
-              placeholder="https://codal.com"
-            />
-          </Field>
-          <label className="flex items-center gap-2 text-[0.84rem] text-[var(--color-txt)]">
-            <input
-              type="checkbox"
-              checked={form.active}
-              onChange={(e) => setForm((f) => ({ ...f, active: e.target.checked }))}
-            />
-            Active — included in scheduled syncs
-          </label>
-          {err && (
-            <div className="rounded-lg border border-[rgba(239,68,68,.3)] bg-[rgba(239,68,68,.08)] px-3 py-2 text-[0.78rem] text-[rgb(220,38,38)]">
-              {err}
-            </div>
-          )}
-        </div>
-        <footer className="flex items-center justify-end gap-2 border-t border-[var(--color-bdr)] px-5 py-3">
-          <Btn onClick={onClose} variant="ghost">Cancel</Btn>
-          <Btn onClick={submit} variant="primary" disabled={busy || !form.name || !form.slug}>
+    <AppDialog
+      open={open}
+      onOpenChange={(v) => !v && onClose()}
+      title={isEdit ? `Edit ${initial?.name || 'company'}` : 'Add company'}
+      description={
+        isEdit
+          ? 'Slug and ATS are immutable. Update name, website, or active state.'
+          : 'jobsApi + careersUrl are auto-derived from the ATS.'
+      }
+      footer={
+        <>
+          <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
+          <Button
+            size="sm"
+            onClick={submit}
+            disabled={busy || !form.name || !form.slug}
+          >
             {busy ? 'Saving…' : isEdit ? 'Save' : 'Create'}
-          </Btn>
-        </footer>
-      </div>
-      <style>{`
-        .admin-input {
-          width: 100%;
-          padding: 8px 10px;
-          border-radius: 8px;
-          border: 1px solid var(--color-bdr);
-          background: var(--color-bg2);
-          color: var(--color-txt);
-          font-size: 0.86rem;
-          outline: none;
-        }
-        .admin-input:focus {
-          border-color: var(--color-blu);
-          box-shadow: 0 0 0 3px rgba(59,130,246,.18);
-        }
-      `}</style>
-    </div>
+          </Button>
+        </>
+      }
+    >
+      <FormField label="Name">
+        <Input
+          value={form.name}
+          onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+          placeholder="Codalinc"
+        />
+      </FormField>
+      <FormField
+        label="Slug"
+        hint={form.ats === 'workday' ? 'workday: company|wdN|siteId' : 'lowercase, hyphens ok'}
+      >
+        <Input
+          value={form.slug}
+          disabled={isEdit}
+          onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value.toLowerCase() }))}
+          placeholder="codalinc"
+        />
+      </FormField>
+      <FormField label="ATS">
+        <Select
+          value={form.ats}
+          disabled={isEdit}
+          onChange={(e) => setForm((f) => ({ ...f, ats: e.target.value }))}
+        >
+          {ATS_OPTIONS.map((id) => (
+            <option key={id} value={id}>{id}</option>
+          ))}
+        </Select>
+      </FormField>
+      <FormField label="Website (optional)">
+        <Input
+          value={form.website}
+          onChange={(e) => setForm((f) => ({ ...f, website: e.target.value }))}
+          placeholder="https://codal.com"
+        />
+      </FormField>
+      <label className="flex items-center gap-2 text-sm text-foreground">
+        <Checkbox
+          checked={form.active}
+          onCheckedChange={(v) => setForm((f) => ({ ...f, active: !!v }))}
+        />
+        Active — included in scheduled syncs
+      </label>
+      {err && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {err}
+        </div>
+      )}
+    </AppDialog>
   )
 }
 
@@ -281,8 +221,6 @@ function BulkUploadModal({ open, onClose, onUpload }) {
       setProgress(null)
     }
   }, [open])
-
-  if (!open) return null
 
   const parsed = (() => {
     if (!text.trim()) return null
@@ -343,140 +281,115 @@ function BulkUploadModal({ open, onClose, onUpload }) {
   }
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4"
-      onClick={close}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[90vh] w-full max-w-2xl flex-col rounded-2xl border border-[var(--color-bdr)] bg-[var(--color-bg)] shadow-xl"
-      >
-        <header className="border-b border-[var(--color-bdr)] px-5 py-4">
-          <h3 className="text-[1.02rem] font-bold text-[var(--color-txt)]">
-            Bulk upload companies
-          </h3>
-          <p className="mt-1 text-[0.78rem] text-[var(--color-txt2)]">
-            Drop a JSON file or paste an array of company objects.{' '}
-            <code className="rounded bg-[var(--color-bg2)] px-1 py-0.5 text-[0.72rem]">
-              {`{ name, slug, ats, website?, active? }`}
-            </code>
-            . Extra fields (jobsApi, jobCount, …) are ignored.
-          </p>
-        </header>
-
-        <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
-          {!result ? (
-            <>
-              <div className="flex flex-wrap items-center gap-2">
-                <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--color-bdr)] bg-[var(--color-bg2)] px-3 py-1.5 text-[0.78rem] font-semibold text-[var(--color-txt)] hover:bg-[var(--color-bg3)]">
-                  📁 Choose JSON file
-                  <input
-                    type="file"
-                    accept="application/json,.json"
-                    className="hidden"
-                    onChange={onFileChange}
-                  />
-                </label>
-                {filename && (
-                  <span className="text-[0.78rem] text-[var(--color-txt2)]">
-                    {filename}
-                  </span>
-                )}
-                {text && (
-                  <Btn size="xs" variant="ghost" onClick={reset}>Clear</Btn>
-                )}
-              </div>
-
-              <Field label="Or paste JSON">
-                <textarea
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  rows={12}
-                  className="admin-input font-mono text-[0.78rem]"
-                  placeholder={`[\n  {\n    "name": "Codalinc",\n    "slug": "codalinc",\n    "ats": "greenhouse",\n    "website": "https://codal.com",\n    "active": true\n  }\n]`}
-                />
-              </Field>
-
-              {parsed && !progress && (
-                <div className="rounded-lg border border-[var(--color-bdr)] bg-[var(--color-bg2)] px-3 py-2 text-[0.78rem] text-[var(--color-txt)]">
-                  Parsed <b>{parsed.length}</b> compan{parsed.length === 1 ? 'y' : 'ies'} — ready to upload.
-                  {parsed.length > 250 && (
-                    <span className="ml-1 text-[var(--color-txt2)]">
-                      (will upload in {Math.ceil(parsed.length / 250)} batches of 250)
-                    </span>
-                  )}
-                </div>
-              )}
-              {progress && (
-                <div className="rounded-lg border border-[var(--color-bdr)] bg-[var(--color-bg2)] px-3 py-2">
-                  <div className="mb-1.5 flex items-center justify-between text-[0.78rem]">
-                    <span className="text-[var(--color-txt)]">
-                      Uploading batch {progress.batch || 1}
-                      {progress.totalBatches ? ` / ${progress.totalBatches}` : ''}…
-                    </span>
-                    <span className="font-mono tabular-nums text-[var(--color-txt2)]">
-                      {progress.processed}/{progress.total}
-                    </span>
-                  </div>
-                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--color-bdr)]">
-                    <div
-                      className="h-full bg-[var(--color-blu)] transition-all"
-                      style={{
-                        width: `${progress.total ? Math.round((progress.processed / progress.total) * 100) : 0}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
-              {parseError && (
-                <div className="rounded-lg border border-[rgba(245,158,11,.3)] bg-[rgba(245,158,11,.08)] px-3 py-2 text-[0.78rem] text-[rgb(180,83,9)]">
-                  Could not parse JSON. Expected an array or {`{ companies: [...] }`}.
-                </div>
-              )}
-              {err && (
-                <div className="rounded-lg border border-[rgba(239,68,68,.3)] bg-[rgba(239,68,68,.08)] px-3 py-2 text-[0.78rem] text-[rgb(220,38,38)]">
-                  {err}
-                </div>
-              )}
-            </>
-          ) : (
-            <BulkResultView result={result} />
-          )}
-        </div>
-
-        <footer className="flex items-center justify-end gap-2 border-t border-[var(--color-bdr)] px-5 py-3">
-          <Btn onClick={close} variant="ghost" disabled={busy}>
+    <AppDialog
+      open={open}
+      onOpenChange={(v) => !v && close()}
+      size="lg"
+      title="Bulk upload companies"
+      description={
+        <>
+          Drop a JSON file or paste an array of company objects.{' '}
+          <code className="rounded bg-muted px-1 py-0.5 text-xs">
+            {`{ name, slug, ats, website?, active? }`}
+          </code>
+          . Extra fields (jobsApi, jobCount, …) are ignored.
+        </>
+      }
+      contentClassName="max-h-[60vh] overflow-y-auto"
+      footer={
+        <>
+          <Button variant="ghost" size="sm" onClick={close} disabled={busy}>
             {result ? 'Close' : 'Cancel'}
-          </Btn>
+          </Button>
           {!result && (
-            <Btn onClick={submit} variant="primary" disabled={busy || !parsed}>
+            <Button size="sm" onClick={submit} disabled={busy || !parsed}>
               {busy ? 'Uploading…' : `Upload ${parsed ? parsed.length : 0}`}
-            </Btn>
+            </Button>
           )}
           {result && (
-            <Btn onClick={reset} variant="primary">Upload more</Btn>
+            <Button size="sm" onClick={reset}>Upload more</Button>
           )}
-        </footer>
-      </div>
-      <style>{`
-        .admin-input {
-          width: 100%;
-          padding: 8px 10px;
-          border-radius: 8px;
-          border: 1px solid var(--color-bdr);
-          background: var(--color-bg2);
-          color: var(--color-txt);
-          font-size: 0.86rem;
-          outline: none;
-        }
-        .admin-input:focus {
-          border-color: var(--color-blu);
-          box-shadow: 0 0 0 3px rgba(59,130,246,.18);
-        }
-      `}</style>
-    </div>
+        </>
+      }
+    >
+      {!result ? (
+        <>
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-input bg-muted px-3 py-1.5 text-sm font-semibold hover:bg-muted/80">
+              <AppIcon name="folder" className="size-3.5" /> Choose JSON file
+              <input
+                type="file"
+                accept="application/json,.json"
+                className="hidden"
+                onChange={onFileChange}
+              />
+            </label>
+            {filename && (
+              <span className="text-sm text-muted-foreground">
+                {filename}
+              </span>
+            )}
+            {text && (
+              <Button variant="ghost" size="xs" onClick={reset}>Clear</Button>
+            )}
+          </div>
+
+          <FormField label="Or paste JSON">
+            <Textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              rows={12}
+              className="font-mono text-xs"
+              placeholder={`[\n  {\n    "name": "Codalinc",\n    "slug": "codalinc",\n    "ats": "greenhouse",\n    "website": "https://codal.com",\n    "active": true\n  }\n]`}
+            />
+          </FormField>
+
+          {parsed && !progress && (
+            <div className="rounded-lg border border-border bg-muted px-3 py-2 text-sm">
+              Parsed <b>{parsed.length}</b> compan{parsed.length === 1 ? 'y' : 'ies'} — ready to upload.
+              {parsed.length > 250 && (
+                <span className="ml-1 text-muted-foreground">
+                  (will upload in {Math.ceil(parsed.length / 250)} batches of 250)
+                </span>
+              )}
+            </div>
+          )}
+          {progress && (
+            <div className="rounded-lg border border-border bg-muted px-3 py-2">
+              <div className="mb-1.5 flex items-center justify-between text-sm">
+                <span>
+                  Uploading batch {progress.batch || 1}
+                  {progress.totalBatches ? ` / ${progress.totalBatches}` : ''}…
+                </span>
+                <span className="font-mono tabular-nums text-muted-foreground">
+                  {progress.processed}/{progress.total}
+                </span>
+              </div>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-border">
+                <div
+                  className="h-full bg-primary transition-all"
+                  style={{
+                    width: `${progress.total ? Math.round((progress.processed / progress.total) * 100) : 0}%`,
+                  }}
+                />
+              </div>
+            </div>
+          )}
+          {parseError && (
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
+              Could not parse JSON. Expected an array or {`{ companies: [...] }`}.
+            </div>
+          )}
+          {err && (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {err}
+            </div>
+          )}
+        </>
+      ) : (
+        <BulkResultView result={result} />
+      )}
+    </AppDialog>
   )
 }
 
@@ -504,17 +417,17 @@ function BulkResultView({ result }) {
 
 function Stat({ label, value, tone }) {
   const palette = {
-    gray: 'var(--color-txt)',
-    green: 'rgb(22,163,74)',
-    amber: 'rgb(217,119,6)',
-    red: 'rgb(220,38,38)',
-  }[tone] || 'var(--color-txt)'
+    gray: 'text-foreground',
+    green: 'text-emerald-600 dark:text-emerald-400',
+    amber: 'text-amber-600 dark:text-amber-400',
+    red: 'text-destructive',
+  }[tone] || 'text-foreground'
   return (
-    <div className="rounded-lg border border-[var(--color-bdr)] bg-[var(--color-bg2)] py-2">
-      <div className="text-[1.2rem] font-extrabold tabular-nums" style={{ color: palette }}>
+    <div className="rounded-lg border border-border bg-muted py-2">
+      <div className={cn('text-[1.2rem] font-extrabold tabular-nums', palette)}>
         {value ?? 0}
       </div>
-      <div className="text-[0.66rem] font-bold uppercase tracking-[0.08em] text-[var(--color-txt2)]">
+      <div className="text-[0.66rem] font-bold uppercase tracking-[0.08em] text-muted-foreground">
         {label}
       </div>
     </div>
@@ -523,19 +436,18 @@ function Stat({ label, value, tone }) {
 
 function DetailList({ title, tone, rows }) {
   return (
-    <details className="rounded-lg border border-[var(--color-bdr)] bg-[var(--color-bg2)]" open>
-      <summary className="cursor-pointer px-3 py-2 text-[0.8rem] font-bold text-[var(--color-txt)]">
+    <details className="rounded-lg border border-border bg-muted" open>
+      <summary className="cursor-pointer px-3 py-2 text-[0.8rem] font-bold text-foreground">
         {title}
       </summary>
       <ul className="max-h-48 space-y-1 overflow-y-auto px-3 pb-3 text-[0.76rem]">
         {rows.map((r) => (
           <li key={`${r.index}-${r.slug || 'x'}`} className="flex justify-between gap-2">
-            <span className="font-mono text-[var(--color-txt)]">
+            <span className="font-mono text-foreground">
               [{r.index}] {r.slug || '—'}
             </span>
             <span
-              className="truncate text-right"
-              style={{ color: tone === 'red' ? 'rgb(220,38,38)' : 'rgb(180,83,9)' }}
+              className={cn('truncate text-right', tone === 'red' ? 'text-destructive' : 'text-amber-600 dark:text-amber-400')}
             >
               {r.reason || '—'}
             </span>
@@ -543,20 +455,6 @@ function DetailList({ title, tone, rows }) {
         ))}
       </ul>
     </details>
-  )
-}
-
-function Field({ label, hint, children }) {
-  return (
-    <label className="block">
-      <div className="mb-1 flex items-center justify-between">
-        <span className="text-[0.74rem] font-semibold uppercase tracking-[0.08em] text-[var(--color-txt2)]">
-          {label}
-        </span>
-        {hint && <span className="text-[0.7rem] text-[var(--color-txt2)]">{hint}</span>}
-      </div>
-      {children}
-    </label>
   )
 }
 
@@ -620,7 +518,7 @@ export default function AdminSection() {
         setPageIdx(pageIndex)
       } catch (e) {
         console.warn('admin companies:', e)
-        addToast?.('error', '⚠️ Failed to load companies')
+        addToast?.('error', 'Failed to load companies')
       } finally {
         setCompaniesLoading(false)
       }
@@ -666,11 +564,11 @@ export default function AdminSection() {
       setCompanies((list) =>
         list.map((c) => (c.slug === form.slug ? { ...c, ...res.company } : c)),
       )
-      addToast?.('success', `✅ Updated ${form.name}`)
+      addToast?.('success', `Updated ${form.name}`)
     } else {
       const res = await createCompany(form)
       setCompanies((list) => [res.company, ...list])
-      addToast?.('success', `✅ Added ${form.name}`)
+      addToast?.('success', `Added ${form.name}`)
       loadOverview({ fresh: true })
     }
   }
@@ -680,10 +578,10 @@ export default function AdminSection() {
     try {
       await deleteCompany(slug)
       setCompanies((list) => list.filter((c) => c.slug !== slug))
-      addToast?.('success', '✅ Company deleted')
+      addToast?.('success', 'Company deleted')
       loadOverview({ fresh: true })
     } catch (e) {
-      addToast?.('error', `⚠️ ${e?.message || 'Delete failed'}`)
+      addToast?.('error', e?.message || 'Delete failed')
     }
   }
 
@@ -693,14 +591,14 @@ export default function AdminSection() {
     if (summary.created > 0) {
       addToast?.(
         'success',
-        `✅ Created ${summary.created} compan${summary.created === 1 ? 'y' : 'ies'}`,
+        `Created ${summary.created} compan${summary.created === 1 ? 'y' : 'ies'}`,
       )
       loadCompanies()
       loadOverview({ fresh: true })
     } else if (summary.failed > 0) {
-      addToast?.('error', `⚠️ ${summary.failed} failed`)
+      addToast?.('error', `${summary.failed} failed`)
     } else if (summary.skipped > 0) {
-      addToast?.('info', `ℹ️ ${summary.skipped} skipped (already exist)`)
+      addToast?.('info', `${summary.skipped} skipped (already exist)`)
     }
     return r
   }
@@ -739,20 +637,19 @@ export default function AdminSection() {
     <div>
       <SectionHeader
         badge="ADMIN"
-        badgeColor="white"
-        badgeBg="var(--color-prp)"
+        badgeClassName="border-purple-600/30 bg-purple-600 text-white"
         title="Admin Console"
         subtitle="Manage companies that feed the job board. Bulk job ingestion runs from the local pipeline CLI."
       />
 
       {/* ---------- KPIs ---------- */}
-      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+      <div className="mb-6 grid grid-cols-2 gap-3 @sm/dashboard:grid-cols-3 @3xl/dashboard:grid-cols-4">
         {[
-          { ic: '👥', lbl: 'Users', val: overview?.users?.total, sub: 'Signed up' },
-          { ic: '🏢', lbl: 'Companies', val: overview?.companies?.total, sub: `${overview?.companies?.active || 0} active` },
-          { ic: '💼', lbl: 'Active Jobs', val: overview?.jobs?.active, sub: 'Across all companies' },
+          { ic: 'users', lbl: 'Users', val: overview?.users?.total, sub: 'Signed up' },
+          { ic: 'buildings', lbl: 'Companies', val: overview?.companies?.total, sub: `${overview?.companies?.active || 0} active` },
+          { ic: 'jobs', lbl: 'Active Jobs', val: overview?.jobs?.active, sub: 'Across all companies' },
           {
-            ic: '⟳',
+            ic: 'refresh',
             lbl: 'Last Sync',
             val: overview?.latestRun?.finishedAt ? fmtRelative(overview.latestRun.finishedAt) : '—',
             sub: overview?.latestRun
@@ -766,64 +663,65 @@ export default function AdminSection() {
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: idx * 0.04 }}
-            className="rounded-2xl border border-[var(--color-bdr)] bg-[var(--color-bg)] px-4 py-3"
+            className="rounded-2xl border border-border bg-background px-4 py-3"
           >
-            <div className="mb-1 text-[1.1rem]">{kpi.ic}</div>
-            <div className="text-[0.66rem] font-bold uppercase tracking-[0.1em] text-[var(--color-txt2)]">
+            <div className="mb-1"><AppIcon name={kpi.ic} className="size-5 text-primary" /></div>
+            <div className="text-[0.66rem] font-bold uppercase tracking-[0.1em] text-muted-foreground">
               {kpi.lbl}
             </div>
-            <div className={`mt-0.5 ${kpi.isText ? 'text-[0.98rem]' : 'text-[1.4rem]'} font-extrabold leading-tight text-[var(--color-txt)]`}>
+            <div className={`mt-0.5 ${kpi.isText ? 'text-[0.98rem]' : 'text-[1.4rem]'} font-extrabold leading-tight text-foreground`}>
               {kpi.isText ? (kpi.val ?? '—') : fmtNumber(kpi.val)}
             </div>
-            <div className="mt-0.5 text-[0.72rem] text-[var(--color-txt2)]">{kpi.sub}</div>
+            <div className="mt-0.5 text-[0.72rem] text-muted-foreground">{kpi.sub}</div>
           </motion.div>
         ))}
       </div>
 
       {/* ---------- Companies ---------- */}
-      <Card
+      <DashboardCard
+        className="mb-6"
         title={
           overview?.companies?.total != null
             ? `Companies (${fmtNumber(overview.companies.total)})`
             : 'Companies'
         }
         action={
-          <>
-            <input
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search name or slug…"
-              className="w-44 rounded-lg border border-[var(--color-bdr)] bg-[var(--color-bg2)] px-3 py-1.5 text-[0.78rem] text-[var(--color-txt)]"
+              className="h-8 w-44 text-xs"
             />
-            <select
+            <Select
               value={filterAts}
               onChange={(e) => setFilterAts(e.target.value)}
-              className="rounded-lg border border-[var(--color-bdr)] bg-[var(--color-bg2)] px-2 py-1.5 text-[0.78rem]"
+              className="h-8 w-auto text-xs"
             >
               <option value="">All ATS</option>
               {ATS_OPTIONS.map((id) => <option key={id} value={id}>{id}</option>)}
-            </select>
-            <select
+            </Select>
+            <Select
               value={filterActive}
               onChange={(e) => setFilterActive(e.target.value)}
-              className="rounded-lg border border-[var(--color-bdr)] bg-[var(--color-bg2)] px-2 py-1.5 text-[0.78rem]"
+              className="h-8 w-auto text-xs"
             >
               <option value="all">All</option>
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
-            </select>
-            <Btn onClick={() => setBulkOpen(true)}>📥 Bulk upload</Btn>
-            <Btn variant="primary" onClick={() => { setModalInitial(null); setModalOpen(true) }}>
+            </Select>
+            <Button variant="outline" size="sm" onClick={() => setBulkOpen(true)}><AppIcon name="download" className="size-3.5" /> Bulk upload</Button>
+            <Button size="sm" onClick={() => { setModalInitial(null); setModalOpen(true) }}>
               + Add company
-            </Btn>
-          </>
+            </Button>
+          </div>
         }
-        padding={false}
+        contentClassName="p-0"
       >
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] text-left text-[0.82rem]">
             <thead>
-              <tr className="border-b border-[var(--color-bdr)] text-[0.66rem] uppercase tracking-[0.08em] text-[var(--color-txt2)]">
+              <tr className="border-b border-border text-[0.66rem] uppercase tracking-[0.08em] text-muted-foreground">
                 <th className="px-4 py-2 font-bold">Company</th>
                 <th className="px-2 py-2 font-bold">ATS</th>
                 <th className="px-2 py-2 font-bold text-right">Jobs</th>
@@ -836,7 +734,7 @@ export default function AdminSection() {
             <tbody>
               {companies.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-6 text-center text-[var(--color-txt2)]">
+                  <td colSpan={7} className="px-4 py-6 text-center text-muted-foreground">
                     {loading || companiesLoading
                       ? 'Loading…'
                       : debouncedSearch
@@ -846,10 +744,10 @@ export default function AdminSection() {
                 </tr>
               )}
               {companies.map((c) => (
-                <tr key={c.slug} className="border-b border-[var(--color-bdr)] last:border-b-0">
+                <tr key={c.slug} className="border-b border-border last:border-b-0">
                   <td className="px-4 py-2.5">
-                    <div className="font-semibold text-[var(--color-txt)]">{c.name}</div>
-                    <div className="text-[0.7rem] text-[var(--color-txt2)]">
+                    <div className="font-semibold text-foreground">{c.name}</div>
+                    <div className="text-[0.7rem] text-muted-foreground">
                       {c.slug}
                       {c.careersUrl && (
                         <>
@@ -861,11 +759,11 @@ export default function AdminSection() {
                       )}
                     </div>
                   </td>
-                  <td className="px-2 py-2.5 font-mono text-[0.76rem] text-[var(--color-txt2)]">{c.ats}</td>
+                  <td className="px-2 py-2.5 font-mono text-[0.76rem] text-muted-foreground">{c.ats}</td>
                   <td className="px-2 py-2.5 text-right tabular-nums">{fmtNumber(c.jobCount || 0)}</td>
                   <td className="px-2 py-2.5 text-right tabular-nums">{fmtNumber(c.indiaJobCount || 0)}</td>
                   <td className="px-2 py-2.5">
-                    <div className="text-[var(--color-txt)]">{fmtRelative(c.lastSyncAt)}</div>
+                    <div className="text-foreground">{fmtRelative(c.lastSyncAt)}</div>
                     {c.lastError && (
                       <div className="text-[0.7rem] text-[rgb(220,38,38)]" title={c.lastError}>
                         {c.lastError.length > 36 ? c.lastError.slice(0, 36) + '…' : c.lastError}
@@ -873,29 +771,29 @@ export default function AdminSection() {
                     )}
                   </td>
                   <td className="px-2 py-2.5">
-                    {c.active ? <Pill tone="green">active</Pill> : <Pill tone="gray">inactive</Pill>}
+                    {c.active ? <AdminBadge tone="green">active</AdminBadge> : <AdminBadge tone="gray">inactive</AdminBadge>}
                     {c.syncFailures > 0 && (
-                      <span className="ml-1"><Pill tone="red">{c.syncFailures} fail</Pill></span>
+                      <span className="ml-1"><AdminBadge tone="red">{c.syncFailures} fail</AdminBadge></span>
                     )}
                   </td>
                   <td className="px-4 py-2.5">
                     <div className="flex items-center justify-end gap-1">
-                      <Btn
+                      <Button
                         size="xs"
                         variant="ghost"
                         onClick={() => { setModalInitial(c); setModalOpen(true) }}
                         title="Edit"
                       >
-                        ✎
-                      </Btn>
-                      <Btn
+                        <AppIcon name="pencil-simple" className="size-3.5" />
+                      </Button>
+                      <Button
                         size="xs"
-                        variant="danger"
+                        variant="destructive"
                         onClick={() => onDelete(c.slug)}
                         title="Delete"
                       >
-                        ✕
-                      </Btn>
+                        <AppIcon name="x" className="size-3.5" />
+                      </Button>
                     </div>
                   </td>
                 </tr>
@@ -906,14 +804,14 @@ export default function AdminSection() {
 
         {/* Pagination footer */}
         {(companies.length > 0 || pageIdx > 0) && (
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--color-bdr)] px-4 py-3 text-[0.78rem] text-[var(--color-txt2)] sm:px-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3 text-[0.78rem] text-muted-foreground sm:px-5">
             <div className="flex items-center gap-2">
               {companies.length > 0 ? (
                 <span>
-                  Showing <b className="text-[var(--color-txt)]">{rangeFrom}</b>–
-                  <b className="text-[var(--color-txt)]">{rangeTo}</b>
+                  Showing <b className="text-foreground">{rangeFrom}</b>–
+                  <b className="text-foreground">{rangeTo}</b>
                   {debouncedSearch && (
-                    <span className="ml-1 text-[var(--color-txt2)]">
+                    <span className="ml-1 text-muted-foreground">
                       matching “{debouncedSearch}”
                     </span>
                   )}
@@ -923,52 +821,55 @@ export default function AdminSection() {
               )}
             </div>
             <div className="flex items-center gap-2">
-              <label className="flex items-center gap-1.5 text-[0.74rem]">
+              <label className="flex items-center gap-1.5 text-xs">
                 Rows:
-                <select
+                <Select
                   value={pageSize}
                   onChange={(e) => setPageSize(Number(e.target.value))}
-                  className="rounded-md border border-[var(--color-bdr)] bg-[var(--color-bg2)] px-2 py-1 text-[0.78rem] text-[var(--color-txt)]"
+                  className="h-8 w-auto text-xs"
                 >
                   {[10, 25, 50, 100].map((n) => (
                     <option key={n} value={n}>{n}</option>
                   ))}
-                </select>
+                </Select>
               </label>
               <div className="flex items-center gap-1">
-                <Btn
+                <Button
                   size="xs"
+                  variant="outline"
                   onClick={onPrevPage}
                   disabled={pageIdx === 0 || companiesLoading}
                   title="Previous"
-                >‹ Prev</Btn>
-                <span className="px-2 text-[var(--color-txt)] tabular-nums">
+                >‹ Prev</Button>
+                <span className="px-2 text-foreground tabular-nums">
                   Page {pageIdx + 1}
                 </span>
-                <Btn
+                <Button
                   size="xs"
+                  variant="outline"
                   onClick={onNextPage}
                   disabled={!hasMore || companiesLoading || !!debouncedSearch}
                   title={debouncedSearch ? 'Pagination disabled while searching' : 'Next'}
-                >Next ›</Btn>
+                >Next ›</Button>
               </div>
             </div>
           </div>
         )}
-      </Card>
+      </DashboardCard>
 
       {/* ---------- Recent sync runs ---------- */}
-      <Card
+      <DashboardCard
+        className="mb-6"
         title="Recent sync runs"
         action={
-          <Btn size="xs" variant="ghost" onClick={loadRuns}>↻ Refresh</Btn>
+          <Button size="xs" variant="ghost" onClick={loadRuns}>↻ Refresh</Button>
         }
-        padding={false}
+        contentClassName="p-0"
       >
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] text-left text-[0.82rem]">
             <thead>
-              <tr className="border-b border-[var(--color-bdr)] text-[0.66rem] uppercase tracking-[0.08em] text-[var(--color-txt2)]">
+              <tr className="border-b border-border text-[0.66rem] uppercase tracking-[0.08em] text-muted-foreground">
                 <th className="px-4 py-2 font-bold">Provider</th>
                 <th className="px-2 py-2 font-bold">Finished</th>
                 <th className="px-2 py-2 font-bold text-right">Scanned</th>
@@ -980,15 +881,15 @@ export default function AdminSection() {
             <tbody>
               {runs.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-6 text-center text-[var(--color-txt2)]">
+                  <td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">
                     No sync runs recorded yet.
                   </td>
                 </tr>
               )}
               {runs.map((r) => (
-                <tr key={r.id} className="border-b border-[var(--color-bdr)] last:border-b-0">
-                  <td className="px-4 py-2.5 font-mono text-[0.76rem] text-[var(--color-txt)]">{r.provider}</td>
-                  <td className="px-2 py-2.5 text-[var(--color-txt2)]">
+                <tr key={r.id} className="border-b border-border last:border-b-0">
+                  <td className="px-4 py-2.5 font-mono text-[0.76rem] text-foreground">{r.provider}</td>
+                  <td className="px-2 py-2.5 text-muted-foreground">
                     {fmtDateTime(r.finishedAt)}
                     {r.elapsedMs ? (
                       <span className="ml-1 text-[0.7rem]">· {(r.elapsedMs / 1000).toFixed(1)}s</span>
@@ -998,14 +899,14 @@ export default function AdminSection() {
                   <td className="px-2 py-2.5 text-right tabular-nums">{r.companiesSkipped ?? 0}</td>
                   <td className="px-2 py-2.5 text-right tabular-nums">
                     <span className="text-[rgb(22,163,74)]">+{r.jobsAdded || 0}</span>{' '}
-                    <span className="text-[var(--color-txt2)]">~{r.jobsUpdated || 0}</span>{' '}
+                    <span className="text-muted-foreground">~{r.jobsUpdated || 0}</span>{' '}
                     <span className="text-[rgb(220,38,38)]">−{r.jobsExpired || 0}</span>
                   </td>
                   <td className="px-4 py-2.5 text-right">
                     {Array.isArray(r.errors) && r.errors.length > 0 ? (
-                      <Pill tone="red">{r.errors.length}</Pill>
+                      <AdminBadge tone="red">{r.errors.length}</AdminBadge>
                     ) : (
-                      <Pill tone="green">0</Pill>
+                      <AdminBadge tone="green">0</AdminBadge>
                     )}
                   </td>
                 </tr>
@@ -1013,7 +914,7 @@ export default function AdminSection() {
             </tbody>
           </table>
         </div>
-      </Card>
+      </DashboardCard>
 
       <CompanyModal
         open={modalOpen}

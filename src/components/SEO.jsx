@@ -38,7 +38,7 @@ export default function SEO({ title, description, path = '/', image, type = 'web
       <meta name="twitter:site" content="@Glowminds" />
 
       {/* Additional SEO */}
-      <meta name="theme-color" content="#388bfd" />
+      <meta name="theme-color" content="#07090f" />
       <meta name="mobile-web-app-capable" content="yes" />
       <meta name="apple-mobile-web-app-capable" content="yes" />
       <meta name="apple-mobile-web-app-status-bar-style" content="default" />

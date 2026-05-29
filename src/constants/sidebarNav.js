@@ -5,26 +5,28 @@
 // collapsible (set `collapsibleId` to a unique key persisted in
 // localStorage["gm_sidebar_groups"]).
 
+export const SIDEBAR_TOP_ITEMS = [
+  { path: '/dashboard', end: true, icon: 'dashboard', label: 'Dashboard' },
+]
+
 export const SIDEBAR_GROUPS = [
   {
-    label: 'Main',
-    items: [
-      { path: '/dashboard', end: true, icon: '📊', label: 'Dashboard' },
-    ],
-  },
-  {
     label: 'Job Search',
+    collapsibleId: 'job-search',
+    defaultOpen: true,
     items: [
-      { path: '/dashboard/resume', icon: '📄', label: 'Resume Builder' },
-      { path: '/dashboard/jobs', icon: '💼', label: 'Job Board' },
-      { path: '/dashboard/applications', icon: '📋', label: 'Application Tracker' },
-      { path: '/dashboard/salary', icon: '💰', label: 'Salary Insights' },
+      { path: '/dashboard/resume', icon: 'resume', label: 'Resume Builder' },
+      { path: '/dashboard/jobs', icon: 'jobs', label: 'Job Board' },
+      { path: '/dashboard/applications', icon: 'applications', label: 'Application Tracker' },
+      { path: '/dashboard/salary', icon: 'salary', label: 'Salary Insights' },
     ],
   },
   {
     label: 'Practice',
+    collapsibleId: 'practice',
+    defaultOpen: true,
     items: [
-      { path: '/dashboard/interview', icon: '📚', label: 'Interview Prep' },
+      { path: '/dashboard/interview', icon: 'interview', label: 'Interview Prep' },
     ],
   },
   {
@@ -32,11 +34,11 @@ export const SIDEBAR_GROUPS = [
     collapsibleId: 'ai-tools',
     defaultOpen: true,
     items: [
-      { path: '/dashboard/ai', icon: '🧭', label: 'AI Coach' },
-      { path: '/dashboard/cover-letters', icon: '✉️', label: 'Cover Letters' },
-      { path: '/dashboard/linkedin', icon: '🔗', label: 'LinkedIn Optimizer' },
-      { path: '/dashboard/grammar-check', icon: '✍️', label: 'Grammar Check' },
-      { path: '/dashboard/paraphrase', icon: '🔁', label: 'Paraphrasing Tool' },
+      { path: '/dashboard/ai', icon: 'ai', label: 'AI Coach' },
+      { path: '/dashboard/cover-letters', icon: 'cover-letters', label: 'Cover Letters' },
+      { path: '/dashboard/linkedin', icon: 'linkedin', label: 'LinkedIn Optimizer' },
+      { path: '/dashboard/grammar-check', icon: 'grammar-check', label: 'Grammar Check' },
+      { path: '/dashboard/paraphrase', icon: 'paraphrase', label: 'Paraphrasing Tool' },
     ],
   },
   // Admin-only group. DashboardSidebar filters it out unless the user has
@@ -45,13 +47,9 @@ export const SIDEBAR_GROUPS = [
     label: 'Admin',
     requiresAdmin: true,
     items: [
-      { path: '/dashboard/admin', icon: '🛡️', label: 'Admin Console', requiresAdmin: true },
+      { path: '/dashboard/admin', icon: 'admin', label: 'Admin Console', requiresAdmin: true },
     ],
   },
-]
-
-export const SIDEBAR_FOOTER_NAV = [
-  { path: '/dashboard/settings', icon: '⚙️', label: 'Settings' },
 ]
 
 export const SIDEBAR_GROUPS_STORAGE_KEY = 'gm_sidebar_groups'

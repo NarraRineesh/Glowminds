@@ -37,7 +37,7 @@ export default function useUpgradePro() {
       try {
         const loaded = await loadRazorpayScript()
         if (!loaded) {
-          addToast('error', '⚠️ Failed to load payment gateway')
+          addToast('error', 'Failed to load payment gateway')
           setLoading(false)
           return
         }
@@ -61,7 +61,7 @@ export default function useUpgradePro() {
                   signature: response.razorpay_signature,
                 },
               })
-              addToast('success', '🎉 Welcome to Glowminds Pro!')
+              addToast('success', 'Welcome to Glowminds Pro!')
               if (typeof onSuccess === 'function') {
                 onSuccess()
               } else {
@@ -69,7 +69,7 @@ export default function useUpgradePro() {
               }
             } catch (err) {
               console.error('Verify payment:', err)
-              addToast('error', '⚠️ Payment verification failed. Contact support.')
+              addToast('error', 'Payment verification failed. Contact support.')
             }
           },
           prefill: {
@@ -83,13 +83,13 @@ export default function useUpgradePro() {
         const rzp = new window.Razorpay(options)
         rzp.on('payment.failed', (resp) => {
           console.error('Payment failed:', resp.error)
-          addToast('error', `⚠️ Payment failed: ${resp.error?.description || 'Unknown error'}`)
+          addToast('error', `Payment failed: ${resp.error?.description || 'Unknown error'}`)
           setLoading(false)
         })
         rzp.open()
       } catch (err) {
         console.error('Create order:', err)
-        addToast('error', '⚠️ Could not start payment. Try again.')
+        addToast('error', 'Could not start payment. Try again.')
         setLoading(false)
       }
     },

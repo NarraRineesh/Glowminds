@@ -1,3 +1,4 @@
+import AppIcon from '@/components/icons/AppIcon'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   collection,
@@ -24,7 +25,6 @@ import {
   cloneTemplate,
   getTemplateById,
 } from '@/constants/resumeTemplates'
-import '@/styles/resume-builder.css'
 
 /** Single resume document per user. */
 const PRIMARY_RESUME_ID = 'primary'
@@ -345,7 +345,7 @@ function AchievementsSection({ section, onUpdate, previewMode }) {
   const update = (i, patch) =>
     onUpdate({ ...section, items: items.map((it, ix) => (ix === i ? { ...it, ...patch } : it)) })
   const addItem = () =>
-    onUpdate({ ...section, items: [...items, { icon: '⭐', title: '', description: '' }] })
+    onUpdate({ ...section, items: [...items, { icon: 'star', title: '', description: '' }] })
   const removeItem = (i) => onUpdate({ ...section, items: items.filter((_, ix) => ix !== i) })
 
   return (
@@ -357,7 +357,7 @@ function AchievementsSection({ section, onUpdate, previewMode }) {
             className="rbv2-ach-icon"
             value={ach.icon || ''}
             onChange={(v) => update(i, { icon: v })}
-            placeholder="🏆"
+            placeholder="Award title"
             singleLine
           />
           <div className="rbv2-ach-body">
@@ -1299,11 +1299,11 @@ export default function ResumeSection() {
   const applyTemplate = useCallback((templateId) => {
     const tpl = getTemplateById(templateId)
     if (!applyTemplateState(templateId)) {
-      addToast('error', '⚠️ Template not found')
+      addToast('error', 'Template not found')
       return
     }
     setProfileSynced(false)
-    addToast('info', `🎨 “${tpl.name}” sample loaded — click Sync profile to fill your details`)
+    addToast('info', `"${tpl.name}" sample loaded — click Sync profile to fill your details`)
   }, [applyTemplateState, addToast])
 
   const syncFromProfile = useCallback(async () => {
@@ -1319,7 +1319,7 @@ export default function ResumeSection() {
       const synced = buildSyncedResumeContent(tpl, user, profile, userDoc)
       const hasBody = (synced.sections?.length || 0) + (synced.main?.length || 0) + (synced.sidebar?.length || 0) > 0
       if (!hasBody) {
-        addToast('error', '⚠️ Profile has no resume sections to sync')
+        addToast('error', 'Profile has no resume sections to sync')
         return
       }
       skipNextSaveRef.current = true
@@ -1328,10 +1328,10 @@ export default function ResumeSection() {
       setContent(normalizeContent(synced))
       setProfileSynced(true)
       setRepaginateKey((k) => k + 1)
-      addToast('success', '✅ Resume filled from your profile')
+      addToast('success', 'Resume filled from your profile')
     } catch (err) {
       console.error('Sync profile:', err)
-      addToast('error', '⚠️ Failed to sync profile')
+      addToast('error', 'Failed to sync profile')
     }
   }, [user, design.template, addToast])
 
@@ -1363,7 +1363,7 @@ export default function ResumeSection() {
       }).catch(() => {})
     } catch (err) {
       console.error('Save resume:', err)
-      addToast('error', '⚠️ Failed to save resume')
+      addToast('error', 'Failed to save resume')
     }
     setSaving(false)
   }, [user, resumeName, layout, sidebarSide, content, design, profileSynced, addToast])
@@ -1385,7 +1385,7 @@ export default function ResumeSection() {
   const downloadPDF = useCallback(async () => {
     if (!pageRef.current) return
     setExporting(true)
-    addToast('info', '📥 Generating PDF…')
+    addToast('info', 'Generating PDF…')
 
     // Snapshot the current scale so the offscreen rasterization captures the
     // sheet at native resolution, regardless of any "fit-to-screen" zoom that
@@ -1402,7 +1402,7 @@ export default function ResumeSection() {
         stack.querySelectorAll('article.rbv2-page:not(.rbv2-measure-layer)')
       )
       if (!pageEls.length) {
-        addToast('error', '⚠️ Nothing to export')
+        addToast('error', 'Nothing to export')
         return
       }
 
@@ -1426,10 +1426,10 @@ export default function ResumeSection() {
 
       pdf.save(`${(content.header?.name || resumeName || 'Resume').trim()}.pdf`)
       trackToolUsage('resume.export')
-      addToast('success', `✅ PDF downloaded (${pageEls.length} page${pageEls.length > 1 ? 's' : ''})`)
+      addToast('success', `PDF downloaded (${pageEls.length} page${pageEls.length > 1 ? 's' : ''})`)
     } catch (err) {
       console.error('PDF export:', err)
-      addToast('error', '⚠️ PDF export failed')
+      addToast('error', 'PDF export failed')
     } finally {
       // Restore the user's scale (or remove the inline override).
       if (prevScale) stack.style.setProperty('--rbv2-pages-scale', prevScale)
@@ -1481,9 +1481,9 @@ export default function ResumeSection() {
         }),
       ]
       await navigator.clipboard.writeText(lines.filter(Boolean).join('\n'))
-      addToast('success', '🔗 Resume copied to clipboard')
+      addToast('success', 'Resume copied to clipboard')
     } catch {
-      addToast('error', '⚠️ Could not copy resume')
+      addToast('error', 'Could not copy resume')
     }
   }
 
@@ -1507,8 +1507,8 @@ export default function ResumeSection() {
   const onImproveAccept = (variant) => {
     const ok = improveTarget.replace(variant)
     setImproveOpen(false)
-    if (ok) addToast('success', '✨ Text updated')
-    else addToast('error', '⚠️ Could not apply rewrite')
+    if (ok) addToast('success', 'Text updated')
+    else addToast('error', 'Could not apply rewrite')
   }
 
   if (!loaded) {
@@ -1550,8 +1550,8 @@ export default function ResumeSection() {
           >
             <span className="ico">✦</span> <span className="label">Improve text</span>
           </button>
-          <button className="rbv2-tb-btn" onClick={() => addToast('info', '🔍 Spell check coming soon')} title="Spell check">
-            <span className="ico">🔤</span> <span className="label">Check</span>
+          <button className="rbv2-tb-btn" onClick={() => addToast('info', 'Spell check coming soon')} title="Spell check">
+            <AppIcon name="text-aa" className="ico size-4" /> <span className="label">Check</span>
           </button>
           <button
             className={`rbv2-tb-btn${panel === 'templates' ? ' is-active' : ''}`}
@@ -1567,7 +1567,7 @@ export default function ResumeSection() {
             title="Design & Font"
             aria-pressed={panel === 'design'}
           >
-            <span className="ico">🎨</span> <span className="label">Design &amp; Font</span>
+            <AppIcon name="palette" className="ico size-4" /> <span className="label">Design &amp; Font</span>
           </button>
         </div>
 
@@ -1626,10 +1626,10 @@ export default function ResumeSection() {
         </main>
 
         <aside className="rbv2-rail">
-          <button type="button" className={`rbv2-rail-btn${previewMode ? ' is-active' : ''}`} title={previewMode ? 'Exit preview' : 'Preview mode'} onClick={() => setPreviewMode((v) => !v)}>👁</button>
-          <button type="button" className="rbv2-rail-btn" title="Download PDF" onClick={downloadPDF} disabled={exporting}>{exporting ? '⏳' : '⤓'}</button>
-          <button type="button" className="rbv2-rail-btn" title="Copy resume text" onClick={shareResume}>🔗</button>
-          <button type="button" className="rbv2-rail-btn is-active" title="AI suggestions (coming soon)" onClick={() => addToast('info', '✨ AI suggestions coming soon')}>★</button>
+          <button type="button" className={`rbv2-rail-btn${previewMode ? ' is-active' : ''}`} title={previewMode ? 'Exit preview' : 'Preview mode'} onClick={() => setPreviewMode((v) => !v)}><AppIcon name="eye" className="size-4" /></button>
+          <button type="button" className="rbv2-rail-btn" title="Download PDF" onClick={downloadPDF} disabled={exporting}>{exporting ? <AppIcon name="hourglass" className="size-4 animate-pulse" /> : <AppIcon name="download-simple" className="size-4" />}</button>
+          <button type="button" className="rbv2-rail-btn" title="Copy resume text" onClick={shareResume}><AppIcon name="link" className="size-4" /></button>
+          <button type="button" className="rbv2-rail-btn is-active" title="AI suggestions (coming soon)" onClick={() => addToast('info', 'AI suggestions coming soon')}><AppIcon name="star" className="size-4" weight="fill" /></button>
         </aside>
       </div>
 

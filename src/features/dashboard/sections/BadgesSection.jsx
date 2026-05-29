@@ -1,16 +1,15 @@
 import { useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import SectionHeader from '@/components/dashboard/SectionHeader'
+import { AppIcon, Badge, DashboardCard, KpiCard, CardGrid, cn } from '@/components/ui'
 import useGamificationStore from '@/store/gamificationStore'
 import useProfileStore from '@/store/profileStore'
 import { badgeXp } from '@/constants/badgesCatalog'
-import '@/styles/cards.css'
-import '@/styles/dashboard.css'
 
 const TIER_STYLE = {
   bronze: { ring: '#cd7f32', glow: 'rgba(205,127,50,.18)' },
   silver: { ring: '#c0c0c0', glow: 'rgba(192,192,192,.18)' },
-  gold: { ring: 'var(--color-gold)', glow: 'rgba(210,153,34,.22)' },
+  gold: { ring: '#f59e0b', glow: 'rgba(245,158,11,.22)' },
 }
 
 export default function BadgesSection() {
@@ -52,42 +51,24 @@ export default function BadgesSection() {
     <>
       <SectionHeader
         badge="Achievements"
-        badgeBg="var(--color-gold2)"
-        badgeColor="var(--color-gold)"
+        badgeClassName="border-amber-500/20 bg-amber-500/10 text-amber-500"
         title="Earn badges, level up your career"
         accent="level up"
         subtitle="Each badge unlocks XP and shows up on your profile. Some are progressive — keep using Glowminds daily to climb the tiers."
       />
 
-      <div className="mb-5 grid grid-cols-3 gap-3">
-        <div className="kpi k3">
-          <div className="kpi-ic">🏆</div>
-          <div className="kpi-lbl">Unlocked</div>
-          <div className="kpi-val">{unlocked.length}<span className="text-[var(--color-muted)] text-[1rem]">/{badges.length}</span></div>
-          <div className="kpi-sub">{pct}% complete</div>
-        </div>
-        <div className="kpi k1">
-          <div className="kpi-ic">⚡</div>
-          <div className="kpi-lbl">XP from badges</div>
-          <div className="kpi-val">{totalXP}</div>
-          <div className="kpi-sub">Lifetime</div>
-        </div>
-        <div className="kpi k4">
-          <div className="kpi-ic">🎯</div>
-          <div className="kpi-lbl">Next badge</div>
-          <div className="kpi-val text-[1.2rem] sm:!text-[1.35rem]">{nextBadge?.name || 'Done!'}</div>
-          <div className="kpi-sub">+{nextBadge?.xp || 0} XP</div>
-        </div>
-      </div>
+      <CardGrid variant="kpi3" className="mb-5">
+        <KpiCard icon="trophy" label="Unlocked" value={<>{unlocked.length}<span className="text-base text-muted-foreground">/{badges.length}</span></>} sub={`${pct}% complete`} accent={3} />
+        <KpiCard icon="lightning" label="XP from badges" value={totalXP} sub="Lifetime" accent={1} />
+        <KpiCard icon="target" label="Next badge" value={nextBadge?.name || 'Done!'} sub={`+${nextBadge?.xp || 0} XP`} accent={4} className="[&_.text-2xl]:text-[1.2rem] sm:[&_.text-2xl]:text-[1.35rem]" />
+      </CardGrid>
 
       {badges.length === 0 ? (
-        <div className="card">
-          <div className="cb py-10 text-center text-[var(--color-muted)] text-sm">
-            {catalogLoaded ? 'No badges available yet.' : 'Loading badge catalog…'}
-          </div>
-        </div>
+        <DashboardCard contentClassName="py-10 text-center text-sm text-muted-foreground">
+          {catalogLoaded ? 'No badges available yet.' : 'Loading badge catalog…'}
+        </DashboardCard>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        <CardGrid variant="tiles">
           {badges.map((b, idx) => {
             const tier = TIER_STYLE[b.tier] || TIER_STYLE.bronze
             return (
@@ -97,52 +78,54 @@ export default function BadgesSection() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1], delay: idx * 0.03 }}
                 whileHover={b.unlocked ? { y: -3 } : {}}
-                className={`relative flex flex-col items-center gap-2 overflow-hidden rounded-2xl border p-4 text-center transition-colors ${
+                className={cn(
+                  'relative flex flex-col items-center gap-2 overflow-hidden rounded-2xl border p-4 text-center transition-colors',
                   b.unlocked
-                    ? 'cursor-pointer border-[var(--color-bdr)] bg-[var(--color-surf)] hover:border-[var(--color-bdr2)]'
-                    : 'border-[var(--color-bdr)] bg-[var(--color-bg3)] opacity-60'
-                }`}
+                    ? 'cursor-pointer border-border bg-card hover:border-ring/30'
+                    : 'border-border bg-muted opacity-60',
+                )}
                 title={b.unlocked ? `${b.name} — +${b.xp} XP` : 'Locked'}
               >
                 {b.unlocked && (
                   <div
                     aria-hidden
                     className="pointer-events-none absolute inset-0"
-                    style={{
-                      background: `radial-gradient(circle at 50% 0%, ${tier.glow}, transparent 60%)`,
-                    }}
+                    style={{ background: `radial-gradient(circle at 50% 0%, ${tier.glow}, transparent 60%)` }}
                   />
                 )}
 
                 <div
-                  className="relative flex h-14 w-14 items-center justify-center rounded-full text-2xl"
+                  className={cn(
+                    'relative flex h-14 w-14 items-center justify-center rounded-full text-2xl',
+                    b.unlocked ? 'bg-card' : 'bg-muted',
+                  )}
                   style={{
-                    background: b.unlocked ? 'var(--color-surf)' : 'var(--color-bg3)',
                     boxShadow: b.unlocked ? `0 0 0 3px ${tier.ring}55, 0 0 18px ${tier.glow}` : 'none',
                   }}
                 >
-                  {b.unlocked ? b.icon : '🔒'}
+                  {b.unlocked ? <AppIcon name={b.icon} className="size-7" /> : <AppIcon name="lock" className="size-6 text-muted-foreground" />}
                 </div>
 
-                <div className="relative text-[0.84rem] font-bold leading-tight text-[var(--color-txt)]">
+                <div className="relative text-[0.84rem] font-bold leading-tight text-foreground">
                   {b.unlocked ? b.name : '???'}
                 </div>
-                <div className="relative text-[0.7rem] leading-snug text-[var(--color-txt2)]">
+                <div className="relative text-[0.7rem] leading-snug text-muted-foreground">
                   {b.unlocked ? b.description : 'Keep going to unlock'}
                 </div>
-                <div
-                  className="relative mt-auto rounded-full px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-wider"
+                <Badge
+                  variant="outline"
+                  className="relative mt-auto text-[0.6rem] font-bold uppercase tracking-wider"
                   style={{
-                    color: b.unlocked ? tier.ring : 'var(--color-muted)',
-                    background: b.unlocked ? `${tier.glow}` : 'var(--color-surf2)',
+                    color: b.unlocked ? tier.ring : undefined,
+                    background: b.unlocked ? tier.glow : undefined,
                   }}
                 >
                   {b.tier} · +{b.xp} XP
-                </div>
+                </Badge>
               </motion.div>
             )
           })}
-        </div>
+        </CardGrid>
       )}
     </>
   )

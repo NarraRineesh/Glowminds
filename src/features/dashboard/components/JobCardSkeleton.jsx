@@ -1,38 +1,42 @@
+import { Card, CardContent, Skeleton } from '@/components/ui'
+
 export default function JobCardSkeleton() {
   return (
-    <div className="jc jc-skeleton" aria-hidden>
-      <div className="jch">
-        <div className="sk sk-logo" />
-        <div className="jch-body">
-          <div className="sk sk-title" />
-          <div className="jc-meta">
-            <div className="sk sk-meta-chip" />
-            <div className="sk sk-meta-chip" />
-            <div className="sk sk-meta-chip sk-meta-chip-sm" />
+    <Card className="gap-0 py-0" aria-hidden>
+      <CardContent className="space-y-3 p-4">
+        <div className="flex gap-3">
+          <Skeleton className="h-11 w-11 shrink-0 rounded-lg" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <Skeleton className="h-4 w-3/4" />
+            <div className="flex flex-wrap gap-2">
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-3 w-12" />
+            </div>
           </div>
         </div>
-      </div>
-      <div className="sk sk-match-label" />
-      <div className="sk sk-bar" />
-      <div className="jc-tags">
-        <div className="sk sk-tag" />
-        <div className="sk sk-tag" />
-        <div className="sk sk-tag sk-tag-sm" />
-      </div>
-      <div className="jc-footer">
-        <div className="sk sk-salary" />
-        <div className="jc-footer-actions">
-          <div className="sk sk-btn" />
-          <div className="sk sk-btn sk-btn-primary" />
+        <Skeleton className="h-3 w-24" />
+        <Skeleton className="h-1.5 w-full rounded-full" />
+        <div className="flex flex-wrap gap-1.5">
+          <Skeleton className="h-5 w-14 rounded-full" />
+          <Skeleton className="h-5 w-16 rounded-full" />
+          <Skeleton className="h-5 w-12 rounded-full" />
         </div>
-      </div>
-    </div>
+        <div className="flex items-center justify-between pt-1">
+          <Skeleton className="h-4 w-20" />
+          <div className="flex gap-2">
+            <Skeleton className="h-7 w-12 rounded-md" />
+            <Skeleton className="h-7 w-14 rounded-md" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 
 export function JobGridSkeleton({ count = 6 }) {
   return (
-    <div className="rg-j" aria-busy="true" aria-label="Loading jobs">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-3" aria-busy="true" aria-label="Loading jobs">
       {Array.from({ length: count }, (_, i) => (
         <JobCardSkeleton key={i} />
       ))}

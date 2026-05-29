@@ -31,7 +31,7 @@ async function handleUnauthorized() {
   if (unauthorizedHandled) return
   unauthorizedHandled = true
   try {
-    useAppStore.getState().addToast?.('error', '🔒 Session expired — please sign in again.')
+    useAppStore.getState().addToast?.('error', 'Session expired — please sign in again.')
   } catch { /* store may not be ready yet */ }
   try {
     if (auth.currentUser) await signOut(auth)

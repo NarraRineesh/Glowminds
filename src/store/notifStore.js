@@ -1,46 +1,46 @@
 import { create } from 'zustand'
-import { collection, query, orderBy, limit, onSnapshot, doc, updateDoc, writeBatch, deleteDoc, addDoc, serverTimestamp } from 'firebase/firestore'
+import { collection, query, orderBy, limit, getDocs, doc, updateDoc, writeBatch, deleteDoc, addDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '@/services/firebase'
 
 const useNotifStore = create((set, get) => ({
   notifs: [],
   loading: true,
-  unsubscribe: null,
+  loaded: false,
 
-  /** Start real-time listener for user's notifications */
-  listen: (uid) => {
+  /** One-shot load — avoids a persistent snapshot listener (each listener bills reads on every change). */
+  loadNotifs: async (uid, { force = false } = {}) => {
     if (!uid) return
-    // Unsubscribe previous listener if any
-    const prev = get().unsubscribe
-    if (prev) prev()
+    if (!force && get().loaded) return
 
-    const q = query(
-      collection(db, 'users', uid, 'notifications'),
-      orderBy('createdAt', 'desc'),
-      limit(50)
-    )
-
-    const unsub = onSnapshot(q, (snap) => {
-      const notifs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-      set({ notifs, loading: false })
-    }, (err) => {
-      console.error('Notif listener error:', err)
+    set({ loading: true })
+    try {
+      const q = query(
+        collection(db, 'users', uid, 'notifications'),
+        orderBy('createdAt', 'desc'),
+        limit(50),
+      )
+      const snap = await getDocs(q)
+      const notifs = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+      set({ notifs, loading: false, loaded: true })
+    } catch (err) {
+      console.error('Notif load error:', err)
       set({ loading: false })
-    })
-
-    set({ unsubscribe: unsub })
+    }
   },
 
-  /** Stop listener */
-  stopListening: () => {
-    const unsub = get().unsubscribe
-    if (unsub) unsub()
-    set({ unsubscribe: null, notifs: [], loading: true })
-  },
+  reset: () => set({ notifs: [], loading: true, loaded: false }),
 
-  /** Mark a single notification as read */
+  /** @deprecated Use loadNotifs — kept so older callers still work */
+  listen: (uid) => get().loadNotifs(uid),
+
+  /** @deprecated No persistent listener anymore */
+  stopListening: () => get().reset(),
+
   markRead: async (uid, notifId) => {
     if (!uid || !notifId) return
+    set((s) => ({
+      notifs: s.notifs.map((n) => (n.id === notifId ? { ...n, read: true } : n)),
+    }))
     try {
       await updateDoc(doc(db, 'users', uid, 'notifications', notifId), { read: true })
     } catch (e) {
@@ -48,11 +48,13 @@ const useNotifStore = create((set, get) => ({
     }
   },
 
-  /** Mark all notifications as read */
   markAllRead: async (uid) => {
     if (!uid) return
-    const unread = get().notifs.filter(n => !n.read)
+    const unread = get().notifs.filter((n) => !n.read)
     if (!unread.length) return
+    set((s) => ({
+      notifs: s.notifs.map((n) => ({ ...n, read: true })),
+    }))
     try {
       const batch = writeBatch(db)
       for (const n of unread) {
@@ -64,9 +66,9 @@ const useNotifStore = create((set, get) => ({
     }
   },
 
-  /** Delete a single notification */
   deleteNotif: async (uid, notifId) => {
     if (!uid || !notifId) return
+    set((s) => ({ notifs: s.notifs.filter((n) => n.id !== notifId) }))
     try {
       await deleteDoc(doc(db, 'users', uid, 'notifications', notifId))
     } catch (e) {
@@ -74,11 +76,11 @@ const useNotifStore = create((set, get) => ({
     }
   },
 
-  /** Clear all notifications */
   clearAll: async (uid) => {
     if (!uid) return
     const all = get().notifs
     if (!all.length) return
+    set({ notifs: [] })
     try {
       const batch = writeBatch(db)
       for (const n of all) {
@@ -90,27 +92,26 @@ const useNotifStore = create((set, get) => ({
     }
   },
 
-  /** Add a notification (used by other parts of the app) */
   addNotif: async (uid, { icon, title, description, desc, color, type, link }) => {
     if (!uid) return
     try {
       await addDoc(collection(db, 'users', uid, 'notifications'), {
-        icon: icon || '🔔',
+        icon: icon || 'bell',
         title,
         description: description || desc || '',
-        color: color || 'var(--color-blu)',
+        color: color || '#388bfd',
         type: type || 'general',
         read: false,
         link: link || null,
         createdAt: serverTimestamp(),
       })
+      await get().loadNotifs(uid, { force: true })
     } catch (e) {
       console.error('Add notif error:', e)
     }
   },
 
-  /** Unread count selector */
-  unreadCount: () => get().notifs.filter(n => !n.read).length,
+  unreadCount: () => get().notifs.filter((n) => !n.read).length,
 }))
 
 export default useNotifStore

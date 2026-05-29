@@ -1,8 +1,8 @@
 import { defineConfig, loadEnv } from 'vite'
-import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { glowmindsResumeAlias, glowmindsResumePlugins, glowmindsResumePublicAssets } from './vite.glowminds-resume.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -24,8 +24,10 @@ export default defineConfig(({ mode }) => {
       },
     },
     plugins: [
-      react(),
       tailwindcss(),
+      glowmindsResumePublicAssets(),
+      glowmindsResumeAlias(),
+      ...glowmindsResumePlugins(),
       {
         name: 'inject-site-url-html',
         transformIndexHtml(html) {
@@ -35,8 +37,20 @@ export default defineConfig(({ mode }) => {
     ],
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, './src'),
+        'glowminds-resume/embed': path.resolve(__dirname, './packages/glowminds-resume/src/embed/index.ts'),
+        'glowminds-resume/embed-theme': path.resolve(__dirname, './packages/glowminds-resume/src/embed/theme.ts'),
+        'glowminds-resume/ui': path.resolve(__dirname, './packages/glowminds-resume/src/lib/ui/index.ts'),
+        'glowminds-resume/style.css': path.resolve(__dirname, './packages/glowminds-resume/src/index.css'),
+        'glowminds-resume': path.resolve(__dirname, './packages/glowminds-resume'),
       },
+      dedupe: ['react', 'react-dom'],
+      tsconfigPaths: false,
+    },
+    optimizeDeps: {
+      exclude: ['glowminds-resume/embed'],
+    },
+    define: {
+      __APP_VERSION__: JSON.stringify('1.0.0'),
     },
   }
 })

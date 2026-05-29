@@ -1,9 +1,17 @@
 import { useEffect, useState } from 'react'
-import { createPortal } from 'react-dom'
 import {
   createEmptyInternshipEntry,
   finalizeInternshipEntry,
 } from '@/utils/internshipEntries'
+import {
+  AppDialog,
+  Button,
+  FormField,
+  FormRow,
+  Input,
+  Textarea,
+  Label,
+} from '@/components/ui'
 
 export default function InternshipModal({ open, entry, saving, onClose, onSave }) {
   const [form, setForm] = useState(createEmptyInternshipEntry())
@@ -15,15 +23,6 @@ export default function InternshipModal({ open, entry, saving, onClose, onSave }
     setForm(base)
     setCurrentRole(!base.endDate)
   }, [open, entry])
-
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e) => { if (e.key === 'Escape') onClose?.() }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
-
-  if (!open) return null
 
   const isEdit = !!(entry?.company || entry?.role)
 
@@ -45,73 +44,64 @@ export default function InternshipModal({ open, entry, saving, onClose, onSave }
     }))
   }
 
-  return createPortal(
-    <div className="mb on" onClick={(e) => e.target === e.currentTarget && onClose?.()}>
-      <div className="mo mo-lg" onClick={(e) => e.stopPropagation()}>
-        <div className="mh">
-          <h2>🎓 {isEdit ? 'Edit Internship' : 'Add Internship'}</h2>
-          <div className="mx" onClick={() => onClose?.()} role="button" tabIndex={0}>✕</div>
-        </div>
-
-        <div className="mb2 flex flex-col gap-3" style={{ maxHeight: 'min(70vh, 520px)', overflow: 'auto' }}>
-          <div style={{ fontSize: '.72rem', fontWeight: 700, color: 'var(--color-blu2)', textTransform: 'uppercase', letterSpacing: '.5px' }}>
-            Internship
-          </div>
-
-          <div className="fg">
-            <label className="fl">Company *</label>
-            <input className="fi" placeholder="Google, Microsoft, Startup…" value={form.company || ''} onChange={(e) => setForm({ ...form, company: e.target.value })} />
-          </div>
-
-          <div className="fg">
-            <label className="fl">Role *</label>
-            <input className="fi" placeholder="Software Intern, Data Analyst Intern…" value={form.role || ''} onChange={(e) => setForm({ ...form, role: e.target.value })} />
-          </div>
-
-          <div className="fg2">
-            <div className="fg">
-              <label className="fl">Start date</label>
-              <input className="fi" type="date" value={form.startDate || ''} onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
-            </div>
-            <div className="fg">
-              <label className="fl">End date</label>
-              <input className="fi" type="date" value={form.endDate || ''} disabled={currentRole} onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
-            </div>
-          </div>
-
-          <div className="fg">
-            <label className="fl flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={currentRole}
-                onChange={(e) => {
-                  setCurrentRole(e.target.checked)
-                  if (e.target.checked) setForm((f) => ({ ...f, endDate: '' }))
-                }}
-              />
-              <span>I am currently interning here</span>
-            </label>
-          </div>
-
-          <div className="fg">
-            <label className="fl">Description</label>
-            <textarea className="fta min-h-[72px]" placeholder="What you worked on…" value={form.description || ''} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-          </div>
-
-          <div className="fg">
-            <label className="fl">Key work</label>
-            <textarea className="fta min-h-[60px]" placeholder={'• Built feature X\n• Collaborated with team Y'} value={form.bullets || ''} onChange={(e) => setForm({ ...form, bullets: e.target.value })} />
-          </div>
-        </div>
-
-        <div className="mf">
-          <button type="button" className="btn btn-gh" onClick={() => onClose?.()}>Cancel</button>
-          <button type="button" className="btn btn-p" disabled={saving} onClick={handleSave}>
+  return (
+    <AppDialog
+      open={open}
+      onOpenChange={(v) => !v && onClose?.()}
+      title={`${isEdit ? 'Edit Internship' : 'Add Internship'}`}
+      size="lg"
+      contentClassName="max-h-[min(70vh,520px)] overflow-auto"
+      footer={
+        <>
+          <Button variant="ghost" onClick={() => onClose?.()}>Cancel</Button>
+          <Button disabled={saving} onClick={handleSave}>
             {saving ? 'Saving…' : 'Save'}
-          </button>
-        </div>
+          </Button>
+        </>
+      }
+    >
+      <div className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+        Internship
       </div>
-    </div>,
-    document.body,
+
+      <FormField label="Company *">
+        <Input placeholder="Google, Microsoft, Startup…" value={form.company || ''} onChange={(e) => setForm({ ...form, company: e.target.value })} />
+      </FormField>
+
+      <FormField label="Role *">
+        <Input placeholder="Software Intern, Data Analyst Intern…" value={form.role || ''} onChange={(e) => setForm({ ...form, role: e.target.value })} />
+      </FormField>
+
+      <FormRow>
+        <FormField label="Start date">
+          <Input type="date" value={form.startDate || ''} onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
+        </FormField>
+        <FormField label="End date">
+          <Input type="date" value={form.endDate || ''} disabled={currentRole} onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
+        </FormField>
+      </FormRow>
+
+      <FormField>
+        <Label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={currentRole}
+            onChange={(e) => {
+              setCurrentRole(e.target.checked)
+              if (e.target.checked) setForm((f) => ({ ...f, endDate: '' }))
+            }}
+          />
+          <span>I am currently interning here</span>
+        </Label>
+      </FormField>
+
+      <FormField label="Description">
+        <Textarea className="min-h-[72px]" placeholder="What you worked on…" value={form.description || ''} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+      </FormField>
+
+      <FormField label="Key work">
+        <Textarea className="min-h-[60px]" placeholder={'• Built feature X\n• Collaborated with team Y'} value={form.bullets || ''} onChange={(e) => setForm({ ...form, bullets: e.target.value })} />
+      </FormField>
+    </AppDialog>
   )
 }

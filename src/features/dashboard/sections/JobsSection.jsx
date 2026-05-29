@@ -5,10 +5,20 @@ import useProfileStore from '@/store/profileStore'
 import Loader from '@/components/Loader'
 import { JobGridSkeleton } from '@/features/dashboard/components/JobCardSkeleton'
 import { JobMetaItem, JobMetaRow } from '@/features/dashboard/components/JobMeta'
-import '@/styles/dashboard.css'
-import '@/styles/jobs.css'
-import '@/styles/cards.css'
-import '@/styles/forms.css'
+import AppIcon from '@/components/icons/AppIcon'
+import {
+  Button,
+  ButtonGroup,
+  Card,
+  CardContent,
+  FilterBar,
+  Input,
+  PageTitle,
+  Progress,
+  Select,
+  StatusBadge,
+  cn,
+} from '@/components/ui'
 
 const JF = ['All', 'Best Match', 'Full-time', 'Contract', 'New Today']
 const PER_PAGE = 10
@@ -23,9 +33,15 @@ function buildFilters(activeF, typeFilter) {
   return filters
 }
 
+function matchTone(match) {
+  if (match >= 90) return 'text-emerald-500'
+  if (match >= 80) return 'text-primary'
+  return 'text-amber-500'
+}
+
 export default function JobsSection() {
   const navigate = useNavigate()
-  const { jobs, pagination, loading, error, fetchJobs, saveJob, unsaveJob, isJobSaved, loadSavedJobs, queryUsed, skillTerms } = useJobStore()
+  const { jobs, pagination, loading, error, fetchJobs, setPageFromCache, saveJob, unsaveJob, isJobSaved, loadSavedJobs, queryUsed, skillTerms } = useJobStore()
   const loadProfile = useProfileStore((s) => s.load)
   const [activeF, setActiveF] = useState('All')
   const [search, setSearch] = useState('')
@@ -47,11 +63,19 @@ export default function JobsSection() {
   }, [filterSig])
 
   useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [page])
+
+  useEffect(() => {
+    loadSavedJobs()
+  }, [loadSavedJobs])
+
+  useEffect(() => {
+    if (setPageFromCache(page, PER_PAGE, filters)) return
     loadProfile({ force: false }).then(() => {
       fetchJobs({ search, page, pageSize: PER_PAGE, filters })
-      loadSavedJobs()
     })
-  }, [fetchJobs, loadSavedJobs, loadProfile, search, page, filters])
+  }, [fetchJobs, loadProfile, setPageFromCache, search, page, filters])
 
   const handleSearch = (e) => {
     e?.preventDefault?.()
@@ -81,159 +105,173 @@ export default function JobsSection() {
   }
 
   return (
-    <div className="jobs-section">
-      <div className="mb-4">
-        <div className="dsh-title">Job Board 💼</div>
-        <div className="dsh-sub">
-          <span className="pulse" />
-          {isInitialLoad ? (
-            <>Finding jobs{hasActiveSearch ? ` for "${search.trim()}"` : ' matched to your profile'}…</>
-          ) : subtitleQuery ? (
-            <>
-              {hasActiveSearch ? 'Results for' : 'Matched to'}{' '}
-              <strong>{subtitleQuery}</strong>
-              {skillTerms.length > 0 && !hasActiveSearch ? ` · ${skillTerms.slice(0, 4).join(', ')}` : ''}
-              {' · '}
-            </>
-          ) : (
-            <>Live jobs from top company career sites · </>
-          )}
-          {!isInitialLoad && (
-            <>
-              {totalResults} {totalResults === 1 ? 'result' : 'results'}
-              {pagination.from ? ` · showing ${pagination.from}–${pagination.to}` : ''}
-            </>
-          )}
-        </div>
-      </div>
+    <div className="w-full min-w-0 max-w-full space-y-6">
+      <PageTitle
+        title="Job Board"
+        subtitle={
+          <>
+            <span className="inline-block size-2 shrink-0 rounded-full bg-emerald-500" />
+            {isInitialLoad ? (
+              <>Finding jobs{hasActiveSearch ? ` for "${search.trim()}"` : ' matched to your profile'}…</>
+            ) : subtitleQuery ? (
+              <>
+                {hasActiveSearch ? 'Results for' : 'Matched to'}{' '}
+                <strong>{subtitleQuery}</strong>
+                {skillTerms.length > 0 && !hasActiveSearch ? ` · ${skillTerms.slice(0, 4).join(', ')}` : ''}
+                {' · '}
+              </>
+            ) : (
+              <>Live jobs from top company career sites · </>
+            )}
+            {!isInitialLoad && (
+              <>
+                {totalResults} {totalResults === 1 ? 'result' : 'results'}
+                {pagination.from ? ` · showing ${pagination.from}–${pagination.to}` : ''}
+              </>
+            )}
+          </>
+        }
+      />
 
-      {/* Search & Filter Bar */}
-      <div className="fbar">
-        <form onSubmit={handleSearch} style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '1 1 260px', minWidth: 0 }}>
-          <div className="jobs-search-wrap">
-            <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: '.82rem', opacity: .5, pointerEvents: 'none' }}>🔍</span>
-            <input
-              className="fi"
-              style={{ paddingLeft: 32, paddingRight: searchInput ? 36 : 10, height: 36, fontSize: '.82rem', width: '100%' }}
+      <FilterBar>
+        <form onSubmit={handleSearch} className="flex min-w-0 flex-[1_1_260px] items-center gap-2">
+          <div className="relative min-w-0 flex-1">
+            <AppIcon name="search" className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 opacity-50" />
+            <Input
+              className={cn('h-9 pl-8 text-sm', searchInput && 'pr-9')}
               placeholder="Search jobs, skills, companies…"
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
               aria-label="Search jobs"
             />
             {searchInput && (
-              <button type="button" className="jobs-search-clear" onClick={clearSearch} aria-label="Clear search">✕</button>
+              <Button type="button" variant="ghost" size="icon-sm" className="absolute right-1 top-1/2 -translate-y-1/2" onClick={clearSearch} aria-label="Clear search">
+                <AppIcon name="x" className="size-3" />
+              </Button>
             )}
           </div>
-          <button type="submit" className="btn btn-p" disabled={loading} style={{ height: 36, padding: '0 16px', fontSize: '.78rem', whiteSpace: 'nowrap', minWidth: 72, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+          <Button type="submit" size="sm" disabled={loading} className="h-9 min-w-[72px] shrink-0">
             {loading ? <Loader variant="spinner" size={14} /> : 'Search'}
-          </button>
+          </Button>
         </form>
 
-        <div style={{ width: 1, height: 24, background: 'var(--color-bdr)', flexShrink: 0 }} className="hidden sm:block" />
+        <div className="hidden h-6 w-px shrink-0 bg-border sm:block" />
 
-        <select className="fsl" style={{ height: 36, padding: '0 28px 0 10px', fontSize: '.78rem', minWidth: 120, background: 'var(--color-bg3)', border: '1px solid var(--color-bdr)', borderRadius: 8, opacity: loading ? .6 : 1 }} value={typeFilter} disabled={loading} onChange={e => setTypeFilter(e.target.value)}>
+        <Select className="h-9 min-w-[120px] text-sm" value={typeFilter} disabled={loading} onChange={e => setTypeFilter(e.target.value)}>
           <option value="">All Types</option><option>Full-time</option><option>Contract</option><option>Part-time</option>
-        </select>
+        </Select>
 
-        <div className="fbar-pills" style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        <ButtonGroup className="flex-wrap">
           {JF.map(f => (
-            <button key={f} type="button" disabled={loading} onClick={() => setActiveF(f)}
-              style={{ padding: '5px 12px', fontSize: '.74rem', fontWeight: 600, borderRadius: 8, border: '1px solid', cursor: loading ? 'not-allowed' : 'pointer', transition: '.15s', opacity: loading ? .55 : 1,
-                background: f === activeF ? 'rgba(56,139,253,.18)' : 'transparent',
-                borderColor: f === activeF ? 'rgba(56,139,253,.35)' : 'var(--color-bdr)',
-                color: f === activeF ? 'var(--color-blu2)' : 'var(--color-txt2)',
-              }}>
+            <Button key={f} type="button" variant={f === activeF ? 'default' : 'outline'} size="sm" disabled={loading} onClick={() => setActiveF(f)}>
               {f}
-            </button>
+            </Button>
           ))}
-        </div>
-      </div>
+        </ButtonGroup>
+      </FilterBar>
 
       {isInitialLoad && <JobGridSkeleton count={PER_PAGE} />}
 
       {error && !loading && (
-        <div className="jobs-error-banner">
-          ⚠️ {error}
-          <div><button type="button" className="btn btn-o btn-sm" onClick={() => fetchJobs({ search, page: page, pageSize: PER_PAGE, filters, force: true })}>Retry</button></div>
+        <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {error}
+          <div className="mt-2">
+            <Button variant="outline" size="sm" onClick={() => fetchJobs({ search, page: page, pageSize: PER_PAGE, filters, force: true })}>Retry</Button>
+          </div>
         </div>
       )}
 
       {!isInitialLoad && (
         <>
           {isRefreshing && (
-            <div className="jobs-loading-bar" role="progressbar" aria-label="Updating results">
-              <div className="jobs-loading-bar__fill" />
+            <div className="mb-3 h-1 overflow-hidden rounded-full bg-muted" role="progressbar" aria-label="Updating results">
+              <div className="h-full w-1/3 animate-pulse rounded-full bg-primary" />
             </div>
           )}
 
-          <div className={`jobs-grid-wrap${isRefreshing ? ' is-refreshing' : ''}`}>
-          <div className="rg-j">
-            {jobs.length === 0 && (
-              <div className="jobs-empty">
-                <div className="jobs-empty-icon">🔍</div>
-                <h3>No jobs found</h3>
-                <p>
-                  {hasActiveSearch
-                    ? `Nothing matched "${search.trim()}". Try a shorter keyword like "${search.trim().split(/\s+/)[0]}" or remove filters.`
-                    : 'No jobs match your current filters. Try clearing filters or updating your profile skills.'}
-                </p>
-                <div className="jobs-empty-actions">
-                  {hasActiveSearch && (
-                    <button type="button" className="btn btn-o btn-sm" onClick={clearSearch}>Clear search</button>
-                  )}
-                  {(activeF !== 'All' || typeFilter) && (
-                    <button type="button" className="btn btn-gh btn-sm" onClick={() => { setActiveF('All'); setTypeFilter('') }}>Reset filters</button>
-                  )}
-                </div>
-              </div>
-            )}
-            {jobs.map(j => (
-              <div key={j.id} className={`jc${j.isNew ? ' new-j' : ''}`} onClick={() => openJob(j)}>
-                <div className="jch">
-                  <div className="jc-logo">{j.logo}</div>
-                  <div className="jch-body">
-                    <div className="jc-title">{j.title}</div>
-                    <JobMetaRow>
-                      {(j.company || j.co) && <JobMetaItem icon="🏢">{j.company || j.co}</JobMetaItem>}
-                      {(j.location || j.loc) && (
-                        <JobMetaItem icon={j.remote ? '🌐' : '📍'}>{j.location || j.loc}</JobMetaItem>
-                      )}
-                      {j.type && <JobMetaItem icon="💼">{j.type}</JobMetaItem>}
-                      {j.posted && <JobMetaItem icon="🕒">{j.posted}</JobMetaItem>}
-                    </JobMetaRow>
+          <div className={cn('transition-opacity duration-200', isRefreshing && 'pointer-events-none opacity-60')}>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-3">
+              {jobs.length === 0 && (
+                <div className="col-span-full flex flex-col items-center rounded-2xl border border-dashed border-border bg-muted/30 px-6 py-12 text-center">
+                  <AppIcon name="search" className="mb-3 size-10 opacity-40" />
+                  <h3 className="text-lg font-bold text-foreground">No jobs found</h3>
+                  <p className="mt-2 max-w-md text-sm text-muted-foreground">
+                    {hasActiveSearch
+                      ? `Nothing matched "${search.trim()}". Try a shorter keyword like "${search.trim().split(/\s+/)[0]}" or remove filters.`
+                      : 'No jobs match your current filters. Try clearing filters or updating your profile skills.'}
+                  </p>
+                  <div className="mt-4 flex flex-wrap justify-center gap-2">
+                    {hasActiveSearch && (
+                      <Button variant="outline" size="sm" onClick={clearSearch}>Clear search</Button>
+                    )}
+                    {(activeF !== 'All' || typeFilter) && (
+                      <Button variant="ghost" size="sm" onClick={() => { setActiveF('All'); setTypeFilter('') }}>Reset filters</Button>
+                    )}
                   </div>
                 </div>
-                <div className="jc-match-row">
-                  <span className="jc-meta-ico" aria-hidden>🎯</span>
-                  Match: <strong className={j.match >= 90 ? 'text-[--color-grn]' : j.match >= 80 ? 'text-[--color-blu2]' : 'text-[--color-gold]'}>{j.match}%</strong>
-                </div>
-                <div className="match-bar"><div className="match-fill" style={{ width: `${j.match}%` }} /></div>
-                <div className="jc-tags">
-                  {j.tags.slice(0, 3).map(t => <span key={t} className="tag tb">{t}</span>)}
-                </div>
-                <div className="jc-footer">
-                  <JobMetaItem
-                    icon="💰"
-                    className={`jc-meta--salary${!(j.salary || j.sal) ? ' is-muted' : ''}`}
-                  >
-                    {j.salary || j.sal || 'Not listed'}
-                  </JobMetaItem>
-                  <div className="jc-footer-actions">
-                    <button type="button" className="btn btn-gh btn-xs" onClick={(e) => toggleSave(j, e)}>{isJobSaved(j.id) ? '❤️' : '🤍'}</button>
-                    <button type="button" className="btn btn-p btn-xs" onClick={(e) => { e.stopPropagation(); openJob(j) }}>View</button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+              )}
+              {jobs.map(j => (
+                <Card
+                  key={j.id}
+                  className={cn(
+                    'cursor-pointer gap-0 py-0 transition-shadow hover:ring-foreground/15',
+                    j.isNew && 'ring-1 ring-primary/30',
+                  )}
+                  onClick={() => openJob(j)}
+                >
+                  <CardContent className="space-y-3 p-4">
+                    <div className="flex gap-3">
+                      <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-muted text-xl">
+                        {j.logo}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-bold text-foreground">{j.title}</div>
+                        <JobMetaRow>
+                          {(j.company || j.co) && <JobMetaItem icon="buildings">{j.company || j.co}</JobMetaItem>}
+                          {(j.location || j.loc) && (
+                            <JobMetaItem icon={j.remote ? 'globe' : 'map-pin'}>{j.location || j.loc}</JobMetaItem>
+                          )}
+                          {j.type && <JobMetaItem icon="jobs">{j.type}</JobMetaItem>}
+                          {j.posted && <JobMetaItem icon="clock">{j.posted}</JobMetaItem>}
+                        </JobMetaRow>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <AppIcon name="target" className="size-3.5" />
+                      Match: <strong className={matchTone(j.match)}>{j.match}%</strong>
+                    </div>
+                    <Progress value={j.match} className="gap-0 [&_[data-slot=progress-track]]:h-1.5" />
+
+                    <div className="flex flex-wrap gap-1.5">
+                      {j.tags.slice(0, 3).map(t => (
+                        <StatusBadge key={t} tone="default" className="text-xs">{t}</StatusBadge>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 pt-1">
+                      <JobMetaItem
+                        icon="salary"
+                        className={!(j.salary || j.sal) ? 'opacity-60' : 'font-semibold text-foreground'}
+                      >
+                        {j.salary || j.sal || 'Not listed'}
+                      </JobMetaItem>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <Button variant="ghost" size="icon-sm" onClick={(e) => toggleSave(j, e)} aria-label={isJobSaved(j.id) ? 'Unsave job' : 'Save job'}>
+                          {isJobSaved(j.id) ? <AppIcon name="heart" className="size-3.5" weight="fill" /> : <AppIcon name="heart-outline" className="size-3.5" />}
+                        </Button>
+                        <Button size="sm" onClick={(e) => { e.stopPropagation(); openJob(j) }}>View</Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
 
-          {/* Pagination */}
           {totalResults > 0 && (
-            <div className="jobs-pagination">
-              <button type="button" className="btn btn-gh btn-sm" disabled={page <= 1 || loading}
-                style={{ opacity: page <= 1 ? .4 : 1 }}
-                onClick={() => setPage(p => Math.max(1, p - 1))}>← Prev</button>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+              <Button variant="ghost" size="sm" disabled={page <= 1 || loading} onClick={() => setPage(p => Math.max(1, p - 1))}>← Prev</Button>
 
               {Array.from({ length: totalPages }, (_, i) => i + 1)
                 .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 2)
@@ -244,20 +282,25 @@ export default function JobsSection() {
                 }, [])
                 .map((p, i) =>
                   p === '...' ? (
-                    <span key={`d${i}`} style={{ color: 'var(--color-muted)', fontSize: '.78rem', padding: '0 2px' }}>…</span>
+                    <span key={`d${i}`} className="px-1 text-sm text-muted-foreground">…</span>
                   ) : (
-                    <button key={p} type="button" disabled={loading} onClick={() => setPage(p)}
-                      className={`jobs-pagination-btn${p === page ? ' is-active' : ''}`}>
+                    <Button
+                      key={p}
+                      type="button"
+                      variant={p === page ? 'default' : 'outline'}
+                      size="sm"
+                      disabled={loading}
+                      onClick={() => setPage(p)}
+                      className="min-w-[2rem]"
+                    >
                       {p}
-                    </button>
+                    </Button>
                   )
                 )}
 
-              <button type="button" className="btn btn-gh btn-sm" disabled={page >= totalPages || loading}
-                style={{ opacity: page >= totalPages ? .4 : 1 }}
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}>Next →</button>
+              <Button variant="ghost" size="sm" disabled={page >= totalPages || loading} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>Next →</Button>
 
-              <span className="jobs-pagination-meta">
+              <span className="w-full text-center text-xs text-muted-foreground sm:w-auto">
                 Page {page} of {totalPages} · {totalResults} jobs
               </span>
             </div>

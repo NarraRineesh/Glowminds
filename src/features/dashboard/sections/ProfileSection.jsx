@@ -1,10 +1,38 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { createPortal } from 'react-dom'
 import useAppStore from '@/store/authStore'
 import useProfileStore from '@/store/profileStore'
 import { auth } from '@/services/firebase'
 import { apiFetch } from '@/services/apiClient'
 import Loader from '@/components/Loader'
+import useIsLg from '@/hooks/useIsLg'
+import AppIcon from '@/components/icons/AppIcon'
+import {
+  AppDialog,
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  cn,
+  FormField,
+  FormRow,
+  Input,
+  Label,
+  ProfileCard,
+  Progress,
+  Select,
+  Textarea,
+} from '@/components/ui'
+import {
+  AiScoreBadge,
+  FresherToggle,
+  ProfileAvatarBlock,
+  ProfileEmptyState,
+  ProfileEntryBlock,
+  ProfileFieldRow,
+  ProfilePreviewText,
+  ProfileSectionGrid,
+  SkillGroup,
+} from '@/features/dashboard/sections/profile/profileSectionUi'
 import { createDefaultProfile, normalizeProfile, normalizeSkills, stampAiReview } from '@/constants/schema'
 import { formatDateRange, formatYearOrMonthDisplay, toMonthInputValue } from '@/utils/profileDates'
 import EducationModal from '@/features/dashboard/sections/profile/EducationModal'
@@ -51,11 +79,6 @@ import {
   finalizeProjectEntry,
   projectHasContent,
 } from '@/utils/projectEntries'
-import '@/styles/dashboard.css'
-import '@/styles/profile.css'
-import '@/styles/cards.css'
-import '@/styles/forms.css'
-import '@/styles/modal.css'
 
 const EMPTY_PROFILE = createDefaultProfile()
 
@@ -80,6 +103,7 @@ export default function ProfileSection() {
   const loadStore = useProfileStore((s) => s.load)
   const replaceProfile = useProfileStore((s) => s.replaceProfile)
   const updateProfile = useProfileStore((s) => s.updateProfile)
+  const isLg = useIsLg()
 
   const [profile, setProfile] = useState(EMPTY_PROFILE)
   const [loading, setLoading] = useState(true)
@@ -140,14 +164,14 @@ export default function ProfileSection() {
     const file = e.target.files?.[0]
     if (!file) return
     e.target.value = ''
-    if (file.size > 5 * 1024 * 1024) { addToast('error', '⚠️ Image must be under 5MB'); return }
+    if (file.size > 5 * 1024 * 1024) { addToast('error', 'Image must be under 5MB'); return }
     setUploadingPhoto(true)
     try {
       await updatePhotoURL(file)
-      addToast('success', '✅ Profile photo updated!')
+      addToast('success', 'Profile photo updated!')
     } catch (err) {
       console.error('Photo upload:', err)
-      addToast('error', '⚠️ Failed to upload photo')
+      addToast('error', 'Failed to upload photo')
     }
     setUploadingPhoto(false)
   }
@@ -159,10 +183,10 @@ export default function ProfileSection() {
     setUploadingPhoto(true)
     try {
       await removePhotoURL()
-      addToast('success', '🗑️ Profile photo removed')
+      addToast('success', 'Profile photo removed')
     } catch (err) {
       console.error('Photo delete:', err)
-      addToast('error', '⚠️ Failed to remove photo')
+      addToast('error', 'Failed to remove photo')
     }
     setUploadingPhoto(false)
   }
@@ -210,10 +234,10 @@ export default function ProfileSection() {
       setProfile((p) => ({ ...p, skills }))
       setLastUpdated(new Date())
       setEditing(null)
-      addToast('success', '✅ Skills saved!')
+      addToast('success', 'Skills saved!')
     } catch (e) {
       console.error('Save skills:', e)
-      addToast('error', '⚠️ Failed to save skills')
+      addToast('error', 'Failed to save skills')
     }
     setSaving(false)
   }
@@ -227,10 +251,10 @@ export default function ProfileSection() {
       await replaceProfile(updated)
       setLastUpdated(new Date())
       setEditing(null)
-      addToast('success', '✅ Profile updated!')
+      addToast('success', 'Profile updated!')
     } catch (e) {
       console.error('Save profile:', e)
-      addToast('error', '⚠️ Failed to save')
+      addToast('error', 'Failed to save')
     }
     setSaving(false)
   }
@@ -344,10 +368,10 @@ export default function ProfileSection() {
       setLastUpdated(new Date())
       setEducationModalOpen(false)
       setEducationModalEntry(null)
-      addToast('success', '✅ Education saved!')
+      addToast('success', 'Education saved!')
     } catch (e) {
       console.error('Save education:', e)
-      addToast('error', '⚠️ Failed to save education')
+      addToast('error', 'Failed to save education')
     }
     setSaving(false)
   }
@@ -362,10 +386,10 @@ export default function ProfileSection() {
       setProfile(updated)
       await replaceProfile(updated)
       setLastUpdated(new Date())
-      addToast('success', '✅ Education removed')
+      addToast('success', 'Education removed')
     } catch (e) {
       console.error('Delete education:', e)
-      addToast('error', '⚠️ Failed to remove education')
+      addToast('error', 'Failed to remove education')
     }
     setSaving(false)
   }
@@ -406,10 +430,10 @@ export default function ProfileSection() {
       setLastUpdated(new Date())
       setExperienceModalOpen(false)
       setExperienceModalEntry(null)
-      addToast('success', '✅ Experience saved!')
+      addToast('success', 'Experience saved!')
     } catch (e) {
       console.error('Save experience:', e)
-      addToast('error', '⚠️ Failed to save experience')
+      addToast('error', 'Failed to save experience')
     }
     setSaving(false)
   }
@@ -424,10 +448,10 @@ export default function ProfileSection() {
       setProfile(updated)
       await replaceProfile(updated)
       setLastUpdated(new Date())
-      addToast('success', '✅ Experience removed')
+      addToast('success', 'Experience removed')
     } catch (e) {
       console.error('Delete experience:', e)
-      addToast('error', '⚠️ Failed to remove experience')
+      addToast('error', 'Failed to remove experience')
     }
     setSaving(false)
   }
@@ -464,10 +488,10 @@ export default function ProfileSection() {
       setLastUpdated(new Date())
       setInternshipModalOpen(false)
       setInternshipModalEntry(null)
-      addToast('success', '✅ Internship saved!')
+      addToast('success', 'Internship saved!')
     } catch (e) {
       console.error('Save internship:', e)
-      addToast('error', '⚠️ Failed to save internship')
+      addToast('error', 'Failed to save internship')
     }
     setSaving(false)
   }
@@ -482,10 +506,10 @@ export default function ProfileSection() {
       setProfile(updated)
       await replaceProfile(updated)
       setLastUpdated(new Date())
-      addToast('success', '✅ Internship removed')
+      addToast('success', 'Internship removed')
     } catch (e) {
       console.error('Delete internship:', e)
-      addToast('error', '⚠️ Failed to remove internship')
+      addToast('error', 'Failed to remove internship')
     }
     setSaving(false)
   }
@@ -522,10 +546,10 @@ export default function ProfileSection() {
       setLastUpdated(new Date())
       setProjectModalOpen(false)
       setProjectModalEntry(null)
-      addToast('success', '✅ Project saved!')
+      addToast('success', 'Project saved!')
     } catch (e) {
       console.error('Save project:', e)
-      addToast('error', '⚠️ Failed to save project')
+      addToast('error', 'Failed to save project')
     }
     setSaving(false)
   }
@@ -540,10 +564,10 @@ export default function ProfileSection() {
       setProfile(updated)
       await replaceProfile(updated)
       setLastUpdated(new Date())
-      addToast('success', '✅ Project removed')
+      addToast('success', 'Project removed')
     } catch (e) {
       console.error('Delete project:', e)
-      addToast('error', '⚠️ Failed to remove project')
+      addToast('error', 'Failed to remove project')
     }
     setSaving(false)
   }
@@ -564,10 +588,10 @@ export default function ProfileSection() {
       setProfile(updated)
       await replaceProfile(updated)
       setLastUpdated(new Date())
-      addToast('success', nextFresher ? '🌱 Marked as fresher' : '✅ Ready to add experience')
+      addToast('success', nextFresher ? 'Marked as fresher' : 'Ready to add experience')
     } catch (e) {
       console.error('Set fresher:', e)
-      addToast('error', '⚠️ Failed to update')
+      addToast('error', 'Failed to update')
     }
     setSaving(false)
   }
@@ -603,673 +627,392 @@ export default function ProfileSection() {
   const certsEmpty = !certs.some((c) => c.name)
   const summaryEmpty = !summary && !headline
 
-  if (loading) return <Loader variant="section" />
+  if (loading) return <Loader variant="section" label="Loading profile…" />
 
   return (
     <>
-      {/* Naukri-style profile hero */}
-      <div className="mb-5 overflow-hidden rounded-2xl border border-[var(--color-bdr)] bg-[var(--color-surf)] px-5 py-5 sm:px-7 sm:py-6">
+      <div className="min-w-0 space-y-6">
+      <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-primary/5 to-emerald-500/5 py-0">
+        <CardContent className="px-5 py-5 sm:px-7 sm:py-6">
         <div className="flex flex-col items-start gap-5 sm:flex-row">
-          <div className="flex flex-col items-center gap-1.5 shrink-0">
-            <div
-              className="relative cursor-pointer"
-              style={{ width: 112, height: 112 }}
-              onClick={() => photoRef.current?.click()}
-              title="Change photo"
-            >
-              <input ref={photoRef} type="file" accept="image/*" onChange={handlePhotoUpload} style={{ display: 'none' }} />
-              <svg width="112" height="112" viewBox="0 0 112 112" className="absolute inset-0">
-                <circle cx="56" cy="56" r="50" fill="none" stroke="var(--color-bg3)" strokeWidth="5" />
-                <circle
-                  cx="56"
-                  cy="56"
-                  r="50"
-                  fill="none"
-                  stroke={profileScore >= 80 ? 'var(--color-grn)' : 'url(#pg1)'}
-                  strokeWidth="5"
-                  strokeLinecap="round"
-                  strokeDasharray="314.16"
-                  strokeDashoffset={314.16 - (314.16 * profileScore) / 100}
-                  transform="rotate(-90 56 56)"
-                  style={{ transition: 'stroke-dashoffset .6s ease' }}
-                />
-                <defs>
-                  <linearGradient id="pg1" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#388bfd" />
-                    <stop offset="50%" stopColor="#3fb950" />
-                    <stop offset="100%" stopColor="#bc8cff" />
-                  </linearGradient>
-                </defs>
-              </svg>
-              <div
-                className="absolute flex items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-[var(--color-blu)] to-[var(--color-grn)] text-3xl font-black text-white"
-                style={{ top: 10, left: 10, width: 92, height: 92 }}
-              >
-                {uploadingPhoto ? (
-                  <span className="text-[.9rem]">⏳</span>
-                ) : user?.photoURL ? (
-                  <img src={user.photoURL} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  name[0]?.toUpperCase()
-                )}
-              </div>
-              <div
-                className="absolute bottom-0 right-1 flex h-7 w-7 items-center justify-center rounded-full border-2 border-[var(--color-surf)] bg-[var(--color-blu)] text-xs"
-                title="Upload photo"
-              >
-                📷
-              </div>
-              {user?.photoURL && (
-                <button
-                  type="button"
-                  onClick={handlePhotoDelete}
-                  disabled={uploadingPhoto}
-                  className="absolute top-0 right-1 flex h-7 w-7 items-center justify-center rounded-full border-2 border-[var(--color-surf)] bg-[var(--color-red)] text-xs text-white transition-transform hover:scale-110 disabled:opacity-50"
-                  title="Remove photo"
-                  aria-label="Remove profile photo"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-            <div
-              className={`text-[0.78rem] font-extrabold tabular-nums ${
-                profileScore >= 80 ? 'text-[var(--color-grn)]' : 'text-[var(--color-blu2)]'
-              }`}
-            >
-              {profileScore}%
-            </div>
-          </div>
+          <ProfileAvatarBlock
+            name={name}
+            photoURL={user?.photoURL}
+            profileScore={profileScore}
+            uploadingPhoto={uploadingPhoto}
+            photoRef={photoRef}
+            onPickPhoto={() => photoRef.current?.click()}
+            onRemovePhoto={handlePhotoDelete}
+            onPhotoChange={handlePhotoUpload}
+          />
 
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 space-y-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
                 <h1
-                  className="flex flex-wrap items-center gap-2 text-[clamp(1.35rem,2.4vw,1.7rem)] font-black leading-tight tracking-[-0.01em] text-[var(--color-txt)]"
+                  className="flex flex-wrap items-center gap-2 text-xl font-bold tracking-tight text-foreground sm:text-2xl"
                   title="Name is set during onboarding and can’t be changed"
                 >
                   <span>{name}</span>
-                  <span
-                    aria-hidden
-                    className="inline-flex items-center rounded-md border border-[var(--color-bdr)] bg-[var(--color-bg3)] px-1.5 py-0.5 text-[0.6rem] font-bold uppercase tracking-[0.08em] text-[var(--color-muted)]"
-                  >
-                    🔒 locked
-                  </span>
+                  <Badge variant="outline" className="text-[0.65rem] font-semibold uppercase tracking-wide">
+                    <AppIcon name="lock" className="size-3" /> locked
+                  </Badge>
                 </h1>
-                {headline && (
-                  <div className="mt-0.5 text-[0.95rem] font-bold text-[var(--color-txt)]">
-                    {headline}
-                  </div>
-                )}
-                {currentRole && (
-                  <div className="mt-0.5 text-[0.92rem] font-semibold text-[var(--color-txt2)]">
-                    {currentRole}
-                  </div>
-                )}
-                {currentCompany && (
-                  <div className="text-[0.82rem] text-[var(--color-muted)]">
-                    at {currentCompany}
-                  </div>
-                )}
+                {headline && <p className="mt-1 text-base font-semibold text-foreground">{headline}</p>}
+                {currentRole && <p className="text-sm font-medium text-muted-foreground">{currentRole}</p>}
+                {currentCompany && <p className="text-sm text-muted-foreground">at {currentCompany}</p>}
                 {collegeName && (
-                  <div className="mt-1 inline-flex items-center gap-1.5 text-[0.78rem] text-[var(--color-txt2)]">
-                    <span aria-hidden>🎓</span>
-                    <span className="font-semibold">{degreeLine ? `${degreeLine} · ` : ''}{collegeName}{eduYearDisplay ? ` · Class of ${eduYearDisplay}` : ''}</span>
-                  </div>
+                  <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <AppIcon name="graduation" className="size-3.5 shrink-0" />
+                    <span className="font-medium">{degreeLine ? `${degreeLine} · ` : ''}{collegeName}{eduYearDisplay ? ` · Class of ${eduYearDisplay}` : ''}</span>
+                  </p>
                 )}
               </div>
               {lastUpdatedStr && (
-                <div className="text-[0.74rem] text-[var(--color-muted)] sm:text-right">
-                  Profile last updated · <span className="font-semibold text-[var(--color-txt2)]">{lastUpdatedStr}</span>
-                </div>
+                <p className="text-xs text-muted-foreground sm:text-right">
+                  Profile last updated · <span className="font-semibold">{lastUpdatedStr}</span>
+                </p>
               )}
             </div>
 
-            <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-2 border-t border-[var(--color-bdr)] pt-3 sm:grid-cols-2">
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Profile completion</span>
+                <span className={cn('font-bold tabular-nums', profileScore >= 80 ? 'text-emerald-500' : 'text-primary')}>{profileScore}%</span>
+              </div>
+              <Progress value={profileScore} className="gap-0 [&_[data-slot=progress-track]]:h-2" />
+            </div>
+
+            <div className="grid grid-cols-1 gap-x-6 gap-y-2 border-t border-border pt-3 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
-                <div className="flex items-center gap-2 text-[0.84rem] text-[var(--color-txt2)]">
-                  <span aria-hidden>📍</span>
-                  <span>{personal.location || <span className="text-[var(--color-muted)]">Add location</span>}</span>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <AppIcon name="map-pin" className="size-3.5 shrink-0" />
+                  <span>{personal.location || 'Add location'}</span>
                 </div>
-                <div className="flex items-center gap-2 text-[0.84rem] text-[var(--color-txt2)]">
-                  <span aria-hidden>💼</span>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <AppIcon name="jobs" className="size-3.5 shrink-0" />
                   <span>
                     {isFresher
                       ? 'Fresher'
                       : currentDuration || (experienceList.some(experienceEntryHasContent)
                         ? `${experienceList.filter(experienceEntryHasContent).length} role${experienceList.filter(experienceEntryHasContent).length > 1 ? 's' : ''}`
-                        : <span className="text-[var(--color-muted)]">Add experience</span>)}
+                        : 'Add experience')}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 text-[0.84rem] text-[var(--color-txt2)]">
-                  <span aria-hidden>💳</span>
-                  <span className={prefs.expectedCTC ? 'font-semibold text-[var(--color-txt)]' : ''}>
-                    {prefs.expectedCTC || <span className="text-[var(--color-muted)]">Add expected CTC</span>}
-                  </span>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <AppIcon name="credit-card" className="size-3.5 shrink-0" />
+                  <span className={prefs.expectedCTC ? 'font-semibold text-foreground' : ''}>{prefs.expectedCTC || 'Add expected CTC'}</span>
                 </div>
               </div>
               <div className="flex flex-col gap-1.5">
-                <div className="flex items-center gap-2 text-[0.84rem] text-[var(--color-txt2)]">
-                  <span aria-hidden>📞</span>
-                  <span>{personal.phone || <span className="text-[var(--color-muted)]">Add phone</span>}</span>
-                  {personal.phone && <span className="text-[var(--color-grn)]" title="Verified" aria-label="Verified">✓</span>}
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <AppIcon name="phone" className="size-3.5 shrink-0" />
+                  <span>{personal.phone || 'Add phone'}</span>
+                  {personal.phone && <span className="text-emerald-500" title="Verified">✓</span>}
                 </div>
-                <div className="flex items-center gap-2 text-[0.84rem] text-[var(--color-txt2)]">
-                  <span aria-hidden>✉️</span>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <AppIcon name="envelope" className="size-3.5 shrink-0" />
                   <span className="truncate">{user?.email || '—'}</span>
-                  {user?.email && <span className="text-[var(--color-grn)]" title="Verified" aria-label="Verified">✓</span>}
+                  {user?.email && <span className="text-emerald-500" title="Verified">✓</span>}
                 </div>
-                <div className="flex items-center gap-2 text-[0.84rem] text-[var(--color-txt2)]">
-                  <span aria-hidden>📅</span>
-                  <span>{prefs.noticePeriod ? `${prefs.noticePeriod} notice period` : <span className="text-[var(--color-muted)]">Add notice period</span>}</span>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <AppIcon name="calendar" className="size-3.5 shrink-0" />
+                  <span>{prefs.noticePeriod ? `${prefs.noticePeriod} notice period` : 'Add notice period'}</span>
                 </div>
               </div>
             </div>
 
             {profileScore < 100 && (
-              <div className="mt-3 rounded-xl border border-dashed border-[var(--color-bdr)] bg-[var(--color-bg3)] px-3 py-2 text-[0.78rem] text-[var(--color-txt2)]">
-                💡 Next: <span className="font-semibold text-[var(--color-txt)]">{nextTip}</span>
+              <div className="rounded-xl border border-dashed border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+                <AppIcon name="lightbulb" className="inline size-3.5" /> Next: <span className="font-semibold text-foreground">{nextTip}</span>
               </div>
             )}
           </div>
         </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
-        <aside className="hidden lg:block">
-          <div
-            className="sticky rounded-2xl border border-[var(--color-bdr)] bg-[var(--color-surf)] p-4"
-            style={{ top: 80 }}
-          >
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-[0.78rem] font-extrabold uppercase tracking-[0.1em] text-[var(--color-txt)]">
-                Quick links
-              </h3>
-            </div>
+      <div className={cn('grid gap-6', isLg ? 'grid-cols-[220px_minmax(0,1fr)]' : 'grid-cols-1')}>
+        {isLg && (
+        <aside>
+          <div className="sticky top-20 rounded-2xl border border-border bg-card p-4">
+            <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-foreground">Quick links</h3>
             <ul className="flex flex-col gap-0.5">
               {quickLinks.map((link) => (
                 <li key={link.id}>
                   <a
                     href={`#${link.id}`}
-                    className="group flex items-center justify-between rounded-lg px-2.5 py-1.5 text-[0.84rem] text-[var(--color-txt2)] transition-colors hover:bg-[var(--color-bg3)] hover:text-[var(--color-txt)]"
+                    className="flex items-center rounded-lg px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                   >
-                    <span>{link.label}</span>
+                    {link.label}
                   </a>
                 </li>
               ))}
             </ul>
           </div>
         </aside>
+        )}
 
-        <div className="flex flex-col gap-4 min-w-0">
-
-      {/* Personal Info Card */}
-      <div id="profile-personal" className="card scroll-mt-20">
-        <div className="ch">
-          <h3>🪪 Personal Information</h3>
-          {!personalEmpty && (
-            <button type="button" className="btn btn-gh btn-xs" onClick={() => startEdit('personal')}>Edit</button>
-          )}
-        </div>
-        <div className="cb">
+        <div className="flex min-w-0 flex-col gap-4">
+      <ProfileCard id="profile-personal" className="scroll-mt-20"
+        title="Personal Information" titleIcon="id-card"
+        action={!personalEmpty ? <Button variant="ghost" size="sm" onClick={() => startEdit('personal')}>Edit</Button> : null}
+      >
           {personalEmpty ? (
-            <div style={{ textAlign: 'center', padding: '16px 0' }}>
-              <div style={{ fontSize: '1.4rem', marginBottom: 6 }}>📋</div>
-              <div style={{ fontSize: '.8rem', color: 'var(--color-muted)', marginBottom: 10 }}>Add your personal details — phone, location, gender, languages</div>
-              <button className="btn btn-p btn-xs" onClick={() => startEdit('personal')}>+ Add Details</button>
-            </div>
+            <ProfileEmptyState
+              icon="applications"
+              message="Add your personal details — phone, location, gender, languages"
+              actionLabel="+ Add details"
+              onAction={() => startEdit('personal')}
+            />
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 16px' }}>
-              <div className="ir"><span className="ik">Phone</span><span className="iv">{personal.phone || '—'}</span></div>
-              <div className="ir"><span className="ik">Location</span><span className="iv">{personal.location || '—'}</span></div>
-              <div className="ir"><span className="ik">Gender</span><span className="iv">{personal.gender || '—'}</span></div>
-              <div className="ir"><span className="ik">Date of Birth</span><span className="iv">{personal.dob || '—'}</span></div>
-              <div className="ir" style={{ gridColumn: '1/-1' }}><span className="ik">Languages</span><span className="iv">{personalLanguagesDisplay || '—'}</span></div>
+            <div className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+              <ProfileFieldRow label="Phone">{personal.phone || '—'}</ProfileFieldRow>
+              <ProfileFieldRow label="Location">{personal.location || '—'}</ProfileFieldRow>
+              <ProfileFieldRow label="Gender">{personal.gender || '—'}</ProfileFieldRow>
+              <ProfileFieldRow label="Date of Birth">{personal.dob || '—'}</ProfileFieldRow>
+              <ProfileFieldRow label="Languages" className="sm:col-span-2">{personalLanguagesDisplay || '—'}</ProfileFieldRow>
             </div>
           )}
-        </div>
-      </div>
+      </ProfileCard>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <ProfileSectionGrid isWide={isLg}>
         {/* Education */}
-        <div id="profile-education" className="card scroll-mt-20">
-          <div className="ch">
-            <h3>📚 Education</h3>
-            {!educationEmpty && (
-              <button type="button" className="btn btn-p btn-xs" onClick={openAddEducation}>+ Add</button>
-            )}
-          </div>
-          <div className="cb">
+        <ProfileCard id="profile-education" className="scroll-mt-20"
+        title="Education" titleIcon="interview"
+        action={!educationEmpty ? <Button size="sm" onClick={openAddEducation}>+ Add</Button> : null}
+      >
             {educationEmpty ? (
-              <div style={{ textAlign: 'center', padding: '16px 0' }}>
-                <div style={{ fontSize: '1.4rem', marginBottom: 6 }}>🎓</div>
-                <div style={{ fontSize: '.8rem', color: 'var(--color-muted)', marginBottom: 10 }}>
-                  Add 10th, 12th, degree, masters — one qualification at a time
-                </div>
-                <button type="button" className="btn btn-p btn-xs" onClick={openAddEducation}>+ Add Education</button>
-              </div>
+              <ProfileEmptyState
+                icon="graduation"
+                message="Add 10th, 12th, degree, masters — one qualification at a time"
+                actionLabel="+ Add education"
+                onAction={openAddEducation}
+              />
             ) : (
               educationList.filter(educationEntryHasContent).map((entry, i, arr) => (
-                <div
+                <ProfileEntryBlock
                   key={entry.id}
-                  style={{
-                    paddingBottom: 12,
-                    marginBottom: 12,
-                    borderBottom: i < arr.length - 1 ? '1px solid var(--color-bdr)' : 'none',
-                  }}
+                  isLast={i >= arr.length - 1}
+                  actions={(
+                    <>
+                      <Button variant="ghost" size="sm" onClick={() => openEditEducation(entry)}>Edit</Button>
+                      <Button variant="ghost" size="sm" onClick={() => deleteEducationEntry(entry.id)} disabled={saving} aria-label="Remove"><AppIcon name="x" className="size-3.5" /></Button>
+                    </>
+                  )}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '.84rem', fontWeight: 800 }}>{educationEntryTitle(entry)}</div>
-                      {educationEntrySubtitle(entry) && (
-                        <div style={{ fontSize: '.76rem', color: 'var(--color-blu2)', marginTop: 2 }}>{educationEntrySubtitle(entry)}</div>
-                      )}
-                      {formatDateRange(entry.educationStart, entry.educationEnd, '') && (
-                        <div style={{ fontSize: '.72rem', color: 'var(--color-muted)', marginTop: 2 }}>
-                          {formatDateRange(entry.educationStart, entry.educationEnd, '')}
-                        </div>
-                      )}
-                      {entry.marks && (
-                        <div style={{ fontSize: '.72rem', color: 'var(--color-txt2)', marginTop: 4 }}>
-                          {entry.gradingSystem ? `${entry.gradingSystem}: ` : ''}{entry.marks}
-                        </div>
-                      )}
-                      {entry.primaryGraduation && (
-                        <span className="tag tb" style={{ marginTop: 6, fontSize: '.65rem' }}>Primary graduation</span>
-                      )}
-                    </div>
-                    <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                      <button type="button" className="btn btn-gh btn-xs" onClick={() => openEditEducation(entry)}>Edit</button>
-                      <button type="button" className="btn btn-gh btn-xs" onClick={() => deleteEducationEntry(entry.id)} disabled={saving}>✕</button>
-                    </div>
-                  </div>
-                </div>
+                  <p className="text-sm font-bold">{educationEntryTitle(entry)}</p>
+                  {educationEntrySubtitle(entry) && <p className="mt-0.5 text-xs text-primary">{educationEntrySubtitle(entry)}</p>}
+                  {formatDateRange(entry.educationStart, entry.educationEnd, '') && (
+                    <p className="mt-0.5 text-xs text-muted-foreground">{formatDateRange(entry.educationStart, entry.educationEnd, '')}</p>
+                  )}
+                  {entry.marks && (
+                    <p className="mt-1 text-xs text-foreground">{entry.gradingSystem ? `${entry.gradingSystem}: ` : ''}{entry.marks}</p>
+                  )}
+                  {entry.primaryGraduation && (
+                    <Badge variant="outline" className="mt-1.5 rounded-full border-primary/20 bg-primary/10 text-[0.65rem] text-primary">Primary graduation</Badge>
+                  )}
+                </ProfileEntryBlock>
               ))
             )}
-          </div>
-        </div>
+      </ProfileCard>
 
-        {/* Skills */}
-        <div id="profile-skills" className="card scroll-mt-20">
-          <div className="ch">
-            <h3>🛠️ Skills</h3>
-            {!skillsEmpty && (
-              <button type="button" className="btn btn-gh btn-xs" onClick={openSkillsEdit}>Edit</button>
-            )}
-          </div>
-          <div className="cb">
+        <ProfileCard id="profile-skills" className="scroll-mt-20"
+        title="Skills" titleIcon="wrench"
+        action={!skillsEmpty ? <Button variant="ghost" size="sm" onClick={openSkillsEdit}>Edit</Button> : null}
+      >
             {skillsEmpty ? (
-              <div style={{ textAlign: 'center', padding: '16px 0' }}>
-                <div style={{ fontSize: '1.4rem', marginBottom: 6 }}>🎯</div>
-                <div style={{ fontSize: '.8rem', color: 'var(--color-muted)', marginBottom: 10 }}>Add your technical & soft skills</div>
-                <button className="btn btn-p btn-xs" onClick={openSkillsEdit}>+ Add Skills</button>
-              </div>
+              <ProfileEmptyState icon="target" message="Add your technical & soft skills" actionLabel="+ Add skills" onAction={openSkillsEdit} />
             ) : (
-              <>
+              <div className="space-y-4">
                 {skillsTechnical.length > 0 && (
-                  <div style={{ marginBottom: 10 }}>
-                    <div style={{ fontSize: '.7rem', fontWeight: 700, color: 'var(--color-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '.5px' }}>Technical</div>
-                    <div className="flex flex-wrap gap-[6px]">{skillsTechnical.map(s => <span key={s} className="tag tb">{s}</span>)}</div>
-                  </div>
+                  <SkillGroup label="Technical">
+                    {skillsTechnical.map(s => (
+                      <Badge key={s} variant="outline" className="rounded-full border-primary/20 bg-primary/10 font-semibold text-primary">{s}</Badge>
+                    ))}
+                  </SkillGroup>
                 )}
                 {skillsSoft.length > 0 && (
-                  <div>
-                    <div style={{ fontSize: '.7rem', fontWeight: 700, color: 'var(--color-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '.5px' }}>Soft Skills</div>
-                    <div className="flex flex-wrap gap-[6px]">{skillsSoft.map(s => <span key={s} className="tag tg">{s}</span>)}</div>
-                  </div>
+                  <SkillGroup label="Soft skills" tone="emerald">
+                    {skillsSoft.map(s => (
+                      <Badge key={s} variant="outline" className="rounded-full border-emerald-500/20 bg-emerald-500/10 font-semibold text-emerald-600 dark:text-emerald-400">{s}</Badge>
+                    ))}
+                  </SkillGroup>
                 )}
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {/* Experience */}
-        <div id="profile-experience" className="card scroll-mt-20">
-          <div className="ch">
-            <h3>💼 Experience</h3>
-            {!isFresher && !experienceEmpty && (
-              <button type="button" className="btn btn-p btn-xs" onClick={openAddExperience}>+ Add</button>
-            )}
-          </div>
-          <div className="cb">
-            <label
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                padding: '10px 12px',
-                marginBottom: 12,
-                borderRadius: 10,
-                border: '1px solid var(--color-bdr)',
-                background: isFresher ? 'rgba(63,185,80,.08)' : 'var(--color-bg3)',
-                cursor: saving ? 'wait' : 'pointer',
-              }}
-              onClick={() => !saving && setFresherStatus(!isFresher)}
-            >
-              <div style={{
-                width: 18, height: 18, borderRadius: 4, border: '2px solid', flexShrink: 0,
-                borderColor: isFresher ? 'var(--color-grn)' : 'var(--color-bdr)',
-                background: isFresher ? 'var(--color-grn)' : 'transparent',
-                color: '#fff', fontSize: '.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>{isFresher ? '✓' : ''}</div>
-              <div>
-                <div style={{ fontSize: '.8rem', fontWeight: 700 }}>I&apos;m a fresher / recent graduate</div>
-                <div style={{ fontSize: '.7rem', color: 'var(--color-muted)' }}>No full-time work experience yet</div>
               </div>
-            </label>
+            )}
+      </ProfileCard>
+      </ProfileSectionGrid>
+
+      <ProfileSectionGrid isWide={isLg}>
+        {/* Experience */}
+        <ProfileCard id="profile-experience" className="scroll-mt-20"
+        title="Experience" titleIcon="jobs"
+        action={!isFresher && !experienceEmpty ? <Button size="sm" onClick={openAddExperience}>+ Add</Button> : null}
+      >
+            <FresherToggle isFresher={isFresher} saving={saving} onToggle={setFresherStatus} />
 
             {isFresher ? (
-              <div style={{ textAlign: 'center', padding: '8px 0 4px', fontSize: '.76rem', color: 'var(--color-muted)' }}>
-                Add internships and projects in the sections below.
-              </div>
+              <p className="py-2 text-center text-sm text-muted-foreground">Add internships and projects in the sections below.</p>
             ) : experienceEmpty ? (
-              <div style={{ textAlign: 'center', padding: '12px 0' }}>
-                <div style={{ fontSize: '1.4rem', marginBottom: 6 }}>💼</div>
-                <div style={{ fontSize: '.8rem', color: 'var(--color-muted)', marginBottom: 10 }}>
-                  Add each job one at a time — company, role, and dates
-                </div>
-                <button type="button" className="btn btn-p btn-xs" onClick={openAddExperience}>+ Add Experience</button>
-              </div>
+              <ProfileEmptyState icon="jobs" message="Add each job one at a time — company, role, and dates" actionLabel="+ Add experience" onAction={openAddExperience} />
             ) : (
               experienceList.filter(experienceEntryHasContent).map((entry, i, arr) => {
                 const preview = experienceEntryPreview(entry)
                 const hasDetails = experienceHasDetails(entry)
                 return (
-                  <div
+                  <ProfileEntryBlock
                     key={entry.id}
-                    style={{
-                      paddingBottom: 8,
-                      marginBottom: 8,
-                      borderBottom: i < arr.length - 1 ? '1px solid var(--color-bdr)' : 'none',
-                    }}
+                    isLast={i >= arr.length - 1}
+                    actions={(
+                      <>
+                        <Button variant="ghost" size="sm" onClick={() => openEditExperience(entry)}>Edit</Button>
+                        <Button variant="ghost" size="sm" onClick={() => deleteExperienceEntry(entry.id)} disabled={saving} aria-label="Remove"><AppIcon name="x" className="size-3.5" /></Button>
+                      </>
+                    )}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: '.84rem', fontWeight: 800, lineHeight: 1.3 }}>{entry.company}</div>
-                        <div style={{ fontSize: '.74rem', color: 'var(--color-blu2)', marginTop: 2, lineHeight: 1.35 }}>
-                          {experienceEntrySubtitle(entry)}
-                        </div>
-                        {preview && (
-                          <div
-                            style={{
-                              fontSize: '.72rem',
-                              color: 'var(--color-muted)',
-                              marginTop: 4,
-                              lineHeight: 1.4,
-                              overflow: 'hidden',
-                              display: '-webkit-box',
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: 'vertical',
-                            }}
-                          >
-                            {preview}
-                          </div>
-                        )}
-                        {hasDetails && (
-                          <button
-                            type="button"
-                            className="btn btn-gh btn-xs"
-                            style={{ marginTop: 6, padding: '2px 8px', fontSize: '.68rem' }}
-                            onClick={() => openViewExperience(entry)}
-                          >
-                            View details
-                          </button>
-                        )}
-                      </div>
-                      <div style={{ display: 'flex', gap: 4, flexShrink: 0, alignItems: 'flex-start' }}>
-                        <button type="button" className="btn btn-gh btn-xs" onClick={() => openEditExperience(entry)}>Edit</button>
-                        <button type="button" className="btn btn-gh btn-xs" onClick={() => deleteExperienceEntry(entry.id)} disabled={saving}>✕</button>
-                      </div>
-                    </div>
-                  </div>
+                    <p className="text-sm font-bold leading-snug">{entry.company}</p>
+                    <p className="mt-0.5 text-xs text-primary">{experienceEntrySubtitle(entry)}</p>
+                    {preview && <ProfilePreviewText>{preview}</ProfilePreviewText>}
+                    {hasDetails && (
+                      <Button variant="ghost" size="sm" className="mt-2 h-auto px-2 py-0.5 text-xs" onClick={() => openViewExperience(entry)}>View details</Button>
+                    )}
+                  </ProfileEntryBlock>
                 )
               })
             )}
-          </div>
-        </div>
+      </ProfileCard>
 
-        {/* Job Preferences & Salary */}
-        <div id="profile-preferences" className="card scroll-mt-20">
-          <div className="ch">
-            <h3>⚙️ Preferences & Salary</h3>
-            {!preferencesEmpty && (
-              <button type="button" className="btn btn-gh btn-xs" onClick={() => startEdit('preferences')}>Edit</button>
-            )}
-          </div>
-          <div className="cb">
+        <ProfileCard id="profile-preferences" className="scroll-mt-20"
+        title="Preferences & Salary" titleIcon="settings"
+        action={!preferencesEmpty ? <Button variant="ghost" size="sm" onClick={() => startEdit('preferences')}>Edit</Button> : null}
+      >
             {preferencesEmpty ? (
-              <div style={{ textAlign: 'center', padding: '16px 0' }}>
-                <div style={{ fontSize: '1.4rem', marginBottom: 6 }}>💰</div>
-                <div style={{ fontSize: '.8rem', color: 'var(--color-muted)', marginBottom: 10 }}>Set your job type, location & salary expectations</div>
-                <button className="btn btn-p btn-xs" onClick={() => startEdit('preferences')}>+ Set Preferences</button>
-              </div>
+              <ProfileEmptyState icon="salary" message="Set your job type, location & salary expectations" actionLabel="+ Set preferences" onAction={() => startEdit('preferences')} />
             ) : (
-              <>
-                <div className="ir"><span className="ik">Job Type</span><span className="iv">{prefs.jobType || '—'}</span></div>
-                <div className="ir"><span className="ik">Location</span><span className="iv">{(prefs.preferredLocations || []).join(', ') || '—'}</span></div>
-                <div className="ir"><span className="ik">Expected CTC</span><span className="iv" style={{ color: 'var(--color-grn)', fontWeight: 800 }}>{prefs.expectedCTC || '—'}</span></div>
-                <div className="ir"><span className="ik">Notice Period</span><span className="iv">{prefs.noticePeriod || '—'}</span></div>
-                <div className="ir"><span className="ik">LinkedIn</span><span className="iv">{links.linkedin ? <a href={links.linkedin} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-blu2)' }}>🔗 View</a> : '—'}</span></div>
-                <div className="ir"><span className="ik">GitHub</span><span className="iv">{links.github ? <a href={links.github} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-blu2)' }}>🔗 View</a> : '—'}</span></div>
-              </>
+              <div className="space-y-0">
+                <ProfileFieldRow label="Job Type">{prefs.jobType || '—'}</ProfileFieldRow>
+                <ProfileFieldRow label="Location">{(prefs.preferredLocations || []).join(', ') || '—'}</ProfileFieldRow>
+                <ProfileFieldRow label="Expected CTC"><span className="font-bold text-emerald-500">{prefs.expectedCTC || '—'}</span></ProfileFieldRow>
+                <ProfileFieldRow label="Notice Period">{prefs.noticePeriod || '—'}</ProfileFieldRow>
+                <ProfileFieldRow label="LinkedIn">{links.linkedin ? <a href={links.linkedin} target="_blank" rel="noopener noreferrer" className="text-primary"><AppIcon name="link" className="inline size-3" /> View</a> : '—'}</ProfileFieldRow>
+                <ProfileFieldRow label="GitHub">{links.github ? <a href={links.github} target="_blank" rel="noopener noreferrer" className="text-primary"><AppIcon name="link" className="inline size-3" /> View</a> : '—'}</ProfileFieldRow>
+              </div>
             )}
-          </div>
-        </div>
-      </div>
+      </ProfileCard>
+      </ProfileSectionGrid>
 
-      {/* Projects */}
-      <div id="profile-projects" className="card scroll-mt-20">
-        <div className="ch">
-          <h3>🚀 Projects</h3>
-          {!projectsEmpty && (
-            <button type="button" className="btn btn-p btn-xs" onClick={openAddProject}>+ Add</button>
-          )}
-        </div>
-        <div className="cb">
+      <ProfileCard id="profile-projects" className="scroll-mt-20"
+        title="Projects" titleIcon="rocket"
+        action={!projectsEmpty ? <Button size="sm" onClick={openAddProject}>+ Add</Button> : null}
+      >
           {projectsEmpty ? (
-            <div style={{ textAlign: 'center', padding: '16px 0' }}>
-              <div style={{ fontSize: '1.4rem', marginBottom: 6 }}>🚀</div>
-              <div style={{ fontSize: '.8rem', color: 'var(--color-muted)', marginBottom: 10 }}>Add your key projects — crucial for freshers</div>
-              <button type="button" className="btn btn-p btn-xs" onClick={openAddProject}>+ Add Project</button>
-            </div>
+            <ProfileEmptyState icon="rocket" message="Add your key projects — crucial for freshers" actionLabel="+ Add project" onAction={openAddProject} />
           ) : (
             projectList.filter(projectHasContent).map((entry, i, arr) => {
               const preview = projectEntryPreview(entry)
               const hasDetails = projectHasDetails(entry)
               const subtitle = projectEntrySubtitle(entry)
               return (
-                <div
+                <ProfileEntryBlock
                   key={entry.id}
-                  style={{
-                    paddingBottom: 8,
-                    marginBottom: 8,
-                    borderBottom: i < arr.length - 1 ? '1px solid var(--color-bdr)' : 'none',
-                  }}
+                  isLast={i >= arr.length - 1}
+                  actions={(
+                    <>
+                      <Button variant="ghost" size="sm" onClick={() => openEditProject(entry)}>Edit</Button>
+                      <Button variant="ghost" size="sm" onClick={() => deleteProjectEntry(entry.id)} disabled={saving} aria-label="Remove"><AppIcon name="x" className="size-3.5" /></Button>
+                    </>
+                  )}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ fontSize: '.84rem', fontWeight: 800, lineHeight: 1.3 }}>{entry.title}</span>
-                        {entry.url?.trim() && (
-                          <a href={entry.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '.68rem', color: 'var(--color-blu2)' }}>🔗</a>
-                        )}
-                      </div>
-                      {subtitle && (
-                        <div style={{ fontSize: '.74rem', color: 'var(--color-blu2)', marginTop: 2, lineHeight: 1.35 }}>{subtitle}</div>
-                      )}
-                      {preview && (
-                        <div
-                          style={{
-                            fontSize: '.72rem',
-                            color: 'var(--color-muted)',
-                            marginTop: 4,
-                            lineHeight: 1.4,
-                            overflow: 'hidden',
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                          }}
-                        >
-                          {preview}
-                        </div>
-                      )}
-                      {hasDetails && (
-                        <button
-                          type="button"
-                          className="btn btn-gh btn-xs"
-                          style={{ marginTop: 6, padding: '2px 8px', fontSize: '.68rem' }}
-                          onClick={() => openViewProject(entry)}
-                        >
-                          View details
-                        </button>
-                      )}
-                    </div>
-                    <div style={{ display: 'flex', gap: 4, flexShrink: 0, alignItems: 'flex-start' }}>
-                      <button type="button" className="btn btn-gh btn-xs" onClick={() => openEditProject(entry)}>Edit</button>
-                      <button type="button" className="btn btn-gh btn-xs" onClick={() => deleteProjectEntry(entry.id)} disabled={saving}>✕</button>
-                    </div>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-bold leading-snug">{entry.title}</p>
+                    {entry.url?.trim() && (
+                      <a href={entry.url} target="_blank" rel="noopener noreferrer" className="text-primary"><AppIcon name="link" className="size-3" /></a>
+                    )}
                   </div>
-                </div>
+                  {subtitle && <p className="mt-0.5 text-xs text-primary">{subtitle}</p>}
+                  {preview && <ProfilePreviewText>{preview}</ProfilePreviewText>}
+                  {hasDetails && (
+                    <Button variant="ghost" size="sm" className="mt-2 h-auto px-2 py-0.5 text-xs" onClick={() => openViewProject(entry)}>View details</Button>
+                  )}
+                </ProfileEntryBlock>
               )
             })
           )}
-        </div>
-      </div>
+      </ProfileCard>
 
-      {/* Internships + Certifications */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div id="profile-internships" className="card scroll-mt-20">
-          <div className="ch">
-            <h3>🎓 Internships</h3>
-            {!internshipsEmpty && (
-              <button type="button" className="btn btn-p btn-xs" onClick={openAddInternship}>+ Add</button>
-            )}
-          </div>
-          <div className="cb">
+      <ProfileSectionGrid isWide={isLg}>
+        <ProfileCard id="profile-internships" className="scroll-mt-20"
+        title="Internships" titleIcon="graduation"
+        action={!internshipsEmpty ? <Button size="sm" onClick={openAddInternship}>+ Add</Button> : null}
+      >
             {internshipsEmpty ? (
-              <div style={{ textAlign: 'center', padding: '16px 0' }}>
-                <div style={{ fontSize: '1.4rem', marginBottom: 6 }}>🏢</div>
-                <div style={{ fontSize: '.8rem', color: 'var(--color-muted)', marginBottom: 10 }}>Add your internship experiences</div>
-                <button type="button" className="btn btn-p btn-xs" onClick={openAddInternship}>+ Add Internship</button>
-              </div>
+              <ProfileEmptyState icon="buildings" message="Add your internship experiences" actionLabel="+ Add internship" onAction={openAddInternship} />
             ) : (
               internshipList.filter(internshipHasContent).map((entry, i, arr) => {
                 const preview = internshipEntryPreview(entry)
                 const hasDetails = internshipHasDetails(entry)
                 return (
-                  <div
+                  <ProfileEntryBlock
                     key={entry.id}
-                    style={{
-                      paddingBottom: 8,
-                      marginBottom: 8,
-                      borderBottom: i < arr.length - 1 ? '1px solid var(--color-bdr)' : 'none',
-                    }}
+                    isLast={i >= arr.length - 1}
+                    actions={(
+                      <>
+                        <Button variant="ghost" size="sm" onClick={() => openEditInternship(entry)}>Edit</Button>
+                        <Button variant="ghost" size="sm" onClick={() => deleteInternshipEntry(entry.id)} disabled={saving} aria-label="Remove"><AppIcon name="x" className="size-3.5" /></Button>
+                      </>
+                    )}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: '.84rem', fontWeight: 800, lineHeight: 1.3 }}>{entry.company}</div>
-                        <div style={{ fontSize: '.74rem', color: 'var(--color-blu2)', marginTop: 2, lineHeight: 1.35 }}>
-                          {internshipEntrySubtitle(entry)}
-                        </div>
-                        {preview && (
-                          <div
-                            style={{
-                              fontSize: '.72rem',
-                              color: 'var(--color-muted)',
-                              marginTop: 4,
-                              lineHeight: 1.4,
-                              overflow: 'hidden',
-                              display: '-webkit-box',
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: 'vertical',
-                            }}
-                          >
-                            {preview}
-                          </div>
-                        )}
-                        {hasDetails && (
-                          <button
-                            type="button"
-                            className="btn btn-gh btn-xs"
-                            style={{ marginTop: 6, padding: '2px 8px', fontSize: '.68rem' }}
-                            onClick={() => openViewInternship(entry)}
-                          >
-                            View details
-                          </button>
-                        )}
-                      </div>
-                      <div style={{ display: 'flex', gap: 4, flexShrink: 0, alignItems: 'flex-start' }}>
-                        <button type="button" className="btn btn-gh btn-xs" onClick={() => openEditInternship(entry)}>Edit</button>
-                        <button type="button" className="btn btn-gh btn-xs" onClick={() => deleteInternshipEntry(entry.id)} disabled={saving}>✕</button>
-                      </div>
-                    </div>
-                  </div>
+                    <p className="text-sm font-bold leading-snug">{entry.company}</p>
+                    <p className="mt-0.5 text-xs text-primary">{internshipEntrySubtitle(entry)}</p>
+                    {preview && <ProfilePreviewText>{preview}</ProfilePreviewText>}
+                    {hasDetails && (
+                      <Button variant="ghost" size="sm" className="mt-2 h-auto px-2 py-0.5 text-xs" onClick={() => openViewInternship(entry)}>View details</Button>
+                    )}
+                  </ProfileEntryBlock>
                 )
               })
             )}
-          </div>
-        </div>
+      </ProfileCard>
 
-        <div id="profile-certifications" className="card scroll-mt-20">
-          <div className="ch">
-            <h3>🏆 Certifications</h3>
-            {!certsEmpty && (
-              <button type="button" className="btn btn-gh btn-xs" onClick={() => startEdit('certifications')}>Edit</button>
-            )}
-          </div>
-          <div className="cb">
+        <ProfileCard id="profile-certifications" className="scroll-mt-20"
+        title="Certifications" titleIcon="trophy"
+        action={!certsEmpty ? <Button variant="ghost" size="sm" onClick={() => startEdit('certifications')}>Edit</Button> : null}
+      >
             {certsEmpty ? (
-              <div style={{ textAlign: 'center', padding: '16px 0' }}>
-                <div style={{ fontSize: '1.4rem', marginBottom: 6 }}>📜</div>
-                <div style={{ fontSize: '.8rem', color: 'var(--color-muted)', marginBottom: 10 }}>Add your certifications & courses</div>
-                <button className="btn btn-p btn-xs" onClick={() => startEdit('certifications')}>+ Add Certification</button>
-              </div>
+              <ProfileEmptyState icon="scroll" message="Add your certifications & courses" actionLabel="+ Add certification" onAction={() => startEdit('certifications')} />
             ) : (
-              certs.filter(c => c.name).map((c, idx) => (
-                <div key={c.id || idx} style={{ paddingBottom: 10, marginBottom: 10, borderBottom: idx < certs.filter(x => x.name).length - 1 ? '1px solid var(--color-bdr)' : 'none' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: '.84rem', fontWeight: 800 }}>{c.name}</span>
-                    {c.url && <a href={c.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '.68rem', color: 'var(--color-blu2)' }}>🔗</a>}
+              certs.filter(c => c.name).map((c, idx, arr) => (
+                <ProfileEntryBlock key={c.id || idx} isLast={idx >= arr.length - 1}>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-bold">{c.name}</p>
+                    {c.url && <a href={c.url} target="_blank" rel="noopener noreferrer" className="text-primary"><AppIcon name="link" className="size-3" /></a>}
                   </div>
-                  <div style={{ fontSize: '.76rem', color: 'var(--color-gold)' }}>{c.issuer}{c.year ? ` · ${formatYearOrMonthDisplay(c.year)}` : ''}</div>
-                </div>
+                  <p className="mt-0.5 text-xs text-amber-500">{c.issuer}{c.year ? ` · ${formatYearOrMonthDisplay(c.year)}` : ''}</p>
+                </ProfileEntryBlock>
               ))
             )}
-          </div>
-        </div>
-      </div>
+      </ProfileCard>
+      </ProfileSectionGrid>
 
-      {/* Summary */}
-      <div id="profile-summary" className="card scroll-mt-20">
-        <div className="ch">
-          <h3>📝 Professional Summary</h3>
-          {!summaryEmpty && (
-            <button type="button" className="btn btn-gh btn-xs" onClick={() => startEdit('summary')}>Edit</button>
-          )}
-        </div>
-        <div className="cb">
+      <ProfileCard id="profile-summary" className="scroll-mt-20"
+        title="Professional Summary" titleIcon="pencil"
+        action={!summaryEmpty ? <Button variant="ghost" size="sm" onClick={() => startEdit('summary')}>Edit</Button> : null}
+      >
           {summaryEmpty ? (
-            <div style={{ textAlign: 'center', padding: '16px 0' }}>
-              <div style={{ fontSize: '1.4rem', marginBottom: 6 }}>✍️</div>
-              <div style={{ fontSize: '.8rem', color: 'var(--color-muted)', marginBottom: 10 }}>Add a headline + 2–3 line summary for recruiters</div>
-              <button className="btn btn-p btn-xs" onClick={() => startEdit('summary')}>+ Add Summary</button>
-            </div>
+            <ProfileEmptyState icon="grammar-check" message="Add a headline + 2–3 line summary for recruiters" actionLabel="+ Add summary" onAction={() => startEdit('summary')} />
           ) : (
             <>
-              {headline && <p style={{ fontSize: '.92rem', fontWeight: 700, color: 'var(--color-txt)', marginBottom: 6 }}>{headline}</p>}
-              {summary && <p style={{ fontSize: '.84rem', color: 'var(--color-txt2)', lineHeight: 1.75 }}>{summary}</p>}
+              {headline && <p className="text-base font-semibold text-foreground">{headline}</p>}
+              {summary && <p className="mt-2 text-sm leading-relaxed text-foreground">{summary}</p>}
             </>
           )}
-        </div>
-      </div>
+      </ProfileCard>
 
-      {/* AI Profile Review */}
-      <div id="profile-ai-review" className="card scroll-mt-20" style={{ overflow: 'visible' }}>
-        <div className="ch">
-          <h3>🤖 AI Profile Review</h3>
-          <button className="btn btn-p btn-xs" disabled={reviewLoading} onClick={async () => {
+      <ProfileCard id="profile-ai-review" className="scroll-mt-20 overflow-visible"
+        title="AI Profile Review" titleIcon="robot"
+        action={(
+          <Button size="sm" disabled={reviewLoading} onClick={async () => {
             setReviewLoading(true)
             try {
               const data = await apiFetch('/ai/profile-review', {
@@ -1280,309 +1023,339 @@ export default function ProfileSection() {
               setProfile(updated)
               await replaceProfile(updated)
               setLastUpdated(new Date())
-              addToast('success', '✅ AI review ready!')
+              addToast('success', 'AI review ready!')
             } catch (err) {
               console.error('Profile review error:', err)
-              addToast('error', '⚠️ Failed to get AI review')
+              addToast('error', 'Failed to get AI review')
             }
             setReviewLoading(false)
           }}>
-            {reviewLoading ? '⏳ Analyzing…' : aiReview ? '🔄 Re-analyze' : '✨ Get AI Review'}
-          </button>
-        </div>
-        <div className="cb">
+            {reviewLoading ? 'Analyzing…' : aiReview ? 'Re-analyze' : 'Get AI Review'}
+          </Button>
+        )}
+      >
           {!aiReview && !reviewLoading && (
-            <div style={{ textAlign: 'center', padding: '20px 0' }}>
-              <div style={{ fontSize: '1.6rem', marginBottom: 6 }}>🤖</div>
-              <div style={{ fontSize: '.82rem', fontWeight: 700, color: 'var(--color-txt2)', marginBottom: 4 }}>Get AI-powered profile feedback</div>
-              <div style={{ fontSize: '.74rem', color: 'var(--color-muted)', maxWidth: 340, margin: '0 auto', lineHeight: 1.6 }}>
+            <div className="flex flex-col items-center gap-2 py-6 text-center">
+              <AppIcon name="robot" className="size-10 text-muted-foreground/60" />
+              <p className="text-sm font-semibold text-foreground">Get AI-powered profile feedback</p>
+              <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
                 Glowminds AI will analyze your profile and suggest skills to learn, areas to improve, and provide a polished summary you can copy.
-              </div>
+              </p>
             </div>
           )}
 
           {reviewLoading && (
-            <div style={{ textAlign: 'center', padding: '30px 0' }}>
-              <div style={{ fontSize: '1.6rem', marginBottom: 8 }}>🧠</div>
-              <div style={{ fontSize: '.82rem', fontWeight: 700, color: 'var(--color-txt2)' }}>Analyzing your profile…</div>
-              <div style={{ fontSize: '.72rem', color: 'var(--color-muted)', marginTop: 2 }}>This takes a few seconds</div>
+            <div className="flex flex-col items-center gap-2 py-8 text-center">
+              <AppIcon name="brain" className="size-10 text-muted-foreground/60" />
+              <p className="text-sm font-semibold text-foreground">Analyzing your profile…</p>
+              <p className="text-xs text-muted-foreground">This takes a few seconds</p>
             </div>
           )}
 
           {aiReview && !reviewLoading && (
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
-                <div style={{ width: 60, height: 60, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '1.1rem', fontWeight: 900, fontFamily: "'JetBrains Mono',monospace", flexShrink: 0,
-                  border: '3px solid', borderColor: aiReview.overallScore >= 70 ? 'var(--color-grn)' : aiReview.overallScore >= 50 ? 'var(--color-blu2)' : 'var(--color-gold)',
-                  color: aiReview.overallScore >= 70 ? 'var(--color-grn)' : aiReview.overallScore >= 50 ? 'var(--color-blu2)' : 'var(--color-gold)',
-                  background: aiReview.overallScore >= 70 ? 'rgba(46,160,67,.06)' : aiReview.overallScore >= 50 ? 'rgba(56,139,253,.06)' : 'rgba(210,168,67,.06)',
-                }}>{aiReview.overallScore}</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '.92rem', fontWeight: 800 }}>{aiReview.verdict}</div>
-                  <div style={{ fontSize: '.74rem', color: 'var(--color-muted)' }}>AI Profile Score</div>
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <AiScoreBadge score={aiReview.overallScore} />
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold text-foreground">{aiReview.verdict}</p>
+                  <p className="text-sm text-muted-foreground">AI Profile Score</p>
                   {aiReview.lastReviewedAt && (
-                    <div style={{ fontSize: '.64rem', color: 'var(--color-muted)', marginTop: 2 }}>
+                    <p className="mt-1 text-xs text-muted-foreground">
                       Last reviewed: {new Date(aiReview.lastReviewedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                    </div>
+                    </p>
                   )}
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {aiReview.strengths?.length > 0 && (
-                  <div style={{ background: 'rgba(46,160,67,.05)', border: '1px solid rgba(46,160,67,.15)', borderRadius: 9, padding: 11 }}>
-                    <div style={{ fontSize: '.68rem', fontWeight: 800, color: 'var(--color-grn)', textTransform: 'uppercase', letterSpacing: '.6px', marginBottom: 6 }}>✅ Strengths</div>
+                  <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
+                    <p className="mb-2 text-xs font-bold uppercase tracking-wide text-emerald-500"><AppIcon name="check-circle" className="inline size-3" /> Strengths</p>
                     {aiReview.strengths.map((s, i) => (
-                      <div key={i} style={{ fontSize: '.74rem', color: 'var(--color-txt2)', padding: '2px 0', lineHeight: 1.5 }}>• {s}</div>
+                      <p key={i} className="py-0.5 text-sm leading-relaxed text-foreground">• {s}</p>
                     ))}
                   </div>
                 )}
                 {aiReview.weaknesses?.length > 0 && (
-                  <div style={{ background: 'rgba(210,168,67,.05)', border: '1px solid rgba(210,168,67,.15)', borderRadius: 9, padding: 11 }}>
-                    <div style={{ fontSize: '.68rem', fontWeight: 800, color: 'var(--color-gold)', textTransform: 'uppercase', letterSpacing: '.6px', marginBottom: 6 }}>⚠️ Areas to Improve</div>
+                  <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3">
+                    <p className="mb-2 text-xs font-bold uppercase tracking-wide text-amber-500"><AppIcon name="warning" className="inline size-3" /> Areas to improve</p>
                     {aiReview.weaknesses.map((w, i) => (
-                      <div key={i} style={{ fontSize: '.74rem', color: 'var(--color-txt2)', padding: '2px 0', lineHeight: 1.5 }}>• {w}</div>
+                      <p key={i} className="py-0.5 text-sm leading-relaxed text-foreground">• {w}</p>
                     ))}
                   </div>
                 )}
               </div>
 
               {aiReview.skillSuggestions?.length > 0 && (
-                <div style={{ marginBottom: 14 }}>
-                  <div style={{ fontSize: '.68rem', fontWeight: 800, color: 'var(--color-blu2)', textTransform: 'uppercase', letterSpacing: '.6px', marginBottom: 6 }}>💡 Recommended Skills</div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                <div>
+                  <p className="mb-2 text-xs font-bold uppercase tracking-wide text-primary"><AppIcon name="lightbulb" className="inline size-3" /> Recommended skills</p>
+                  <div className="flex flex-wrap gap-1.5">
                     {aiReview.skillSuggestions.map((s, i) => (
-                      <div key={i} style={{ padding: '5px 10px', borderRadius: 7, fontSize: '.72rem', fontWeight: 600,
-                        background: s.priority === 'high' ? 'rgba(56,139,253,.1)' : 'rgba(139,148,158,.08)',
-                        border: `1px solid ${s.priority === 'high' ? 'rgba(56,139,253,.25)' : 'var(--color-bdr)'}`,
-                        color: s.priority === 'high' ? 'var(--color-blu2)' : 'var(--color-txt2)',
-                      }} title={s.reason}>
+                      <Badge
+                        key={i}
+                        variant="outline"
+                        className={cn(
+                          'rounded-lg text-xs font-semibold',
+                          s.priority === 'high'
+                            ? 'border-primary/25 bg-primary/10 text-primary'
+                            : 'border-border bg-muted/50 text-muted-foreground',
+                        )}
+                        title={s.reason}
+                      >
                         {s.skill}
-                        {s.priority === 'high' && <span style={{ marginLeft: 4, fontSize: '.6rem' }}>🔥</span>}
-                      </div>
+                        {s.priority === 'high' && <AppIcon name="fire" className="ms-1 inline size-3" />}
+                      </Badge>
                     ))}
                   </div>
                 </div>
               )}
 
               {aiReview.tips?.length > 0 && (
-                <div style={{ marginBottom: 14 }}>
-                  <div style={{ fontSize: '.68rem', fontWeight: 800, color: 'var(--color-prp)', textTransform: 'uppercase', letterSpacing: '.6px', marginBottom: 6 }}>🎯 Action Items</div>
-                  {aiReview.tips.map((t, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '6px 0', borderBottom: i < aiReview.tips.length - 1 ? '1px solid var(--color-bdr)' : 'none' }}>
-                      <span style={{ fontSize: '.6rem', fontWeight: 800, padding: '2px 6px', borderRadius: 4, flexShrink: 0, marginTop: 1,
-                        background: t.impact === 'high' ? 'rgba(56,139,253,.12)' : t.impact === 'medium' ? 'rgba(210,168,67,.12)' : 'rgba(139,148,158,.1)',
-                        color: t.impact === 'high' ? 'var(--color-blu2)' : t.impact === 'medium' ? 'var(--color-gold)' : 'var(--color-muted)',
-                      }}>{t.category}</span>
-                      <span style={{ fontSize: '.76rem', color: 'var(--color-txt2)', lineHeight: 1.5 }}>{t.tip}</span>
-                    </div>
-                  ))}
+                <div>
+                  <p className="mb-2 text-xs font-bold uppercase tracking-wide text-purple-500"><AppIcon name="target" className="inline size-3" /> Action items</p>
+                  <div className="divide-y divide-border rounded-xl border border-border">
+                    {aiReview.tips.map((t, i) => (
+                      <div key={i} className="flex items-start gap-2 px-3 py-2">
+                        <Badge variant="outline" className={cn(
+                          'shrink-0 text-[0.65rem] uppercase',
+                          t.impact === 'high' ? 'border-primary/25 bg-primary/10 text-primary' : t.impact === 'medium' ? 'border-amber-500/25 bg-amber-500/10 text-amber-500' : 'text-muted-foreground',
+                        )}>{t.category}</Badge>
+                        <span className="text-sm leading-relaxed text-foreground">{t.tip}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
               {aiReview.summaryDraft && (
-                <div style={{ background: 'var(--color-bg3)', border: '1px solid var(--color-bdr)', borderRadius: 9, padding: 12 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <div style={{ fontSize: '.68rem', fontWeight: 800, color: 'var(--color-grn)', textTransform: 'uppercase', letterSpacing: '.6px' }}>✍️ Suggested Summary</div>
-                    <button className="btn btn-gh btn-xs" onClick={() => { navigator.clipboard.writeText(aiReview.summaryDraft); addToast('success', '📋 Summary copied!') }}>Copy</button>
+                <div className="rounded-xl border border-border bg-muted/50 p-3">
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <p className="text-xs font-bold uppercase tracking-wide text-emerald-500"><AppIcon name="grammar-check" className="inline size-3" /> Suggested summary</p>
+                    <Button variant="ghost" size="sm" onClick={() => { navigator.clipboard.writeText(aiReview.summaryDraft); addToast('success', 'Summary copied!') }}>Copy</Button>
                   </div>
-                  <div style={{ fontSize: '.8rem', color: 'var(--color-txt2)', lineHeight: 1.7, fontStyle: 'italic' }}>"{aiReview.summaryDraft}"</div>
+                  <p className="text-sm italic leading-relaxed text-foreground">&ldquo;{aiReview.summaryDraft}&rdquo;</p>
                 </div>
               )}
             </div>
           )}
-        </div>
-      </div>
+      </ProfileCard>
 
         </div>
       </div>
+      </div>
 
-      {/* ===== EDIT MODALS (rendered via portal) ===== */}
-      {createPortal(
-        <>
-      {editing === 'personal' && (
-        <div className="mb on" onClick={e => e.target === e.currentTarget && setEditing(null)}>
-          <div className="mo">
-            <div className="mh"><h2>🪪 Personal Information</h2><div className="mx" onClick={() => setEditing(null)}>✕</div></div>
-            <div className="mb2 flex flex-col gap-3">
-              <div className="fg2">
-                <div className="fg"><label className="fl">Phone</label><input className="fi" placeholder="+91 98765 43210" value={form.phone || ''} onChange={e => setForm({ ...form, phone: e.target.value })} /></div>
-                <div className="fg"><label className="fl">Location</label><input className="fi" placeholder="Bangalore, India" value={form.location || ''} onChange={e => setForm({ ...form, location: e.target.value })} /></div>
-              </div>
-              <div className="fg2">
-                <div className="fg"><label className="fl">Gender</label>
-                  <select className="fsl" value={form.gender || ''} onChange={e => setForm({ ...form, gender: e.target.value })}>
-                    <option value="">Select…</option><option value="male">Male</option><option value="female">Female</option><option value="non-binary">Non-binary</option><option value="prefer-not-to-say">Prefer not to say</option>
-                  </select>
-                </div>
-                <div className="fg"><label className="fl">Date of Birth</label><input className="fi" type="date" value={form.dob || ''} onChange={e => setForm({ ...form, dob: e.target.value })} /></div>
-              </div>
-              <div className="fg"><label className="fl">Languages (comma-separated)</label><input className="fi" placeholder="English, Hindi, Telugu…" value={form.languages || ''} onChange={e => setForm({ ...form, languages: e.target.value })} /></div>
+      <AppDialog
+        open={editing === 'personal'}
+        onOpenChange={(v) => !v && setEditing(null)}
+        title="Personal Information" titleIcon="id-card"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setEditing(null)}>Cancel</Button>
+            <Button  disabled={saving} onClick={() => saveSection({
+              personal: {
+                phone: form.phone || '', location: form.location || '', gender: form.gender || '', dob: form.dob || '',
+                languages: fromCsv(form.languages),
+              },
+            })}>{saving ? 'Saving…' : 'Save'}</Button>
+          </>
+        }
+      >
+        <FormRow>
+          <FormField label="Phone">
+            <Input placeholder="+91 98765 43210" value={form.phone || ''} onChange={e => setForm({ ...form, phone: e.target.value })} />
+          </FormField>
+          <FormField label="Location">
+            <Input placeholder="Bangalore, India" value={form.location || ''} onChange={e => setForm({ ...form, location: e.target.value })} />
+          </FormField>
+        </FormRow>
+        <FormRow>
+          <FormField label="Gender">
+            <Select value={form.gender || ''} onChange={e => setForm({ ...form, gender: e.target.value })}>
+              <option value="">Select…</option><option value="male">Male</option><option value="female">Female</option><option value="non-binary">Non-binary</option><option value="prefer-not-to-say">Prefer not to say</option>
+            </Select>
+          </FormField>
+          <FormField label="Date of Birth">
+            <Input type="date" value={form.dob || ''} onChange={e => setForm({ ...form, dob: e.target.value })} />
+          </FormField>
+        </FormRow>
+        <FormField label="Languages (comma-separated)">
+          <Input placeholder="English, Hindi, Telugu…" value={form.languages || ''} onChange={e => setForm({ ...form, languages: e.target.value })} />
+        </FormField>
+      </AppDialog>
+
+      <AppDialog
+        open={editing === 'skills'}
+        onOpenChange={(v) => !v && setEditing(null)}
+        title="Edit Skills" titleIcon="wrench"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setEditing(null)}>Cancel</Button>
+            <Button  disabled={saving} onClick={saveSkills}>{saving ? 'Saving…' : 'Save Skills'}</Button>
+          </>
+        }
+      >
+        <FormField label="Technical Skills">
+          <div className="flex flex-wrap gap-[6px] mb-2">
+            {skillsDraft.technical.map((s) => (
+              <Badge
+                key={s}
+                variant="outline"
+                className="cursor-pointer rounded-full font-semibold border-primary/20 bg-primary/10 text-primary"
+                onClick={() => setSkillsDraft((d) => ({ ...d, technical: d.technical.filter((x) => x !== s) }))}
+              >
+                {s} ✕
+              </Badge>
+            ))}
+          </div>
+          <div className="flex gap-1.5">
+            <Input
+              placeholder="e.g. React, Python, AWS…"
+              value={skillInput}
+              onChange={e => setSkillInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && skillInput.trim()) { e.preventDefault(); const v = skillInput.trim(); setSkillsDraft((d) => ({ ...d, technical: d.technical.includes(v) ? d.technical : [...d.technical, v] })); setSkillInput('') } }}
+            />
+            <Button size="sm" type="button" onClick={() => { if (skillInput.trim()) { const v = skillInput.trim(); setSkillsDraft((d) => ({ ...d, technical: d.technical.includes(v) ? d.technical : [...d.technical, v] })); setSkillInput('') } }}>Add</Button>
+          </div>
+        </FormField>
+        <FormField label="Soft Skills">
+          <div className="flex flex-wrap gap-[6px] mb-2">
+            {skillsDraft.soft.map((s) => (
+              <Badge
+                key={s}
+                variant="outline"
+                className="cursor-pointer rounded-full font-semibold border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                onClick={() => setSkillsDraft((d) => ({ ...d, soft: d.soft.filter((x) => x !== s) }))}
+              >
+                {s} ✕
+              </Badge>
+            ))}
+          </div>
+          <div className="flex gap-1.5">
+            <Input
+              placeholder="e.g. Leadership, Communication…"
+              value={softSkillInput}
+              onChange={e => setSoftSkillInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && softSkillInput.trim()) { e.preventDefault(); const v = softSkillInput.trim(); setSkillsDraft((d) => ({ ...d, soft: d.soft.includes(v) ? d.soft : [...d.soft, v] })); setSoftSkillInput('') } }}
+            />
+            <Button size="sm" type="button" onClick={() => { if (softSkillInput.trim()) { const v = softSkillInput.trim(); setSkillsDraft((d) => ({ ...d, soft: d.soft.includes(v) ? d.soft : [...d.soft, v] })); setSoftSkillInput('') } }}>Add</Button>
+          </div>
+        </FormField>
+      </AppDialog>
+
+      <AppDialog
+        open={editing === 'certifications'}
+        onOpenChange={(v) => !v && setEditing(null)}
+        title="Edit Certifications" titleIcon="trophy"
+        size="lg"
+        contentClassName="max-h-[400px] gap-4 overflow-auto"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setEditing(null)}>Cancel</Button>
+            <Button  disabled={saving} onClick={() => saveSection({
+              certifications: (form.certifications || []).filter(c => c.name).map(c => ({ id: c.id || uid(), name: c.name || '', issuer: c.issuer || '', year: c.year || '', url: c.url || '' })),
+            })}>{saving ? 'Saving…' : 'Save'}</Button>
+          </>
+        }
+      >
+        {(form.certifications || []).map((cert, i) => (
+          <div key={cert.id || i} className="rounded-xl border border-border bg-muted p-3.5">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-sm font-semibold">Certification {i + 1}</span>
+              {(form.certifications || []).length > 1 && (
+                <Button variant="ghost" size="sm" className="h-auto px-0 text-xs"
+                  onClick={() => setForm(f => ({ ...f, certifications: f.certifications.filter((_, j) => j !== i) }))}>Remove</Button>
+              )}
             </div>
-            <div className="mf">
-              <button className="btn btn-gh" onClick={() => setEditing(null)}>Cancel</button>
-              <button className="btn btn-p" disabled={saving} onClick={() => saveSection({
-                personal: {
-                  phone: form.phone || '', location: form.location || '', gender: form.gender || '', dob: form.dob || '',
-                  languages: fromCsv(form.languages),
-                },
-              })}>{saving ? 'Saving…' : 'Save'}</button>
+            <div className="flex flex-col gap-2.5">
+              <FormField label="Certification Name *">
+                <Input placeholder="AWS Cloud Practitioner" value={cert.name} onChange={e => { const u = [...form.certifications]; u[i] = { ...u[i], name: e.target.value }; setForm({ ...form, certifications: u }) }} />
+              </FormField>
+              <FormRow>
+                <FormField label="Issuer *">
+                  <Input placeholder="Amazon, Google, Coursera…" value={cert.issuer} onChange={e => { const u = [...form.certifications]; u[i] = { ...u[i], issuer: e.target.value }; setForm({ ...form, certifications: u }) }} />
+                </FormField>
+                <FormField label="Month / Year">
+                  <Input type="month" value={toMonthInputValue(cert.year)} onChange={e => { const u = [...form.certifications]; u[i] = { ...u[i], year: e.target.value ? e.target.value.slice(0, 7) : '' }; setForm({ ...form, certifications: u }) }} />
+                </FormField>
+              </FormRow>
+              <FormField label="Certificate URL (optional)">
+                <Input placeholder="https://credential.net/…" value={cert.url} onChange={e => { const u = [...form.certifications]; u[i] = { ...u[i], url: e.target.value }; setForm({ ...form, certifications: u }) }} />
+              </FormField>
             </div>
           </div>
-        </div>
-      )}
+        ))}
+        <Button variant="outline" size="sm" onClick={() => setForm(f => ({ ...f, certifications: [...(f.certifications || []), { id: uid(), name: '', issuer: '', year: '', url: '' }] }))}>+ Add Another Certification</Button>
+      </AppDialog>
 
-      {/* Skills Edit */}
-      {editing === 'skills' && (
-        <div className="mb on" onClick={e => e.target === e.currentTarget && setEditing(null)}>
-          <div className="mo">
-            <div className="mh"><h2>🛠️ Edit Skills</h2><div className="mx" onClick={() => setEditing(null)}>✕</div></div>
-            <div className="mb2 flex flex-col gap-3">
-              <div className="fg">
-                <label className="fl">Technical Skills</label>
-                <div className="flex flex-wrap gap-[6px] mb-2">
-                  {skillsDraft.technical.map((s) => (
-                    <span key={s} className="tag tb" style={{ cursor: 'pointer' }} onClick={() => {
-                      setSkillsDraft((d) => ({ ...d, technical: d.technical.filter((x) => x !== s) }))
-                    }}>
-                      {s} ✕
-                    </span>
-                  ))}
-                </div>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <input className="fi" placeholder="e.g. React, Python, AWS…" value={skillInput} onChange={e => setSkillInput(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter' && skillInput.trim()) { e.preventDefault(); const v = skillInput.trim(); setSkillsDraft((d) => ({ ...d, technical: d.technical.includes(v) ? d.technical : [...d.technical, v] })); setSkillInput('') } }} />
-                  <button className="btn btn-p btn-sm" type="button" onClick={() => { if (skillInput.trim()) { const v = skillInput.trim(); setSkillsDraft((d) => ({ ...d, technical: d.technical.includes(v) ? d.technical : [...d.technical, v] })); setSkillInput('') } }}>Add</button>
-                </div>
-              </div>
-              <div className="fg">
-                <label className="fl">Soft Skills</label>
-                <div className="flex flex-wrap gap-[6px] mb-2">
-                  {skillsDraft.soft.map((s) => (
-                    <span key={s} className="tag tg" style={{ cursor: 'pointer' }} onClick={() => {
-                      setSkillsDraft((d) => ({ ...d, soft: d.soft.filter((x) => x !== s) }))
-                    }}>
-                      {s} ✕
-                    </span>
-                  ))}
-                </div>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <input className="fi" placeholder="e.g. Leadership, Communication…" value={softSkillInput} onChange={e => setSoftSkillInput(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter' && softSkillInput.trim()) { e.preventDefault(); const v = softSkillInput.trim(); setSkillsDraft((d) => ({ ...d, soft: d.soft.includes(v) ? d.soft : [...d.soft, v] })); setSoftSkillInput('') } }} />
-                  <button className="btn btn-p btn-sm" type="button" onClick={() => { if (softSkillInput.trim()) { const v = softSkillInput.trim(); setSkillsDraft((d) => ({ ...d, soft: d.soft.includes(v) ? d.soft : [...d.soft, v] })); setSoftSkillInput('') } }}>Add</button>
-                </div>
-              </div>
-            </div>
-            <div className="mf">
-              <button className="btn btn-gh" onClick={() => setEditing(null)}>Cancel</button>
-              <button className="btn btn-p" disabled={saving} onClick={saveSkills}>{saving ? 'Saving…' : 'Save Skills'}</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AppDialog
+        open={editing === 'preferences'}
+        onOpenChange={(v) => !v && setEditing(null)}
+        title="Preferences & Salary" titleIcon="settings"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setEditing(null)}>Cancel</Button>
+            <Button  disabled={saving} onClick={() => saveSection({
+              preferences: {
+                jobType: form.jobType || '',
+                preferredLocations: fromCsv(form.location),
+                expectedCTC: form.expectedCTC || '',
+                noticePeriod: form.noticePeriod || '',
+              },
+              links: {
+                ...(profile.links || {}),
+                linkedin: form.linkedin || '',
+                github: form.github || '',
+                portfolio: form.portfolio || '',
+              },
+            })}>{saving ? 'Saving…' : 'Save'}</Button>
+          </>
+        }
+      >
+        <FormField label="Job Type *">
+          <Select value={form.jobType || ''} onChange={e => setForm({ ...form, jobType: e.target.value })}>
+            <option value="">Select…</option><option>Full-time</option><option>Internship</option><option>Full-time / Internship</option><option>Contract</option><option>Part-time</option><option>Freelance</option>
+          </Select>
+        </FormField>
+        <FormField label="Preferred Locations (comma-separated) *">
+          <Input placeholder="Bangalore, Remote, Hyderabad…" value={form.location || ''} onChange={e => setForm({ ...form, location: e.target.value })} />
+        </FormField>
+        <FormField label="Expected CTC / Salary *">
+          <Input placeholder="6–12 LPA or $80K–$120K" value={form.expectedCTC || ''} onChange={e => setForm({ ...form, expectedCTC: e.target.value })} />
+        </FormField>
+        <FormField label="Notice Period">
+          <Select value={form.noticePeriod || ''} onChange={e => setForm({ ...form, noticePeriod: e.target.value })}>
+            <option value="">Select…</option><option>Immediate</option><option>15 days</option><option>30 days</option><option>60 days</option><option>90 days</option>
+          </Select>
+        </FormField>
+        <FormField label="LinkedIn URL">
+          <Input placeholder="https://linkedin.com/in/yourname" value={form.linkedin || ''} onChange={e => setForm({ ...form, linkedin: e.target.value })} />
+        </FormField>
+        <FormField label="GitHub URL">
+          <Input placeholder="https://github.com/yourname" value={form.github || ''} onChange={e => setForm({ ...form, github: e.target.value })} />
+        </FormField>
+        <FormField label="Portfolio URL">
+          <Input placeholder="https://yourname.dev" value={form.portfolio || ''} onChange={e => setForm({ ...form, portfolio: e.target.value })} />
+        </FormField>
+      </AppDialog>
 
-      {/* Certifications Edit */}
-      {editing === 'certifications' && (
-        <div className="mb on" onClick={e => e.target === e.currentTarget && setEditing(null)}>
-          <div className="mo mo-lg">
-            <div className="mh"><h2>🏆 Edit Certifications</h2><div className="mx" onClick={() => setEditing(null)}>✕</div></div>
-            <div className="mb2 flex flex-col gap-4" style={{ maxHeight: 400, overflow: 'auto' }}>
-              {(form.certifications || []).map((cert, i) => (
-                <div key={cert.id || i} style={{ padding: 14, borderRadius: 10, border: '1px solid var(--color-bdr)', background: 'var(--color-bg3)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <span style={{ fontSize: '.76rem', fontWeight: 700 }}>Certification {i + 1}</span>
-                    {(form.certifications || []).length > 1 && (
-                      <button style={{ fontSize: '.7rem', color: 'var(--color-muted)', cursor: 'pointer', background: 'none', border: 'none' }}
-                        onClick={() => setForm(f => ({ ...f, certifications: f.certifications.filter((_, j) => j !== i) }))}>Remove</button>
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-2.5">
-                    <div className="fg"><label className="fl">Certification Name *</label><input className="fi" placeholder="AWS Cloud Practitioner" value={cert.name} onChange={e => { const u = [...form.certifications]; u[i] = { ...u[i], name: e.target.value }; setForm({ ...form, certifications: u }) }} /></div>
-                    <div className="fg2">
-                      <div className="fg"><label className="fl">Issuer *</label><input className="fi" placeholder="Amazon, Google, Coursera…" value={cert.issuer} onChange={e => { const u = [...form.certifications]; u[i] = { ...u[i], issuer: e.target.value }; setForm({ ...form, certifications: u }) }} /></div>
-                      <div className="fg"><label className="fl">Month / Year</label><input className="fi" type="month" value={toMonthInputValue(cert.year)} onChange={e => { const u = [...form.certifications]; u[i] = { ...u[i], year: e.target.value ? e.target.value.slice(0, 7) : '' }; setForm({ ...form, certifications: u }) }} /></div>
-                    </div>
-                    <div className="fg"><label className="fl">Certificate URL (optional)</label><input className="fi" placeholder="https://credential.net/…" value={cert.url} onChange={e => { const u = [...form.certifications]; u[i] = { ...u[i], url: e.target.value }; setForm({ ...form, certifications: u }) }} /></div>
-                  </div>
-                </div>
-              ))}
-              <button className="btn btn-o btn-sm" onClick={() => setForm(f => ({ ...f, certifications: [...(f.certifications || []), { id: uid(), name: '', issuer: '', year: '', url: '' }] }))}>+ Add Another Certification</button>
-            </div>
-            <div className="mf">
-              <button className="btn btn-gh" onClick={() => setEditing(null)}>Cancel</button>
-              <button className="btn btn-p" disabled={saving} onClick={() => saveSection({
-                certifications: (form.certifications || []).filter(c => c.name).map(c => ({ id: c.id || uid(), name: c.name || '', issuer: c.issuer || '', year: c.year || '', url: c.url || '' })),
-              })}>{saving ? 'Saving…' : 'Save'}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Preferences Edit */}
-      {editing === 'preferences' && (
-        <div className="mb on" onClick={e => e.target === e.currentTarget && setEditing(null)}>
-          <div className="mo">
-            <div className="mh"><h2>⚙️ Preferences & Salary</h2><div className="mx" onClick={() => setEditing(null)}>✕</div></div>
-            <div className="mb2 flex flex-col gap-3">
-              <div className="fg"><label className="fl">Job Type *</label>
-                <select className="fsl" value={form.jobType || ''} onChange={e => setForm({ ...form, jobType: e.target.value })}>
-                  <option value="">Select…</option><option>Full-time</option><option>Internship</option><option>Full-time / Internship</option><option>Contract</option><option>Part-time</option><option>Freelance</option>
-                </select>
-              </div>
-              <div className="fg"><label className="fl">Preferred Locations (comma-separated) *</label><input className="fi" placeholder="Bangalore, Remote, Hyderabad…" value={form.location || ''} onChange={e => setForm({ ...form, location: e.target.value })} /></div>
-              <div className="fg"><label className="fl">Expected CTC / Salary *</label><input className="fi" placeholder="6–12 LPA or $80K–$120K" value={form.expectedCTC || ''} onChange={e => setForm({ ...form, expectedCTC: e.target.value })} /></div>
-              <div className="fg"><label className="fl">Notice Period</label>
-                <select className="fsl" value={form.noticePeriod || ''} onChange={e => setForm({ ...form, noticePeriod: e.target.value })}>
-                  <option value="">Select…</option><option>Immediate</option><option>15 days</option><option>30 days</option><option>60 days</option><option>90 days</option>
-                </select>
-              </div>
-              <div className="fg"><label className="fl">LinkedIn URL</label><input className="fi" placeholder="https://linkedin.com/in/yourname" value={form.linkedin || ''} onChange={e => setForm({ ...form, linkedin: e.target.value })} /></div>
-              <div className="fg"><label className="fl">GitHub URL</label><input className="fi" placeholder="https://github.com/yourname" value={form.github || ''} onChange={e => setForm({ ...form, github: e.target.value })} /></div>
-              <div className="fg"><label className="fl">Portfolio URL</label><input className="fi" placeholder="https://yourname.dev" value={form.portfolio || ''} onChange={e => setForm({ ...form, portfolio: e.target.value })} /></div>
-            </div>
-            <div className="mf">
-              <button className="btn btn-gh" onClick={() => setEditing(null)}>Cancel</button>
-              <button className="btn btn-p" disabled={saving} onClick={() => saveSection({
-                preferences: {
-                  jobType: form.jobType || '',
-                  preferredLocations: fromCsv(form.location),
-                  expectedCTC: form.expectedCTC || '',
-                  noticePeriod: form.noticePeriod || '',
-                },
-                links: {
-                  ...(profile.links || {}),
-                  linkedin: form.linkedin || '',
-                  github: form.github || '',
-                  portfolio: form.portfolio || '',
-                },
-              })}>{saving ? 'Saving…' : 'Save'}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Summary Edit */}
-      {editing === 'summary' && (
-        <div className="mb on" onClick={e => e.target === e.currentTarget && setEditing(null)}>
-          <div className="mo">
-            <div className="mh"><h2>📝 Professional Summary</h2><div className="mx" onClick={() => setEditing(null)}>✕</div></div>
-            <div className="mb2 flex flex-col gap-3">
-              <div className="fg"><label className="fl">Headline (1 line)</label>
-                <input className="fi" placeholder="B.Tech CS, aspiring SDE" value={form.headline || ''} onChange={e => setForm({ ...form, headline: e.target.value })} />
-              </div>
-              <div className="fg"><label className="fl">Summary (2–3 lines for recruiters)</label>
-                <textarea className="fta min-h-[100px]" placeholder="Motivated B.Tech graduate with strong skills in Python, React and cloud. Built 3 full-stack projects deployed to production. Seeking software engineering roles." value={form.summary || ''} onChange={e => setForm({ ...form, summary: e.target.value })} />
-              </div>
-            </div>
-            <div className="mf">
-              <button className="btn btn-gh" onClick={() => setEditing(null)}>Cancel</button>
-              <button className="btn btn-p" disabled={saving} onClick={() => saveSection({ headline: form.headline || '', summary: form.summary || '' })}>{saving ? 'Saving…' : 'Save'}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
+      <AppDialog
+        open={editing === 'summary'}
+        onOpenChange={(v) => !v && setEditing(null)}
+        title="Professional Summary" titleIcon="pencil"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setEditing(null)}>Cancel</Button>
+            <Button  disabled={saving} onClick={() => saveSection({ headline: form.headline || '', summary: form.summary || '' })}>{saving ? 'Saving…' : 'Save'}</Button>
+          </>
+        }
+      >
+        <FormField label="Headline (1 line)">
+          <Input placeholder="B.Tech CS, aspiring SDE" value={form.headline || ''} onChange={e => setForm({ ...form, headline: e.target.value })} />
+        </FormField>
+        <FormField label="Summary (2–3 lines for recruiters)">
+          <Textarea className="min-h-[100px]" placeholder="Motivated B.Tech graduate with strong skills in Python, React and cloud. Built 3 full-stack projects deployed to production. Seeking software engineering roles." value={form.summary || ''} onChange={e => setForm({ ...form, summary: e.target.value })} />
+        </FormField>
+      </AppDialog>
 
       <InternshipDetailModal
         open={internshipDetailOpen}
@@ -1637,9 +1410,6 @@ export default function ProfileSection() {
         onSave={saveEducationEntry}
       />
 
-        </>,
-        document.body
-      )}
     </>
   )
 }

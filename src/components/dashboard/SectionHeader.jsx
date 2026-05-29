@@ -1,13 +1,11 @@
-import { motion } from 'framer-motion'
+import { Badge, cn } from '@/components/ui'
 
 /**
- * v2-style dashboard section header.
- * Mirrors the landing-v2 hero pattern: pill badge + gradient-accented heading + subtitle.
+ * Dashboard section header — aligned with glowminds-resume builder chrome.
  */
 export default function SectionHeader({
   badge,
-  badgeColor,
-  badgeBg,
+  badgeClassName,
   title,
   accent,
   subtitle,
@@ -19,43 +17,36 @@ export default function SectionHeader({
     titleNode = (
       <>
         {pre}
-        <span className="bg-gradient-to-r from-[var(--color-blu2)] via-[var(--color-grn)] to-[var(--color-blu)] bg-clip-text text-transparent">
-          {accent}
-        </span>
+        <span className="text-primary">{accent}</span>
         {post}
       </>
     )
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-      className="relative mb-5 flex flex-wrap items-end justify-between gap-4 sm:mb-6"
-    >
+    <div className="relative flex flex-wrap items-end justify-between gap-4">
       <div className="min-w-0 flex-1">
         {badge && (
-          <span
-            className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-[var(--color-bdr)] px-3 py-1 text-[0.62rem] font-bold uppercase tracking-[0.12em]"
-            style={{
-              background: badgeBg || 'var(--color-blu3)',
-              color: badgeColor || 'var(--color-blu2)',
-            }}
+          <Badge
+            variant="outline"
+            className={cn(
+              'mb-2 border-primary/20 bg-primary/10 text-[0.625rem] font-bold uppercase tracking-[0.1em] text-primary',
+              badgeClassName,
+            )}
           >
             {badge}
-          </span>
+          </Badge>
         )}
-        <h1 className="text-[clamp(1.4rem,2.8vw,1.95rem)] font-black leading-tight tracking-[-0.02em] text-[var(--color-txt)]">
+        <h1 className="text-xl font-bold leading-tight tracking-tight text-foreground sm:text-2xl">
           {titleNode}
         </h1>
         {subtitle && (
-          <p className="mt-1.5 max-w-2xl text-[0.86rem] leading-relaxed text-[var(--color-txt2)] sm:text-[0.92rem]">
+          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
             {subtitle}
           </p>
         )}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
-    </motion.div>
+    </div>
   )
 }

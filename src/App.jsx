@@ -2,13 +2,12 @@ import { lazy, Suspense, useEffect } from 'react'
 import { MotionConfig } from 'framer-motion'
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom'
 import useAuthListener from '@/hooks/useAuthListener'
-import DashboardNavProvider from '@/context/DashboardNavProvider'
-import Navbar from '@/components/layout/Navbar'
+import { TooltipProvider } from '@/components/ui'
 import Toast from '@/components/Toast'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import PublicOnlyRoute from '@/components/PublicOnlyRoute'
 import ErrorBoundary from '@/components/ErrorBoundary'
-import Loader from '@/components/Loader'
+import { PageLoader } from '@/components/Loader'
 import LandingPage from '@/features/public/LandingPage'
 import AboutPage from '@/features/public/AboutPage'
 import FeaturesPage from '@/features/public/FeaturesPage'
@@ -16,16 +15,16 @@ import ContactPage from '@/features/public/ContactPage'
 import PricingPage from '@/features/public/PricingPage'
 import PrivacyPage from '@/features/public/PrivacyPage'
 import TermsPage from '@/features/public/TermsPage'
-import RefundPage from '@/features/public/RefundPage'
 import LoginPage from '@/features/auth/LoginPage'
 import SignupPage from '@/features/auth/SignupPage'
 import NotFoundPage from '@/features/public/NotFoundPage'
+import PublicLayout from '@/features/public/PublicLayout'
 
 const DashboardShell = lazy(() => import('@/features/dashboard/DashboardShell'))
 const OverviewSection = lazy(() => import('@/features/dashboard/sections/OverviewSection'))
 const JobsSection = lazy(() => import('@/features/dashboard/sections/JobsSection'))
 const JobDetailSection = lazy(() => import('@/features/dashboard/sections/JobDetailSection'))
-const ResumeSection = lazy(() => import('@/features/dashboard/sections/ResumeSection'))
+const GlowmindsResumeSection = lazy(() => import('@/features/dashboard/sections/GlowmindsResumeSection'))
 const AISection = lazy(() => import('@/features/dashboard/sections/AISection'))
 const ApplicationsSection = lazy(() => import('@/features/dashboard/sections/ApplicationsSection'))
 const ProfileSection = lazy(() => import('@/features/dashboard/sections/ProfileSection'))
@@ -40,9 +39,6 @@ const GrammarCheckSection = lazy(() => import('@/features/dashboard/sections/Gra
 const ParaphrasingSection = lazy(() => import('@/features/dashboard/sections/ParaphrasingSection'))
 const AdminSection = lazy(() => import('@/features/dashboard/sections/AdminSection'))
 
-function PageLoader() {
-  return <Loader variant="section" />
-}
 
 function AnimatedRoutes() {
   const location = useLocation()
@@ -53,15 +49,16 @@ function AnimatedRoutes() {
   
   return (
     <Routes location={location}>
-      {/* Public pages — redirect to /dashboard if already logged in */}
-      <Route path="/" element={<PublicOnlyRoute><LandingPage /></PublicOnlyRoute>} />
-      <Route path="/about" element={<PublicOnlyRoute><AboutPage /></PublicOnlyRoute>} />
-      <Route path="/features" element={<PublicOnlyRoute><FeaturesPage /></PublicOnlyRoute>} />
-      <Route path="/contact" element={<PublicOnlyRoute><ContactPage /></PublicOnlyRoute>} />
-      <Route path="/pricing" element={<PublicOnlyRoute><PricingPage /></PublicOnlyRoute>} />
-      <Route path="/privacy" element={<PublicOnlyRoute><PrivacyPage /></PublicOnlyRoute>} />
-      <Route path="/terms" element={<PublicOnlyRoute><TermsPage /></PublicOnlyRoute>} />
-      <Route path="/refund" element={<PublicOnlyRoute><RefundPage /></PublicOnlyRoute>} />
+      {/* Public marketing pages */}
+      <Route element={<PublicOnlyRoute><PublicLayout /></PublicOnlyRoute>}>
+        <Route index element={<LandingPage />} />
+        <Route path="about" element={<AboutPage />} />
+        <Route path="features" element={<FeaturesPage />} />
+        <Route path="contact" element={<ContactPage />} />
+        <Route path="pricing" element={<PricingPage />} />
+        <Route path="privacy" element={<PrivacyPage />} />
+        <Route path="terms" element={<TermsPage />} />
+      </Route>
       <Route path="/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
       <Route path="/signup" element={<PublicOnlyRoute><SignupPage /></PublicOnlyRoute>} />
       {/* Dashboard (protected) */}
@@ -87,7 +84,7 @@ function AnimatedRoutes() {
         } />
         <Route path="resume" element={
           <Suspense fallback={<PageLoader />}>
-            <ResumeSection />
+            <GlowmindsResumeSection />
           </Suspense>
         } />
         <Route path="ai" element={
@@ -157,7 +154,9 @@ function AnimatedRoutes() {
           </Suspense>
         } />
       </Route>
-      <Route path="*" element={<NotFoundPage />} />
+      <Route element={<PublicLayout />}>
+        <Route path="*" element={<NotFoundPage />} />
+      </Route>
     </Routes>
   )
 }
@@ -169,18 +168,17 @@ function App() {
     <ErrorBoundary>
       <MotionConfig reducedMotion="user">
         <BrowserRouter>
-          <DashboardNavProvider>
+          <TooltipProvider delayDuration={300}>
             <a href="#main-content" className="skip-link">
               Skip to main content
             </a>
-            <Navbar />
             <ErrorBoundary>
               <main id="main-content" tabIndex={-1} className="outline-none">
                 <AnimatedRoutes />
               </main>
             </ErrorBoundary>
             <Toast />
-          </DashboardNavProvider>
+          </TooltipProvider>
         </BrowserRouter>
       </MotionConfig>
     </ErrorBoundary>

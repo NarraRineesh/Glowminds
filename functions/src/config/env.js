@@ -18,11 +18,15 @@ function isAllowedCorsOrigin(origin) {
   if (env.corsOrigins.includes(origin)) return true;
 
   const projectId = env.firebaseProjectId;
-  if (!projectId) return false;
 
   try {
     const { hostname, protocol } = new URL(origin);
     if (protocol !== "https:" && protocol !== "http:") return false;
+
+    // Local dev (Vite picks 5173, 5174, … when ports are busy)
+    if (hostname === "localhost" || hostname === "127.0.0.1") return true;
+
+    if (!projectId) return false;
     if (hostname === `${projectId}.web.app`) return true;
     if (hostname === `${projectId}.firebaseapp.com`) return true;
   } catch {

@@ -1,43 +1,25 @@
 import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
 import SectionHeader from '@/components/dashboard/SectionHeader'
+import { ToolPage, ToolSidebarLayout } from '@/features/dashboard/components/toolSectionLayout'
+import AppIcon from '@/components/icons/AppIcon'
+import { Button, DashboardCard, FormField, Input, cn } from '@/components/ui'
 import useAppStore from '@/store/authStore'
 import useProfileStore from '@/store/profileStore'
 import { apiFetch } from '@/services/apiClient'
-import '@/styles/cards.css'
-import '@/styles/dashboard.css'
-import '@/styles/forms.css'
 
 const TEMPLATES = [
-  {
-    id: 'concise',
-    name: 'Concise & Direct',
-    desc: '3 short paragraphs. Best for engineering & product roles.',
-    ico: '⚡',
-    accent: 'var(--color-blu)',
-  },
-  {
-    id: 'story',
-    name: 'Story-Driven',
-    desc: 'Open with a hook, follow with proof, close with a call-to-action.',
-    ico: '📖',
-    accent: 'var(--color-grn)',
-  },
-  {
-    id: 'referral',
-    name: 'Warm Referral',
-    desc: 'Mentions a mutual connection upfront — for employee referrals.',
-    ico: '🤝',
-    accent: 'var(--color-gold)',
-  },
-  {
-    id: 'fresher',
-    name: 'Fresher / Internship',
-    desc: 'Leads with academic projects and learnability.',
-    ico: '🎓',
-    accent: 'var(--color-prp)',
-  },
+  { id: 'concise', name: 'Concise & Direct', desc: '3 short paragraphs. Best for engineering & product roles.', ico: 'lightning', tone: 'primary' },
+  { id: 'story', name: 'Story-Driven', desc: 'Open with a hook, follow with proof, close with a call-to-action.', ico: 'book', tone: 'emerald' },
+  { id: 'referral', name: 'Warm Referral', desc: 'Mentions a mutual connection upfront — for employee referrals.', ico: 'handshake', tone: 'amber' },
+  { id: 'fresher', name: 'Fresher / Internship', desc: 'Leads with academic projects and learnability.', ico: 'graduation', tone: 'purple' },
 ]
+
+const TEMPLATE_TONE = {
+  primary: 'border-primary/30 bg-primary/10 text-primary',
+  emerald: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-500',
+  amber: 'border-amber-500/30 bg-amber-500/10 text-amber-500',
+  purple: 'border-purple-500/30 bg-purple-500/10 text-purple-500',
+}
 
 function buildLetter(template, vars) {
   const { yourName = 'Your Name', role = 'the role', company = 'the company', skill = 'your top skill' } = vars
@@ -99,7 +81,6 @@ export default function CoverLettersSection() {
   const [aiLetter, setAiLetter] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
 
-  // Profile hydrated lazily so the AI draft button has full context.
   useEffect(() => {
     loadProfile().catch(() => {})
   }, [loadProfile])
@@ -110,9 +91,9 @@ export default function CoverLettersSection() {
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(letter)
-      addToast('success', '📋 Cover letter copied to clipboard')
+      addToast('success', 'Cover letter copied to clipboard')
     } catch {
-      addToast('error', '⚠️ Could not copy — please select & copy manually')
+      addToast('error', 'Could not copy — please select & copy manually')
     }
   }
 
@@ -131,7 +112,7 @@ export default function CoverLettersSection() {
       URL.revokeObjectURL(url)
     } catch (err) {
       console.error('downloadTxt:', err)
-      addToast('error', '⚠️ Could not download — try copying instead')
+      addToast('error', 'Could not download — try copying instead')
     }
   }
 
@@ -159,127 +140,87 @@ export default function CoverLettersSection() {
       const text = data?.coverLetter || data?.letter || ''
       if (!text) throw new Error('Empty response from AI')
       setAiLetter(text)
-      addToast('success', '🤖 AI cover letter generated')
+      addToast('success', 'AI cover letter generated')
     } catch (err) {
       console.error('generateAi cover letter error:', err)
-      addToast('error', `⚠️ ${err.message || 'AI generation failed'}`)
+      addToast('error', err.message || 'AI generation failed')
     }
     setAiLoading(false)
   }
 
-  return (
+  const sidebar = (
     <>
+      <DashboardCard titleIcon="palette" title="Pick a template" contentClassName="space-y-2">
+        {TEMPLATES.map((t) => {
+          const active = template === t.id
+          return (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setTemplate(t.id)}
+              className={cn(
+                'flex w-full items-start gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors',
+                active ? 'border-primary/30 bg-primary/10' : 'border-border bg-muted/50 hover:border-primary/20',
+              )}
+            >
+              <span className={cn('flex size-9 shrink-0 items-center justify-center rounded-lg border', TEMPLATE_TONE[t.tone])}>
+                <AppIcon name={t.ico} className="size-4" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold">{t.name}</span>
+                <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">{t.desc}</span>
+              </span>
+            </button>
+          )
+        })}
+      </DashboardCard>
+
+      <DashboardCard titleIcon="pencil" title="Variables" contentClassName="space-y-3">
+        <FormField label="Role">
+          <Input value={role} onChange={(e) => setRole(e.target.value)} />
+        </FormField>
+        <FormField label="Company">
+          <Input value={company} onChange={(e) => setCompany(e.target.value)} />
+        </FormField>
+        <FormField label="Top relevant skill">
+          <Input value={skill} onChange={(e) => setSkill(e.target.value)} />
+        </FormField>
+      </DashboardCard>
+    </>
+  )
+
+  return (
+    <ToolPage>
       <SectionHeader
         badge="Generate · 1-click"
-        badgeBg="var(--color-prp2)"
-        badgeColor="var(--color-prp)"
+        badgeClassName="border-purple-500/20 bg-purple-500/10 text-purple-500"
         title="Cover letters that get replies"
         accent="get replies"
         subtitle="Pick a template, drop in the role and company, and we'll draft a ready-to-edit cover letter in seconds."
       />
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(260px,340px)_minmax(0,1fr)]">
-        <div className="flex flex-col gap-4">
-          <motion.div
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-            className="card"
-          >
-            <div className="ch"><h3>🎨 Pick a template</h3></div>
-            <div className="cb flex flex-col gap-2">
-              {TEMPLATES.map((t) => {
-                const active = template === t.id
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => setTemplate(t.id)}
-                    className={`flex items-start gap-3 rounded-xl border px-3 py-2.5 text-left transition-all duration-200 ${
-                      active
-                        ? 'border-[var(--color-bdr2)] bg-[var(--color-blu3)]'
-                        : 'border-[var(--color-bdr)] bg-[var(--color-bg3)] hover:border-[var(--color-bdr2)]'
-                    }`}
-                  >
-                    <span
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-base"
-                      style={{ background: `${t.accent}22`, color: t.accent }}
-                      aria-hidden
-                    >
-                      {t.ico}
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block text-[0.82rem] font-bold text-[var(--color-txt)]">{t.name}</span>
-                      <span className="mt-0.5 block text-[0.7rem] leading-snug text-[var(--color-txt2)]">
-                        {t.desc}
-                      </span>
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
-            className="card"
-          >
-            <div className="ch"><h3>✏️ Variables</h3></div>
-            <div className="cb flex flex-col gap-3">
-              <label className="block">
-                <span className="mb-1 block text-[0.66rem] font-bold uppercase tracking-wider text-[var(--color-muted)]">
-                  Role
-                </span>
-                <input className="fi" value={role} onChange={(e) => setRole(e.target.value)} />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-[0.66rem] font-bold uppercase tracking-wider text-[var(--color-muted)]">
-                  Company
-                </span>
-                <input className="fi" value={company} onChange={(e) => setCompany(e.target.value)} />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-[0.66rem] font-bold uppercase tracking-wider text-[var(--color-muted)]">
-                  Top relevant skill
-                </span>
-                <input className="fi" value={skill} onChange={(e) => setSkill(e.target.value)} />
-              </label>
-            </div>
-          </motion.div>
-        </div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
-          className="card"
-        >
-          <div className="ch">
-            <h3>📨 Preview</h3>
+      <ToolSidebarLayout sidebar={sidebar}>
+        <DashboardCard
+          titleIcon="send"
+          title="Preview"
+          action={(
             <div className="flex flex-wrap gap-2">
-              <button type="button" className="btn btn-gh btn-sm" onClick={copy}>
-                Copy
-              </button>
-              <button type="button" className="btn btn-gh btn-sm" onClick={downloadTxt}>
-                Download
-              </button>
-              <button type="button" className="btn btn-p btn-sm" onClick={generateAi} disabled={aiLoading}>
-                {aiLoading ? '⏳ Drafting…' : '🤖 AI draft'}
-              </button>
+              <Button variant="ghost" size="sm" onClick={copy}>Copy</Button>
+              <Button variant="ghost" size="sm" onClick={downloadTxt}>Download</Button>
+              <Button size="sm" onClick={generateAi} disabled={aiLoading}>
+                {aiLoading ? 'Drafting…' : 'AI draft'}
+              </Button>
             </div>
-          </div>
-          <div className="cb">
-            <pre className="whitespace-pre-wrap rounded-xl border border-[var(--color-bdr)] bg-[var(--color-bg2)] p-4 font-[Outfit,system-ui,sans-serif] text-[0.86rem] leading-relaxed text-[var(--color-txt)]">
-              {letter}
-            </pre>
-            <div className="mt-2 text-right text-[.66rem] text-[var(--color-muted)]">
-              Cover letters are not saved — copy or download once you’re happy with it.
-            </div>
-          </div>
-        </motion.div>
-      </div>
-    </>
+          )}
+        >
+          <pre className="whitespace-pre-wrap rounded-xl border border-border bg-muted/30 p-4 font-sans text-sm leading-relaxed">
+            {letter}
+          </pre>
+          <p className="mt-2 text-right text-xs text-muted-foreground">
+            Cover letters are not saved — copy or download once you&apos;re happy with it.
+          </p>
+        </DashboardCard>
+      </ToolSidebarLayout>
+    </ToolPage>
   )
 }

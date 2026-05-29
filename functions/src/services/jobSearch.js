@@ -17,10 +17,13 @@ const CATEGORY_TO_ROLE = {
   mobile: "mobile",
 };
 
-const POOL_DEFAULT = 100;
-const POOL_MAX = 250;
-const MATCH_POOL_MAX = 2000;
 const DEFAULT_PAGE_SIZE = 10;
+/** Max jobs loaded + ranked per search (pagination slices this list). */
+const MAX_RANKED_JOBS = 120;
+const RANKED_LIST_CACHE_TTL_MS = 120_000;
+
+/** Cached ranked lists keyed by search params (not page). */
+const rankedListCache = new Map();
 
 function timeAgo(dateStr) {
   if (!dateStr) return "";
@@ -406,64 +409,23 @@ async function runJobQuery(q, partialErrors, label) {
   }
 }
 
-async function collectRankedJobs({
-  title = "",
-  skills = [],
-  exp = null,
-  location,
-  category,
-  poolSize,
-  explicitSearch = false,
-}) {
-  const db = getFirestore();
-  const cap = Math.min(Math.max(Number(poolSize) || POOL_DEFAULT, 50), POOL_MAX);
-  const target = Math.min(Math.max(cap, POOL_DEFAULT), POOL_MAX);
-  const matchPool = Math.min(
-    Math.max(Number(poolSize) || MATCH_POOL_MAX, POOL_DEFAULT),
-    MATCH_POOL_MAX,
-  );
+/** Build a Firestore query — one indexed query, no in-memory pool scan. */
+function buildJobQuery(db, { roleKey, userSkills, titleTokens, hasInput }) {
+  let q = db.collection("jobs").where("status", "==", "ACTIVE");
+  if (roleKey) q = q.where("role", "==", roleKey);
 
-  const userSkills = parseSkillsInput(skills).slice(0, 30);
-  const titleTokens = buildTitleTokens(title).slice(0, 30);
-  const hasInput = userSkills.length > 0 || titleTokens.length > 0;
-
-  const roleKey = category ? CATEGORY_TO_ROLE[String(category).toLowerCase()] : null;
-  const partialErrors = [];
-  const docMap = new Map();
-
+  // Firestore array-contains-any accepts at most 10 values.
   if (hasInput && userSkills.length > 0) {
-    let q = db.collection("jobs").where("status", "==", "ACTIVE");
-    if (roleKey) q = q.where("role", "==", roleKey);
-    q = q
-      .where("skills", "array-contains-any", userSkills)
-      .orderBy("indexedAt", "desc")
-      .limit(matchPool);
-    for (const doc of await runJobQuery(q, partialErrors, "skills")) {
-      docMap.set(doc.id, doc);
-    }
+    q = q.where("skills", "array-contains-any", userSkills.slice(0, 10));
+  } else if (hasInput && titleTokens.length > 0) {
+    q = q.where("titleTokens", "array-contains-any", titleTokens.slice(0, 10));
   }
 
-  if (hasInput && titleTokens.length > 0) {
-    let q = db.collection("jobs").where("status", "==", "ACTIVE");
-    if (roleKey) q = q.where("role", "==", roleKey);
-    q = q
-      .where("titleTokens", "array-contains-any", titleTokens)
-      .orderBy("indexedAt", "desc")
-      .limit(matchPool);
-    for (const doc of await runJobQuery(q, partialErrors, "titleTokens")) {
-      docMap.set(doc.id, doc);
-    }
-  }
+  return q.orderBy("indexedAt", "desc");
+}
 
-  let docs = [...docMap.values()];
-  if (!docs.length) {
-    let q = db.collection("jobs").where("status", "==", "ACTIVE");
-    if (roleKey) q = q.where("role", "==", roleKey);
-    q = q.orderBy("indexedAt", "desc").limit(hasInput ? matchPool : target);
-    docs = await runJobQuery(q, partialErrors, "recent");
-  }
-
-  const rawJobs = docs.map((doc) => {
+function docsToRawJobs(docs) {
+  return docs.map((doc) => {
     const data = doc.data() || {};
     return {
       id: doc.id,
@@ -478,27 +440,81 @@ async function collectRankedJobs({
       data,
     };
   });
+}
 
-  const ranked = rankJobs(rawJobs, { title, skills, exp, explicitSearch });
-
-  let jobs = ranked.map(({ raw, score, skillHits, titleHits }) => ({
+function mapRankedJobs(ranked) {
+  return ranked.map(({ raw, score, skillHits, titleHits }) => ({
     ...mapFirestoreJob(raw.id, raw.data),
     match: scoreToMatch(score),
     searchScore: score,
     skillHits,
     titleHits,
   }));
+}
+
+function rankedListCacheKey(params) {
+  const { page, pageSize, includeRankedList, poolSize, ...rest } = params;
+  return JSON.stringify(rest);
+}
+
+async function buildRankedJobList({
+  title = "",
+  skills = [],
+  exp = null,
+  location,
+  category,
+  filters = {},
+  explicitSearch = false,
+}) {
+  const db = getFirestore();
+  const userSkills = parseSkillsInput(skills);
+  const titleTokens = buildTitleTokens(title);
+  const hasInput = userSkills.length > 0 || titleTokens.length > 0;
+  const roleKey = category ? CATEGORY_TO_ROLE[String(category).toLowerCase()] : null;
+  const partialErrors = [];
+
+  const q = buildJobQuery(db, { roleKey, userSkills, titleTokens, hasInput });
+  const queryLabel = hasInput
+    ? userSkills.length > 0
+      ? "skills"
+      : "titleTokens"
+    : "recent";
+
+  const docs = await runJobQuery(q.limit(MAX_RANKED_JOBS), partialErrors, queryLabel);
+
+  const ranked = rankJobs(docsToRawJobs(docs), { title, skills, exp, explicitSearch });
+  let jobs = mapRankedJobs(ranked);
 
   if (location) jobs = jobs.filter((j) => jobMatchesLocation(j, location));
+  jobs = dedupeJobs(jobs);
+  jobs = applyJobFilters(jobs, filters);
 
   return {
-    jobs: dedupeJobs(jobs),
-    poolScanned: docs.length,
+    jobs,
+    dbTotal: docs.length,
+    truncated: docs.length >= MAX_RANKED_JOBS,
+    docsRead: docs.length,
     partialErrors,
   };
 }
 
-// Reads ACTIVE jobs from Firestore, ranks with pipeline-style OR search.
+async function getRankedJobList(params) {
+  const key = rankedListCacheKey(params);
+  const hit = rankedListCache.get(key);
+  if (hit && Date.now() - hit.at < RANKED_LIST_CACHE_TTL_MS) {
+    return hit.data;
+  }
+
+  const data = await buildRankedJobList(params);
+  rankedListCache.set(key, { at: Date.now(), data });
+  if (rankedListCache.size > 40) {
+    const oldest = [...rankedListCache.entries()].sort((a, b) => a[1].at - b[1].at)[0];
+    if (oldest) rankedListCache.delete(oldest[0]);
+  }
+  return data;
+}
+
+// Paginate a stable ranked list (built once per search, cached server-side).
 export async function searchAllJobs({
   title = "",
   skills = [],
@@ -510,35 +526,57 @@ export async function searchAllJobs({
   poolSize,
   filters = {},
   explicitSearch = false,
+  includeRankedList = false,
 }) {
-  const { jobs: ranked, poolScanned, partialErrors } = await collectRankedJobs({
+  void poolSize;
+
+  const safePage = Math.max(1, Math.trunc(page) || 1);
+  const size = Math.max(1, Math.trunc(pageSize) || DEFAULT_PAGE_SIZE);
+
+  const {
+    jobs: allJobs,
+    dbTotal,
+    truncated,
+    docsRead,
+    partialErrors,
+  } = await getRankedJobList({
     title,
     skills,
     exp,
     location,
     category,
-    poolSize,
+    filters,
     explicitSearch,
   });
 
-  const filtered = applyJobFilters(ranked, filters);
-  const { jobs, pagination } = paginateJobs(filtered, { page, pageSize });
+  const { jobs, pagination } = paginateJobs(allJobs, { page: safePage, pageSize: size });
 
   return {
     jobs,
     pagination,
-    sources: { firestore: pagination.total, poolScanned },
+    rankedJobs: includeRankedList ? allJobs : undefined,
+    meta: { dbTotal, truncated, docsRead },
+    sources: { firestore: pagination.total, docsRead },
     partialErrors,
   };
 }
 
-/** Total matching jobs (same filters, no page slice). */
+/** Total matching jobs (same ranked list as search). */
 export async function countMatchingJobs(params) {
-  const { jobs, poolScanned, partialErrors } = await collectRankedJobs(params);
-  const filtered = applyJobFilters(jobs, params.filters || {});
+  const { jobs, dbTotal, truncated, partialErrors } = await getRankedJobList({
+    title: params.title || "",
+    skills: params.skills || [],
+    exp: params.exp ?? null,
+    location: params.location,
+    category: params.category,
+    filters: params.filters || {},
+    explicitSearch: params.explicitSearch ?? false,
+  });
+
   return {
-    count: filtered.length,
-    saturated: poolScanned >= MATCH_POOL_MAX,
+    count: jobs.length,
+    dbTotal,
+    truncated,
     partialErrors,
   };
 }

@@ -5,7 +5,7 @@
 export const BADGES_CATALOG = [
   {
     id: 'profile-master',
-    icon: '👑',
+    icon: 'crown',
     name: 'Profile Master',
     tier: 'silver',
     description: 'Completed your full profile.',
@@ -14,7 +14,7 @@ export const BADGES_CATALOG = [
   },
   {
     id: 'first-resume',
-    icon: '📄',
+    icon: 'resume',
     name: 'Resume Builder',
     tier: 'bronze',
     description: 'Saved your first resume.',
@@ -23,7 +23,7 @@ export const BADGES_CATALOG = [
   },
   {
     id: 'first-application',
-    icon: '📝',
+    icon: 'pencil',
     name: 'First Application',
     tier: 'bronze',
     description: 'Tracked your first job application.',
@@ -32,7 +32,7 @@ export const BADGES_CATALOG = [
   },
   {
     id: 'job-hunter',
-    icon: '🎯',
+    icon: 'target',
     name: 'Job Hunter',
     tier: 'silver',
     description: 'Tracked 25 job applications.',
@@ -41,7 +41,7 @@ export const BADGES_CATALOG = [
   },
   {
     id: 'offer-champion',
-    icon: '🏆',
+    icon: 'trophy',
     name: 'Offer Champion',
     tier: 'gold',
     description: 'Landed your first job offer.',
@@ -50,7 +50,7 @@ export const BADGES_CATALOG = [
   },
   {
     id: 'interview-pro',
-    icon: '💼',
+    icon: 'jobs',
     name: 'Interview Pro',
     tier: 'silver',
     description: 'Completed 10 mock interviews.',
@@ -59,7 +59,7 @@ export const BADGES_CATALOG = [
   },
   {
     id: 'week-warrior',
-    icon: '🔥',
+    icon: 'fire',
     name: 'Week Warrior',
     tier: 'bronze',
     description: 'Maintained a 7-day streak.',
@@ -68,7 +68,7 @@ export const BADGES_CATALOG = [
   },
   {
     id: 'month-master',
-    icon: '🌟',
+    icon: 'star',
     name: 'Month Master',
     tier: 'gold',
     description: 'Maintained a 30-day streak.',
@@ -77,7 +77,7 @@ export const BADGES_CATALOG = [
   },
   {
     id: 'ai-coach',
-    icon: '🤖',
+    icon: 'robot',
     name: 'AI Apprentice',
     tier: 'bronze',
     description: 'Sent your first message to AI Coach.',
@@ -86,7 +86,7 @@ export const BADGES_CATALOG = [
   },
   {
     id: 'linkedin-optimizer',
-    icon: '💼',
+    icon: 'linkedin',
     name: 'LinkedIn Polished',
     tier: 'silver',
     description: 'Completed all LinkedIn optimization steps.',

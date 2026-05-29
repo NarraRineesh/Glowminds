@@ -53,31 +53,31 @@ const FEATURES = [
 ]
 
 const STEPS = [
-  { num: '01', ico: '📝', title: 'Create Your Profile', desc: 'Sign up in 30 seconds. Add your skills, education, experience, and job preferences — our AI does the rest.' },
-  { num: '02', ico: '📄', title: 'Build Your Resume', desc: 'AI generates an ATS-optimized resume in minutes. Pick a template, get a real-time score, and export as PDF.' },
-  { num: '03', ico: '🎯', title: 'Get Matched & Apply', desc: 'We scan 50+ portals daily, rank jobs by your match score, and let you apply with a single click.' },
-  { num: '04', ico: '🎉', title: 'Land Your Dream Job', desc: 'Prep with AI mock interviews, track apps on your Kanban board, and celebrate when offers start rolling in!' },
+  { num: '01', ico: 'pencil', title: 'Create Your Profile', desc: 'Sign up in 30 seconds. Add your skills, education, experience, and job preferences — our AI does the rest.' },
+  { num: '02', ico: 'resume', title: 'Build Your Resume', desc: 'AI generates an ATS-optimized resume in minutes. Pick a template, get a real-time score, and export as PDF.' },
+  { num: '03', ico: 'target', title: 'Get Matched & Apply', desc: 'We scan 50+ portals daily, rank jobs by your match score, and let you apply with a single click.' },
+  { num: '04', ico: 'trophy', title: 'Land Your Dream Job', desc: 'Prep with AI mock interviews, track apps on your Kanban board, and celebrate when offers start rolling in!' },
 ]
 
 const TOOLS = [
-  { ico: '📄', title: 'Resume Builder', desc: 'ATS-optimized resumes with 6 templates, live preview, and one-click PDF export.', bg: 'var(--color-blu3)' },
-  { ico: '🎯', title: 'Job Matching', desc: 'AI scans 50+ portals hourly and ranks jobs by your personal skill match score.', bg: 'var(--color-grn2)' },
-  { ico: '🤖', title: 'AI Career Coach', desc: '24/7 career coaching with context memory — resumes, interviews, salary, and more.', bg: 'var(--color-gold2)' },
-  { ico: '🎤', title: 'Interview Prep', desc: 'Practice with AI questions across 12 roles. Get scored on clarity, structure & impact.', bg: 'var(--color-prp2)' },
-  { ico: '📊', title: 'App Tracker', desc: 'Visual Kanban board to track every application from applied to offer letter.', bg: 'rgba(248,117,186,.1)' },
-  { ico: '✍️', title: 'Grammar Checker', desc: 'Fix grammar, tone & clarity in resumes, cover letters, emails, and SOPs.', bg: 'rgba(20,184,166,.08)' },
-  { ico: '💌', title: 'Cover Letter Gen', desc: 'AI writes tailored cover letters from job descriptions in under 30 seconds.', bg: 'rgba(6,182,212,.08)' },
-  { ico: '🔗', title: 'LinkedIn Optimizer', desc: 'Optimize your headline, summary & skills for maximum recruiter visibility.', bg: 'rgba(56,139,253,.08)' },
-  { ico: '✉️', title: 'Cold Email Drafter', desc: 'Craft professional outreach emails to recruiters and hiring managers.', bg: 'rgba(244,114,182,.08)' },
-  { ico: '📝', title: 'Essay & SOP Writer', desc: 'Generate structured essays, SOPs, and personal statements for admissions.', bg: 'rgba(168,85,247,.08)' },
-  { ico: '📅', title: 'Study Planner', desc: 'AI builds personalized study schedules based on your skill gaps and goals.', bg: 'rgba(34,197,94,.08)' },
-  { ico: '💻', title: 'Code Reviewer', desc: 'Get AI feedback on code quality, bugs, performance, and best practices.', bg: 'rgba(251,146,60,.08)' },
+  { ico: 'resume', title: 'Resume Builder', desc: 'ATS-optimized resumes with 6 templates, live preview, and one-click PDF export.', bg: 'var(--color-blu3)' },
+  { ico: 'target', title: 'Job Matching', desc: 'AI scans 50+ portals hourly and ranks jobs by your personal skill match score.', bg: 'var(--color-grn2)' },
+  { ico: 'robot', title: 'AI Career Coach', desc: '24/7 career coaching with context memory — resumes, interviews, salary, and more.', bg: 'var(--color-gold2)' },
+  { ico: 'microphone', title: 'Interview Prep', desc: 'Practice with AI questions across 12 roles. Get scored on clarity, structure & impact.', bg: 'var(--color-prp2)' },
+  { ico: 'dashboard', title: 'App Tracker', desc: 'Visual Kanban board to track every application from applied to offer letter.', bg: 'rgba(248,117,186,.1)' },
+  { ico: 'grammar-check', title: 'Grammar Checker', desc: 'Fix grammar, tone & clarity in resumes, cover letters, emails, and SOPs.', bg: 'rgba(20,184,166,.08)' },
+  { ico: 'envelope-open', title: 'Cover Letter Gen', desc: 'AI writes tailored cover letters from job descriptions in under 30 seconds.', bg: 'rgba(6,182,212,.08)' },
+  { ico: 'linkedin', title: 'LinkedIn Optimizer', desc: 'Optimize your headline, summary & skills for maximum recruiter visibility.', bg: 'rgba(56,139,253,.08)' },
+  { ico: 'cover-letters', title: 'Cold Email Drafter', desc: 'Craft professional outreach emails to recruiters and hiring managers.', bg: 'rgba(244,114,182,.08)' },
+  { ico: 'pencil', title: 'Essay & SOP Writer', desc: 'Generate structured essays, SOPs, and personal statements for admissions.', bg: 'rgba(168,85,247,.08)' },
+  { ico: 'calendar', title: 'Study Planner', desc: 'AI builds personalized study schedules based on your skill gaps and goals.', bg: 'rgba(34,197,94,.08)' },
+  { ico: 'code', title: 'Code Reviewer', desc: 'Get AI feedback on code quality, bugs, performance, and best practices.', bg: 'rgba(251,146,60,.08)' },
 ]
 
 const TESTIMONIALS = [
-  { name: 'Aditi Verma', role: 'SDE Intern @ Google', avatar: '👩‍💻', text: 'Glowminds matched me with my dream internship. The AI resume builder got me a 96 ATS score — I got 3 interview calls in the first week!' },
-  { name: 'Rahul Gupta', role: 'Frontend Dev @ Swiggy', avatar: '👨‍💻', text: 'The AI career coach helped me prepare for 3 rounds of interviews. Got the offer in 2 weeks. This platform is a game-changer for freshers.' },
-  { name: 'Karthik R', role: 'Full Stack @ Razorpay', avatar: '🧑‍💻', text: 'Best platform for freshers. Period. The job matching accuracy is insane — 94% relevant. Saved me hours of scrolling through job boards.' },
+  { name: 'Aditi Verma', role: 'SDE Intern @ Google', avatar: 'code', text: 'Glowminds matched me with my dream internship. The AI resume builder got me a 96 ATS score — I got 3 interview calls in the first week!' },
+  { name: 'Rahul Gupta', role: 'Frontend Dev @ Swiggy', avatar: 'code', text: 'The AI career coach helped me prepare for 3 rounds of interviews. Got the offer in 2 weeks. This platform is a game-changer for freshers.' },
+  { name: 'Karthik R', role: 'Full Stack @ Razorpay', avatar: 'code', text: 'Best platform for freshers. Period. The job matching accuracy is insane — 94% relevant. Saved me hours of scrolling through job boards.' },
 ]
 
 const TRUST_LOGOS = ['IIT Delhi', 'IIT Bombay', 'BITS Pilani', 'NIT Trichy', 'VIT', 'SRM', 'Manipal', 'IIIT Hyderabad', 'DTU', 'NSUT', 'PES University', 'Amity']
@@ -95,7 +95,7 @@ const STATS = {
   students: '52K+',
   dailyJobs: '12K+',
   matchRate: '94%',
-  rating: '4.9★'
+  rating: '4.9/5'
 }
 
 const HERO_IMAGES = [

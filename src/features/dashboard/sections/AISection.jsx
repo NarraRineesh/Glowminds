@@ -2,24 +2,34 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import useAppStore from '@/store/authStore'
 import useAiChatStore from '@/store/aiChatStore'
 import UpgradeGate from '@/components/UpgradeGate'
+import { AppIcon,
+  Avatar,
+  AvatarFallback,
+  Button,
+  Card,
+  CardContent,
+  CardFooter,
+  PageTitle,
+  ScrollArea,
+  Select,
+  Textarea,
+  cn,
+} from '@/components/ui'
 import { apiFetch } from '@/services/apiClient'
-import '@/styles/dashboard.css'
-import '@/styles/chat.css'
-import '@/styles/jobs.css'
 
 const WELCOME_MSG = {
   role: 'assistant',
-  text: "**Hi! I'm your AI Career Coach.** 👋\n\nI can help you with:\n• **Resume writing** — structure, wording, ATS tips\n• **Interview prep** — mock Q&A, STAR method\n• **Career paths** — what to learn next\n• **Salary negotiation** — scripts & benchmarks\n• **Cold outreach** — emails that get replies\n\nWhat can I help you with today?",
+  text: "**Hi! I'm your AI Career Coach.**\n\nI can help you with:\n• **Resume writing** — structure, wording, ATS tips\n• **Interview prep** — mock Q&A, STAR method\n• **Career paths** — what to learn next\n• **Salary negotiation** — scripts & benchmarks\n• **Cold outreach** — emails that get replies\n\nWhat can I help you with today?",
   isWelcome: true,
 }
 
 const SUGGESTIONS = [
-  { label: '📄 Resume tips', text: 'How can I improve my resume to pass ATS screening?' },
-  { label: '🎤 Interview prep', text: 'Prepare me for a Python developer technical interview' },
-  { label: '📊 Trending skills', text: 'What are the top skills to learn for 2025 job market?' },
-  { label: '💰 Salary talk', text: 'How do I negotiate salary as a fresher in India?' },
-  { label: '✉️ Cold email', text: 'Write a cold email template to reach out to a recruiter' },
-  { label: '🗺️ Career path', text: 'Give me a 6-month roadmap to become a full-stack developer' },
+  { icon: 'resume', label: 'Resume tips', text: 'How can I improve my resume to pass ATS screening?' },
+  { icon: 'microphone', label: 'Interview prep', text: 'Prepare me for a Python developer technical interview' },
+  { icon: 'chart', label: 'Trending skills', text: 'What are the top skills to learn for 2025 job market?' },
+  { icon: 'salary', label: 'Salary talk', text: 'How do I negotiate salary as a fresher in India?' },
+  { icon: 'cover-letters', label: 'Cold email', text: 'Write a cold email template to reach out to a recruiter' },
+  { icon: 'map', label: 'Career path', text: 'Give me a 6-month roadmap to become a full-stack developer' },
 ]
 
 function escapeHtml(str) {
@@ -29,21 +39,16 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;')
 }
 
-// Inline markdown (bold / italic / inline-code / bullets). HTML is escaped
-// first so anything the model produces is rendered as text, not markup.
 function formatInline(text) {
   return escapeHtml(text)
-    .replace(/`([^`\n]+)`/g, '<code class="chat-icode">$1</code>')
+    .replace(/`([^`\n]+)`/g, '<code class="rounded bg-muted px-1 py-0.5 font-mono text-[0.85em] text-primary">$1</code>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/^• /gm, '<span style="color:var(--color-grn);margin-right:4px">•</span> ')
-    .replace(/^→ /gm, '<span style="color:var(--color-blu2);margin-right:4px">→</span> ')
+    .replace(/^• /gm, '<span class="mr-1 text-emerald-500">•</span> ')
+    .replace(/^→ /gm, '<span class="mr-1 text-primary">→</span> ')
     .replace(/\n/g, '<br/>')
 }
 
-// Splits an assistant reply into text + fenced-code segments. Handles the
-// streaming case where the closing ``` hasn't been generated yet by tagging
-// the in-progress block with `streaming: true`.
 function parseChatContent(text) {
   const src = String(text || '')
   const parts = []
@@ -91,20 +96,22 @@ function CodeBlock({ lang, content, streaming }) {
     }
   }, [content])
   return (
-    <div className="chat-code">
-      <div className="chat-code-head">
-        <span className="chat-code-lang">{lang || 'code'}</span>
-        <button
+    <div className="my-2 overflow-hidden rounded-lg border border-border bg-muted/60">
+      <div className="flex items-center justify-between border-b border-border px-3 py-1.5">
+        <span className="font-mono text-[0.68rem] uppercase tracking-wide text-muted-foreground">{lang || 'code'}</span>
+        <Button
           type="button"
-          className={`chat-code-copy${copied ? ' ok' : ''}`}
+          variant="ghost"
+          size="sm"
+          className={cn('h-auto px-2 py-0.5 text-[0.7rem]', copied && 'text-emerald-500')}
           onClick={copy}
           disabled={!content || streaming}
           title={streaming ? 'Generating…' : copied ? 'Copied' : 'Copy code'}
         >
-          {copied ? '✓ Copied' : '📋 Copy'}
-        </button>
+          {copied ? '✓ Copied' : 'Copy'}
+        </Button>
       </div>
-      <pre className="chat-code-body"><code>{content}</code></pre>
+      <pre className="overflow-x-auto p-3 font-mono text-[0.78rem] leading-relaxed text-foreground"><code>{content}</code></pre>
     </div>
   )
 }
@@ -127,15 +134,9 @@ function RichMessage({ text }) {
   )
 }
 
-// Reveals an assistant reply progressively (~350 chars/sec) so it feels
-// generated live instead of arriving as a wall of text. We format the
-// currently-revealed prefix on every tick — partial markdown like "**bol"
-// safely renders as literal text until the closing "**" arrives, then snaps
-// into bold, mirroring how ChatGPT-style UIs feel.
-function StreamingText({ text, scrollRef, onDone, charsPerSec = 350 }) {
+function StreamingText({ text, onScroll, onDone, charsPerSec = 350 }) {
   const [revealed, setRevealed] = useState(0)
 
-  // Reset whenever the source text changes (e.g. switching messages).
   useEffect(() => {
     setRevealed(0)
   }, [text])
@@ -149,12 +150,10 @@ function StreamingText({ text, scrollRef, onDone, charsPerSec = 350 }) {
     const step = Math.max(1, Math.round((charsPerSec * tickMs) / 1000))
     const id = setTimeout(() => {
       setRevealed((r) => Math.min(text.length, r + step))
-      // Keep the conversation pinned to the bottom while it grows.
-      const el = scrollRef?.current
-      if (el) el.scrollTop = el.scrollHeight
+      onScroll?.()
     }, tickMs)
     return () => clearTimeout(id)
-  }, [revealed, text, scrollRef, charsPerSec, onDone])
+  }, [revealed, text, onScroll, charsPerSec, onDone])
 
   const isDone = revealed >= text.length
   return (
@@ -170,6 +169,20 @@ function StreamingText({ text, scrollRef, onDone, charsPerSec = 350 }) {
   )
 }
 
+function TypingIndicator() {
+  return (
+    <div className="flex items-center gap-1 py-1">
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground"
+          style={{ animationDelay: `${i * 0.15}s` }}
+        />
+      ))}
+    </div>
+  )
+}
+
 export default function AISection() {
   const { user, addToast } = useAppStore()
   const chats = useAiChatStore((s) => s.chats)
@@ -181,16 +194,15 @@ export default function AISection() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [hydrated, setHydrated] = useState(false)
-  const msgsRef = useRef(null)
+  const bottomRef = useRef(null)
   const inputRef = useRef(null)
 
-  // Streaming state: which assistant message (by index) should reveal
-  // character-by-character. Set right after a fresh reply lands; cleared
-  // when the chat changes or the reveal completes.
+  const scrollToBottom = useCallback(() => {
+    bottomRef.current?.scrollIntoView({ block: 'end' })
+  }, [])
   const [streamingIdx, setStreamingIdx] = useState(-1)
   const wantsStreamingRef = useRef(false)
 
-  // Hydrate the most recent chat (or seed with welcome) on mount.
   useEffect(() => {
     if (!user?.uid || hydrated) return
     let cancelled = false
@@ -211,12 +223,9 @@ export default function AISection() {
   }, [user?.uid, hydrated, loadChats, loadChat])
 
   useEffect(() => {
-    if (msgsRef.current) msgsRef.current.scrollTop = msgsRef.current.scrollHeight
-  }, [currentMessages, loading])
+    scrollToBottom()
+  }, [currentMessages, loading, scrollToBottom])
 
-  // When a freshly-sent reply lands in the store, mark it as the streaming
-  // message. Anything loaded from history (e.g. switching chats) is skipped
-  // because the ref only flips during a live `send()` call.
   useEffect(() => {
     if (!wantsStreamingRef.current) return
     const last = currentMessages[currentMessages.length - 1]
@@ -226,8 +235,6 @@ export default function AISection() {
     }
   }, [currentMessages])
 
-  // Reset the streaming pointer whenever the user switches chats so an old
-  // message doesn't suddenly start animating.
   useEffect(() => {
     setStreamingIdx(-1)
     wantsStreamingRef.current = false
@@ -241,8 +248,6 @@ export default function AISection() {
     setInput('')
     setLoading(true)
 
-    // Snapshot history that gets sent to the model BEFORE we append the new
-    // user message (so it isn't double-included).
     const historyForModel = currentMessages
       .filter((m) => !m.isWelcome && String(m.text || '').trim())
       .map((m) => ({
@@ -260,7 +265,6 @@ export default function AISection() {
       if (!reply || !String(reply).trim()) {
         throw new Error('Empty response from AI')
       }
-      // Flag the next assistant message so the bubble streams its text.
       wantsStreamingRef.current = true
       await appendMessage({ role: 'assistant', text: String(reply).trim() })
     } catch (err) {
@@ -270,11 +274,11 @@ export default function AISection() {
         : err.message?.includes('internal')
           ? 'AI service is temporarily unavailable. Please try again.'
           : 'Something went wrong. Please try again.'
-      addToast('error', `⚠️ ${errMsg}`)
+      addToast('error', `${errMsg}`)
       wantsStreamingRef.current = true
       await appendMessage({
         role: 'assistant',
-        text: `⚠️ ${errMsg}\n\n*Tip: If this persists, try refreshing the page.*`,
+        text: `${errMsg}\n\n*Tip: If this persists, try refreshing the page.*`,
       })
     }
     setLoading(false)
@@ -286,11 +290,8 @@ export default function AISection() {
   }
 
   const startNewChat = () => {
-    // We don't blow away the cached chats[] list — just clear the active
-    // pointer so the next message lazily creates a new chat doc (the
-    // store mirrors that into chats[] for us).
     useAiChatStore.setState({ currentChatId: null, currentMessages: [] })
-    addToast('info', '✨ Started a new chat')
+    addToast('info', 'Started a new chat')
   }
 
   const switchChat = async (id) => {
@@ -298,93 +299,130 @@ export default function AISection() {
   }
 
   const hasHistory = currentMessages.length > 0
+  const userInitial = user?.firstName?.[0] || user?.displayName?.[0] || 'U'
 
   return (
     <UpgradeGate feature="AI Career Coach">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 4 }}>
-        <div>
-          <div className="dsh-title">AI Career Assistant 🤖</div>
-          <div className="dsh-sub" style={{ marginBottom: 0 }}>Glowminds AI — real-time career coaching</div>
-        </div>
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
+        <PageTitle
+          title="AI Career Assistant"
+          subtitle="Glowminds AI — real-time career coaching"
+          className="mb-0"
+        />
         <div className="flex items-center gap-2">
           {chats.length > 1 && (
-            <select
-              className="fsl text-[.72rem] py-1 px-2"
+            <Select
+              className="h-8 min-w-[180px] text-[0.72rem]"
               value={currentChatId || ''}
               onChange={(e) => switchChat(e.target.value)}
-              style={{ minWidth: 180 }}
             >
               {chats.map((c) => (
                 <option key={c.id} value={c.id}>{c.title || 'Untitled chat'}</option>
               ))}
-            </select>
+            </Select>
           )}
-          <button className="btn btn-gh btn-sm" onClick={startNewChat}>＋ New chat</button>
+          <Button variant="ghost" size="sm" onClick={startNewChat}>＋ New chat</Button>
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+      <div className="mb-2.5 flex flex-wrap gap-1.5">
         {SUGGESTIONS.map((s) => (
-          <button key={s.label} className="cs" onClick={() => send(s.text)} disabled={loading}>
+          <Button key=<><AppIcon name={s.icon} className="size-3.5" /> {s.label}</> variant="outline" size="sm" onClick={() => send(s.text)} disabled={loading}>
             {s.label}
-          </button>
+          </Button>
         ))}
       </div>
 
-      <div className="chat-wrap">
-        <div className="chat-msgs" ref={msgsRef}>
-          {messages.map((m, i) => {
-            const isAssistant = m.role !== 'user'
-            const isStreaming = isAssistant && i === streamingIdx
-            return (
-              <div key={i} className={`msg ${m.role === 'user' ? 'user' : 'ai'}`}>
-                <div className="mav">{isAssistant ? '🤖' : (user?.firstName?.[0] || user?.displayName?.[0] || 'U')}</div>
-                <div className="mbub">
-                  {!isAssistant ? (
-                    <span
-                      dangerouslySetInnerHTML={{
-                        __html: escapeHtml(m.text).replace(/\n/g, '<br/>'),
-                      }}
-                    />
-                  ) : isStreaming ? (
-                    <StreamingText
-                      text={String(m.text || '')}
-                      scrollRef={msgsRef}
-                      onDone={() => setStreamingIdx(-1)}
-                    />
-                  ) : (
-                    <RichMessage text={m.text} />
-                  )}
+      <Card className="flex flex-col gap-0 overflow-hidden py-0">
+        <ScrollArea className="h-[min(520px,calc(100vh-320px))]">
+          <CardContent className="space-y-4 p-4">
+            {messages.map((m, i) => {
+              const isUser = m.role === 'user'
+              const isAssistant = !isUser
+              const isStreaming = isAssistant && i === streamingIdx
+              return (
+                <div
+                  key={i}
+                  className={cn('flex gap-2.5', isUser ? 'flex-row-reverse' : 'flex-row')}
+                >
+                  <Avatar className="h-8 w-8 shrink-0">
+                    <AvatarFallback className={cn(
+                      'text-xs font-bold',
+                      isUser ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground',
+                    )}>
+                      {isAssistant ? <AppIcon name="robot" className="size-4" /> : userInitial}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div
+                    className={cn(
+                      'max-w-[min(680px,85%)] rounded-xl px-3.5 py-2.5 text-[0.84rem] leading-relaxed',
+                      isUser
+                        ? 'bg-primary text-primary-foreground'
+                        : 'border border-border bg-muted/50 text-foreground',
+                    )}
+                  >
+                    {!isAssistant ? (
+                      <span
+                        dangerouslySetInnerHTML={{
+                          __html: escapeHtml(m.text).replace(/\n/g, '<br/>'),
+                        }}
+                      />
+                    ) : isStreaming ? (
+                      <StreamingText
+                        text={String(m.text || '')}
+                        onScroll={scrollToBottom}
+                        onDone={() => setStreamingIdx(-1)}
+                      />
+                    ) : (
+                      <RichMessage text={m.text} />
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+            {loading && (
+              <div className="flex gap-2.5">
+                <Avatar className="h-8 w-8 shrink-0">
+                  <AvatarFallback className="bg-muted text-xs"><AppIcon name="robot" className="size-4" /></AvatarFallback>
+                </Avatar>
+                <div className="rounded-xl border border-border bg-muted/50 px-3.5 py-2.5">
+                  <TypingIndicator />
                 </div>
               </div>
-            )
-          })}
-          {loading && (
-            <div className="msg ai">
-              <div className="mav">🤖</div>
-              <div className="mbub">
-                <div className="typing"><span /><span /><span /></div>
-              </div>
-            </div>
+            )}
+            <div ref={bottomRef} aria-hidden className="h-px" />
+          </CardContent>
+        </ScrollArea>
+
+        <CardFooter className="flex-col gap-2 border-t p-3">
+          <div className="flex w-full items-end gap-2">
+            <Textarea
+              ref={inputRef}
+              className="min-h-[44px] max-h-32 flex-1 resize-none text-[0.84rem]"
+              placeholder={loading ? 'AI is thinking…' : 'Ask me anything about your career…'}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKey}
+              rows={1}
+              disabled={loading}
+            />
+            <Button
+              size="icon"
+              className="shrink-0"
+              onClick={() => send(input)}
+              disabled={loading || !input.trim()}
+              aria-label="Send message"
+            >
+              {loading ? <AppIcon name="hourglass" className="size-4 animate-pulse" /> : <AppIcon name="send" className="size-4" />}
+            </Button>
+          </div>
+          {hasHistory && (
+            <p className="w-full text-right text-[0.66rem] text-muted-foreground">
+              Chats are saved automatically — switch between them above.
+            </p>
           )}
-        </div>
-        <div className="chat-in-row">
-          <textarea
-            ref={inputRef}
-            className="chat-in"
-            placeholder={loading ? 'AI is thinking…' : 'Ask me anything about your career…'}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKey}
-            rows="1"
-            disabled={loading}
-          />
-          <button className="btn btn-p btn-icon" onClick={() => send(input)} disabled={loading || !input.trim()}>
-            {loading ? '⏳' : '➤'}
-          </button>
-        </div>
-        {hasHistory && <div style={{ fontSize: '.66rem', color: 'var(--color-muted)', marginTop: 6, textAlign: 'right' }}>Chats are saved automatically — switch between them above.</div>}
-      </div>
+        </CardFooter>
+      </Card>
     </UpgradeGate>
   )
 }

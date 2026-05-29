@@ -1,19 +1,18 @@
 import { useState } from 'react'
-import { motion } from 'framer-motion'
 import SectionHeader from '@/components/dashboard/SectionHeader'
+import { ToolPage, ToolSidebarLayout } from '@/features/dashboard/components/toolSectionLayout'
+import AppIcon from '@/components/icons/AppIcon'
+import { Button, ButtonGroup, DashboardCard, Textarea, cn } from '@/components/ui'
 import useAppStore from '@/store/authStore'
 import UpgradeGate from '@/components/UpgradeGate'
 import { apiFetch } from '@/services/apiClient'
-import '@/styles/cards.css'
-import '@/styles/dashboard.css'
-import '@/styles/forms.css'
 
 const TONES = [
-  { id: 'professional', label: 'Professional', icon: '🤝' },
-  { id: 'casual', label: 'Casual', icon: '🌿' },
-  { id: 'academic', label: 'Academic', icon: '🎓' },
-  { id: 'concise', label: 'Concise', icon: '⚡' },
-  { id: 'creative', label: 'Creative', icon: '🎨' },
+  { id: 'professional', label: 'Professional', icon: 'handshake' },
+  { id: 'casual', label: 'Casual', icon: 'leaf' },
+  { id: 'academic', label: 'Academic', icon: 'graduation' },
+  { id: 'concise', label: 'Concise', icon: 'lightning' },
+  { id: 'creative', label: 'Creative', icon: 'palette' },
 ]
 
 const SAMPLE = `I worked on a side project for 3 months that helps students discover internships, and it now has 1200 weekly users. I want to highlight this on my resume.`
@@ -27,7 +26,7 @@ export default function ParaphrasingSection() {
 
   const run = async () => {
     if (!text.trim() || text.trim().length < 3) {
-      addToast('error', '✍️ Add some text to paraphrase')
+      addToast('error', 'Add some text to paraphrase')
       return
     }
     setLoading(true)
@@ -37,7 +36,7 @@ export default function ParaphrasingSection() {
       setVariants(data?.variants || [])
     } catch (err) {
       console.error('paraphrase:', err)
-      addToast('error', `⚠️ ${err.message || 'Paraphrase failed'}`)
+      addToast('error', err.message || 'Paraphrase failed')
     }
     setLoading(false)
   }
@@ -45,93 +44,83 @@ export default function ParaphrasingSection() {
   const copy = async (s) => {
     try {
       await navigator.clipboard.writeText(s)
-      addToast('success', '📋 Copied')
+      addToast('success', 'Copied')
     } catch {
-      addToast('error', '⚠️ Could not copy')
+      addToast('error', 'Could not copy')
     }
   }
 
+  const sidebar = (
+    <DashboardCard titleIcon="target" title="Variants" contentClassName="space-y-3">
+      {variants.length === 0 ? (
+        <p className="py-8 text-center text-sm text-muted-foreground">Hit “Generate variants” to see three rewrites.</p>
+      ) : (
+        variants.map((v, i) => (
+          <div key={i} className="rounded-xl border border-border bg-muted/30 p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Variant {i + 1}</span>
+              <Button variant="ghost" size="sm" onClick={() => copy(v)}>Copy</Button>
+            </div>
+            <p className="whitespace-pre-wrap text-sm leading-relaxed">{v}</p>
+          </div>
+        ))
+      )}
+    </DashboardCard>
+  )
+
   return (
     <UpgradeGate feature="Paraphrasing">
-      <SectionHeader
-        badge="AI · Writing"
-        badgeBg="var(--color-prp2)"
-        badgeColor="var(--color-prp)"
-        title="Three rewrites, one click"
-        accent="three rewrites"
-        subtitle="Pick a tone and we'll generate three distinct ways to say the same thing — perfect for resume bullets, cover letters, and outreach."
-      />
+      <ToolPage>
+        <SectionHeader
+          badge="AI · Writing"
+          badgeClassName="border-purple-500/20 bg-purple-500/10 text-purple-500"
+          title="Three rewrites, one click"
+          accent="three rewrites"
+          subtitle="Pick a tone and we'll generate three distinct ways to say the same thing — perfect for resume bullets, cover letters, and outreach."
+        />
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]">
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-          className="card"
-        >
-          <div className="ch">
-            <h3>📝 Original text</h3>
-            <div className="flex gap-2">
-              <button type="button" className="btn btn-gh btn-sm" onClick={() => setText(SAMPLE)}>Use sample</button>
-              <button type="button" className="btn btn-p btn-sm" onClick={run} disabled={loading || !text.trim()}>
-                {loading ? '⏳ Rewriting…' : '🔁 Generate variants'}
-              </button>
-            </div>
-          </div>
-          <div className="cb flex flex-col gap-3">
-            <textarea
-              className="fta"
+        <ToolSidebarLayout sidebar={sidebar} sidebarRight>
+          <DashboardCard
+            titleIcon="pencil"
+            title="Original text"
+            action={(
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" onClick={() => setText(SAMPLE)}>Use sample</Button>
+                <Button size="sm" onClick={run} disabled={loading || !text.trim()}>
+                  {loading ? 'Rewriting…' : 'Generate variants'}
+                </Button>
+              </div>
+            )}
+            contentClassName="space-y-4"
+          >
+            <Textarea
               rows={8}
               placeholder="Paste up to ~4000 characters of text here…"
               value={text}
               onChange={(e) => setText(e.target.value)}
             />
-            <div className="text-right text-[.66rem] text-[var(--color-muted)]">{text.length} / 4000</div>
+            <p className="text-right text-xs text-muted-foreground">{text.length} / 4000</p>
 
-            <div>
-              <div className="mb-1.5 text-[0.66rem] font-bold uppercase tracking-[0.1em] text-[var(--color-muted)]">Tone</div>
-              <div className="flex flex-wrap gap-2">
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tone</p>
+              <ButtonGroup className="flex-wrap">
                 {TONES.map((t) => (
-                  <button
+                  <Button
                     key={t.id}
                     type="button"
+                    size="sm"
+                    variant={tone === t.id ? 'default' : 'outline'}
                     onClick={() => setTone(t.id)}
-                    className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[.74rem] font-semibold transition ${tone === t.id ? 'border-[var(--color-prp)] bg-[var(--color-prp2)] text-[var(--color-prp)]' : 'border-[var(--color-bdr)] bg-[var(--color-bg3)] text-[var(--color-txt2)] hover:border-[var(--color-bdr2)]'}`}
                   >
-                    <span aria-hidden>{t.icon}</span> {t.label}
-                  </button>
+                    <AppIcon name={t.icon} className="size-3.5" />
+                    {t.label}
+                  </Button>
                 ))}
-              </div>
+              </ButtonGroup>
             </div>
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
-          className="card sticky top-20 self-start"
-        >
-          <div className="ch"><h3>🎯 Variants</h3></div>
-          <div className="cb flex flex-col gap-3">
-            {variants.length === 0 ? (
-              <div className="py-6 text-center text-[0.85rem] text-[var(--color-muted)]">
-                Hit “Generate variants” to see three rewrites.
-              </div>
-            ) : (
-              variants.map((v, i) => (
-                <div key={i} className="rounded-xl border border-[var(--color-bdr)] bg-[var(--color-bg2)] p-3">
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="text-[.62rem] font-bold uppercase tracking-[0.1em] text-[var(--color-muted)]">Variant {i + 1}</span>
-                    <button type="button" className="btn btn-gh btn-sm" onClick={() => copy(v)}>Copy</button>
-                  </div>
-                  <div className="whitespace-pre-wrap text-[.86rem] leading-relaxed text-[var(--color-txt)]">{v}</div>
-                </div>
-              ))
-            )}
-          </div>
-        </motion.div>
-      </div>
+          </DashboardCard>
+        </ToolSidebarLayout>
+      </ToolPage>
     </UpgradeGate>
   )
 }

@@ -1,11 +1,9 @@
 import { useMemo, useState } from 'react'
-import { motion } from 'framer-motion'
 import SectionHeader from '@/components/dashboard/SectionHeader'
-import '@/styles/cards.css'
-import '@/styles/dashboard.css'
-import '@/styles/forms.css'
+import { ToolPage, ToolSidebarLayout } from '@/features/dashboard/components/toolSectionLayout'
+import AppIcon from '@/components/icons/AppIcon'
+import { Button, Card, CardContent, DashboardCard, FormField, Progress, Select, cn } from '@/components/ui'
 
-// Indicative INR LPA ranges (annual). Replace with backend feed later.
 const SALARY_TABLE = {
   'Frontend Engineer': { fresher: [4, 7], junior: [7, 14], mid: [14, 26], senior: [26, 48] },
   'Backend Engineer': { fresher: [5, 8], junior: [8, 16], mid: [16, 30], senior: [30, 55] },
@@ -35,10 +33,10 @@ const LEVELS = [
 ]
 
 const NEGOTIATION_TIPS = [
-  { ico: '📊', label: 'Anchor with research', desc: 'Quote a range — never a single number.' },
-  { ico: '🎯', label: 'Tie ask to outcomes', desc: '"Based on the impact I drove at X, I’d expect…"' },
-  { ico: '🤐', label: 'Stay quiet first', desc: 'Whoever talks first after the offer typically loses.' },
-  { ico: '📦', label: 'Total comp matters', desc: 'Stock, bonus, learning budget — not just base.' },
+  { ico: 'chart', label: 'Anchor with research', desc: 'Quote a range — never a single number.' },
+  { ico: 'target', label: 'Tie ask to outcomes', desc: '"Based on the impact I drove at X, I\'d expect…"' },
+  { ico: 'mute', label: 'Stay quiet first', desc: 'Whoever talks first after the offer typically loses.' },
+  { ico: 'package', label: 'Total comp matters', desc: 'Stock, bonus, learning budget — not just base.' },
 ]
 
 export default function SalaryInsightsSection() {
@@ -67,159 +65,98 @@ export default function SalaryInsightsSection() {
   )
   const maxHigh = Math.max(...allLevels.map((l) => l.high))
 
+  const sidebar = (
+    <DashboardCard titleIcon="faders" title="Filters" contentClassName="space-y-4">
+      <FormField label="Role">
+        <Select value={role} onChange={(e) => setRole(e.target.value)}>
+          {roles.map((r) => (
+            <option key={r}>{r}</option>
+          ))}
+        </Select>
+      </FormField>
+      <div className="space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Experience</p>
+        <div className="grid grid-cols-2 gap-2">
+          {LEVELS.map((lv) => (
+            <Button
+              key={lv.id}
+              type="button"
+              variant={level === lv.id ? 'default' : 'outline'}
+              size="sm"
+              className="h-auto flex-col items-start px-2 py-2 text-left"
+              onClick={() => setLevel(lv.id)}
+            >
+              <span className="text-sm font-semibold">{lv.name}</span>
+              <span className="text-xs font-normal text-muted-foreground">{lv.label}</span>
+            </Button>
+          ))}
+        </div>
+      </div>
+      <FormField label="City">
+        <Select value={city} onChange={(e) => setCity(e.target.value)}>
+          {cities.map((c) => (
+            <option key={c}>{c}</option>
+          ))}
+        </Select>
+      </FormField>
+    </DashboardCard>
+  )
+
   return (
-    <>
+    <ToolPage>
       <SectionHeader
         badge="Comp · India"
-        badgeBg="var(--color-grn2)"
-        badgeColor="var(--color-grn)"
+        badgeClassName="border-emerald-500/20 bg-emerald-500/10 text-emerald-500"
         title="Know your worth before the offer call"
         accent="your worth"
         subtitle="Indicative annual compensation by role, experience, and city. Use these ranges as anchors when you negotiate — never a single number."
       />
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]">
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-          className="card"
-        >
-          <div className="ch"><h3>🎚️ Filters</h3></div>
-          <div className="cb flex flex-col gap-3">
-            <label className="block">
-              <span className="mb-1 block text-[0.66rem] font-bold uppercase tracking-wider text-[var(--color-muted)]">
-                Role
+      <ToolSidebarLayout sidebar={sidebar}>
+        <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-primary/10 to-emerald-500/10 py-0">
+          <CardContent className="p-5 sm:p-6">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {role} · {LEVELS.find((l) => l.id === level)?.name} · {city}
+            </p>
+            <div className="mt-1 flex items-baseline gap-2">
+              <span className="bg-gradient-to-r from-primary to-emerald-500 bg-clip-text text-4xl font-black tabular-nums tracking-tight text-transparent sm:text-5xl">
+                ₹{range[0]}–{range[1]}
               </span>
-              <select className="fsl" value={role} onChange={(e) => setRole(e.target.value)}>
-                {roles.map((r) => (
-                  <option key={r}>{r}</option>
-                ))}
-              </select>
-            </label>
-            <label className="block">
-              <span className="mb-1 block text-[0.66rem] font-bold uppercase tracking-wider text-[var(--color-muted)]">
-                Experience
-              </span>
-              <div className="grid grid-cols-2 gap-1.5">
-                {LEVELS.map((lv) => (
-                  <button
-                    key={lv.id}
-                    type="button"
-                    onClick={() => setLevel(lv.id)}
-                    className={`rounded-lg border px-2 py-2 text-[0.74rem] font-semibold transition-colors ${
-                      level === lv.id
-                        ? 'border-[var(--color-blu)] bg-[var(--color-blu3)] text-[var(--color-blu2)]'
-                        : 'border-[var(--color-bdr)] bg-[var(--color-bg3)] text-[var(--color-txt2)] hover:border-[var(--color-bdr2)]'
-                    }`}
-                  >
-                    <div className="font-bold">{lv.name}</div>
-                    <div className="text-[0.64rem] font-normal text-[var(--color-muted)]">{lv.label}</div>
-                  </button>
-                ))}
-              </div>
-            </label>
-            <label className="block">
-              <span className="mb-1 block text-[0.66rem] font-bold uppercase tracking-wider text-[var(--color-muted)]">
-                City
-              </span>
-              <select className="fsl" value={city} onChange={(e) => setCity(e.target.value)}>
-                {cities.map((c) => (
-                  <option key={c}>{c}</option>
-                ))}
-              </select>
-            </label>
-          </div>
-        </motion.div>
+              <span className="text-sm font-semibold text-muted-foreground">LPA</span>
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Median benchmark: <span className="font-semibold text-foreground">₹{median} LPA</span>
+            </p>
+          </CardContent>
+        </Card>
 
-        <div className="flex flex-col gap-4">
-          <motion.div
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
-            className="relative overflow-hidden rounded-2xl border border-[var(--color-bdr)] bg-[var(--color-surf)] p-5 shadow-sm sm:p-6"
-          >
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-0"
-              style={{
-                background:
-                  'radial-gradient(ellipse 60% 80% at 0% 0%, var(--color-glow2), transparent 60%), radial-gradient(ellipse 50% 60% at 100% 100%, var(--color-glow), transparent 60%)',
-              }}
-            />
-            <div className="relative">
-              <div className="text-[0.66rem] font-bold uppercase tracking-[0.12em] text-[var(--color-muted)]">
-                {role} · {LEVELS.find((l) => l.id === level)?.name} · {city}
-              </div>
-              <div className="mt-1 flex items-baseline gap-2">
-                <span className="bg-gradient-to-r from-[var(--color-blu2)] to-[var(--color-grn)] bg-clip-text font-mono text-[clamp(2.2rem,5vw,3.4rem)] font-black tracking-tight text-transparent">
-                  ₹{range[0]}–{range[1]}
-                </span>
-                <span className="text-[0.85rem] font-bold text-[var(--color-txt2)]">LPA</span>
-              </div>
-              <div className="mt-1 text-[0.78rem] text-[var(--color-txt2)]">
-                Median benchmark: <strong className="text-[var(--color-txt)]">₹{median} LPA</strong>
+        <DashboardCard titleIcon="trend-up" title={`Trajectory in ${city}`} contentClassName="space-y-4">
+          {allLevels.map((lv) => (
+            <div key={lv.id} className="flex items-center gap-3">
+              <span className="w-16 shrink-0 text-sm font-semibold">{lv.name}</span>
+              <Progress
+                value={Math.round((lv.high / maxHigh) * 100)}
+                className="flex-1 gap-0 [&_[data-slot=progress-indicator]]:bg-gradient-to-r [&_[data-slot=progress-indicator]]:from-primary [&_[data-slot=progress-indicator]]:to-emerald-500 [&_[data-slot=progress-track]]:h-2"
+              />
+              <span className="w-24 shrink-0 text-right text-xs font-semibold tabular-nums">
+                ₹{lv.low}–{lv.high}
+              </span>
+            </div>
+          ))}
+        </DashboardCard>
+
+        <DashboardCard titleIcon="chat" title="Negotiation playbook" contentClassName="grid gap-3 sm:grid-cols-2">
+          {NEGOTIATION_TIPS.map((t) => (
+            <div key={t.label} className="flex items-start gap-3 rounded-xl border border-border bg-muted/50 p-3">
+              <AppIcon name={t.ico} className="size-5 shrink-0 text-primary" />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold">{t.label}</p>
+                <p className="text-xs text-muted-foreground">{t.desc}</p>
               </div>
             </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
-            className="card"
-          >
-            <div className="ch"><h3>📈 Trajectory in {city}</h3></div>
-            <div className="cb flex flex-col gap-3">
-              {allLevels.map((lv) => {
-                const pct = (lv.high / maxHigh) * 100
-                const lowPct = (lv.low / maxHigh) * 100
-                return (
-                  <div key={lv.id} className="flex items-center gap-3">
-                    <div className="w-20 shrink-0 text-[0.74rem] font-bold text-[var(--color-txt)]">
-                      {lv.name}
-                    </div>
-                    <div className="relative flex-1">
-                      <div className="h-3 overflow-hidden rounded-full bg-[var(--color-bg3)]">
-                        <div
-                          className="absolute top-0 h-3 rounded-full bg-gradient-to-r from-[var(--color-blu)] to-[var(--color-grn)]"
-                          style={{ left: `${lowPct}%`, width: `${pct - lowPct}%` }}
-                        />
-                      </div>
-                    </div>
-                    <div className="w-28 shrink-0 text-right font-mono text-[0.74rem] font-bold text-[var(--color-txt)]">
-                      ₹{lv.low}–{lv.high}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
-            className="card"
-          >
-            <div className="ch"><h3>💬 Negotiation Playbook</h3></div>
-            <div className="cb grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-              {NEGOTIATION_TIPS.map((t) => (
-                <div
-                  key={t.label}
-                  className="flex items-start gap-3 rounded-xl border border-[var(--color-bdr)] bg-[var(--color-bg3)] px-3 py-2.5"
-                >
-                  <span className="text-xl leading-none" aria-hidden>{t.ico}</span>
-                  <div className="min-w-0">
-                    <div className="text-[0.78rem] font-bold text-[var(--color-txt)]">{t.label}</div>
-                    <div className="text-[0.7rem] text-[var(--color-txt2)]">{t.desc}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        </div>
-      </div>
-    </>
+          ))}
+        </DashboardCard>
+      </ToolSidebarLayout>
+    </ToolPage>
   )
 }

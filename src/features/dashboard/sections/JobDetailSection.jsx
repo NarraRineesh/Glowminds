@@ -11,11 +11,24 @@ import { APPLICATION_STATUS } from '@/constants/schema'
 import { formatDateRange } from '@/utils/profileDates'
 import { formatPrimaryEducationSummary } from '@/utils/educationEntries'
 import { JobMetaItem, JobMetaRow } from '@/features/dashboard/components/JobMeta'
+import {
+  AppIcon,
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  DashboardCard,
+  Progress,
+  StatusBadge,
+  cn,
+} from '@/components/ui'
 import JobDescriptionHtml from '@/features/dashboard/components/JobDescriptionHtml'
-import '@/styles/dashboard.css'
-import '@/styles/jobs.css'
-import '@/styles/cards.css'
-import '@/styles/forms.css'
+
+function scoreTone(score) {
+  if (score >= 80) return 'text-emerald-500'
+  if (score >= 60) return 'text-amber-500'
+  return 'text-destructive'
+}
 
 export default function JobDetailSection() {
   const { jobId: rawJobId } = useParams()
@@ -104,20 +117,20 @@ export default function JobDetailSection() {
     })
     setApplying(false)
     if (application) {
-      addToast('success', `✅ Applied to ${j.title} at ${company}! Added to your tracker.`)
+      addToast('success', `Applied to ${j.title} at ${company}! Added to your tracker.`)
       if (j.url) window.open(j.url, '_blank', 'noopener,noreferrer')
     } else {
-      addToast('error', '⚠️ Failed to track application')
+      addToast('error', 'Failed to track application')
     }
   }
 
   const toggleSave = async (j) => {
     if (isJobSaved(j.id)) {
       await unsaveJob(j.id)
-      addToast('info', '🔖 Job removed from saved')
+      addToast('info', 'Job removed from saved')
     } else {
       await saveJob(j)
-      addToast('success', '🔖 Job saved!')
+      addToast('success', 'Job saved!')
     }
   }
 
@@ -143,7 +156,7 @@ export default function JobDetailSection() {
       setAiMatch(data)
     } catch (err) {
       console.error('AI match error:', err)
-      addToast('error', '⚠️ Failed to analyze match')
+      addToast('error', 'Failed to analyze match')
     }
     setAiLoading(false)
   }
@@ -182,7 +195,7 @@ export default function JobDetailSection() {
       setCoverLetter(data.coverLetter)
     } catch (err) {
       console.error('Cover letter error:', err)
-      addToast('error', '⚠️ Failed to generate cover letter')
+      addToast('error', 'Failed to generate cover letter')
     }
     setClLoading(false)
   }
@@ -193,132 +206,171 @@ export default function JobDetailSection() {
 
   if (error || !job) {
     return (
-      <div className="jobs-section">
-        <div className="jobs-empty">
-          <div className="jobs-empty-icon">💼</div>
-          <h3>{error || 'Job not found'}</h3>
-          <p>This listing may have expired or been removed.</p>
-          <div className="jobs-empty-actions">
-            <Link to="/dashboard/jobs" className="btn btn-p btn-sm">← Back to Job Board</Link>
+      <Card className="py-12">
+        <CardContent className="flex flex-col items-center text-center">
+          <AppIcon name="jobs" className="mx-auto mb-3 size-12 text-muted-foreground/50" />
+          <h3 className="text-lg font-bold text-foreground">{error || 'Job not found'}</h3>
+          <p className="mt-1 text-sm text-muted-foreground">This listing may have expired or been removed.</p>
+          <div className="mt-4">
+            <Link to="/dashboard/jobs">
+              <Button size="sm">← Back to Job Board</Button>
+            </Link>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     )
   }
 
-  return (
-    <div className="jobs-section job-detail">
-      <button type="button" className="btn btn-gh btn-sm job-detail-back" onClick={() => navigate(-1)}>
-        ← Back
-      </button>
+  const matchScore = job.match || 0
 
-      <div className="card job-detail-card">
-        <div className="job-detail-header">
-          <div className="job-detail-logo">{job.logo}</div>
-          <div className="job-detail-head">
-            <h1 className="job-detail-title">{job.title}</h1>
+  return (
+    <div className="w-full min-w-0">
+      <Button variant="ghost" size="sm" className="mb-3 -ml-2" onClick={() => navigate(-1)}>
+        ← Back
+      </Button>
+
+      <DashboardCard contentClassName="space-y-5 p-5">
+        <div className="flex flex-wrap items-start gap-4">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-muted">
+            {job.logo && /^https?:\/\//.test(job.logo) ? (
+              <img src={job.logo} alt="" className="h-full w-full rounded-xl object-cover" />
+            ) : (
+              <AppIcon name={job.logo || 'jobs'} className="size-7 text-muted-foreground" />
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl font-black tracking-tight text-foreground">{job.title}</h1>
             <JobMetaRow>
-              {(job.company || job.co) && <JobMetaItem icon="🏢">{job.company || job.co}</JobMetaItem>}
+              {(job.company || job.co) && <JobMetaItem icon="buildings">{job.company || job.co}</JobMetaItem>}
               {(job.location || job.loc) && (
-                <JobMetaItem icon={job.remote ? '🌐' : '📍'}>{job.location || job.loc}</JobMetaItem>
+                <JobMetaItem icon={job.remote ? 'globe' : 'map-pin'}>{job.location || job.loc}</JobMetaItem>
               )}
-              {job.type && <JobMetaItem icon="💼">{job.type}</JobMetaItem>}
-              {job.posted && <JobMetaItem icon="🕒">{job.posted}</JobMetaItem>}
-              <JobMetaItem icon="💰" className={`jc-meta--salary${!(job.salary || job.sal) ? ' is-muted' : ''}`}>
+              {job.type && <JobMetaItem icon="jobs">{job.type}</JobMetaItem>}
+              {job.posted && <JobMetaItem icon="clock">{job.posted}</JobMetaItem>}
+              <JobMetaItem icon="salary" className={cn(!(job.salary || job.sal) && 'text-muted-foreground')}>
                 {job.salary || job.sal || 'Not listed'}
               </JobMetaItem>
             </JobMetaRow>
           </div>
-          <div className="job-detail-match">
-            <span className="job-detail-match-val">{job.match || 0}%</span>
-            <span className="job-detail-match-lbl">🎯 profile match</span>
+          <div className="shrink-0 text-center">
+            <div className={cn('text-2xl font-black tabular-nums', scoreTone(matchScore))}>{matchScore}%</div>
+            <div className="flex items-center justify-center gap-1 text-[0.68rem] text-muted-foreground">
+              <AppIcon name="target" className="size-3" />
+              profile match
+            </div>
           </div>
         </div>
 
-        <div className="match-bar job-detail-match-bar"><div className="match-fill" style={{ width: `${job.match || 0}%` }} /></div>
+        <Progress value={matchScore} className="h-1.5" />
 
-        <div className="job-detail-tags">
-          {job.tags.map((t) => <span key={t} className="tag tb">{t}</span>)}
-          {job.type && <span className="tag tg">{job.type}</span>}
+        <div className="flex flex-wrap gap-1.5">
+          {job.tags.map((t) => <StatusBadge key={t} tone="default">{t}</StatusBadge>)}
+          {job.type && <StatusBadge tone="success">{job.type}</StatusBadge>}
         </div>
 
-        <div className="job-detail-actions">
-          <button type="button" className="btn btn-o" onClick={() => toggleSave(job)}>
-            {isJobSaved(job.id) ? '❤️ Saved' : '🔖 Save'}
-          </button>
-          <button type="button" className="btn btn-o" disabled={clLoading} onClick={generateCoverLetter}>
-            {clLoading ? '⏳ Generating…' : '✉️ Cover Letter'}
-          </button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => toggleSave(job)}>
+            {isJobSaved(job.id) ? (
+              <><AppIcon name="heart" className="size-4" weight="fill" /> Saved</>
+            ) : (
+              <><AppIcon name="bookmark" className="size-4" /> Save</>
+            )}
+          </Button>
+          <Button variant="outline" disabled={clLoading} onClick={generateCoverLetter}>
+            {clLoading ? 'Generating…' : (
+              <><AppIcon name="cover-letters" className="size-4" /> Cover Letter</>
+            )}
+          </Button>
           {applied ? (
-            <Link to="/dashboard/applications" className="btn btn-g">✅ Applied · View tracker</Link>
+            <Button variant="secondary" onClick={() => navigate('/dashboard/applications')}>
+              <AppIcon name="check-circle" className="size-4" /> Applied · View tracker
+            </Button>
           ) : (
-            <button type="button" className="btn btn-g" disabled={applying} onClick={() => handleApply(job)}>
-              {applying ? '⏳ Applying…' : 'Apply'}
-            </button>
+            <Button disabled={applying} onClick={() => handleApply(job)}>
+              {applying ? 'Applying…' : 'Apply'}
+            </Button>
           )}
         </div>
 
-        <section className="job-detail-section">
-          <h2>Job Description</h2>
+        <section className="space-y-2 border-t border-border pt-4">
+          <h2 className="text-sm font-bold text-foreground">Job Description</h2>
           <JobDescriptionHtml html={job.descHtml} plain={job.description || job.desc} />
         </section>
 
         {job.req && job.req[0] !== 'See full job description for details' && (
-          <section className="job-detail-section">
-            <h2>Requirements</h2>
-            <ul className="job-detail-reqs">
+          <section className="space-y-2 border-t border-border pt-4">
+            <h2 className="text-sm font-bold text-foreground">Requirements</h2>
+            <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
               {job.req.map((r, i) => <li key={i}>{r}</li>)}
             </ul>
           </section>
         )}
 
-        <section className="job-detail-section job-detail-ai">
-          <div className="job-detail-ai-head">
-            <h2>🎯 Match Analysis</h2>
+        <section className="space-y-3 border-t border-border pt-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="flex items-center gap-1.5 text-sm font-bold text-foreground">
+              <AppIcon name="target" className="size-4" />
+              Match Analysis
+            </h2>
             {!aiMatch && (
-              <button type="button" className="btn btn-p btn-sm" disabled={aiLoading} onClick={runAiMatch}>
-                {aiLoading ? '⏳ Analyzing…' : '🤖 AI Match'}
-              </button>
+              <Button size="sm" disabled={aiLoading} onClick={runAiMatch}>
+                {aiLoading ? 'Analyzing…' : (
+                  <><AppIcon name="robot" className="size-4" /> AI Match</>
+                )}
+              </Button>
             )}
           </div>
 
           {!aiMatch ? (
-            <p className="job-detail-ai-hint">
+            <p className="text-sm text-muted-foreground">
               Get AI-powered insight on how well this role fits your profile, skills to highlight, and gaps to close.
             </p>
           ) : (
-            <div>
-              <div className="job-detail-ai-score-row">
-                <div className={`job-detail-ai-score job-detail-ai-score--${aiMatch.score >= 80 ? 'high' : aiMatch.score >= 60 ? 'mid' : 'low'}`}>
+            <div className="space-y-4">
+              <div className="flex items-start gap-4">
+                <div className={cn('text-3xl font-black tabular-nums', scoreTone(aiMatch.score))}>
                   {aiMatch.score}%
                 </div>
                 <div>
-                  <div className="job-detail-ai-verdict">{aiMatch.verdict}</div>
-                  <p className="job-detail-ai-summary">{aiMatch.summary}</p>
+                  <div className="font-bold text-foreground">{aiMatch.verdict}</div>
+                  <p className="mt-1 text-sm text-muted-foreground">{aiMatch.summary}</p>
                 </div>
               </div>
-              <div className="job-detail-ai-grid">
+              <div className="grid gap-4 sm:grid-cols-2">
                 {aiMatch.matchedSkills?.length > 0 && (
                   <div>
-                    <div className="job-detail-ai-label job-detail-ai-label--ok">✅ Matched Skills</div>
-                    <div className="job-detail-ai-chips">
-                      {aiMatch.matchedSkills.map((s) => <span key={s} className="job-detail-chip job-detail-chip--ok">{s}</span>)}
+                    <div className="mb-1.5 flex items-center gap-1 text-[0.72rem] font-bold uppercase tracking-wide text-emerald-500">
+                      <AppIcon name="check-circle" className="size-3.5" />
+                      Matched Skills
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {aiMatch.matchedSkills.map((s) => (
+                        <Badge key={s} variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-500">{s}</Badge>
+                      ))}
                     </div>
                   </div>
                 )}
                 {aiMatch.missingSkills?.length > 0 && (
                   <div>
-                    <div className="job-detail-ai-label job-detail-ai-label--warn">⚡ Skills to Learn</div>
-                    <div className="job-detail-ai-chips">
-                      {aiMatch.missingSkills.map((s) => <span key={s} className="job-detail-chip job-detail-chip--warn">{s}</span>)}
+                    <div className="mb-1.5 flex items-center gap-1 text-[0.72rem] font-bold uppercase tracking-wide text-amber-500">
+                      <AppIcon name="lightning" className="size-3.5" />
+                      Skills to Learn
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {aiMatch.missingSkills.map((s) => (
+                        <Badge key={s} variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-500">{s}</Badge>
+                      ))}
                     </div>
                   </div>
                 )}
               </div>
               {aiMatch.recommendations?.length > 0 && (
-                <div className="job-detail-recs">
-                  <div className="job-detail-ai-label job-detail-ai-label--tip">💡 Recommendations</div>
-                  <ul>
+                <div>
+                  <div className="mb-1.5 flex items-center gap-1 text-[0.72rem] font-bold uppercase tracking-wide text-primary">
+                    <AppIcon name="lightbulb" className="size-3.5" />
+                    Recommendations
+                  </div>
+                  <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
                     {aiMatch.recommendations.map((r, i) => <li key={i}>{r}</li>)}
                   </ul>
                 </div>
@@ -328,21 +380,30 @@ export default function JobDetailSection() {
         </section>
 
         {coverLetter && (
-          <section className="job-detail-section job-detail-cover">
-            <div className="job-detail-ai-head">
-              <h2>✉️ Cover Letter</h2>
-              <button type="button" className="btn btn-gh btn-sm" onClick={() => {
+          <section className="space-y-3 border-t border-border pt-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="flex items-center gap-1.5 text-sm font-bold text-foreground">
+                <AppIcon name="cover-letters" className="size-4" />
+                Cover Letter
+              </h2>
+              <Button variant="ghost" size="sm" onClick={() => {
                 navigator.clipboard.writeText(coverLetter)
                 setClCopied(true)
                 setTimeout(() => setClCopied(false), 2000)
               }}>
-                {clCopied ? '✅ Copied!' : '📋 Copy'}
-              </button>
+                {clCopied ? (
+                  <><AppIcon name="check-circle" className="size-4" /> Copied!</>
+                ) : (
+                  <><AppIcon name="copy" className="size-4" /> Copy</>
+                )}
+              </Button>
             </div>
-            <div className="job-detail-cover-text">{coverLetter}</div>
+            <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm leading-relaxed whitespace-pre-wrap text-foreground">
+              {coverLetter}
+            </div>
           </section>
         )}
-      </div>
+      </DashboardCard>
     </div>
   )
 }

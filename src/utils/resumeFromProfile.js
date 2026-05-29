@@ -158,7 +158,7 @@ function buildProfileResumeContent(authUser, profile, layout = LAYOUTS.SINGLE, u
       tech: p.tech || '',
       description: p.description || '',
       url: p.url || '',
-      icon: '🚀',
+      icon: 'rocket',
       profile: { ...p },
     }))
 

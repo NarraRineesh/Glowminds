@@ -1,24 +1,39 @@
 import { useState, useEffect } from 'react'
 import useAppStore from '@/store/authStore'
 import useIsPro from '@/hooks/useIsPro'
+import useIsLg from '@/hooks/useIsLg'
 import useTrackerStore from '@/store/trackerStore'
 import Loader from '@/components/Loader'
+import {
+  AppIcon,
+  AppDialog,
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  FormField,
+  FormRow,
+  Input,
+  PageTitle,
+  ScrollArea,
+  Select,
+  Textarea,
+  cn,
+} from '@/components/ui'
 import {
   APPLICATION_STATUS,
   APPLICATION_STATUSES,
   APPLICATION_STATUS_LABEL,
 } from '@/constants/schema'
-import '@/styles/dashboard.css'
-import '@/styles/kanban.css'
-import '@/styles/forms.css'
-import '@/styles/modal.css'
 
-const COLUMN_COLOR = {
-  [APPLICATION_STATUS.APPLIED]: 'var(--color-blu)',
-  [APPLICATION_STATUS.IN_REVIEW]: 'var(--color-gold)',
-  [APPLICATION_STATUS.INTERVIEW]: 'var(--color-prp)',
-  [APPLICATION_STATUS.OFFER]: 'var(--color-grn)',
-  [APPLICATION_STATUS.REJECTED]: 'var(--color-red, #e5534b)',
+const COLUMN_STYLE = {
+  [APPLICATION_STATUS.APPLIED]: { text: 'text-primary', badge: 'bg-primary/20 text-primary' },
+  [APPLICATION_STATUS.IN_REVIEW]: { text: 'text-amber-500', badge: 'bg-amber-500/20 text-amber-500' },
+  [APPLICATION_STATUS.INTERVIEW]: { text: 'text-purple-500', badge: 'bg-purple-500/20 text-purple-500' },
+  [APPLICATION_STATUS.OFFER]: { text: 'text-emerald-500', badge: 'bg-emerald-500/20 text-emerald-500' },
+  [APPLICATION_STATUS.REJECTED]: { text: 'text-destructive', badge: 'bg-destructive/20 text-destructive' },
 }
 
 const FREE_APP_LIMIT = 5
@@ -36,13 +51,14 @@ export default function ApplicationsSection() {
   const { addToast } = useAppStore()
   const isPro = useIsPro()
   const { apps, loading, addApp, updateStatus, deleteApp, loadApps } = useTrackerStore()
+  const isLg = useIsLg()
   const [modal, setModal] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
 
   useEffect(() => { loadApps() }, [loadApps])
 
   const handleAdd = async () => {
-    if (!form.company || !form.role) { addToast('error', '⚠️ Company and role required'); return }
+    if (!form.company || !form.role) { addToast('error', 'Company and role required'); return }
     const application = await addApp({
       company: form.company,
       role: form.role,
@@ -50,114 +66,175 @@ export default function ApplicationsSection() {
       appliedDate: form.appliedDate || new Date().toISOString().split('T')[0],
       salary: form.salary,
       notes: form.notes,
-      logo: '💼',
+      logo: 'jobs',
     })
-    if (application) addToast('success', `✅ ${form.role} at ${form.company} tracked!`)
-    else addToast('error', '⚠️ Failed to add application')
+    if (application) addToast('success', `${form.role} at ${form.company} tracked!`)
+    else addToast('error', 'Failed to add application')
     setModal(false)
     setForm(EMPTY_FORM)
   }
 
   const handleStatusChange = async (appId, newStatus) => {
     await updateStatus(appId, newStatus)
-    addToast('info', `📋 Status updated to ${APPLICATION_STATUS_LABEL[newStatus] || newStatus}`)
+    addToast('info', `Status updated to ${APPLICATION_STATUS_LABEL[newStatus] || newStatus}`)
   }
 
   const handleDelete = async (appId, company) => {
     await deleteApp(appId)
-    addToast('info', `🗑️ ${company} removed from tracker`)
+    addToast('info', `${company} removed from tracker`)
   }
+
+  const canAdd = isPro || apps.length < FREE_APP_LIMIT
 
   return (
     <>
-      <div className="flex items-center justify-between flex-wrap gap-2.5 mb-[18px]">
-        <div>
-          <div className="dsh-title">Application Tracker 📋</div>
-          <div className="dsh-sub">Track every application · Kanban board view · {apps.length} total</div>
+      <div className="min-w-0 space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-2.5">
+          <PageTitle
+            className="mb-0"
+            title="Application Tracker"
+            subtitle={`Track every application · Kanban board · ${apps.length} total`}
+          />
+          {canAdd ? (
+            <Button size="sm" onClick={() => setModal(true)}>+ Add application</Button>
+          ) : (
+            <Button variant="ghost" size="sm" className="opacity-60" onClick={() => addToast('info', 'Upgrade to Pro for unlimited tracking')}>
+              <AppIcon name="lock" className="size-3.5" />
+              Limit reached (Pro)
+            </Button>
+          )}
         </div>
-        {(isPro || apps.length < FREE_APP_LIMIT) ? (
-          <button className="btn btn-p btn-sm" onClick={() => setModal(true)}>+ Add Application</button>
+
+        {loading ? (
+          <Loader variant="section" label="Loading your applications…" />
         ) : (
-          <button className="btn btn-gh btn-sm" style={{ opacity: .6 }} onClick={() => addToast('info', '⚡ Upgrade to Pro for unlimited tracking')}>🔒 Limit Reached (Pro)</button>
+          <div
+            className={cn(
+              'grid gap-4 [&>*]:min-h-0 [&>*]:min-w-0',
+              isLg ? 'grid-cols-5' : 'grid-cols-1',
+            )}
+          >
+            {APPLICATION_STATUSES.map(col => {
+              const items = apps.filter(a => a.status === col)
+              const colStyle = COLUMN_STYLE[col]
+              return (
+                <Card key={col} className={cn('flex flex-col gap-0 py-0', isLg && 'min-h-[12rem]')}>
+                  <CardHeader className="flex-row items-center justify-between space-y-0 border-b px-3 py-2.5">
+                    <CardTitle className={cn('text-sm font-bold', colStyle.text)}>
+                      {APPLICATION_STATUS_LABEL[col]}
+                    </CardTitle>
+                    <Badge variant="secondary" className={cn('text-xs tabular-nums', colStyle.badge)}>
+                      {items.length}
+                    </Badge>
+                  </CardHeader>
+                  <ScrollArea className={cn(isLg && 'max-h-[min(420px,calc(100svh-16rem))] flex-1')}>
+                    <CardContent className="space-y-2 p-2">
+                      {items.map((a) => (
+                        <div
+                          key={a.id}
+                          className="relative rounded-lg border border-border bg-muted/50 p-2.5 transition-colors hover:border-primary/30"
+                        >
+                          <div className="flex items-center gap-1.5 text-sm font-bold text-foreground">
+                            <AppIcon name={a.logo || 'jobs'} className="size-3.5 shrink-0" />
+                            <span className="truncate">{a.company}</span>
+                          </div>
+                          <div className="text-sm font-medium text-muted-foreground">{a.role}</div>
+                          {a.salary && <div className="text-xs font-semibold text-emerald-500">{a.salary}</div>}
+                          <div className="text-xs text-muted-foreground">
+                            {a.appliedDate}{a.notes ? ` · ${a.notes}` : ''}
+                          </div>
+                          <div className="mt-1.5 flex items-center gap-1.5">
+                            <Select
+                              className="flex-1 px-1.5 py-0.5 text-xs"
+                              value={a.status}
+                              onChange={(e) => handleStatusChange(a.id, e.target.value)}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {APPLICATION_STATUSES.map(c => <option key={c} value={c}>{APPLICATION_STATUS_LABEL[c]}</option>)}
+                            </Select>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon-sm"
+                              className="text-muted-foreground hover:text-destructive"
+                              onClick={() => handleDelete(a.id, a.company)}
+                              aria-label={`Remove ${a.company}`}
+                            >
+                              <AppIcon name="x" className="size-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                      {col === APPLICATION_STATUS.APPLIED && canAdd && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="w-full border-dashed"
+                          onClick={() => setModal(true)}
+                        >
+                          + Add manually
+                        </Button>
+                      )}
+                      {col === APPLICATION_STATUS.APPLIED && !canAdd && (
+                        <div className="rounded-lg border border-dashed border-border p-2 text-center text-xs text-muted-foreground">
+                          <AppIcon name="lock" className="inline size-3.5" /> {FREE_APP_LIMIT}/{FREE_APP_LIMIT} free apps used ·{' '}
+                          <Button
+                            type="button"
+                            variant="link"
+                            size="sm"
+                            className="h-auto px-0 text-xs"
+                            onClick={() => addToast('info', 'Upgrade to Pro for unlimited tracking')}
+                          >
+                            Upgrade
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </ScrollArea>
+                </Card>
+              )
+            })}
+          </div>
         )}
       </div>
 
-      {loading && <Loader variant="block" label="Loading your applications…" />}
-
-      {!loading && (
-        <div className="kanban">
-          {APPLICATION_STATUSES.map(col => {
-            const items = apps.filter(a => a.status === col)
-            const colColor = COLUMN_COLOR[col]
-            return (
-              <div key={col} className="k-col">
-                <div className="k-col-h" style={{ color: colColor }}>
-                  <span>{APPLICATION_STATUS_LABEL[col]}</span>
-                  <span className="py-0.5 px-2 rounded-lg text-[.68rem]" style={{ background: `${colColor}20` }}>{items.length}</span>
-                </div>
-                {items.map((a) => (
-                  <div key={a.id} className="k-item" style={{ position: 'relative' }}>
-                    <div className="k-co">{a.logo || '💼'} {a.company}</div>
-                    <div className="k-role">{a.role}</div>
-                    {a.salary && <div className="k-date text-[--color-grn] font-bold">{a.salary}</div>}
-                    <div className="k-date">{a.appliedDate}{a.notes ? ` · ${a.notes}` : ''}</div>
-                    <div className="flex items-center gap-1.5 mt-1.5">
-                      <select
-                        className="fsl text-[.68rem] py-0.5 px-1.5 flex-1"
-                        value={a.status}
-                        onChange={(e) => handleStatusChange(a.id, e.target.value)}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {APPLICATION_STATUSES.map(c => <option key={c} value={c}>{APPLICATION_STATUS_LABEL[c]}</option>)}
-                      </select>
-                      <button
-                        className="text-[.68rem] text-[--color-muted] hover:text-[red] cursor-pointer bg-none border-none p-0.5"
-                        onClick={() => handleDelete(a.id, a.company)}
-                        title="Remove"
-                      >✕</button>
-                    </div>
-                  </div>
-                ))}
-                {col === APPLICATION_STATUS.APPLIED && (isPro || apps.length < FREE_APP_LIMIT) && (
-                  <div className="border border-dashed border-[--color-bdr] rounded-[7px] p-[9px] text-center text-[.73rem] text-[--color-muted] cursor-pointer"
-                    onClick={() => setModal(true)}>+ Add manually</div>
-                )}
-                {col === APPLICATION_STATUS.APPLIED && !isPro && apps.length >= FREE_APP_LIMIT && (
-                  <div className="border border-dashed border-[--color-bdr] rounded-[7px] p-[9px] text-center text-[.68rem] text-[--color-muted]">🔒 {FREE_APP_LIMIT}/{FREE_APP_LIMIT} free apps used · <span style={{ color: 'var(--color-blu2)', cursor: 'pointer', fontWeight: 700 }} onClick={() => addToast('info', '⚡ Upgrade to Pro for unlimited tracking')}>Upgrade</span></div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      )}
-
-      {modal && (
-        <div className="mb on" onClick={(e) => { if (e.target === e.currentTarget) setModal(false) }}>
-          <div className="mo">
-            <div className="mh"><h2>Track Application</h2><div className="mx" onClick={() => setModal(false)}>✕</div></div>
-            <div className="mb2 flex flex-col gap-3">
-              <div className="fg"><label className="fl">Company Name</label><input className="fi" placeholder="Google, TCS, Infosys…" value={form.company} onChange={e => setForm({ ...form, company: e.target.value })} /></div>
-              <div className="fg2">
-                <div className="fg"><label className="fl">Job Role</label><input className="fi" placeholder="Software Engineer" value={form.role} onChange={e => setForm({ ...form, role: e.target.value })} /></div>
-                <div className="fg"><label className="fl">Status</label>
-                  <select className="fsl" value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
-                    {APPLICATION_STATUSES.map(c => <option key={c} value={c}>{APPLICATION_STATUS_LABEL[c]}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div className="fg2">
-                <div className="fg"><label className="fl">Date</label><input type="date" className="fi" value={form.appliedDate} onChange={e => setForm({ ...form, appliedDate: e.target.value })} /></div>
-                <div className="fg"><label className="fl">Salary</label><input className="fi" placeholder="5–8 LPA" value={form.salary} onChange={e => setForm({ ...form, salary: e.target.value })} /></div>
-              </div>
-              <div className="fg"><label className="fl">Notes</label><textarea className="fta min-h-[56px]" placeholder="Recruiter name, next steps…" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
-            </div>
-            <div className="mf">
-              <button className="btn btn-gh" onClick={() => setModal(false)}>Cancel</button>
-              <button className="btn btn-p" onClick={handleAdd}>Add Application</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AppDialog
+        open={modal}
+        onOpenChange={setModal}
+        title="Track Application"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setModal(false)}>Cancel</Button>
+            <Button onClick={handleAdd}>Add Application</Button>
+          </>
+        }
+      >
+        <FormField label="Company Name">
+          <Input placeholder="Google, TCS, Infosys…" value={form.company} onChange={e => setForm({ ...form, company: e.target.value })} />
+        </FormField>
+        <FormRow>
+          <FormField label="Job Role">
+            <Input placeholder="Software Engineer" value={form.role} onChange={e => setForm({ ...form, role: e.target.value })} />
+          </FormField>
+          <FormField label="Status">
+            <Select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
+              {APPLICATION_STATUSES.map(c => <option key={c} value={c}>{APPLICATION_STATUS_LABEL[c]}</option>)}
+            </Select>
+          </FormField>
+        </FormRow>
+        <FormRow>
+          <FormField label="Date">
+            <Input type="date" value={form.appliedDate} onChange={e => setForm({ ...form, appliedDate: e.target.value })} />
+          </FormField>
+          <FormField label="Salary">
+            <Input placeholder="5–8 LPA" value={form.salary} onChange={e => setForm({ ...form, salary: e.target.value })} />
+          </FormField>
+        </FormRow>
+        <FormField label="Notes">
+          <Textarea className="min-h-[56px]" placeholder="Recruiter name, next steps…" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
+        </FormField>
+      </AppDialog>
     </>
   )
 }

@@ -9,7 +9,6 @@ import {
   searchAllJobs,
 } from "../../services/jobSearch.js";
 
-const COUNT_POOL_SIZE = 2000;
 const DEFAULT_PAGE_SIZE = 10;
 
 const router = Router();
@@ -72,6 +71,7 @@ router.post("/search", requireAuth, async (req, res, next) => {
       type,
       minMatch,
       newToday,
+      includeRankedList = false,
     } = req.body || {};
 
     const safePage = clampInt(page, { min: 1, max: 10_000, fallback: 1 });
@@ -91,7 +91,7 @@ router.post("/search", requireAuth, async (req, res, next) => {
       ...filtersFromRequest({ type, minMatch, newToday }),
     };
 
-    const { jobs, pagination, sources, partialErrors } = await searchAllJobs({
+    const { jobs, pagination, sources, partialErrors, rankedJobs, meta } = await searchAllJobs({
       ...params,
       location,
       category,
@@ -99,6 +99,7 @@ router.post("/search", requireAuth, async (req, res, next) => {
       pageSize: safePageSize,
       filters,
       explicitSearch: params.explicitSearch,
+      includeRankedList: includeRankedList === true,
     });
 
     res.json({
@@ -109,6 +110,8 @@ router.post("/search", requireAuth, async (req, res, next) => {
       skillTerms,
       locationUsed: location,
       sources,
+      ...(rankedJobs ? { rankedJobs } : {}),
+      ...(meta ? { meta } : {}),
       ...(partialErrors.length ? { partialErrors } : {}),
     });
   } catch (err) {
@@ -179,18 +182,18 @@ router.get("/count", requireAuth, async (req, res, next) => {
       newToday: req.query.newToday,
     });
 
-    const { count, saturated, partialErrors } = await countMatchingJobs({
+    const { count, truncated, dbTotal, partialErrors } = await countMatchingJobs({
       ...params,
       location,
       category,
-      poolSize: COUNT_POOL_SIZE,
       filters,
       explicitSearch: params.explicitSearch,
     });
 
     res.json({
       count,
-      saturated,
+      saturated: truncated,
+      dbTotal,
       queryUsed: formatQueryUsed(params),
       searchParams: params,
       locationUsed: location,
