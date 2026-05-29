@@ -70,7 +70,7 @@ function getGreeting() {
 export default function OverviewSection() {
   const navigate = useNavigate()
   const { user } = useAppStore()
-  const { jobs, loading: jobsLoading, fetchJobs } = useJobStore()
+  const { jobs, pagination, loading: jobsLoading, fetchJobs } = useJobStore()
   const loadProfileForJobs = useProfileStore((s) => s.load)
   const { apps, loadApps } = useTrackerStore()
   const profileData = useProfileStore((s) => s.profile)
@@ -113,6 +113,7 @@ export default function OverviewSection() {
   }, [fetchJobs, loadApps, loadProfileData, loadProfileForJobs, loadSavedJobs, loadGamificationCatalog])
 
   const streak = gamification?.streak || {}
+  const streakCurrent = streak.current || 0
   const xpProgress = computeXpProgress(gamification?.xp || 0, gamification?.level)
 
   const inReview = apps.filter(a => a.status === APPLICATION_STATUS.IN_REVIEW).length
@@ -280,7 +281,7 @@ export default function OverviewSection() {
         tone: 'gold',
       }
     }
-    if ((streak.current || 0) < 3) {
+    if (streakCurrent < 3) {
       return {
         icon: '🔥',
         label: 'Build a 3-day apply streak',
@@ -298,7 +299,7 @@ export default function OverviewSection() {
       href: '/dashboard/interview',
       tone: 'blu',
     }
-  }, [apps.length, savedJobs.length, interviews, profileScore, responseRate, streak.current])
+  }, [apps.length, savedJobs.length, interviews, profileScore, responseRate, streakCurrent])
 
   const NBA_TONE = {
     blu: { bg: 'rgba(56,139,253,.08)', bd: 'rgba(56,139,253,.25)', fg: 'var(--color-blu2)' },
@@ -335,7 +336,7 @@ export default function OverviewSection() {
       <motion.div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 lg:gap-4 mb-5" initial="hidden" animate="visible" variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.07, delayChildren: 0.15 } } }}>
         <motion.div variants={{ hidden: { opacity: 0, y: 18 }, visible: { opacity: 1, y: 0 } }} transition={{ duration: .45, ease: [0.16,1,0.3,1] }} className="kpi k1 cursor-pointer" onClick={() => navigate('/dashboard/jobs')}>
           <div className="kpi-ic">💼</div><div className="kpi-lbl">Job Matches</div>
-          <div className="kpi-val">{jobsLoading ? '…' : jobs.length}</div>
+          <div className="kpi-val">{jobsLoading ? '…' : (pagination.total || jobs.length)}</div>
           <div className="kpi-sub">Remote jobs available</div>
         </motion.div>
         <motion.div variants={{ hidden: { opacity: 0, y: 18 }, visible: { opacity: 1, y: 0 } }} transition={{ duration: .45, ease: [0.16,1,0.3,1] }} className="kpi k2 cursor-pointer" onClick={() => navigate('/dashboard/applications')}>
@@ -363,15 +364,24 @@ export default function OverviewSection() {
             {jobsLoading && <Loader variant="block" label="Loading jobs…" size={28} />}
             {!jobsLoading && jobs.length === 0 && <div className="text-center text-[--color-muted] py-4">No jobs yet. Check back soon!</div>}
             {!jobsLoading && jobs.slice(0, 5).map((j) => (
-              <div className="jmini cursor-pointer" key={j.id} onClick={() => navigate('/dashboard/jobs')}>
+              <div className="jmini cursor-pointer" key={j.id} onClick={() => navigate(`/dashboard/jobs/${encodeURIComponent(j.id)}`)}>
                 <div className="jml bg-[var(--color-bg3)]">{j.logo}</div>
                 <div className="flex-1 min-w-0">
                   <div className="jmt">{j.title}</div>
-                  <div className="jmc">{j.company || j.co} · {j.location || j.loc}</div>
+                  <div className="jmc">
+                    {(j.company || j.co) && (
+                      <span className="jmc-part"><span className="jmc-ico" aria-hidden>🏢</span><span className="jmc-text">{j.company || j.co}</span></span>
+                    )}
+                    {(j.location || j.loc) && (
+                      <span className="jmc-part"><span className="jmc-ico" aria-hidden>{j.remote ? '🌐' : '📍'}</span><span className="jmc-text">{j.location || j.loc}</span></span>
+                    )}
+                  </div>
                 </div>
                 <div className="text-right">
                   <div className="jmm">{j.match}%</div>
-                  <div className="text-[.62rem] text-[--color-muted]">{j.posted}</div>
+                  <div className="text-[.62rem] text-[--color-muted]" style={{ display: 'flex', alignItems: 'center', gap: 3, justifyContent: 'flex-end' }}>
+                    <span aria-hidden>🕒</span>{j.posted}
+                  </div>
                 </div>
               </div>
             ))}

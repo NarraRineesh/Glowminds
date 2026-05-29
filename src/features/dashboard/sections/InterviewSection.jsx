@@ -137,7 +137,6 @@ export default function InterviewSection() {
       // Persist per-question picks back to the Firestore session doc.
       let snapshot = questions
       for (let idx = 0; idx < items.length; idx += 1) {
-        // eslint-disable-next-line no-await-in-loop
         const updated = await saveStoredAnswer({
           sessionId,
           questions: snapshot,

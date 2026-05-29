@@ -3,11 +3,14 @@ import { requireAuth } from "../../middleware/auth.js";
 import { ApiError } from "../../middleware/errors.js";
 import {
   buildSearchParams,
+  countMatchingJobs,
+  getJobByDocId,
   loadProfileContext,
   searchAllJobs,
 } from "../../services/jobSearch.js";
 
-const COUNT_POOL_SIZE = 250;
+const COUNT_POOL_SIZE = 2000;
+const DEFAULT_PAGE_SIZE = 10;
 
 const router = Router();
 
@@ -28,6 +31,24 @@ function searchParamsFromRequest(profile, bodyOrQuery, useProfile) {
   });
 }
 
+function filtersFromRequest(src = {}) {
+  const filters = {};
+  if (src.type) filters.type = String(src.type).trim();
+  if (src.minMatch != null && src.minMatch !== "") {
+    const n = Number(src.minMatch);
+    if (Number.isFinite(n)) filters.minMatch = n;
+  }
+  if (src.newToday === true || src.newToday === "true") filters.newToday = true;
+  return filters;
+}
+
+function profileLocation(profile) {
+  return (
+    profile?.preferences?.preferredLocations?.[0] ||
+    profile?.personal?.location ||
+    "India"
+  );
+}
 function formatQueryUsed({ title, skills }) {
   const parts = [];
   if (title) parts.push(title);
@@ -44,11 +65,17 @@ router.post("/search", requireAuth, async (req, res, next) => {
       skills,
       exp,
       category = "",
-      limit = 30,
+      page = 1,
+      pageSize = DEFAULT_PAGE_SIZE,
       useProfile = true,
+      filters: bodyFilters = {},
+      type,
+      minMatch,
+      newToday,
     } = req.body || {};
 
-    const limitPerSource = clampInt(limit, { min: 10, max: 50, fallback: 30 });
+    const safePage = clampInt(page, { min: 1, max: 10_000, fallback: 1 });
+    const safePageSize = clampInt(pageSize, { min: 1, max: 50, fallback: DEFAULT_PAGE_SIZE });
     const { profile, skillTerms } = await loadProfileContext(uid);
 
     const params = searchParamsFromRequest(profile, {
@@ -58,20 +85,25 @@ router.post("/search", requireAuth, async (req, res, next) => {
       exp,
     }, useProfile !== false);
 
-    const location =
-      profile?.preferences?.preferredLocations?.[0] ||
-      profile?.personal?.location ||
-      "India";
+    const location = profileLocation(profile);
+    const filters = {
+      ...filtersFromRequest(bodyFilters),
+      ...filtersFromRequest({ type, minMatch, newToday }),
+    };
 
-    const { jobs, sources, partialErrors } = await searchAllJobs({
+    const { jobs, pagination, sources, partialErrors } = await searchAllJobs({
       ...params,
       location,
       category,
-      limitPerSource,
+      page: safePage,
+      pageSize: safePageSize,
+      filters,
+      explicitSearch: params.explicitSearch,
     });
 
     res.json({
       jobs,
+      pagination,
       queryUsed: formatQueryUsed(params),
       searchParams: params,
       skillTerms,
@@ -94,21 +126,19 @@ router.get("/top-matches", requireAuth, async (req, res, next) => {
 
     const params = buildSearchParams(profile, { useProfile: true });
 
-    const location =
-      profile?.preferences?.preferredLocations?.[0] ||
-      profile?.personal?.location ||
-      "India";
+    const location = profileLocation(profile);
 
     const { jobs, sources, partialErrors } = await searchAllJobs({
       ...params,
       location,
       category,
-      limitPerSource: limit,
+      page: 1,
+      pageSize: limit,
       poolSize: 120,
     });
 
     res.json({
-      jobs: jobs.slice(0, limit),
+      jobs,
       queryUsed: formatQueryUsed(params),
       searchParams: params,
       skillTerms,
@@ -140,31 +170,53 @@ router.get("/count", requireAuth, async (req, res, next) => {
       useProfile,
     );
 
-    const location =
-      profile?.preferences?.preferredLocations?.[0] ||
-      profile?.personal?.location ||
-      "India";
+    const location = profileLocation(profile);
 
     const category = String(req.query.category || "").trim();
+    const filters = filtersFromRequest({
+      type: req.query.type,
+      minMatch: req.query.minMatch,
+      newToday: req.query.newToday,
+    });
 
-    const { jobs, sources, partialErrors } = await searchAllJobs({
+    const { count, saturated, partialErrors } = await countMatchingJobs({
       ...params,
       location,
       category,
-      limitPerSource: COUNT_POOL_SIZE,
       poolSize: COUNT_POOL_SIZE,
+      filters,
+      explicitSearch: params.explicitSearch,
     });
 
     res.json({
-      count: jobs.length,
-      saturated: jobs.length >= COUNT_POOL_SIZE,
+      count,
+      saturated,
       queryUsed: formatQueryUsed(params),
       searchParams: params,
       locationUsed: location,
       category: category || null,
-      sources,
       ...(partialErrors.length ? { partialErrors } : {}),
     });
+  } catch (err) {
+    next(err instanceof ApiError ? err : new ApiError("internal", err.message));
+  }
+});
+
+router.get("/detail", requireAuth, async (req, res, next) => {
+  try {
+    const uid = req.user.uid;
+    const jobId = String(req.query.jobId || "").trim();
+    if (!jobId) {
+      throw new ApiError("invalid-argument", "jobId is required");
+    }
+
+    const { profile } = await loadProfileContext(uid);
+    const job = await getJobByDocId(jobId, { profile });
+    if (!job) {
+      throw new ApiError("not-found", "Job not found");
+    }
+
+    res.json({ job });
   } catch (err) {
     next(err instanceof ApiError ? err : new ApiError("internal", err.message));
   }

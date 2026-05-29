@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import { env } from "./config/env.js";
+import { env, isAllowedCorsOrigin } from "./config/env.js";
 import { errorHandler, notFoundHandler } from "./middleware/errors.js";
 import aiRoutes from "./routes/ai/index.js";
 import jobsSearchRoutes from "./routes/jobs/search.js";
@@ -17,8 +17,7 @@ export function createApp() {
   app.use(
     cors({
       origin(origin, cb) {
-        if (!origin) return cb(null, true);
-        if (env.corsOrigins.includes(origin)) return cb(null, true);
+        if (isAllowedCorsOrigin(origin)) return cb(null, true);
         cb(new Error(`CORS: origin ${origin} not allowed`));
       },
       credentials: true,

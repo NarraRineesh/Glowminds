@@ -21,23 +21,30 @@ function buildJobSnapshot(job) {
   }
 }
 
-// Treat a cache fresher than this as "good enough" — callers asking for the
-// same query within the window get the cached results without re-hitting
-// the API. Tune if jobs need to feel more "live".
 const FETCH_FRESHNESS_MS = 60_000
+const DEFAULT_PAGE_SIZE = 10
 
-function cacheKey({ search = '', category = '' } = {}) {
-  return `${String(search).trim().toLowerCase()}|${String(category).trim().toLowerCase()}`
+const emptyPagination = () => ({
+  page: 1,
+  pageSize: DEFAULT_PAGE_SIZE,
+  total: 0,
+  totalPages: 1,
+  hasMore: false,
+  from: 0,
+  to: 0,
+})
+
+function cacheKey({ search = '', category = '', page = 1, pageSize = DEFAULT_PAGE_SIZE, filters = {} } = {}) {
+  const f = JSON.stringify(filters || {})
+  return `${String(search).trim().toLowerCase()}|${String(category).trim().toLowerCase()}|${page}|${pageSize}|${f}`
 }
 
-// Module-scoped in-flight registry. Two parallel callers (e.g. OverviewSection
-// + JobsSection mounting in quick succession) collapse onto the same Promise
-// instead of firing duplicate HTTP requests.
 let inflightPromise = null
 let inflightKey = null
 
 const useJobStore = create((set, get) => ({
   jobs: [],
+  pagination: emptyPagination(),
   savedJobs: [],
   savedJobsLoaded: false,
   loading: false,
@@ -51,6 +58,7 @@ const useJobStore = create((set, get) => ({
 
   reset: () => set({
     jobs: [],
+    pagination: emptyPagination(),
     savedJobs: [],
     savedJobsLoaded: false,
     loading: false,
@@ -63,21 +71,25 @@ const useJobStore = create((set, get) => ({
     sources: {},
   }),
 
-  fetchJobs: async ({ search = '', category = '', force = false } = {}) => {
-    const key = cacheKey({ search, category })
+  fetchJobs: async ({
+    search = '',
+    category = '',
+    page = 1,
+    pageSize = DEFAULT_PAGE_SIZE,
+    filters = {},
+    force = false,
+  } = {}) => {
+    const key = cacheKey({ search, category, page, pageSize, filters })
 
-    // 1. Coalesce concurrent callers onto the same Promise.
     if (inflightPromise && inflightKey === key) {
       return inflightPromise
     }
 
-    // 2. Serve from cache if a recent fetch for THIS query already populated
-    //    the store. Skip when `force: true`.
     if (!force) {
       const { lastFetched, lastFetchedKey, jobs } = get()
       const fresh = lastFetched && Date.now() - lastFetched < FETCH_FRESHNESS_MS
       if (fresh && lastFetchedKey === key && jobs.length > 0) {
-        return { jobs, fromCache: true }
+        return { jobs, pagination: get().pagination, fromCache: true }
       }
     }
 
@@ -85,9 +97,10 @@ const useJobStore = create((set, get) => ({
     inflightKey = key
     inflightPromise = (async () => {
       try {
-        const data = await searchJobs({ search, category, limit: 30 })
+        const data = await searchJobs({ search, category, page, pageSize, filters })
         set({
           jobs: data.jobs || [],
+          pagination: data.pagination || emptyPagination(),
           queryUsed: data.queryUsed || '',
           skillTerms: data.skillTerms || [],
           sources: data.sources || {},
@@ -138,9 +151,6 @@ const useJobStore = create((set, get) => ({
     return get().savedJobs.some((j) => j.id === jobId)
   },
 
-  // Cached by default. The store stays in sync via saveJob/unsaveJob, so
-  // re-mounting JobsSection / OverviewSection doesn't have to rescan the
-  // collection on every navigation.
   loadSavedJobs: async ({ force = false } = {}) => {
     const uid = auth.currentUser?.uid
     if (!uid) return

@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "concurrently -n web,fn -c blue,green --kill-others-on-fail \"npm:dev:web\" \"npm:dev:fn\"",
     "dev:web": "vite",
+    "dev:clean": "rm -rf node_modules/.vite && npm run dev:web",
+    "dev:full": "concurrently -n web,fn -c blue,green \"npm:dev:web\" \"npm:dev:fn\"",
     "dev:fn": "firebase emulators:start --only functions",
     "dev:fn:full": "firebase emulators:start --only functions,firestore",
     "build": "vite build",

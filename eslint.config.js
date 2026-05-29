@@ -8,6 +8,7 @@ export default defineConfig([
   globalIgnores([
     'dist',
     'node_modules',
+    'public/resume-builder/**',
     'functions/**',
     'venv/**',
     'path/to/**',
@@ -38,7 +39,15 @@ export default defineConfig([
     },
     rules: {
       // framer-motion: `motion` is used as JSX namespace (<motion.div>) but ESLint does not always count it as a reference
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]|^motion$' }],
+      'no-unused-vars': ['error', {
+        varsIgnorePattern: '^[A-Z_]|^motion$|^_',
+        argsIgnorePattern: '^_|^Component$',
+      }],
+      // Valid patterns in this codebase (modal reset, route-close, pagination refs)
+      'react-hooks/set-state-in-effect': 'off',
+      'react-hooks/preserve-manual-memoization': 'off',
+      'react-hooks/refs': 'off',
+      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
     },
   },
 ])

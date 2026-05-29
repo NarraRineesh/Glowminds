@@ -14,6 +14,9 @@
   display: flex;
   align-items: center;
   gap: 7px;
+  flex-wrap: wrap;
+  min-width: 0;
+  line-height: 1.45;
 }
 
 /* KPI cards */
@@ -84,13 +87,6 @@
   opacity: 0.18;
 }
 
-/* Job board split layout */
-.rg-j {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-}
-
 /* Filter bar */
 .fbar {
   background: var(--color-surf);
@@ -116,11 +112,6 @@
 }
 
 @media (max-width: 768px) {
-  .rg-j {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-
   .kpi-val {
     font-size: 1.3rem;
   }

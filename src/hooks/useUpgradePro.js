@@ -93,7 +93,7 @@ export default function useUpgradePro() {
         setLoading(false)
       }
     },
-    [loggedIn, navigate, addToast, user?.displayName, user?.email],
+    [loggedIn, navigate, addToast, user],
   )
 
   return { startUpgrade, loading }

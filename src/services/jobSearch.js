@@ -8,21 +8,33 @@ import { apiFetch } from '@/services/apiClient'
 export async function searchJobs({
   search = '',
   category = '',
-  limit = 30,
+  page = 1,
+  pageSize = 10,
   useProfile = true,
+  filters = {},
 } = {}) {
+  const trimmed = String(search || '').trim()
   return apiFetch('/jobs/search', {
-    body: { search, category, limit, useProfile },
+    body: {
+      search,
+      category,
+      page,
+      pageSize,
+      useProfile: trimmed ? false : useProfile,
+      filters,
+    },
   })
+}
+
+/** Fetch a single job by Firestore document id. */
+export async function getJobById(jobId) {
+  const params = new URLSearchParams()
+  params.set('jobId', jobId)
+  return apiFetch(`/jobs/detail?${params.toString()}`, { method: 'GET' })
 }
 
 /**
  * Returns the top N jobs ranked by match score against the caller's profile.
- * Defaults to 5 (max 25). Same Firestore-only data path as /jobs/search.
- *
- * @param {object}  [opts]
- * @param {number}  [opts.limit=5]   1..25
- * @param {string}  [opts.category]  optional role filter (e.g. "data", "frontend")
  */
 export async function getTopMatches({ limit = 5, category = '' } = {}) {
   const params = new URLSearchParams()
@@ -35,26 +47,7 @@ export async function getTopMatches({ limit = 5, category = '' } = {}) {
 }
 
 /**
- * Returns the count of jobs that would match `searchJobs` with the same
- * params — runs the same Firestore + in-memory filter pipeline but skips
- * scoring/sorting and only ships the size.
- *
- * `count` is capped server-side; `saturated: true` means the true number
- * could be higher and the value should be treated as a lower bound.
- *
- * @param {object}  [opts]
- * @param {string}  [opts.search]              free-text override (else profile-derived query is used)
- * @param {string}  [opts.category]            role filter (e.g. "data", "frontend")
- * @param {boolean} [opts.useProfile=true]     when false, ignore profile and use `search` only
- * @returns {Promise<{
- *   count: number,
- *   saturated: boolean,
- *   queryUsed: string,
- *   locationUsed: string,
- *   category: string|null,
- *   sources: { firestore: number },
- *   partialErrors?: string[],
- * }>}
+ * Returns the count of jobs that would match `searchJobs` with the same params.
  */
 export async function getJobsCount({
   search = '',

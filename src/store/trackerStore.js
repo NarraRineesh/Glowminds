@@ -70,6 +70,10 @@ const useTrackerStore = create((set, get) => ({
     const uid = auth.currentUser?.uid
     if (!uid) return null
     const payload = buildAppPayload(input)
+    if (payload.jobId) {
+      const existing = get().apps.find((a) => a.jobId === payload.jobId)
+      if (existing) return existing
+    }
     try {
       const docRef = await addDoc(collection(db, 'users', uid, 'applications'), {
         ...payload,
@@ -120,6 +124,11 @@ const useTrackerStore = create((set, get) => ({
 
   updateStatus: async (appId, status) => {
     return get().updateApp(appId, { status: normalizeApplicationStatus(status) })
+  },
+
+  findAppByJobId: (jobId) => {
+    if (!jobId) return null
+    return get().apps.find((a) => a.jobId === jobId) || null
   },
 }))
 

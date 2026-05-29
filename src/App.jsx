@@ -24,6 +24,7 @@ import NotFoundPage from '@/features/public/NotFoundPage'
 const DashboardShell = lazy(() => import('@/features/dashboard/DashboardShell'))
 const OverviewSection = lazy(() => import('@/features/dashboard/sections/OverviewSection'))
 const JobsSection = lazy(() => import('@/features/dashboard/sections/JobsSection'))
+const JobDetailSection = lazy(() => import('@/features/dashboard/sections/JobDetailSection'))
 const ResumeSection = lazy(() => import('@/features/dashboard/sections/ResumeSection'))
 const AISection = lazy(() => import('@/features/dashboard/sections/AISection'))
 const ApplicationsSection = lazy(() => import('@/features/dashboard/sections/ApplicationsSection'))
@@ -77,6 +78,11 @@ function AnimatedRoutes() {
         <Route path="jobs" element={
           <Suspense fallback={<PageLoader />}>
             <JobsSection />
+          </Suspense>
+        } />
+        <Route path="jobs/:jobId" element={
+          <Suspense fallback={<PageLoader />}>
+            <JobDetailSection />
           </Suspense>
         } />
         <Route path="resume" element={

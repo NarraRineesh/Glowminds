@@ -13,9 +13,30 @@ function asArray(value, fallback = []) {
     .filter(Boolean);
 }
 
+function isAllowedCorsOrigin(origin) {
+  if (!origin) return true;
+  if (env.corsOrigins.includes(origin)) return true;
+
+  const projectId = env.firebaseProjectId;
+  if (!projectId) return false;
+
+  try {
+    const { hostname, protocol } = new URL(origin);
+    if (protocol !== "https:" && protocol !== "http:") return false;
+    if (hostname === `${projectId}.web.app`) return true;
+    if (hostname === `${projectId}.firebaseapp.com`) return true;
+  } catch {
+    return false;
+  }
+  return false;
+}
+
 export const env = {
   nodeEnv: process.env.NODE_ENV || "production",
   corsOrigins: asArray(process.env.CORS_ORIGINS, [
+    "https://glowminds-abc84.web.app",
+    "https://glowminds-abc84.firebaseapp.com",
+    "https://glowminds.in",
     "http://localhost:5173",
     "http://localhost:4173",
     "http://127.0.0.1:5000",
@@ -27,7 +48,7 @@ export const env = {
 
   openrouterApiKey: process.env.OPENROUTER_API_KEY || "",
   openrouterSiteUrl:
-    process.env.OPENROUTER_SITE_URL || "https://ai-jobcopilot.web.app",
+    process.env.OPENROUTER_SITE_URL || "https://glowminds-abc84.web.app",
   openrouterAppName:
     process.env.OPENROUTER_APP_NAME || "Glowminds AI Job Copilot",
 
@@ -44,3 +65,5 @@ export function requireEnv(key) {
   }
   return value;
 }
+
+export { isAllowedCorsOrigin };

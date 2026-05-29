@@ -178,7 +178,7 @@ function normalizeAiReview(raw) {
 /** Merge API review payload with lastReviewedAt timestamp. */
 export function stampAiReview(reviewFromApi) {
   if (!reviewFromApi || typeof reviewFromApi !== 'object') return null
-  const { updatedAt, lastReviewedAt, ...rest } = reviewFromApi
+  const { updatedAt: _updatedAt, lastReviewedAt: _lastReviewedAt, ...rest } = reviewFromApi
   return normalizeAiReview({
     ...rest,
     lastReviewedAt: new Date().toISOString(),

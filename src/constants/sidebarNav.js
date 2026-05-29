@@ -17,6 +17,7 @@ export const SIDEBAR_GROUPS = [
     items: [
       { path: '/dashboard/resume', icon: '📄', label: 'Resume Builder' },
       { path: '/dashboard/jobs', icon: '💼', label: 'Job Board' },
+      { path: '/dashboard/applications', icon: '📋', label: 'Application Tracker' },
       { path: '/dashboard/salary', icon: '💰', label: 'Salary Insights' },
     ],
   },
