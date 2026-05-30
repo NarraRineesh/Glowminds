@@ -18,12 +18,9 @@ const CATEGORY_TO_ROLE = {
 };
 
 const DEFAULT_PAGE_SIZE = 10;
-/** Max jobs loaded + ranked per search (pagination slices this list). */
-const MAX_RANKED_JOBS = 120;
-const RANKED_LIST_CACHE_TTL_MS = 120_000;
-
-/** Cached ranked lists keyed by search params (not page). */
-const rankedListCache = new Map();
+/** Per-query pool size for profile top-match (skills + title run in parallel). */
+const TOP_MATCH_POOL = 50;
+const DEFAULT_TOP_MATCH = 10;
 
 function timeAgo(dateStr) {
   if (!dateStr) return "";
@@ -361,25 +358,94 @@ function applyJobFilters(jobs, filters = {}) {
   return out;
 }
 
-function paginateJobs(jobs, { page = 1, pageSize = DEFAULT_PAGE_SIZE } = {}) {
-  const size = Math.max(1, Math.trunc(pageSize) || DEFAULT_PAGE_SIZE);
-  const total = jobs.length;
-  const totalPages = Math.max(1, Math.ceil(total / size));
-  const safePage = Math.min(Math.max(1, Math.trunc(page) || 1), totalPages);
-  const start = (safePage - 1) * size;
-  const paged = jobs.slice(start, start + size);
+function encodeCursor(docSnap) {
+  return Buffer.from(JSON.stringify({ id: docSnap.id }), "utf8").toString("base64url");
+}
+
+async function resolveCursorDoc(db, cursor) {
+  if (!cursor) return null;
+  try {
+    const { id } = JSON.parse(Buffer.from(String(cursor), "base64url").toString("utf8"));
+    if (!id) return null;
+    const snap = await db.collection("jobs").doc(id).get();
+    return snap.exists ? snap : null;
+  } catch {
+    return null;
+  }
+}
+
+function mergeDocsById(...docLists) {
+  const byId = new Map();
+  for (const docs of docLists) {
+    for (const doc of docs) {
+      if (!byId.has(doc.id)) byId.set(doc.id, doc);
+    }
+  }
+  return [...byId.values()];
+}
+
+/** Board search tokens — never uses profile; comma = skills, else title tokens. */
+export function buildBoardSearchParams({ search = "", category = "" } = {}) {
+  const searchStr = String(search || "").trim();
+  const roleKey = category ? CATEGORY_TO_ROLE[String(category).toLowerCase()] : null;
+
+  if (searchStr.includes(",")) {
+    return {
+      roleKey,
+      mode: "skills",
+      userSkills: parseSkillsInput(searchStr).slice(0, 10),
+      titleTokens: [],
+      searchStr,
+      explicitSearch: true,
+    };
+  }
+  if (searchStr) {
+    return {
+      roleKey,
+      mode: "title",
+      userSkills: [],
+      titleTokens: buildTitleTokens(searchStr).slice(0, 10),
+      searchStr,
+      explicitSearch: true,
+    };
+  }
   return {
-    jobs: paged,
-    pagination: {
-      page: safePage,
-      pageSize: size,
-      total,
-      totalPages,
-      hasMore: safePage < totalPages,
-      from: total === 0 ? 0 : start + 1,
-      to: start + paged.length,
-    },
+    roleKey,
+    mode: "browse",
+    userSkills: [],
+    titleTokens: [],
+    searchStr: "",
+    explicitSearch: false,
   };
+}
+
+function buildBoardQuery(db, { roleKey, mode, userSkills, titleTokens }) {
+  let q = db.collection("jobs").where("status", "==", "ACTIVE");
+  if (roleKey) q = q.where("role", "==", roleKey);
+  if (mode === "skills" && userSkills.length > 0) {
+    q = q.where("skills", "array-contains-any", userSkills);
+  } else if (mode === "title" && titleTokens.length > 0) {
+    q = q.where("titleTokens", "array-contains-any", titleTokens);
+  }
+  return q.orderBy("indexedAt", "desc");
+}
+
+function buildSkillJobQuery(db, { roleKey, userSkills }) {
+  let q = db.collection("jobs").where("status", "==", "ACTIVE");
+  if (roleKey) q = q.where("role", "==", roleKey);
+  if (userSkills.length > 0) {
+    q = q.where("skills", "array-contains-any", userSkills.slice(0, 10));
+  }
+  return q.orderBy("indexedAt", "desc");
+}
+
+function buildTitleJobQuery(db, { roleKey, titleTokens }) {
+  let q = db.collection("jobs").where("status", "==", "ACTIVE");
+  if (roleKey) q = q.where("role", "==", roleKey);
+  if (titleTokens.length > 0) {
+    q = q.where("titleTokens", "array-contains-any", titleTokens.slice(0, 10));
+  }
+  return q.orderBy("indexedAt", "desc");
 }
 
 export async function loadProfileContext(uid) {
@@ -409,19 +475,161 @@ async function runJobQuery(q, partialErrors, label) {
   }
 }
 
-/** Build a Firestore query — one indexed query, no in-memory pool scan. */
-function buildJobQuery(db, { roleKey, userSkills, titleTokens, hasInput }) {
-  let q = db.collection("jobs").where("status", "==", "ACTIVE");
-  if (roleKey) q = q.where("role", "==", roleKey);
+async function countBoardMatches(db, boardCtx, partialErrors) {
+  try {
+    const snap = await buildBoardQuery(db, boardCtx).count().get();
+    return snap.data().count;
+  } catch (err) {
+    console.warn("jobSearch board count:", err);
+    partialErrors.push(`count: ${err.message || "count failed"}`);
+    return null;
+  }
+}
 
-  // Firestore array-contains-any accepts at most 10 values.
-  if (hasInput && userSkills.length > 0) {
-    q = q.where("skills", "array-contains-any", userSkills.slice(0, 10));
-  } else if (hasInput && titleTokens.length > 0) {
-    q = q.where("titleTokens", "array-contains-any", titleTokens.slice(0, 10));
+/**
+ * Profile top matches — parallel skills + title queries (50 each), merge, rank, top N.
+ * Max ~100 doc reads per request.
+ */
+export async function getTopMatchedJobs({
+  profile,
+  exp = null,
+  location,
+  category,
+  limit = DEFAULT_TOP_MATCH,
+}) {
+  const db = getFirestore();
+  const partialErrors = [];
+  const params = buildSearchParams(profile, { useProfile: true });
+  const roleKey = category ? CATEGORY_TO_ROLE[String(category).toLowerCase()] : null;
+  const userSkills = parseSkillsInput(params.skills).slice(0, 10);
+  const titleTokens = buildTitleTokens(params.title).slice(0, 10);
+  const safeLimit = Math.min(Math.max(1, Math.trunc(limit) || DEFAULT_TOP_MATCH), 25);
+
+  const queries = [];
+  if (userSkills.length > 0) {
+    queries.push(
+      runJobQuery(
+        buildSkillJobQuery(db, { roleKey, userSkills }).limit(TOP_MATCH_POOL),
+        partialErrors,
+        "top:skills",
+      ),
+    );
+  }
+  if (titleTokens.length > 0) {
+    queries.push(
+      runJobQuery(
+        buildTitleJobQuery(db, { roleKey, titleTokens }).limit(TOP_MATCH_POOL),
+        partialErrors,
+        "top:title",
+      ),
+    );
+  }
+  if (!queries.length) {
+    queries.push(
+      runJobQuery(
+        buildBoardQuery(db, { roleKey, mode: "browse", userSkills: [], titleTokens: [] }).limit(TOP_MATCH_POOL),
+        partialErrors,
+        "top:recent",
+      ),
+    );
   }
 
-  return q.orderBy("indexedAt", "desc");
+  const docGroups = await Promise.all(queries);
+  const docs = mergeDocsById(...docGroups);
+  const docsRead = docGroups.reduce((sum, group) => sum + group.length, 0);
+
+  let jobs = mapRankedJobs(
+    rankJobs(docsToRawJobs(docs), {
+      title: params.title,
+      skills: params.skills,
+      exp: exp ?? params.exp,
+      explicitSearch: false,
+    }),
+  );
+  if (location) jobs = jobs.filter((j) => jobMatchesLocation(j, location));
+  jobs = dedupeJobs(jobs);
+  jobs = jobs.slice(0, safeLimit);
+
+  return {
+    jobs,
+    queryUsed: [params.title, ...(params.skills || []).slice(0, 6)].filter(Boolean).join(" · "),
+    searchParams: params,
+    meta: { docsRead, poolPerQuery: TOP_MATCH_POOL, mergedCandidates: docs.length },
+    sources: { firestore: jobs.length, docsRead },
+    partialErrors,
+  };
+}
+
+/**
+ * Job board — one Firestore page (pageSize docs) + count aggregation.
+ * Typical cost: pageSize doc reads + 1 count (~11 for pageSize 10).
+ */
+export async function searchBoardJobs({
+  search = "",
+  category = "",
+  page = 1,
+  pageSize = DEFAULT_PAGE_SIZE,
+  cursor = null,
+  filters = {},
+}) {
+  const db = getFirestore();
+  const partialErrors = [];
+  const boardCtx = buildBoardSearchParams({ search, category });
+  const safePage = Math.max(1, Math.trunc(page) || 1);
+  const size = Math.max(1, Math.trunc(pageSize) || DEFAULT_PAGE_SIZE);
+
+  let q = buildBoardQuery(db, boardCtx);
+  const cursorDoc = await resolveCursorDoc(db, cursor);
+  if (cursorDoc) q = q.startAfter(cursorDoc);
+
+  const [docs, dbTotal] = await Promise.all([
+    runJobQuery(q.limit(size + 1), partialErrors, `board:${boardCtx.mode}`),
+    countBoardMatches(db, boardCtx, partialErrors),
+  ]);
+
+  const hasMore = docs.length > size;
+  const pageDocs = docs.slice(0, size);
+  const docsRead = pageDocs.length;
+
+  const rankTitle = boardCtx.mode === "title" ? boardCtx.searchStr : "";
+  const rankSkills = boardCtx.mode === "skills" ? boardCtx.userSkills : boardCtx.titleTokens;
+
+  let jobs = pageDocs.length
+    ? mapRankedJobs(
+      rankJobs(docsToRawJobs(pageDocs), {
+        title: rankTitle,
+        skills: rankSkills,
+        explicitSearch: boardCtx.explicitSearch,
+      }),
+    )
+    : [];
+
+  jobs = dedupeJobs(jobs);
+  jobs = applyJobFilters(jobs, filters);
+
+  const total = dbTotal ?? jobs.length;
+  const totalPages = dbTotal != null ? Math.max(1, Math.ceil(dbTotal / size)) : null;
+  const from = jobs.length ? (safePage - 1) * size + 1 : 0;
+  const to = jobs.length ? from + jobs.length - 1 : 0;
+  const lastDoc = pageDocs[pageDocs.length - 1];
+  const nextCursor = hasMore && lastDoc ? encodeCursor(lastDoc) : null;
+
+  return {
+    jobs,
+    pagination: {
+      page: safePage,
+      pageSize: size,
+      total,
+      totalPages,
+      hasMore: Boolean(nextCursor),
+      nextCursor,
+      from,
+      to,
+    },
+    meta: { dbTotal, docsRead, countRead: dbTotal != null ? 1 : 0 },
+    sources: { firestore: total, docsRead },
+    partialErrors,
+  };
 }
 
 function docsToRawJobs(docs) {
@@ -452,131 +660,25 @@ function mapRankedJobs(ranked) {
   }));
 }
 
-function rankedListCacheKey(params) {
-  const { page, pageSize, includeRankedList, poolSize, ...rest } = params;
-  return JSON.stringify(rest);
+/** @deprecated Use searchBoardJobs — kept for imports that expect the old name. */
+export async function searchAllJobs(params) {
+  return searchBoardJobs(params);
 }
 
-async function buildRankedJobList({
-  title = "",
-  skills = [],
-  exp = null,
-  location,
-  category,
-  filters = {},
-  explicitSearch = false,
-}) {
-  const db = getFirestore();
-  const userSkills = parseSkillsInput(skills);
-  const titleTokens = buildTitleTokens(title);
-  const hasInput = userSkills.length > 0 || titleTokens.length > 0;
-  const roleKey = category ? CATEGORY_TO_ROLE[String(category).toLowerCase()] : null;
-  const partialErrors = [];
-
-  const q = buildJobQuery(db, { roleKey, userSkills, titleTokens, hasInput });
-  const queryLabel = hasInput
-    ? userSkills.length > 0
-      ? "skills"
-      : "titleTokens"
-    : "recent";
-
-  const docs = await runJobQuery(q.limit(MAX_RANKED_JOBS), partialErrors, queryLabel);
-
-  const ranked = rankJobs(docsToRawJobs(docs), { title, skills, exp, explicitSearch });
-  let jobs = mapRankedJobs(ranked);
-
-  if (location) jobs = jobs.filter((j) => jobMatchesLocation(j, location));
-  jobs = dedupeJobs(jobs);
-  jobs = applyJobFilters(jobs, filters);
-
-  return {
-    jobs,
-    dbTotal: docs.length,
-    truncated: docs.length >= MAX_RANKED_JOBS,
-    docsRead: docs.length,
-    partialErrors,
-  };
-}
-
-async function getRankedJobList(params) {
-  const key = rankedListCacheKey(params);
-  const hit = rankedListCache.get(key);
-  if (hit && Date.now() - hit.at < RANKED_LIST_CACHE_TTL_MS) {
-    return hit.data;
-  }
-
-  const data = await buildRankedJobList(params);
-  rankedListCache.set(key, { at: Date.now(), data });
-  if (rankedListCache.size > 40) {
-    const oldest = [...rankedListCache.entries()].sort((a, b) => a[1].at - b[1].at)[0];
-    if (oldest) rankedListCache.delete(oldest[0]);
-  }
-  return data;
-}
-
-// Paginate a stable ranked list (built once per search, cached server-side).
-export async function searchAllJobs({
-  title = "",
-  skills = [],
-  exp = null,
-  location,
-  category,
-  page = 1,
-  pageSize = DEFAULT_PAGE_SIZE,
-  poolSize,
-  filters = {},
-  explicitSearch = false,
-  includeRankedList = false,
-}) {
-  void poolSize;
-
-  const safePage = Math.max(1, Math.trunc(page) || 1);
-  const size = Math.max(1, Math.trunc(pageSize) || DEFAULT_PAGE_SIZE);
-
-  const {
-    jobs: allJobs,
-    dbTotal,
-    truncated,
-    docsRead,
-    partialErrors,
-  } = await getRankedJobList({
-    title,
-    skills,
-    exp,
-    location,
-    category,
-    filters,
-    explicitSearch,
-  });
-
-  const { jobs, pagination } = paginateJobs(allJobs, { page: safePage, pageSize: size });
-
-  return {
-    jobs,
-    pagination,
-    rankedJobs: includeRankedList ? allJobs : undefined,
-    meta: { dbTotal, truncated, docsRead },
-    sources: { firestore: pagination.total, docsRead },
-    partialErrors,
-  };
-}
-
-/** Total matching jobs (same ranked list as search). */
+/** Board job count (same Firestore filter as searchBoardJobs). */
 export async function countMatchingJobs(params) {
-  const { jobs, dbTotal, truncated, partialErrors } = await getRankedJobList({
-    title: params.title || "",
-    skills: params.skills || [],
-    exp: params.exp ?? null,
-    location: params.location,
+  const db = getFirestore();
+  const partialErrors = [];
+  const boardCtx = buildBoardSearchParams({
+    search: params.search ?? params.title ?? "",
     category: params.category,
-    filters: params.filters || {},
-    explicitSearch: params.explicitSearch ?? false,
   });
+  const dbTotal = await countBoardMatches(db, boardCtx, partialErrors);
 
   return {
-    count: jobs.length,
+    count: dbTotal ?? 0,
     dbTotal,
-    truncated,
+    truncated: false,
     partialErrors,
   };
 }

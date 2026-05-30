@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useJobStore from '@/store/jobStore'
-import useProfileStore from '@/store/profileStore'
 import Loader from '@/components/Loader'
 import { JobGridSkeleton } from '@/features/dashboard/components/JobCardSkeleton'
 import { JobMetaItem, JobMetaRow } from '@/features/dashboard/components/JobMeta'
@@ -41,8 +40,7 @@ function matchTone(match) {
 
 export default function JobsSection() {
   const navigate = useNavigate()
-  const { jobs, pagination, loading, error, fetchJobs, setPageFromCache, saveJob, unsaveJob, isJobSaved, loadSavedJobs, queryUsed, skillTerms } = useJobStore()
-  const loadProfile = useProfileStore((s) => s.load)
+  const { jobs, pagination, loading, error, fetchJobs, saveJob, unsaveJob, isJobSaved, loadSavedJobs, queryUsed } = useJobStore()
   const [activeF, setActiveF] = useState('All')
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
@@ -71,11 +69,8 @@ export default function JobsSection() {
   }, [loadSavedJobs])
 
   useEffect(() => {
-    if (setPageFromCache(page, PER_PAGE, filters)) return
-    loadProfile({ force: false }).then(() => {
-      fetchJobs({ search, page, pageSize: PER_PAGE, filters })
-    })
-  }, [fetchJobs, loadProfile, setPageFromCache, search, page, filters])
+    fetchJobs({ search, page, pageSize: PER_PAGE, filters })
+  }, [fetchJobs, search, page, filters])
 
   const handleSearch = (e) => {
     e?.preventDefault?.()
@@ -91,8 +86,8 @@ export default function JobsSection() {
 
   const isInitialLoad = loading && jobs.length === 0
   const isRefreshing = loading && jobs.length > 0
-  const totalPages = pagination.totalPages || 1
   const totalResults = pagination.total ?? jobs.length
+  const canGoNext = pagination.hasMore && !loading
   const hasActiveSearch = Boolean(search.trim())
   const subtitleQuery = hasActiveSearch ? search.trim() : queryUsed
 
@@ -112,16 +107,14 @@ export default function JobsSection() {
           <>
             <span className="inline-block size-2 shrink-0 rounded-full bg-emerald-500" />
             {isInitialLoad ? (
-              <>Finding jobs{hasActiveSearch ? ` for "${search.trim()}"` : ' matched to your profile'}…</>
+              <>Loading jobs{hasActiveSearch ? ` for "${search.trim()}"` : ''}…</>
             ) : subtitleQuery ? (
               <>
-                {hasActiveSearch ? 'Results for' : 'Matched to'}{' '}
-                <strong>{subtitleQuery}</strong>
-                {skillTerms.length > 0 && !hasActiveSearch ? ` · ${skillTerms.slice(0, 4).join(', ')}` : ''}
+                Results for <strong>{subtitleQuery}</strong>
                 {' · '}
               </>
             ) : (
-              <>Live jobs from top company career sites · </>
+              <>All active jobs · </>
             )}
             {!isInitialLoad && (
               <>
@@ -198,7 +191,7 @@ export default function JobsSection() {
                   <p className="mt-2 max-w-md text-sm text-muted-foreground">
                     {hasActiveSearch
                       ? `Nothing matched "${search.trim()}". Try a shorter keyword like "${search.trim().split(/\s+/)[0]}" or remove filters.`
-                      : 'No jobs match your current filters. Try clearing filters or updating your profile skills.'}
+                      : 'No jobs match your current filters. Try clearing filters or broadening your search.'}
                   </p>
                   <div className="mt-4 flex flex-wrap justify-center gap-2">
                     {hasActiveSearch && (
@@ -273,35 +266,11 @@ export default function JobsSection() {
             <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
               <Button variant="ghost" size="sm" disabled={page <= 1 || loading} onClick={() => setPage(p => Math.max(1, p - 1))}>← Prev</Button>
 
-              {Array.from({ length: totalPages }, (_, i) => i + 1)
-                .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 2)
-                .reduce((acc, p, idx, arr) => {
-                  if (idx > 0 && p - arr[idx - 1] > 1) acc.push('...')
-                  acc.push(p)
-                  return acc
-                }, [])
-                .map((p, i) =>
-                  p === '...' ? (
-                    <span key={`d${i}`} className="px-1 text-sm text-muted-foreground">…</span>
-                  ) : (
-                    <Button
-                      key={p}
-                      type="button"
-                      variant={p === page ? 'default' : 'outline'}
-                      size="sm"
-                      disabled={loading}
-                      onClick={() => setPage(p)}
-                      className="min-w-[2rem]"
-                    >
-                      {p}
-                    </Button>
-                  )
-                )}
-
-              <Button variant="ghost" size="sm" disabled={page >= totalPages || loading} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>Next →</Button>
+              <Button variant="ghost" size="sm" disabled={!canGoNext} onClick={() => setPage(p => p + 1)}>Next →</Button>
 
               <span className="w-full text-center text-xs text-muted-foreground sm:w-auto">
-                Page {page} of {totalPages} · {totalResults} jobs
+                Page {page}{pagination.totalPages ? ` of ${pagination.totalPages}` : ''} · {totalResults} jobs
+                {pagination.from ? ` · showing ${pagination.from}–${pagination.to}` : ''}
               </span>
             </div>
           )}

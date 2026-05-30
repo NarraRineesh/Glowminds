@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { searchJobs } from '@/services/jobSearch'
+import { searchBoardJobs, getTopMatches } from '@/services/jobSearch'
 import { doc, setDoc, deleteDoc, collection, getDocs, serverTimestamp } from 'firebase/firestore'
 import { db, auth } from '@/services/firebase'
 
@@ -30,49 +30,17 @@ const emptyPagination = () => ({
   total: 0,
   totalPages: 1,
   hasMore: false,
+  nextCursor: null,
   from: 0,
   to: 0,
 })
 
-/** Cache key for a search — excludes page and filters so both reuse one ranked list. */
-function listCacheKey({ search = '', category = '' } = {}) {
-  return `${String(search).trim().toLowerCase()}|${String(category).trim().toLowerCase()}`
+function requestCacheKey({ search = '', category = '', page = 1, pageSize = DEFAULT_PAGE_SIZE, filters = {}, cursor = null } = {}) {
+  return `${String(search).trim().toLowerCase()}|${String(category).trim().toLowerCase()}|${page}|${pageSize}|${JSON.stringify(filters)}|${cursor || ''}`
 }
 
-function applyJobFilters(jobs, filters = {}) {
-  let out = jobs
-  if (filters.type) {
-    out = out.filter((j) => j.type === filters.type)
-  }
-  if (filters.minMatch != null && Number.isFinite(Number(filters.minMatch))) {
-    const min = Number(filters.minMatch)
-    out = out.filter((j) => (j.match || 0) >= min)
-  }
-  if (filters.newToday) {
-    out = out.filter((j) => j.isNew)
-  }
-  return out
-}
-
-function paginateList(allJobs, { page = 1, pageSize = DEFAULT_PAGE_SIZE } = {}) {
-  const size = Math.max(1, pageSize)
-  const total = allJobs.length
-  const totalPages = Math.max(1, Math.ceil(total / size))
-  const safePage = Math.min(Math.max(1, page), totalPages)
-  const start = (safePage - 1) * size
-  const jobs = allJobs.slice(start, start + size)
-  return {
-    jobs,
-    pagination: {
-      page: safePage,
-      pageSize: size,
-      total,
-      totalPages,
-      hasMore: safePage < totalPages,
-      from: total === 0 ? 0 : start + 1,
-      to: start + jobs.length,
-    },
-  }
+function searchSessionKey({ search = '', category = '', filters = {} } = {}) {
+  return `${String(search).trim().toLowerCase()}|${String(category).trim().toLowerCase()}|${JSON.stringify(filters)}`
 }
 
 let inflightPromise = null
@@ -81,43 +49,50 @@ let inflightKey = null
 const useJobStore = create((set, get) => ({
   jobs: [],
   pagination: emptyPagination(),
-  allRankedJobs: [],
-  rankedListKey: null,
+  /** Cursors to reach page N: index 0 = page 1 (null), index 1 = cursor after page 1, … */
+  pageCursors: [null],
+  searchSessionKey: null,
+  topMatches: [],
+  topMatchesLoading: false,
+  topMatchesQueryUsed: '',
+  topMatchesError: null,
+  topMatchesLastFetched: null,
+  topMatchesRequestKey: null,
   savedJobs: [],
   savedJobsLoaded: false,
   loading: false,
   error: null,
   lastFetched: null,
+  lastRequestKey: null,
   searchQuery: '',
   queryUsed: '',
   skillTerms: [],
   sources: {},
+  meta: {},
 
   reset: () => set({
     jobs: [],
     pagination: emptyPagination(),
-    allRankedJobs: [],
-    rankedListKey: null,
+    pageCursors: [null],
+    searchSessionKey: null,
+    topMatches: [],
+    topMatchesLoading: false,
+    topMatchesQueryUsed: '',
+    topMatchesError: null,
+    topMatchesLastFetched: null,
+    topMatchesRequestKey: null,
     savedJobs: [],
     savedJobsLoaded: false,
     loading: false,
     error: null,
     lastFetched: null,
+    lastRequestKey: null,
     searchQuery: '',
     queryUsed: '',
     skillTerms: [],
     sources: {},
+    meta: {},
   }),
-
-  /** Paginate locally when we already have the ranked list for this search. */
-  setPageFromCache: (page, pageSize = DEFAULT_PAGE_SIZE, filters = {}) => {
-    const { allRankedJobs, rankedListKey } = get()
-    if (!rankedListKey || !allRankedJobs.length) return false
-    const filtered = applyJobFilters(allRankedJobs, filters)
-    const { jobs, pagination } = paginateList(filtered, { page, pageSize })
-    set({ jobs, pagination })
-    return true
-  },
 
   fetchJobs: async ({
     search = '',
@@ -127,63 +102,66 @@ const useJobStore = create((set, get) => ({
     filters = {},
     force = false,
   } = {}) => {
-    const rankedKey = listCacheKey({ search, category })
+    const sessionKey = searchSessionKey({ search, category, filters })
+    let { pageCursors, searchSessionKey: prevSessionKey } = get()
 
-    if (!force && get().rankedListKey === rankedKey && get().allRankedJobs.length > 0) {
-      const filtered = applyJobFilters(get().allRankedJobs, filters)
-      const { jobs, pagination } = paginateList(filtered, { page, pageSize })
-      set({ jobs, pagination, loading: false, error: null })
-      return { jobs, pagination, fromCache: true }
+    if (prevSessionKey !== sessionKey) {
+      pageCursors = [null]
+      set({ pageCursors, searchSessionKey: sessionKey })
     }
 
-    const requestKey = `${rankedKey}|${page}|${pageSize}`
+    const safePage = Math.max(1, Math.trunc(page) || 1)
+    const cursor = pageCursors[safePage - 1] ?? null
+    const requestKey = requestCacheKey({ search, category, page: safePage, pageSize, filters, cursor })
+
+    if (
+      !force
+      && get().lastRequestKey === requestKey
+      && get().lastFetched
+      && Date.now() - get().lastFetched < FETCH_FRESHNESS_MS
+    ) {
+      return { jobs: get().jobs, pagination: get().pagination, fromCache: true }
+    }
 
     if (inflightPromise && inflightKey === requestKey) {
       return inflightPromise
     }
 
-    if (get().rankedListKey !== rankedKey) {
-      set({
-        allRankedJobs: [],
-        rankedListKey: null,
-        jobs: [],
-        loading: true,
-        error: null,
-        searchQuery: search,
-      })
-    } else {
-      set({ loading: true, error: null, searchQuery: search })
-    }
+    set({ loading: true, error: null, searchQuery: search })
     inflightKey = requestKey
     inflightPromise = (async () => {
       try {
-        const data = await searchJobs({
+        const data = await searchBoardJobs({
           search,
           category,
-          page: 1,
+          page: safePage,
           pageSize,
-          includeRankedList: true,
+          cursor,
+          filters,
         })
 
-        const ranked = Array.isArray(data.rankedJobs) && data.rankedJobs.length > 0
-          ? data.rankedJobs
-          : (data.jobs || [])
-
-        const filtered = applyJobFilters(ranked, filters)
-        const { jobs, pagination } = paginateList(filtered, { page, pageSize })
+        const pagination = data.pagination || emptyPagination()
+        const nextCursors = [...get().pageCursors]
+        if (pagination.nextCursor) {
+          nextCursors[safePage] = pagination.nextCursor
+        } else {
+          nextCursors.length = safePage
+        }
 
         set({
-          allRankedJobs: ranked,
-          rankedListKey: rankedKey,
-          jobs,
+          jobs: data.jobs || [],
           pagination,
+          pageCursors: nextCursors,
+          searchSessionKey: sessionKey,
           queryUsed: data.queryUsed || '',
           skillTerms: data.skillTerms || [],
           sources: data.sources || {},
+          meta: data.meta || {},
           loading: false,
           lastFetched: Date.now(),
+          lastRequestKey: requestKey,
         })
-        return { ...data, jobs, pagination }
+        return data
       } catch (err) {
         console.error('Job fetch failed:', err)
         set({ error: err.message || 'Failed to load jobs', loading: false })
@@ -194,6 +172,40 @@ const useJobStore = create((set, get) => ({
       }
     })()
     return inflightPromise
+  },
+
+  fetchTopMatches: async ({ limit = 10, category = '', force = false } = {}) => {
+    const requestKey = `top|${limit}|${category}`
+    if (
+      !force
+      && get().topMatchesRequestKey === requestKey
+      && get().topMatches.length > 0
+      && get().topMatchesLastFetched
+      && Date.now() - get().topMatchesLastFetched < FETCH_FRESHNESS_MS
+    ) {
+      return { jobs: get().topMatches, fromCache: true }
+    }
+
+    set({ topMatchesLoading: true, topMatchesError: null })
+    try {
+      const data = await getTopMatches({ limit, category })
+      set({
+        topMatches: data.jobs || [],
+        topMatchesQueryUsed: data.queryUsed || '',
+        topMatchesLoading: false,
+        topMatchesError: null,
+        topMatchesLastFetched: Date.now(),
+        topMatchesRequestKey: requestKey,
+      })
+      return data
+    } catch (err) {
+      console.error('Top matches fetch failed:', err)
+      set({
+        topMatchesLoading: false,
+        topMatchesError: err.message || 'Failed to load top matches',
+      })
+      throw err
+    }
   },
 
   saveJob: async (job) => {

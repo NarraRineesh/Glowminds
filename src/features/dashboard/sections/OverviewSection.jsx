@@ -126,7 +126,12 @@ function getGreeting() {
 export default function OverviewSection() {
   const navigate = useNavigate()
   const { user } = useAppStore()
-  const { jobs, pagination, loading: jobsLoading, fetchJobs } = useJobStore()
+  const {
+    topMatches,
+    topMatchesLoading,
+    topMatchesError,
+    fetchTopMatches,
+  } = useJobStore()
   const loadProfileForJobs = useProfileStore((s) => s.load)
   const { apps, loadApps } = useTrackerStore()
   const profileData = useProfileStore((s) => s.profile)
@@ -156,17 +161,19 @@ export default function OverviewSection() {
     // three collection scans per call. Badge re-evaluation now only happens
     // after the mutations that could actually unlock a badge (recordDailyVisit,
     // addApp/updateApp, appendMessage, completeSession, profile save).
+    // Top matches for overview cards; job board loads on /dashboard/jobs only.
     const id = requestAnimationFrame(() => {
       loadProfileData()
-      loadProfileForJobs({ force: false }).then(() => {
-        if (useJobStore.getState().jobs.length === 0) fetchJobs()
-      })
+      loadProfileForJobs({ force: false }).catch(() => {})
+      if (useJobStore.getState().topMatches.length === 0) {
+        fetchTopMatches({ limit: 5 }).catch(() => {})
+      }
       loadApps()
       loadSavedJobs()
       loadGamificationCatalog()
     })
     return () => cancelAnimationFrame(id)
-  }, [fetchJobs, loadApps, loadProfileData, loadProfileForJobs, loadSavedJobs, loadGamificationCatalog])
+  }, [fetchTopMatches, loadApps, loadProfileData, loadProfileForJobs, loadSavedJobs, loadGamificationCatalog])
 
   const streak = gamification?.streak || {}
   const streakCurrent = streak.current || 0
@@ -364,7 +371,7 @@ export default function OverviewSection() {
       </Card>
 
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-        <KpiCard icon="jobs" label="Job Matches" value={jobsLoading ? '…' : (pagination.total || jobs.length)} sub="Remote jobs available" accent={1} onClick={() => navigate('/dashboard/jobs')} />
+        <KpiCard icon="jobs" label="Job Matches" value={topMatchesLoading ? '…' : topMatches.length} sub="Matched to your profile" accent={1} onClick={() => navigate('/dashboard/jobs')} />
         <KpiCard icon="applications" label="Applications" value={apps.length} sub={apps.length === 0 ? 'Start applying!' : inReview > 0 ? `${inReview} in review` : 'Track every apply'} accent={2} onClick={() => navigate('/dashboard/applications')} />
         <KpiCard icon="bookmark" label="Saved Jobs" value={savedJobs.length} sub={savedJobs.length > 0 ? 'Ready to apply' : 'Bookmark roles you like'} accent={3} onClick={() => navigate('/dashboard/jobs')} />
         <KpiCard icon="microphone" label="Interviews" value={interviews} sub={interviews > 0 ? `${interviews} scheduled · prep with AI` : 'None yet — keep applying!'} accent={4} onClick={() => navigate('/dashboard/applications')} />
@@ -378,12 +385,19 @@ export default function OverviewSection() {
           action={<Button variant="ghost" size="sm" onClick={() => navigate('/dashboard/jobs')}>View all</Button>}
           contentClassName="p-2"
         >
-          {jobsLoading ? (
+          {topMatchesLoading ? (
             <Loader variant="block" label="Loading jobs…" />
-          ) : jobs.length === 0 ? (
+          ) : topMatchesError ? (
+            <div className="py-8 text-center text-sm">
+              <p className="text-destructive">{topMatchesError}</p>
+              <Button variant="outline" size="sm" className="mt-3" onClick={() => fetchTopMatches({ limit: 5, force: true })}>
+                Retry
+              </Button>
+            </div>
+          ) : topMatches.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">No jobs yet. Check back soon!</p>
           ) : (
-            jobs.slice(0, 5).map((j) => (
+            topMatches.slice(0, 5).map((j) => (
               <JobMiniRow key={j.id} job={j} onClick={() => navigate(`/dashboard/jobs/${encodeURIComponent(j.id)}`)} />
             ))
           )}

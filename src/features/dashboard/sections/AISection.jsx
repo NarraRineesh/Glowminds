@@ -10,7 +10,6 @@ import { AppIcon,
   CardContent,
   CardFooter,
   PageTitle,
-  ScrollArea,
   Select,
   Textarea,
   cn,
@@ -303,7 +302,8 @@ export default function AISection() {
 
   return (
     <UpgradeGate feature="AI Career Coach">
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
+      <div className="flex min-h-0 w-full flex-1 flex-col">
+      <div className="mb-4 flex shrink-0 flex-wrap items-start justify-between gap-2">
         <PageTitle
           title="AI Career Assistant"
           subtitle="Glowminds AI — real-time career coaching"
@@ -325,17 +325,17 @@ export default function AISection() {
         </div>
       </div>
 
-      <div className="mb-2.5 flex flex-wrap gap-1.5">
+      <div className="mb-2.5 flex shrink-0 flex-wrap gap-1.5">
         {SUGGESTIONS.map((s) => (
-          <Button key=<><AppIcon name={s.icon} className="size-3.5" /> {s.label}</> variant="outline" size="sm" onClick={() => send(s.text)} disabled={loading}>
+          <Button key={s.label} variant="outline" size="sm" onClick={() => send(s.text)} disabled={loading}>
+            <AppIcon name={s.icon} className="size-3.5" />
             {s.label}
           </Button>
         ))}
       </div>
 
-      <Card className="flex flex-col gap-0 overflow-hidden py-0">
-        <ScrollArea className="h-[min(520px,calc(100vh-320px))]">
-          <CardContent className="space-y-4 p-4">
+      <Card className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden py-0">
+        <CardContent className="min-h-[min(280px,45svh)] flex-1 space-y-4 overflow-y-auto overscroll-contain p-4">
             {messages.map((m, i) => {
               const isUser = m.role === 'user'
               const isAssistant = !isUser
@@ -391,10 +391,9 @@ export default function AISection() {
               </div>
             )}
             <div ref={bottomRef} aria-hidden className="h-px" />
-          </CardContent>
-        </ScrollArea>
+        </CardContent>
 
-        <CardFooter className="flex-col gap-2 border-t p-3">
+        <CardFooter className="shrink-0 flex-col gap-2 border-t p-3">
           <div className="flex w-full items-end gap-2">
             <Textarea
               ref={inputRef}
@@ -423,6 +422,7 @@ export default function AISection() {
           )}
         </CardFooter>
       </Card>
+      </div>
     </UpgradeGate>
   )
 }
