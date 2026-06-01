@@ -5,142 +5,41 @@
 // non-admins never see the button.
 
 import { apiFetch } from './apiClient'
+import { dedupeAsync } from '@/utils/dedupeAsync'
 
 // ----- Overview -----
 export function getAdminOverview({ fresh = false } = {}) {
-  return apiFetch(`/admin/overview${fresh ? '?fresh=true' : ''}`, { method: 'GET' })
+  const key = `GET:/admin/overview?fresh=${fresh ? '1' : '0'}`
+  return dedupeAsync(key, () =>
+    apiFetch(`/admin/overview${fresh ? '?fresh=true' : ''}`, { method: 'GET' }),
+  )
 }
 
-// ----- Companies -----
-//
-// Server-side paginated. Returns { companies, nextCursor, hasMore }.
-// Pass `cursor` from the previous response to fetch the next page.
-// When `q` is set the backend ignores the cursor and returns the first
-// `limit` matches from a 500-doc pool.
-export function listCompanies({ ats, active, cursor, q, limit } = {}) {
+// ----- Users & Pro (temporary until Razorpay billing is fully live) -----
+
+export function searchAdminUsers({ q, limit = 20 } = {}) {
   const qs = new URLSearchParams()
-  if (ats) qs.set('ats', ats)
-  if (active === true) qs.set('active', 'true')
-  if (active === false) qs.set('active', 'false')
-  if (cursor) qs.set('cursor', cursor)
   if (q) qs.set('q', q)
   if (Number.isFinite(limit)) qs.set('limit', String(limit))
   const tail = qs.toString() ? `?${qs.toString()}` : ''
-  return apiFetch(`/admin/companies${tail}`, { method: 'GET' })
+  const key = `GET:/admin/users${tail}`
+  return dedupeAsync(key, () => apiFetch(`/admin/users${tail}`, { method: 'GET' }))
 }
 
-export function createCompany(payload) {
-  return apiFetch('/admin/companies', { body: payload })
-}
-
-// Bulk-import: accepts an array of company payloads. Each item is
-// validated/created independently; the response carries per-item status.
-//
-// Large lists are sliced into chunks of `batchSize` and posted serially so
-// no single request hits the backend cap or HTTP/server timeout. Per-batch
-// results (and per-item indexes) are stitched back into a single response
-// matching the single-batch shape, so callers can treat the response the
-// same way regardless of input size.
-//
-// Pass `onProgress({ batch, totalBatches, processed, total })` to drive a
-// progress bar.
-const BULK_BATCH_SIZE = 250
-
-export async function bulkCreateCompanies(companies, { onProgress } = {}) {
-  const list = Array.isArray(companies) ? companies : []
-  if (list.length === 0) {
-    return {
-      summary: { total: 0, created: 0, skipped: 0, failed: 0 },
-      results: [],
-    }
-  }
-
-  const batches = []
-  for (let i = 0; i < list.length; i += BULK_BATCH_SIZE) {
-    batches.push(list.slice(i, i + BULK_BATCH_SIZE))
-  }
-
-  const merged = {
-    summary: {
-      total: list.length,
-      created: 0,
-      skipped: 0,
-      failed: 0,
-    },
-    results: [],
-  }
-
-  let processed = 0
-  for (let b = 0; b < batches.length; b += 1) {
-    const chunk = batches[b]
-    onProgress?.({
-      batch: b + 1,
-      totalBatches: batches.length,
-      processed,
-      total: list.length,
-    })
-
-    try {
-      const r = await apiFetch('/admin/companies/bulk', {
-        body: { companies: chunk },
-      })
-      merged.summary.created += r?.summary?.created || 0
-      merged.summary.skipped += r?.summary?.skipped || 0
-      merged.summary.failed += r?.summary?.failed || 0
-      const offset = b * BULK_BATCH_SIZE
-      for (const row of r?.results || []) {
-        merged.results.push({ ...row, index: (row.index ?? 0) + offset })
-      }
-    } catch (err) {
-      // A batch-level failure shouldn't kill the rest — mark every item in
-      // this batch as errored and move on.
-      const offset = b * BULK_BATCH_SIZE
-      for (let i = 0; i < chunk.length; i += 1) {
-        merged.results.push({
-          index: offset + i,
-          slug: chunk[i]?.slug || null,
-          status: 'error',
-          reason: err?.message || 'Network error',
-        })
-      }
-      merged.summary.failed += chunk.length
-    }
-
-    processed += chunk.length
-  }
-
-  onProgress?.({
-    batch: batches.length,
-    totalBatches: batches.length,
-    processed,
-    total: list.length,
-  })
-
-  return merged
-}
-
-export function updateCompany(slug, patch) {
-  return apiFetch(`/admin/companies/${encodeURIComponent(slug)}`, {
-    method: 'PATCH',
-    body: patch,
+export function setUserProSubscription(uid, { action, plan = 'yearly' } = {}) {
+  return apiFetch(`/admin/users/${encodeURIComponent(uid)}/subscription`, {
+    body: { action, plan },
   })
 }
 
-export function deleteCompany(slug) {
-  return apiFetch(`/admin/companies/${encodeURIComponent(slug)}`, {
-    method: 'DELETE',
-  })
+// ----- Pricing config -----
+
+export function getAdminPricingConfig() {
+  return dedupeAsync('GET:/admin/pricing', () =>
+    apiFetch('/admin/pricing', { method: 'GET' }),
+  )
 }
 
-// ----- Sync history (read-only) -----
-//
-// Live sync triggers (bulk + per-company) are no longer exposed by the API:
-// the backend was migrated to Firebase Functions and bulk job ingestion now
-// runs from the local `pipeline/` CLI (Ollama -> Firestore). The history
-// endpoint below still drives the "Recent sync runs" admin panel.
-export function listSyncRuns({ limit = 25, provider } = {}) {
-  const qs = new URLSearchParams()
-  qs.set('limit', String(limit))
-  if (provider) qs.set('provider', provider)
-  return apiFetch(`/admin/sync-runs?${qs.toString()}`, { method: 'GET' })
+export function updateAdminPricingConfig(patch) {
+  return apiFetch('/admin/pricing', { method: 'PATCH', body: patch })
 }

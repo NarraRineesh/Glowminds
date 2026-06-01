@@ -2,13 +2,15 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import useAppStore from '@/store/authStore'
 import useUpgradePro from '@/hooks/useUpgradePro'
+import useIsPro from '@/hooks/useIsPro'
 import useIsLg from '@/hooks/useIsLg'
+import usePricingConfig from '@/hooks/usePricingConfig'
 import Footer from '@/components/layout/Footer'
 import SEO from '@/components/SEO'
 import { pageUrl } from '@/config/site'
 import PublicFaqItem from '@/features/public/components/PublicFaqItem'
 import { fadeUp, motionEase, staggerFast } from '@/features/public/motionVariants'
-import { DEFAULT_LANDING_CONTENT } from '@/data/landingDefaults'
+import { yearlySeoPrice } from '@/constants/pricingDefaults'
 import { AppIcon,
   Accordion,
   Badge,
@@ -22,8 +24,6 @@ import { AppIcon,
   Separator,
   cn,
 } from '@/components/ui'
-
-const { pricing, pricingComparison, pricingFaqs, freeFeatures, proFeatures } = DEFAULT_LANDING_CONTENT
 
 function PageHero({ eyebrow, title, highlight, description }) {
   return (
@@ -62,28 +62,36 @@ export default function PricingPage() {
   const navigate = useNavigate()
   const isLg = useIsLg()
   const { loggedIn } = useAppStore()
+  const isPro = useIsPro()
   const { startUpgrade, loading } = useUpgradePro()
-
-  const getMonthlyPrice = () => {
-    const priceStr = pricing?.pro?.price || '₹399'
-    const numericPrice = parseInt(priceStr.replace(/[^\d]/g, ''), 10)
-    return `₹${Math.round(numericPrice / 12)}/month`
-  }
+  const {
+    config,
+    pricing,
+    pricingComparison,
+    pricingFaqs,
+    freeFeatures,
+    proFeatures,
+    marketing,
+    yearlyPriceLabel,
+  } = usePricingConfig()
 
   const handleSubscribe = () => startUpgrade({ plan: 'yearly' })
+  const seoPrice = yearlySeoPrice(config)
+  const proPriceLabel = `${pricing?.pro?.price || '₹399'}${pricing?.pro?.period || '/year'}`
+  const seoDescription = `Glowminds Pro — AI Resume Builder, Career Coach, Interview Prep, and more. Just ${yearlyPriceLabel} (${marketing?.monthlyEquivalent || '₹33/month'}). Affordable plans built for Indian students and freshers.`
 
   return (
     <div>
       <SEO
         title="Pricing"
         path="/pricing"
-        description="Glowminds Pro — AI Resume Builder, Career Coach, Interview Prep, and more. Just ₹399/year (₹33/month). Affordable plans built for Indian students and freshers."
+        description={seoDescription}
         keywords="AI career platform pricing, student career tools pricing, resume builder price, career coach cost, interview prep pricing, affordable career tools India, student job platform pricing"
         structuredData={{
           '@context': 'https://schema.org',
           '@type': 'Offer',
           name: 'Glowminds Pro Plan',
-          price: '399',
+          price: seoPrice,
           priceCurrency: 'INR',
           availability: 'https://schema.org/InStock',
           url: pageUrl('/pricing'),
@@ -95,7 +103,7 @@ export default function PricingPage() {
         eyebrow="Simple, Transparent Pricing"
         title="One Plan."
         highlight="Everything Included."
-        description="Unlimited access to AI-powered career tools. Built for students, priced for students. Just ₹33/month."
+        description={marketing?.heroDescription || 'Unlimited access to AI-powered career tools. Built for students, priced for students.'}
       />
 
       <section className="pb-12 md:pb-16">
@@ -146,17 +154,22 @@ export default function PricingPage() {
                   <CardTitle className="text-4xl font-black">{pricing?.pro?.price || '₹399'}</CardTitle>
                   <span className="text-muted-foreground">{pricing?.pro?.period || '/year'}</span>
                 </div>
-                <p className="text-sm text-muted-foreground">That&apos;s just {getMonthlyPrice()} — less than a cup of coffee</p>
-                <Badge variant="secondary" className="w-fit border-emerald-500/20 bg-emerald-500/10 text-emerald-500">
-                  Save 32% vs monthly
-                </Badge>
+                <p className="text-sm text-muted-foreground">
+                  {marketing?.proTagline || 'Just ₹33/month billed yearly — less than a cup of coffee'}
+                </p>
                 <CardDescription className="pt-1">Unlimited access to all AI-powered career tools for 12 months.</CardDescription>
               </CardHeader>
               <CardFooter className="flex-col items-stretch gap-4">
                 <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
-                  <Button className="w-full" disabled={loading} onClick={handleSubscribe}>
-                    {loading ? 'Processing...' : `Get Pro — ${pricing?.pro?.price || '₹399'}${pricing?.pro?.period || '/year'}`}
-                  </Button>
+                  {isPro && loggedIn ? (
+                    <Button className="w-full" variant="secondary" onClick={() => navigate('/dashboard')}>
+                      You&apos;re on Pro · Go to dashboard
+                    </Button>
+                  ) : (
+                    <Button className="w-full" disabled={loading} onClick={handleSubscribe}>
+                      {loading ? 'Processing...' : `Get Pro — ${proPriceLabel}`}
+                    </Button>
+                  )}
                 </motion.div>
                 <ul className="flex w-full flex-col gap-2 text-sm">
                   {proFeatures.map((f, i) => (
@@ -288,9 +301,15 @@ export default function PricingPage() {
                 </p>
                 <div className="mb-3 flex flex-wrap justify-center gap-3">
                   <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
-                    <Button disabled={loading} onClick={handleSubscribe}>
-                      {loading ? 'Processing...' : `Get Pro — ${pricing?.pro?.price || '₹399'}${pricing?.pro?.period || '/year'}`}
-                    </Button>
+                    {isPro && loggedIn ? (
+                      <Button variant="secondary" onClick={() => navigate('/dashboard')}>
+                        You&apos;re on Pro
+                      </Button>
+                    ) : (
+                      <Button disabled={loading} onClick={handleSubscribe}>
+                        {loading ? 'Processing...' : `Get Pro — ${proPriceLabel}`}
+                      </Button>
+                    )}
                   </motion.div>
                   <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
                     <Button variant="outline" onClick={() => navigate(loggedIn ? '/dashboard' : '/signup')}>

@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch } from '@/services/apiClient'
 import useAppStore from '@/store/authStore'
+import useProfileStore from '@/store/profileStore'
 
 function loadRazorpayScript() {
   return new Promise((resolve) => {
@@ -54,22 +55,34 @@ export default function useUpgradePro() {
           order_id: orderId,
           handler: async (response) => {
             try {
-              await apiFetch('/payments/verify-payment', {
+              const result = await apiFetch('/payments/verify-payment', {
                 body: {
                   orderId: response.razorpay_order_id,
                   paymentId: response.razorpay_payment_id,
                   signature: response.razorpay_signature,
                 },
               })
+              const userDoc = await useProfileStore.getState().load({ force: true })
+              if (userDoc?.subscription) {
+                const current = useAppStore.getState().user
+                if (current) {
+                  useAppStore.getState().setUser({
+                    ...current,
+                    subscription: userDoc.subscription,
+                  })
+                }
+              }
               addToast('success', 'Welcome to Glowminds Pro!')
+              setLoading(false)
               if (typeof onSuccess === 'function') {
-                onSuccess()
+                onSuccess(result)
               } else {
                 navigate('/dashboard')
               }
             } catch (err) {
               console.error('Verify payment:', err)
               addToast('error', 'Payment verification failed. Contact support.')
+              setLoading(false)
             }
           },
           prefill: {

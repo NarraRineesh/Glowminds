@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import SectionHeader from '@/components/dashboard/SectionHeader'
+import UpgradeGate from '@/components/UpgradeGate'
 import { ToolPage, ToolSidebarLayout } from '@/features/dashboard/components/toolSectionLayout'
 import AppIcon from '@/components/icons/AppIcon'
 import { Button, Card, CardContent, DashboardCard, FormField, Progress, Select, cn } from '@/components/ui'
@@ -103,6 +104,7 @@ export default function SalaryInsightsSection() {
   )
 
   return (
+    <UpgradeGate feature="Salary Insights">
     <ToolPage>
       <SectionHeader
         badge="Comp · India"
@@ -158,5 +160,6 @@ export default function SalaryInsightsSection() {
         </DashboardCard>
       </ToolSidebarLayout>
     </ToolPage>
+    </UpgradeGate>
   )
 }

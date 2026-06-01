@@ -121,6 +121,26 @@ const useAppStore = create((set) => ({
     set(s => ({ user: { ...s.user, displayName, firstName, lastName: lastName || '' } }))
   },
 
+  /** Single display-name field (Settings) — splits into first/last for Firestore. */
+  updateDisplayNameString: async (rawName) => {
+    const user = auth.currentUser
+    if (!user) return
+    const displayName = String(rawName || '').trim()
+    if (!displayName) throw new Error('Display name cannot be empty')
+    const parts = displayName.split(/\s+/).filter(Boolean)
+    const firstName = parts[0] || ''
+    const lastName = parts.slice(1).join(' ') || ''
+    await updateProfile(user, { displayName })
+    await setDoc(
+      doc(db, 'users', user.uid),
+      { displayName, firstName, lastName },
+      { merge: true },
+    )
+    set((s) => ({
+      user: { ...s.user, displayName, firstName, lastName },
+    }))
+  },
+
   doLogout: async () => {
     await signOut(auth)
     set({ loggedIn: false, user: null })

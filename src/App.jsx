@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from 'react'
 import { MotionConfig } from 'framer-motion'
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom'
 import useAuthListener from '@/hooks/useAuthListener'
+import usePricingStore from '@/store/pricingStore'
 import { TooltipProvider } from '@/components/ui'
 import Toast from '@/components/Toast'
 import ProtectedRoute from '@/components/ProtectedRoute'
@@ -163,6 +164,10 @@ function AnimatedRoutes() {
 
 function App() {
   useAuthListener()
+
+  useEffect(() => {
+    usePricingStore.getState().load()
+  }, [])
 
   return (
     <ErrorBoundary>

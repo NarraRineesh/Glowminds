@@ -8,6 +8,7 @@ import {
 	LockSimpleOpenIcon,
 	PencilSimpleLineIcon,
 	SidebarSimpleIcon,
+	SparkleIcon,
 	TrashSimpleIcon,
 } from "@phosphor-icons/react";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -20,10 +21,13 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/lib/ui/components/dropdown-menu";
-import { useCurrentResume, usePatchResume } from "@/features/resume/builder/draft";
+import { useCurrentResume, usePatchResume, useResumeStore } from "@/features/resume/builder/draft";
 import {
+	applyGlowmindsSampleToResume,
 	deleteLocalResume,
 	duplicateLocalResume,
+	notifyResumeLimit,
+	ResumeLimitError,
 	setLocalResumeLocked,
 	updateLocalResumeMetadata,
 } from "@/features/resume/builder/local-storage";
@@ -86,6 +90,7 @@ function BuilderHeaderDropdown() {
 
 	const resume = useCurrentResume();
 	const patchResume = usePatchResume();
+	const replaceResumeDraft = useResumeStore((state) => state.replaceResumeDraft);
 	const id = resume.id;
 	const name = resume.name;
 	const isLocked = resume.isLocked;
@@ -106,12 +111,33 @@ function BuilderHeaderDropdown() {
 		}
 	};
 
+	const handleLoadSample = async () => {
+		const confirmation = await confirm(t`Load sample data into this resume?`, {
+			description: t`This replaces all sections with the Glowminds sample profile. You can undo only if you have not saved other changes.`,
+		});
+
+		if (!confirmation) return;
+
+		try {
+			const updated = applyGlowmindsSampleToResume(id);
+			replaceResumeDraft(updated);
+			toast.success(t`Sample data loaded successfully.`);
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : t`Failed to load sample data.`);
+		}
+	};
+
 	const handleDuplicate = () => {
 		try {
 			const duplicate = duplicateLocalResume(id);
 			toast.success(t`Resume duplicated successfully.`);
 			void navigate({ to: "/builder/$resumeId", params: { resumeId: duplicate.id } });
 		} catch (error) {
+			if (error instanceof ResumeLimitError) {
+				toast.error(error.message);
+				notifyResumeLimit();
+				return;
+			}
 			toast.error(error instanceof Error ? error.message : t`Failed to duplicate resume.`);
 		}
 	};
@@ -166,6 +192,11 @@ function BuilderHeaderDropdown() {
 				<DropdownMenuItem onClick={handleDuplicate}>
 					<CopySimpleIcon className="me-2" />
 					<Trans>Duplicate</Trans>
+				</DropdownMenuItem>
+
+				<DropdownMenuItem disabled={isLocked} onClick={handleLoadSample}>
+					<SparkleIcon className="me-2" />
+					<Trans>Load sample data</Trans>
 				</DropdownMenuItem>
 
 				<DropdownMenuItem onClick={handleToggleLock}>

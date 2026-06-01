@@ -60,6 +60,9 @@ export const env = {
 
   razorpayKeyId: process.env.RAZORPAY_KEY_ID || "",
   razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET || "",
+
+  /** 64-char hex or passphrase — enables AES-256-GCM for pricing at rest + public API wire format */
+  pricingEncryptionKey: process.env.PRICING_ENCRYPTION_KEY || "",
 };
 
 export function requireEnv(key) {

@@ -17,6 +17,7 @@ import {
   toolIconClass,
 } from '@/features/public/components/landingPageUi'
 import { DEFAULT_LANDING_CONTENT } from '@/data/landingDefaults'
+import usePricingConfig from '@/hooks/usePricingConfig'
 import {
   Accordion,
   Avatar,
@@ -42,7 +43,6 @@ const {
   testimonials,
   faqs,
   stats,
-  pricing,
 } = DEFAULT_LANDING_CONTENT
 
 const HOME_FEATURES = features?.slice(0, 4) ?? []
@@ -52,6 +52,7 @@ export default function LandingPage() {
   const navigate = useNavigate()
   const isLg = useIsLg()
   const [ctaEmail, setCtaEmail] = useState('')
+  const { pricing } = usePricingConfig()
 
   const goSignup = (email) => {
     const q = email?.trim() ? `?email=${encodeURIComponent(email.trim())}` : ''

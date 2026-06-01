@@ -1,4 +1,5 @@
 import SEO from '@/components/SEO'
+import usePricingConfig from '@/hooks/usePricingConfig'
 import { AppIcon, Badge, Card, CardContent } from '@/components/ui'
 
 function LegalSection({ title, children }) {
@@ -25,6 +26,8 @@ function LegalList({ items }) {
 }
 
 export default function TermsPage() {
+  const { marketing } = usePricingConfig()
+
   return (
     <div>
       <SEO
@@ -78,7 +81,8 @@ export default function TermsPage() {
 
               <LegalSection title="4. Subscription & Payment">
                 <LegalP>
-                  Pro subscriptions are billed annually at ₹399/year. Payments are processed securely through Razorpay. You can cancel your subscription at any time from your dashboard. Cancellations take effect at the end of the current billing period.
+                  {marketing?.termsBillingText ||
+                    'Pro subscriptions are billed annually at ₹399/year. Payments are processed securely through Razorpay. You can cancel your subscription at any time from your dashboard. Cancellations take effect at the end of the current billing period.'}
                 </LegalP>
               </LegalSection>
 

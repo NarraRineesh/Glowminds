@@ -23,10 +23,11 @@ export function ResumeBuilderRoot(props: ResumeBuilderRootProps) {
 		[config.resumes],
 	);
 	const themeTokensKey = useMemo(() => JSON.stringify(config.themeTokens ?? {}), [config.themeTokens]);
+	const isProKey = config.isPro === true ? "pro" : "free";
 
 	useEffect(() => {
 		setEmbedConfig(config);
-	}, [resumeIdsKey, config.theme, themeTokensKey, config.user?.uid]);
+	}, [resumeIdsKey, config.theme, themeTokensKey, config.user?.uid, isProKey]);
 
 	useEffect(() => {
 		let cancelled = false;

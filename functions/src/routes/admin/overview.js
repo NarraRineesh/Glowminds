@@ -1,4 +1,4 @@
-// Admin overview — one round-trip that fills every KPI on the admin page.
+// Admin overview — one round-trip that fills KPI cards on the admin page.
 //
 // Uses Firestore aggregate `.count()` queries so we never pay to ship the
 // matched documents. Result is cached in-memory briefly (30s) so an admin
@@ -18,53 +18,18 @@ let cache = null;
 async function computeOverview() {
   const db = getFirestore();
 
-  const [
-    usersTotal,
-    companiesTotal,
-    companiesActive,
-    jobsActive,
-    latestRunSnap,
-  ] = await Promise.all([
+  const [usersTotal, jobsActive] = await Promise.all([
     db.collection("users").count().get(),
-    db.collection("companies").count().get(),
-    db.collection("companies").where("active", "==", true).count().get(),
     db.collection("jobs").where("status", "==", "ACTIVE").count().get(),
-    db.collection("sync_runs").orderBy("createdAt", "desc").limit(1).get(),
   ]);
-
-  const latestRunDoc = latestRunSnap.docs[0];
-  const latestRun = latestRunDoc
-    ? (() => {
-        const data = latestRunDoc.data() || {};
-        return {
-          id: latestRunDoc.id,
-          provider: data.provider || null,
-          startedAt: data.startedAt || null,
-          finishedAt: data.finishedAt || null,
-          companiesScanned: data.companiesScanned || 0,
-          companiesSkipped: data.companiesSkipped || 0,
-          jobsAdded: data.jobsAdded || 0,
-          jobsUpdated: data.jobsUpdated || 0,
-          jobsExpired: data.jobsExpired || 0,
-          errors: Array.isArray(data.errors) ? data.errors.length : 0,
-        };
-      })()
-    : null;
 
   return {
     users: { total: usersTotal.data().count },
-    companies: {
-      total: companiesTotal.data().count,
-      active: companiesActive.data().count,
-    },
     jobs: { active: jobsActive.data().count },
-    latestRun,
     computedAt: new Date().toISOString(),
   };
 }
 
-// Lets `usageTracker.recordUsage` / company writes invalidate this cache
-// in a future iteration — exported for that purpose.
 export function invalidateOverviewCache() {
   cache = null;
 }

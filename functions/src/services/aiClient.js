@@ -8,7 +8,7 @@
 // Task profile cheatsheet (kept here on purpose so adding a new endpoint is
 // a one-line registry change instead of digging through services):
 //
-//   gemini-flash-lite → cheapest, JSON-friendly, used for grammar/paraphrase/parse
+//   gemini-flash-lite → cheapest, JSON-friendly, used for grammar/paraphrase
 //   gemini-flash      → faster reasoning, used for chat + evaluation + scoring
 //   openrouter        → fallback for everyone; primary for "creative" cover letter
 //
@@ -54,13 +54,6 @@ const TASKS = {
     maxTokens: 4096,
     json: true,
   },
-  "job-match": {
-    primary: PROVIDERS.GEMINI_FLASH_LITE,
-    fallback: PROVIDERS.OPENROUTER,
-    temperature: 0.3,
-    maxTokens: 1024,
-    json: true,
-  },
   "profile-review": {
     primary: PROVIDERS.GEMINI_FLASH_LITE,
     fallback: PROVIDERS.OPENROUTER,
@@ -85,13 +78,6 @@ const TASKS = {
     primary: PROVIDERS.OPENROUTER,
     fallback: PROVIDERS.GEMINI_FLASH_LITE,
     temperature: 0.7,
-    maxTokens: 2048,
-    json: true,
-  },
-  "parse-resume": {
-    primary: PROVIDERS.GEMINI_FLASH_LITE,
-    fallback: PROVIDERS.OPENROUTER,
-    temperature: 0.2,
     maxTokens: 2048,
     json: true,
   },

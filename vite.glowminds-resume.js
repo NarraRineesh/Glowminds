@@ -123,6 +123,10 @@ export function glowmindsResumeAlias() {
         }
       }
 
+      if (source === '@glowminds/host/resume-ai') {
+        return path.resolve(__dirname, 'src/services/resumeAi.js')
+      }
+
       if (!source.startsWith('@/')) return null
 
       const normalizedImporter = importer?.replace(/\\/g, '/') ?? ''

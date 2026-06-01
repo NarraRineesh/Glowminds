@@ -3,6 +3,8 @@ import { Link, NavLink, useLocation } from 'react-router-dom'
 import useAppStore from '@/store/authStore'
 import useNotifStore from '@/store/notifStore'
 import useUpgradePro from '@/hooks/useUpgradePro'
+import useIsPro from '@/hooks/useIsPro'
+import { useYearlyPriceLabel } from '@/hooks/usePricingConfig'
 import SidebarProfileMenu from '@/components/layout/SidebarProfileMenu'
 import BrandLogo, { GlowmindsWordmark } from '@/components/BrandLogo'
 import AppIcon from '@/components/icons/AppIcon'
@@ -28,6 +30,7 @@ import {
   SIDEBAR_GROUPS_STORAGE_KEY,
   SIDEBAR_TOP_ITEMS,
 } from '@/constants/sidebarNav'
+import ProFeatureLockTooltip, { proNavCollapsedTooltip } from '@/components/ProFeatureLockTooltip'
 
 function loadGroupState() {
   try {
@@ -54,6 +57,8 @@ export default function DashboardSidebar() {
   const { user } = useAppStore()
   const { loadNotifs, reset: resetNotifs } = useNotifStore()
   const { startUpgrade, loading: upgradeLoading } = useUpgradePro()
+  const isPro = useIsPro()
+  const yearlyPriceLabel = useYearlyPriceLabel()
   const { setOpenMobile, state } = useSidebarState()
   const iconCollapsed = state === 'collapsed'
 
@@ -130,11 +135,17 @@ export default function DashboardSidebar() {
 
   const renderNavItem = (item) => {
     const active = isNavActive(pathname, item)
-    return (
+    const locked = item.proOnly && !isPro
+    const collapsedTooltip = locked
+      ? proNavCollapsedTooltip(item.label, item.proHint || 'Premium AI tool.', yearlyPriceLabel)
+      : item.label
+
+    const menuItem = (
       <SidebarMenuItem key={item.path}>
         <SidebarMenuButton
           isActive={active}
-          tooltip={item.label}
+          tooltip={collapsedTooltip}
+          className={cn(locked && !active && 'text-muted-foreground')}
           render={
             <NavLink
               to={item.path}
@@ -143,11 +154,32 @@ export default function DashboardSidebar() {
             />
           }
         >
-          <AppIcon name={item.icon} className="size-4" />
-          <span>{item.label}</span>
+          <AppIcon name={item.icon} className="size-4 shrink-0" />
+          <span className="truncate">{item.label}</span>
+          {locked && (
+            <AppIcon
+              name="lock"
+              className="ms-auto size-3.5 shrink-0 text-muted-foreground"
+              aria-label="Pro feature"
+            />
+          )}
         </SidebarMenuButton>
       </SidebarMenuItem>
     )
+
+    if (locked && !iconCollapsed) {
+      return (
+        <ProFeatureLockTooltip
+          key={item.path}
+          label={item.label}
+          hint={item.proHint || 'Premium feature.'}
+        >
+          {menuItem}
+        </ProFeatureLockTooltip>
+      )
+    }
+
+    return menuItem
   }
 
   return (
@@ -222,31 +254,33 @@ export default function DashboardSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="gap-1">
-        <Button
-          type="button"
-          variant="default"
-          disabled={upgradeLoading}
-          onClick={() => {
-            closeDrawer()
-            startUpgrade({ plan: 'yearly' })
-          }}
-          className={cn(
-            'h-auto w-full justify-start gap-3 p-2.5 text-left',
-            iconCollapsed && 'justify-center px-2',
-          )}
-        >
-          <AppIcon name="sparkle" className="size-5 shrink-0" />
-          {!iconCollapsed && (
-            <span className="min-w-0 flex-1">
-              <span className="block text-[0.82rem] font-bold">
-                {upgradeLoading ? 'Processing...' : 'Upgrade to Pro'}
+        {!isPro && (
+          <Button
+            type="button"
+            variant="default"
+            disabled={upgradeLoading}
+            onClick={() => {
+              closeDrawer()
+              startUpgrade({ plan: 'yearly' })
+            }}
+            className={cn(
+              'h-auto w-full justify-start gap-3 p-2.5 text-left',
+              iconCollapsed && 'justify-center px-2',
+            )}
+          >
+            <AppIcon name="sparkle" className="size-5 shrink-0" />
+            {!iconCollapsed && (
+              <span className="min-w-0 flex-1">
+                <span className="block text-[0.82rem] font-bold">
+                  {upgradeLoading ? 'Processing...' : 'Upgrade to Pro'}
+                </span>
+                <span className="block text-[10.5px] font-normal opacity-90">
+                  {upgradeLoading ? 'Opening checkout' : `${yearlyPriceLabel} · Unlock all`}
+                </span>
               </span>
-              <span className="block text-[10.5px] font-normal opacity-90">
-                {upgradeLoading ? 'Opening checkout' : 'Unlock all features'}
-              </span>
-            </span>
-          )}
-        </Button>
+            )}
+          </Button>
+        )}
 
         <SidebarProfileMenu
           user={user}

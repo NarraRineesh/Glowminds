@@ -237,6 +237,7 @@ export function normalizeProfile(profilePartial) {
 function createDefaultSubscription() {
   return {
     plan: 'free',
+    tier: null,
     status: null,
     startDate: null,
     endDate: null,

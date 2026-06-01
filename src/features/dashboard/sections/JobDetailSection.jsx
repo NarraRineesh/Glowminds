@@ -4,8 +4,11 @@ import useAppStore from '@/store/authStore'
 import useJobStore from '@/store/jobStore'
 import useTrackerStore from '@/store/trackerStore'
 import useProfileStore from '@/store/profileStore'
+import useIsPro from '@/hooks/useIsPro'
+import useUpgradePro from '@/hooks/useUpgradePro'
 import { apiFetch } from '@/services/apiClient'
 import { getJobById } from '@/services/jobSearch'
+import { buildJobMatchAnalysis } from '@/utils/jobMatchAnalysis'
 import Loader from '@/components/Loader'
 import { APPLICATION_STATUS } from '@/constants/schema'
 import { formatDateRange } from '@/utils/profileDates'
@@ -37,6 +40,9 @@ export default function JobDetailSection() {
   const { addToast } = useAppStore()
   const { jobs, isJobSaved, saveJob, unsaveJob, loadSavedJobs } = useJobStore()
   const loadProfile = useProfileStore((s) => s.load)
+  const isPro = useIsPro()
+  const { startUpgrade, loading: upgradeLoading } = useUpgradePro()
+  const profile = useProfileStore((s) => s.profile)
   const { addApp, loadApps, apps } = useTrackerStore()
 
   const [job, setJob] = useState(null)
@@ -48,11 +54,13 @@ export default function JobDetailSection() {
     () => apps.some((a) => a.jobId === jobId),
     [apps, jobId],
   )
-  const [aiMatch, setAiMatch] = useState(null)
-  const [aiLoading, setAiLoading] = useState(false)
   const [coverLetter, setCoverLetter] = useState('')
   const [clLoading, setClLoading] = useState(false)
   const [clCopied, setClCopied] = useState(false)
+
+  useEffect(() => {
+    loadProfile({ force: false })
+  }, [loadProfile])
 
   useEffect(() => {
     if (!jobId) return
@@ -61,7 +69,6 @@ export default function JobDetailSection() {
     async function load() {
       setLoading(true)
       setError(null)
-      setAiMatch(null)
       setCoverLetter('')
 
       const cached = jobs.find((j) => j.id === jobId)
@@ -134,32 +141,10 @@ export default function JobDetailSection() {
     }
   }
 
-  const runAiMatch = async () => {
-    if (!job || aiLoading) return
-    setAiLoading(true)
-    try {
-      await loadProfile({ force: false })
-      const p = useProfileStore.getState().profile || {}
-      const skills = (p.skills?.technical || []).join(', ')
-      const experienceCount = Array.isArray(p.experience) ? p.experience.length : 0
-      const experience = p.isFresher ? 'Fresher' : (experienceCount ? `${experienceCount} role${experienceCount > 1 ? 's' : ''}` : '')
-      const data = await apiFetch('/ai/job-match', {
-        body: {
-          userSkills: skills,
-          userExperience: experience,
-          jobTitle: job.title,
-          jobCompany: job.company || job.co,
-          jobDesc: job.description || job.desc,
-          jobTags: job.tags,
-        },
-      })
-      setAiMatch(data)
-    } catch (err) {
-      console.error('AI match error:', err)
-      addToast('error', 'Failed to analyze match')
-    }
-    setAiLoading(false)
-  }
+  const matchAnalysis = useMemo(
+    () => (job ? buildJobMatchAnalysis(job, profile) : null),
+    [job, profile],
+  )
 
   const generateCoverLetter = async () => {
     if (!job || clLoading) return
@@ -276,8 +261,20 @@ export default function JobDetailSection() {
               <><AppIcon name="bookmark" className="size-4" /> Save</>
             )}
           </Button>
-          <Button variant="outline" disabled={clLoading} onClick={generateCoverLetter}>
-            {clLoading ? 'Generating…' : (
+          <Button
+            variant="outline"
+            disabled={clLoading || upgradeLoading}
+            onClick={() => {
+              if (!isPro) {
+                void startUpgrade({ plan: 'yearly' })
+                return
+              }
+              generateCoverLetter()
+            }}
+          >
+            {clLoading ? 'Generating…' : !isPro ? (
+              <><AppIcon name="lock" className="size-4" /> Cover Letter (Pro)</>
+            ) : (
               <><AppIcon name="cover-letters" className="size-4" /> Cover Letter</>
             )}
           </Button>
@@ -306,78 +303,64 @@ export default function JobDetailSection() {
           </section>
         )}
 
-        <section className="space-y-3 border-t border-border pt-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
+        {matchAnalysis && (
+          <section className="space-y-3 border-t border-border pt-4">
             <h2 className="flex items-center gap-1.5 text-sm font-bold text-foreground">
               <AppIcon name="target" className="size-4" />
               Match Analysis
             </h2>
-            {!aiMatch && (
-              <Button size="sm" disabled={aiLoading} onClick={runAiMatch}>
-                {aiLoading ? 'Analyzing…' : (
-                  <><AppIcon name="robot" className="size-4" /> AI Match</>
-                )}
-              </Button>
-            )}
-          </div>
-
-          {!aiMatch ? (
-            <p className="text-sm text-muted-foreground">
-              Get AI-powered insight on how well this role fits your profile, skills to highlight, and gaps to close.
-            </p>
-          ) : (
             <div className="space-y-4">
               <div className="flex items-start gap-4">
-                <div className={cn('text-3xl font-black tabular-nums', scoreTone(aiMatch.score))}>
-                  {aiMatch.score}%
+                <div className={cn('text-3xl font-black tabular-nums', scoreTone(matchAnalysis.score))}>
+                  {matchAnalysis.score}%
                 </div>
                 <div>
-                  <div className="font-bold text-foreground">{aiMatch.verdict}</div>
-                  <p className="mt-1 text-sm text-muted-foreground">{aiMatch.summary}</p>
+                  <div className="font-bold text-foreground">{matchAnalysis.verdict}</div>
+                  <p className="mt-1 text-sm text-muted-foreground">{matchAnalysis.summary}</p>
                 </div>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                {aiMatch.matchedSkills?.length > 0 && (
+                {matchAnalysis.matchedSkills?.length > 0 && (
                   <div>
                     <div className="mb-1.5 flex items-center gap-1 text-[0.72rem] font-bold uppercase tracking-wide text-emerald-500">
                       <AppIcon name="check-circle" className="size-3.5" />
                       Matched Skills
                     </div>
                     <div className="flex flex-wrap gap-1.5">
-                      {aiMatch.matchedSkills.map((s) => (
+                      {matchAnalysis.matchedSkills.map((s) => (
                         <Badge key={s} variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-500">{s}</Badge>
                       ))}
                     </div>
                   </div>
                 )}
-                {aiMatch.missingSkills?.length > 0 && (
+                {matchAnalysis.missingSkills?.length > 0 && (
                   <div>
                     <div className="mb-1.5 flex items-center gap-1 text-[0.72rem] font-bold uppercase tracking-wide text-amber-500">
                       <AppIcon name="lightning" className="size-3.5" />
                       Skills to Learn
                     </div>
                     <div className="flex flex-wrap gap-1.5">
-                      {aiMatch.missingSkills.map((s) => (
+                      {matchAnalysis.missingSkills.map((s) => (
                         <Badge key={s} variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-500">{s}</Badge>
                       ))}
                     </div>
                   </div>
                 )}
               </div>
-              {aiMatch.recommendations?.length > 0 && (
+              {matchAnalysis.recommendations?.length > 0 && (
                 <div>
                   <div className="mb-1.5 flex items-center gap-1 text-[0.72rem] font-bold uppercase tracking-wide text-primary">
                     <AppIcon name="lightbulb" className="size-3.5" />
                     Recommendations
                   </div>
                   <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-                    {aiMatch.recommendations.map((r, i) => <li key={i}>{r}</li>)}
+                    {matchAnalysis.recommendations.map((r, i) => <li key={i}>{r}</li>)}
                   </ul>
                 </div>
               )}
             </div>
-          )}
-        </section>
+          </section>
+        )}
 
         {coverLetter && (
           <section className="space-y-3 border-t border-border pt-4">

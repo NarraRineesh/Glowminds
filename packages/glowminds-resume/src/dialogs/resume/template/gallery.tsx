@@ -3,7 +3,7 @@ import type { DialogProps } from "@/dialogs/store";
 import type { TemplateMetadata } from "./data";
 import { useLingui } from "@lingui/react";
 import { Trans } from "@lingui/react/macro";
-import { SlideshowIcon } from "@phosphor-icons/react";
+import { LockSimpleIcon, SlideshowIcon } from "@phosphor-icons/react";
 import { Badge } from "@/lib/ui/components/badge";
 import { DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/lib/ui/components/dialog";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/lib/ui/components/hover-card";
@@ -13,6 +13,7 @@ import { CometCard } from "@/components/animation/comet-card";
 import { useDialogStore } from "@/dialogs/store";
 import { isEmbedded } from "@/embed/runtime";
 import { useCurrentResume, useUpdateResumeData } from "@/features/resume/builder/draft";
+import { canUseTemplate, requestEmbedUpgrade } from "@/lib/plans";
 import { templates } from "./data";
 
 export function TemplateGalleryDialog(_: DialogProps<"resume.template.gallery">) {
@@ -22,6 +23,11 @@ export function TemplateGalleryDialog(_: DialogProps<"resume.template.gallery">)
 	const updateResumeData = useUpdateResumeData();
 
 	function onSelectTemplate(template: Template) {
+		if (!canUseTemplate(template)) {
+			requestEmbedUpgrade();
+			return;
+		}
+
 		updateResumeData((draft) => {
 			draft.metadata.template = template;
 		});
@@ -53,6 +59,7 @@ export function TemplateGalleryDialog(_: DialogProps<"resume.template.gallery">)
 							metadata={metadata}
 							id={template as Template}
 							isActive={template === selectedTemplate}
+							isLocked={!canUseTemplate(template as Template)}
 							onSelect={onSelectTemplate}
 						/>
 					))}
@@ -65,11 +72,12 @@ export function TemplateGalleryDialog(_: DialogProps<"resume.template.gallery">)
 type TemplateCardProps = {
 	id: Template;
 	isActive?: boolean;
+	isLocked?: boolean;
 	metadata: TemplateMetadata;
 	onSelect: (template: Template) => void;
 };
 
-function TemplateCard({ id, metadata, isActive, onSelect }: TemplateCardProps) {
+function TemplateCard({ id, metadata, isActive, isLocked, onSelect }: TemplateCardProps) {
 	const { i18n } = useLingui();
 	const embedded = isEmbedded();
 
@@ -81,9 +89,23 @@ function TemplateCard({ id, metadata, isActive, onSelect }: TemplateCardProps) {
 			className={cn(
 				"relative block aspect-page w-full cursor-pointer overflow-hidden rounded-md bg-popover outline-none",
 				isActive && "ring-2 ring-ring ring-offset-2 ring-offset-background",
+				isLocked && "cursor-not-allowed",
 			)}
 		>
-			<img src={metadata.imageUrl} alt={metadata.name} className="size-full object-cover object-top" loading="lazy" />
+			<img
+				src={metadata.imageUrl}
+				alt={metadata.name}
+				className={cn("size-full object-cover object-top", isLocked && "opacity-50")}
+				loading="lazy"
+			/>
+			{isLocked ? (
+				<span className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-background/60 text-foreground">
+					<LockSimpleIcon className="size-6" weight="fill" />
+					<span className="text-xs font-semibold">
+						<Trans>Pro</Trans>
+					</span>
+				</span>
+			) : null}
 		</button>
 	);
 

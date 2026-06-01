@@ -118,6 +118,16 @@ export async function apiFetch(path, options = {}) {
     if (response.status === 401) {
       handleUnauthorized().catch(() => {})
     }
+
+    if (response.status === 403 && code === 'pro-required') {
+      try {
+        useAppStore.getState().addToast?.(
+          'info',
+          'Glowminds Pro is required for this feature.',
+        )
+      } catch { /* store may not be ready */ }
+    }
+
     throw new ApiError(message, { status: response.status, code, payload })
   }
 

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import useAppStore from '@/store/authStore'
 import useIsPro from '@/hooks/useIsPro'
+import { useFreeLimits } from '@/hooks/usePricingConfig'
 import useIsLg from '@/hooks/useIsLg'
 import useTrackerStore from '@/store/trackerStore'
 import Loader from '@/components/Loader'
@@ -36,7 +38,6 @@ const COLUMN_STYLE = {
   [APPLICATION_STATUS.REJECTED]: { text: 'text-destructive', badge: 'bg-destructive/20 text-destructive' },
 }
 
-const FREE_APP_LIMIT = 5
 
 const EMPTY_FORM = {
   company: '',
@@ -49,7 +50,10 @@ const EMPTY_FORM = {
 
 export default function ApplicationsSection() {
   const { addToast } = useAppStore()
+  const navigate = useNavigate()
   const isPro = useIsPro()
+  const freeLimits = useFreeLimits()
+  const freeAppLimit = freeLimits.applications
   const { apps, loading, addApp, updateStatus, deleteApp, loadApps } = useTrackerStore()
   const isLg = useIsLg()
   const [modal, setModal] = useState(false)
@@ -84,7 +88,7 @@ export default function ApplicationsSection() {
     addToast('info', `${company} removed from tracker`)
   }
 
-  const canAdd = isPro || apps.length < FREE_APP_LIMIT
+  const canAdd = isPro || apps.length < freeAppLimit
 
   return (
     <>
@@ -98,7 +102,7 @@ export default function ApplicationsSection() {
           {canAdd ? (
             <Button size="sm" onClick={() => setModal(true)}>+ Add application</Button>
           ) : (
-            <Button variant="ghost" size="sm" className="opacity-60" onClick={() => addToast('info', 'Upgrade to Pro for unlimited tracking')}>
+            <Button variant="ghost" size="sm" className="opacity-60" onClick={() => navigate('/pricing')}>
               <AppIcon name="lock" className="size-3.5" />
               Limit reached (Pro)
             </Button>
@@ -178,13 +182,13 @@ export default function ApplicationsSection() {
                       )}
                       {col === APPLICATION_STATUS.APPLIED && !canAdd && (
                         <div className="rounded-lg border border-dashed border-border p-2 text-center text-xs text-muted-foreground">
-                          <AppIcon name="lock" className="inline size-3.5" /> {FREE_APP_LIMIT}/{FREE_APP_LIMIT} free apps used ·{' '}
+                          <AppIcon name="lock" className="inline size-3.5" /> {freeAppLimit}/{freeAppLimit} free apps used ·{' '}
                           <Button
                             type="button"
                             variant="link"
                             size="sm"
                             className="h-auto px-0 text-xs"
-                            onClick={() => addToast('info', 'Upgrade to Pro for unlimited tracking')}
+                            onClick={() => navigate('/pricing')}
                           >
                             Upgrade
                           </Button>

@@ -7,6 +7,7 @@ import jobsSearchRoutes from "./routes/jobs/search.js";
 import paymentRoutes from "./routes/payments/razorpay.js";
 import usageRoutes from "./routes/usage/track.js";
 import adminRoutes from "./routes/admin/index.js";
+import configRoutes from "./routes/config/index.js";
 
 export function createApp() {
   const app = express();
@@ -39,6 +40,7 @@ export function createApp() {
   app.use("/api/jobs", jobsSearchRoutes);
   app.use("/api/payments", paymentRoutes);
   app.use("/api/usage", usageRoutes);
+  app.use("/api/config", configRoutes);
   app.use("/api/admin", adminRoutes);
   // Gamification (badges/streak/notifications) writes directly to Firestore
   // from the client (firestore.rules enforces ownership). No backend route.

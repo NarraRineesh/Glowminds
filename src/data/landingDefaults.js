@@ -111,7 +111,7 @@ const PRICING = {
     price: '₹0',
     period: '/forever',
     desc: 'Perfect for getting started with job hunting.',
-    features: ['Job search & matching', '1 resume template', '5 application tracking slots', 'Basic AI suggestions', 'Grammar check (5/day)'],
+    features: ['Job search & matching', '1 resume template', '5 application tracking slots', 'Profile & portfolio', 'Daily quiz & streaks'],
   },
   pro: {
     label: 'PRO',
@@ -124,7 +124,7 @@ const PRICING = {
 
 const PRICING_COMPARISON = [
   { feature: 'Job Search', free: 'Basic', pro: 'Advanced + AI' },
-  { feature: 'Resume Builder', free: '1 template', pro: '6 templates' },
+  { feature: 'Resume Builder', free: '3 resumes · Onyx template', pro: 'Unlimited · all templates' },
   { feature: 'Application Tracker', free: '5 apps', pro: 'Unlimited' },
   { feature: 'AI Career Coach', free: '—', pro: '24/7 access' },
   { feature: 'Interview Prep', free: '—', pro: 'AI evaluator' },
@@ -145,7 +145,7 @@ const PRICING_FAQS = [
 const FREE_FEATURES = [
   { text: 'Job Search & Browse', included: true },
   { text: 'Profile & Portfolio', included: true },
-  { text: '1 Resume Template', included: true },
+  { text: '3 Resumes (Onyx template)', included: true },
   { text: '5 Application Tracking', included: true },
   { text: 'Basic Job Alerts', included: true },
   { text: 'AI Career Coach', included: false },

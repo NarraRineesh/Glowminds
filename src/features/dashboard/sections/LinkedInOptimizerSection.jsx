@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import SectionHeader from '@/components/dashboard/SectionHeader'
+import UpgradeGate from '@/components/UpgradeGate'
 import { ToolPage, ToolSidebarLayout } from '@/features/dashboard/components/toolSectionLayout'
 import AppIcon from '@/components/icons/AppIcon'
 import { Badge, Button, Checkbox, DashboardCard, Input, Progress, cn } from '@/components/ui'
@@ -150,6 +151,7 @@ export default function LinkedInOptimizerSection() {
   )
 
   return (
+    <UpgradeGate feature="LinkedIn Optimizer">
     <ToolPage>
       <SectionHeader
         badge="LinkedIn · Audit"
@@ -250,5 +252,6 @@ export default function LinkedInOptimizerSection() {
         </DashboardCard>
       </ToolSidebarLayout>
     </ToolPage>
+    </UpgradeGate>
   )
 }

@@ -7,10 +7,11 @@ import { env } from "../../config/env.js";
 import { getFirestore } from "../../config/firebase.js";
 import { admin } from "../../config/firebase.js";
 
-const PLANS = {
-  monthly: { amount: 4900, label: "Glowminds Pro Monthly", durationDays: 30 },
-  yearly: { amount: 39900, label: "Glowminds Pro Yearly", durationDays: 365 },
-};
+import { PRO_TIER } from "../../constants/plans.js";
+import {
+  billingPlansFromConfig,
+  getPricingConfig,
+} from "../../services/pricingConfig.js";
 
 function getClient() {
   if (!env.razorpayKeyId || !env.razorpayKeySecret) {
@@ -30,6 +31,8 @@ const router = Router();
 router.post("/create-order", requireAuth, async (req, res, next) => {
   try {
     const { plan } = req.body || {};
+    const pricing = await getPricingConfig();
+    const PLANS = billingPlansFromConfig(pricing);
     if (!PLANS[plan]) throw new ApiError("invalid-argument", "Invalid plan");
 
     const rzp = getClient();
@@ -70,8 +73,14 @@ router.post("/verify-payment", requireAuth, async (req, res, next) => {
 
     const rzp = getClient();
     const order = await rzp.orders.fetch(orderId);
+    const pricing = await getPricingConfig();
+    const PLANS = billingPlansFromConfig(pricing);
     const plan = order.notes?.plan || "monthly";
     const planConfig = PLANS[plan] || PLANS.monthly;
+
+    if (Number(order.amount) !== planConfig.amount) {
+      throw new ApiError("permission-denied", "Order amount does not match current plan pricing");
+    }
 
     const now = new Date();
     const endDate = new Date(
@@ -85,6 +94,7 @@ router.post("/verify-payment", requireAuth, async (req, res, next) => {
         {
           subscription: {
             plan,
+            tier: PRO_TIER,
             status: "active",
             startDate: now.toISOString(),
             endDate: endDate.toISOString(),

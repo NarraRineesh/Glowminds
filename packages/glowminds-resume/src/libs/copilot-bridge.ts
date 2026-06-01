@@ -42,6 +42,8 @@ export type CopilotInitPayload = {
 	user?: { uid?: string; email?: string; displayName?: string };
 	resumes?: CopilotEmbedResume[];
 	seedFromProfile?: boolean;
+	isPro?: boolean;
+	onUpgrade?: () => void;
 };
 
 type BridgeMessage =

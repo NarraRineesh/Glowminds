@@ -20,6 +20,7 @@ import {
 	PlusIcon,
 	RowsPlusBottomIcon,
 	RowsPlusTopIcon,
+	SparkleIcon,
 	TableIcon,
 	TextAlignCenterIcon,
 	TextAlignJustifyIcon,
@@ -48,6 +49,7 @@ import { EditorContent, EditorContext, useEditor, useEditorState } from "@tiptap
 import StarterKit from "@tiptap/starter-kit";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { getEmbedIsPro } from "@/lib/plans";
 import { match } from "ts-pattern";
 import z from "zod";
 import { Button } from "@/lib/ui/components/button";
@@ -66,6 +68,8 @@ import { cn } from "@/lib/utils/style";
 import { usePrompt } from "@/hooks/use-prompt";
 import { isRTL } from "@/libs/locale";
 import { ColorPicker } from "./color-picker";
+import { AiEnhanceDialog } from "./ai-enhance-dialog";
+import { htmlToPlainText, plainTextToResumeHtml } from "@/lib/rich-text/plain-text";
 
 const defaultTextColor = "rgba(0, 0, 0, 1)";
 
@@ -97,12 +101,24 @@ type Props = UseEditorOptions & {
 	style?: React.CSSProperties;
 	className?: string;
 	editorClassName?: string;
+	/** Show AI enhance for the full field content (default: true). */
+	enableAiEnhance?: boolean;
 };
 
-export function RichInput({ value, onChange, style, className, editorClassName, ...options }: Props) {
+export function RichInput({
+	value,
+	onChange,
+	style,
+	className,
+	editorClassName,
+	enableAiEnhance = true,
+	...options
+}: Props) {
 	const { i18n } = useLingui();
 	const textDirection = isRTL(i18n.locale) ? "rtl" : undefined;
 	const [isFullscreen, setIsFullscreen] = useState(false);
+	const [aiOpen, setAiOpen] = useState(false);
+	const [aiPlainText, setAiPlainText] = useState("");
 
 	const editor = useEditor({
 		...options,
@@ -140,9 +156,27 @@ export function RichInput({ value, onChange, style, className, editorClassName, 
 
 	if (!editor) return null;
 
+	const aiEnhanceAllowed = enableAiEnhance && getEmbedIsPro();
+
+	const handleAiEnhance = () => {
+		const plain = htmlToPlainText(editor.getHTML());
+		if (plain.length < 3) {
+			toast.error(t`Add a few words before using AI enhance.`);
+			return;
+		}
+		setAiPlainText(plain);
+		setAiOpen(true);
+	};
+
+	const handleAiAccept = (text: string) => {
+		const html = plainTextToResumeHtml(text);
+		editor.commands.setContent(html);
+		onChange(html);
+	};
+
 	const editorElement = (
 		<div className="relative">
-			<EditorToolbar editor={editor} isFullscreen={isFullscreen} />
+			<EditorToolbar editor={editor} isFullscreen={isFullscreen} enableAiEnhance={aiEnhanceAllowed} onAiEnhance={handleAiEnhance} />
 
 			<EditorContent editor={editor} />
 
@@ -183,6 +217,13 @@ export function RichInput({ value, onChange, style, className, editorClassName, 
 						{editorElement}
 					</DialogContent>
 				</Dialog>
+
+				<AiEnhanceDialog
+					open={aiOpen}
+					onOpenChange={setAiOpen}
+					originalText={aiPlainText}
+					onAccept={handleAiAccept}
+				/>
 			</EditorContext>
 		);
 	}
@@ -192,6 +233,13 @@ export function RichInput({ value, onChange, style, className, editorClassName, 
 			<div className={cn("rounded-md", className)} style={style}>
 				{editorElement}
 			</div>
+
+			<AiEnhanceDialog
+				open={aiOpen}
+				onOpenChange={setAiOpen}
+				originalText={aiPlainText}
+				onAccept={handleAiAccept}
+			/>
 		</EditorContext>
 	);
 }
@@ -375,17 +423,23 @@ type EditorToolbarState = ReturnType<typeof useEditorToolbarState>;
 type EditorToolbarProps = {
 	editor: Editor;
 	isFullscreen: boolean;
+	enableAiEnhance?: boolean;
+	onAiEnhance?: () => void;
 };
 
-function EditorToolbar({ editor, isFullscreen }: EditorToolbarProps) {
+function EditorToolbar({ editor, isFullscreen, enableAiEnhance, onAiEnhance }: EditorToolbarProps) {
 	const state = useEditorToolbarState(editor);
 
-	return renderEditorToolbar(state, isFullscreen);
+	return renderEditorToolbar(state, isFullscreen, { enableAiEnhance, onAiEnhance });
 }
 
-function renderEditorToolbar(state: EditorToolbarState, isFullscreen: boolean) {
+function renderEditorToolbar(
+	state: EditorToolbarState,
+	isFullscreen: boolean,
+	{ enableAiEnhance = false, onAiEnhance }: { enableAiEnhance?: boolean; onAiEnhance?: () => void } = {},
+) {
 	return (
-		<div className="flex flex-wrap items-center gap-y-0.5 rounded-md rounded-b-none border border-b-0">
+		<div className="flex w-full flex-wrap items-center gap-y-0.5 rounded-md rounded-b-none border border-b-0">
 			<Toggle
 				size={isFullscreen ? "lg" : "sm"}
 				tabIndex={-1}
@@ -801,6 +855,25 @@ function renderEditorToolbar(state: EditorToolbarState, isFullscreen: boolean) {
 			>
 				<MinusIcon className="size-3.5" />
 			</Button>
+
+			{enableAiEnhance && onAiEnhance ? (
+				<>
+					<div className="mx-1 h-5 w-px bg-border" />
+					<Button
+						size={isFullscreen ? "default" : "sm"}
+						tabIndex={-1}
+						variant="secondary"
+						className="ml-auto rounded-none gap-1.5 px-2.5 font-semibold"
+						title={t`AI Enhance`}
+						onClick={onAiEnhance}
+					>
+						<SparkleIcon className="size-3.5" weight="fill" />
+						<span className="hidden sm:inline">
+							<Trans>AI Enhance</Trans>
+						</span>
+					</Button>
+				</>
+			) : null}
 		</div>
 	);
 }

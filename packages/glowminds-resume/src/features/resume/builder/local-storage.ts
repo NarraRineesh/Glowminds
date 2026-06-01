@@ -1,8 +1,9 @@
 import type { ResumeData } from "@/lib/schema/resume/data";
 import { defaultResumeData } from "@/lib/schema/resume/default";
-import { sampleResumeData } from "@/lib/schema/resume/sample";
+import { glowmindsSampleResumeData } from "@/lib/schema/resume/glowminds-sample";
 import { generateId, generateRandomName, slugify } from "@/lib/utils/string";
-import { isEmbedded } from "@/embed/runtime";
+import { isEmbedded, getEmbedConfig } from "@/embed/runtime";
+import { FREE_LIMITS, getEmbedIsPro } from "@/lib/plans";
 import type { Resume } from "./draft";
 
 const STANDALONE_INDEX_KEY = "rr:local-resume-index";
@@ -51,6 +52,24 @@ function cloneResumeData(data: ResumeData): ResumeData {
 	return structuredClone(data);
 }
 
+export class ResumeLimitError extends Error {
+	constructor(message = "Free plan allows up to 3 resumes. Upgrade to Pro for unlimited resumes.") {
+		super(message);
+		this.name = "ResumeLimitError";
+	}
+}
+
+function assertCanCreateLocalResume() {
+	if (!isEmbedded() || getEmbedIsPro()) return;
+	if (listLocalResumes().length >= FREE_LIMITS.resumes) {
+		throw new ResumeLimitError();
+	}
+}
+
+function notifyResumeLimit() {
+	getEmbedConfig()?.onUpgrade?.();
+}
+
 export function listLocalResumes(): Resume[] {
 	return readIndex()
 		.map((id) => getLocalResume(id))
@@ -88,6 +107,7 @@ export function createLocalResume(input?: {
 	tags?: string[];
 	withSampleData?: boolean;
 }): Resume {
+	assertCanCreateLocalResume();
 	const name = input?.name ?? defaultResumeName();
 	const slug = input?.slug ?? slugify(name);
 	const resume: Resume = {
@@ -95,7 +115,7 @@ export function createLocalResume(input?: {
 		name,
 		slug,
 		tags: input?.tags ?? [],
-		data: cloneResumeData(input?.withSampleData ? sampleResumeData : defaultResumeData),
+		data: cloneResumeData(input?.withSampleData ? glowmindsSampleResumeData : defaultResumeData),
 		isLocked: false,
 		isPublic: false,
 		hasPassword: false,
@@ -106,12 +126,33 @@ export function createLocalResume(input?: {
 	return resume;
 }
 
+export function createLocalResumeFromSample(): Resume {
+	return createLocalResume({
+		name: "Sample Resume",
+		tags: ["sample"],
+		withSampleData: true,
+	});
+}
+
+export function applyGlowmindsSampleToResume(id: string): Resume {
+	const resume = getLocalResume(id);
+	if (!resume) throw new Error("Resume not found");
+	if (resume.isLocked) throw new Error("Resume is locked");
+
+	return saveLocalResume({
+		...resume,
+		data: cloneResumeData(glowmindsSampleResumeData),
+		updatedAt: new Date(),
+	});
+}
+
 export function deleteLocalResume(id: string): void {
 	localStorage.removeItem(resumeKey(id));
 	writeIndex(readIndex().filter((resumeId) => resumeId !== id));
 }
 
 export function duplicateLocalResume(id: string): Resume {
+	assertCanCreateLocalResume();
 	const source = getLocalResume(id);
 	if (!source) throw new Error("Resume not found");
 
@@ -155,6 +196,7 @@ export function setLocalResumeLocked(id: string, isLocked: boolean): Resume {
 }
 
 export function importLocalResume(data: ResumeData, metadata?: { name?: string; slug?: string; tags?: string[] }): Resume {
+	assertCanCreateLocalResume();
 	const name = metadata?.name ?? defaultResumeName();
 	const resume: Resume = {
 		id: generateId(),
@@ -171,6 +213,8 @@ export function importLocalResume(data: ResumeData, metadata?: { name?: string; 
 	saveLocalResume(resume);
 	return resume;
 }
+
+export { notifyResumeLimit };
 
 export function getLocalResumeQueryKey(id: string) {
 	return ["local-resume", id] as const;

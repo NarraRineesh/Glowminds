@@ -1,6 +1,8 @@
-import { lazy, Suspense, useLayoutEffect, useRef } from 'react'
+import { lazy, Suspense, useLayoutEffect, useMemo, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Loader from '@/components/Loader'
 import useTheme from '@/hooks/useTheme'
+import useIsPro from '@/hooks/useIsPro'
 import useAppStore from '@/store/authStore'
 import { getCopilotThemeTokens } from '@/constants/copilotThemeTokens'
 import { applyCopilotTheme, clearCopilotTheme } from 'glowminds-resume/embed-theme'
@@ -11,11 +13,12 @@ const ResumeBuilderRoot = lazy(() =>
 
 export default function GlowmindsResumeSection() {
   const hostRef = useRef(null)
+  const navigate = useNavigate()
   const { theme } = useTheme()
+  const isPro = useIsPro()
   const user = useAppStore((state) => state.user)
   const resolvedTheme = theme === 'dark' ? 'dark' : 'light'
 
-  // Single source of truth: theme prop drives class + tokens on the embed host.
   useLayoutEffect(() => {
     const host = hostRef.current
     if (!host) return undefined
@@ -23,7 +26,7 @@ export default function GlowmindsResumeSection() {
     return () => clearCopilotTheme(host)
   }, [resolvedTheme])
 
-  const payload = {
+  const payload = useMemo(() => ({
     theme: resolvedTheme,
     themeTokens: getCopilotThemeTokens(resolvedTheme),
     user: user
@@ -35,7 +38,9 @@ export default function GlowmindsResumeSection() {
       : undefined,
     resumes: [],
     seedFromProfile: false,
-  }
+    isPro: isPro || !!user?.isAdmin,
+    onUpgrade: () => navigate('/pricing'),
+  }), [resolvedTheme, user, isPro, navigate])
 
   return (
     <div
