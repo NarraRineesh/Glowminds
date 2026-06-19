@@ -1,16 +1,12 @@
 import { Link } from 'react-router-dom'
 import SEO from '@/components/SEO'
+import { PAGE_SEO } from '@/config/seo'
 import { Button, Card, CardContent } from '@/components/ui'
 
 export default function NotFoundPage() {
   return (
     <>
-      <SEO
-        title="Page Not Found"
-        path="/404"
-        description="The page you are looking for does not exist or has been moved."
-        noIndex
-      />
+      <SEO {...PAGE_SEO.notFound} />
       <div className="flex flex-1 flex-col items-center justify-center px-4 py-16">
         <Card className="max-w-md border-border text-center">
           <CardContent className="py-10">

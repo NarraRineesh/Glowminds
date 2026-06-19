@@ -16,6 +16,7 @@ import ContactPage from '@/features/public/ContactPage'
 import PricingPage from '@/features/public/PricingPage'
 import PrivacyPage from '@/features/public/PrivacyPage'
 import TermsPage from '@/features/public/TermsPage'
+import RefundPage from '@/features/public/RefundPage'
 import LoginPage from '@/features/auth/LoginPage'
 import SignupPage from '@/features/auth/SignupPage'
 import NotFoundPage from '@/features/public/NotFoundPage'
@@ -59,6 +60,7 @@ function AnimatedRoutes() {
         <Route path="pricing" element={<PricingPage />} />
         <Route path="privacy" element={<PrivacyPage />} />
         <Route path="terms" element={<TermsPage />} />
+        <Route path="refund" element={<RefundPage />} />
       </Route>
       <Route path="/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
       <Route path="/signup" element={<PublicOnlyRoute><SignupPage /></PublicOnlyRoute>} />

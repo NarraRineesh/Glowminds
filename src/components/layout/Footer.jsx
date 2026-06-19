@@ -3,27 +3,52 @@ import BrandLogo, { GlowmindsWordmark } from '@/components/BrandLogo'
 
 const footerLink = 'text-xs text-muted-foreground transition-colors hover:text-foreground'
 
+function FooterGroup({ title, children }) {
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold uppercase tracking-wide text-foreground">{title}</p>
+      <nav className="flex flex-col gap-1.5">{children}</nav>
+    </div>
+  )
+}
+
 export default function Footer() {
   const year = new Date().getFullYear()
 
   return (
     <footer className="mt-auto border-t border-border bg-muted/30">
-      <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-4 md:flex-row md:items-center md:justify-between md:gap-6 md:px-8">
-        <Link to="/" className="inline-flex shrink-0 items-center gap-2">
-          <BrandLogo variant="full" size={24} alt="" aria-hidden />
-          <GlowmindsWordmark className="text-sm text-foreground" />
-        </Link>
+      <div className="mx-auto max-w-6xl px-4 py-8 md:px-8">
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="space-y-3 sm:col-span-2 lg:col-span-1">
+            <Link to="/" className="inline-flex items-center gap-2">
+              <BrandLogo variant="full" size={24} alt="" aria-hidden />
+              <GlowmindsWordmark className="text-sm text-foreground" />
+            </Link>
+            <p className="max-w-xs text-xs leading-relaxed text-muted-foreground">
+              One AI platform to build your resume, find jobs, and land your next role.
+            </p>
+          </div>
 
-        <nav className="flex flex-wrap items-center gap-x-4 gap-y-1" aria-label="Footer">
-          <Link to="/features" className={footerLink}>Features</Link>
-          <Link to="/pricing" className={footerLink}>Pricing</Link>
-          <Link to="/about" className={footerLink}>About</Link>
-          <Link to="/contact" className={footerLink}>Contact</Link>
-          <Link to="/privacy" className={footerLink}>Privacy</Link>
-          <Link to="/terms" className={footerLink}>Terms</Link>
-        </nav>
+          <FooterGroup title="Product">
+            <Link to="/features" className={footerLink}>Features</Link>
+            <Link to="/pricing" className={footerLink}>Pricing</Link>
+          </FooterGroup>
 
-        <p className="shrink-0 text-xs text-muted-foreground md:text-right">© {year} Glowminds</p>
+          <FooterGroup title="Company">
+            <Link to="/about" className={footerLink}>About</Link>
+            <Link to="/contact" className={footerLink}>Contact</Link>
+          </FooterGroup>
+
+          <FooterGroup title="Legal">
+            <Link to="/privacy" className={footerLink}>Privacy Policy</Link>
+            <Link to="/terms" className={footerLink}>Terms of Service</Link>
+            <Link to="/refund" className={footerLink}>Refund Policy</Link>
+          </FooterGroup>
+        </div>
+
+        <p className="mt-8 border-t border-border pt-6 text-xs text-muted-foreground">
+          © {year} Glowminds. All rights reserved.
+        </p>
       </div>
     </footer>
   )

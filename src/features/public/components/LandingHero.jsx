@@ -2,6 +2,8 @@ import { motion, useReducedMotion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import AppIcon from '@/components/icons/AppIcon'
 import LandingHeroVideo from '@/features/public/components/LandingHeroVideo'
+import LandingHeroMetrics from '@/features/public/components/LandingHeroMetrics'
+import LandingTrustBadges from '@/features/public/components/LandingTrustBadges'
 import {
   heroFadeUp,
   heroStagger,
@@ -9,84 +11,104 @@ import {
 } from '@/features/public/motionVariants'
 import { Badge, Button } from '@/components/ui'
 
-export default function LandingHero({ stats, onSignup }) {
+export default function LandingHero({ hero, heroMetrics, trustBadges, stats, onSignup }) {
   const navigate = useNavigate()
   const reducedMotion = useReducedMotion()
 
-  return (
-    <section id="hero" className="relative flex min-h-svh w-full flex-col items-center overflow-hidden border-b border-border pb-8">
-      <div className="relative z-10 mx-auto w-full max-w-6xl px-4 md:px-8">
-        <LandingHeroVideo />
+  const headline = hero?.headline || 'Get Hired Faster with One AI Career Platform'
+  const highlight = hero?.highlight || 'Get Hired Faster'
+  const headlineParts = headline.split(highlight)
+  const hasHighlight = headlineParts.length > 1
 
+  return (
+    <section id="hero" className="relative overflow-hidden border-b border-border pb-10 pt-8 md:pb-14 md:pt-10">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,color-mix(in_oklab,var(--primary)_10%,transparent),transparent)]" />
+
+      <div className="relative z-10 mx-auto grid w-full max-w-6xl items-center gap-8 px-4 md:px-8 lg:grid-cols-2 lg:gap-10">
         <motion.div
-          className="relative z-10 mx-auto max-w-3xl space-y-5 pb-8 pt-8 text-center md:pb-12 md:pt-10"
+          className="order-1 space-y-5 lg:order-1 lg:pr-2"
           initial="hidden"
           animate="visible"
           variants={heroStagger}
         >
-          <motion.div variants={heroFadeUp} transition={motionTransition(reducedMotion, { duration: 0.7, delay: 0.55 })}>
+          {hero?.positioning ? (
+            <motion.p
+              variants={heroFadeUp}
+              transition={motionTransition(reducedMotion, { duration: 0.6, delay: 0.1 })}
+              className="text-sm font-semibold uppercase tracking-wide text-primary"
+            >
+              {hero.positioning}
+            </motion.p>
+          ) : null}
+
+          <motion.div variants={heroFadeUp} transition={motionTransition(reducedMotion, { duration: 0.65, delay: 0.2 })}>
             <Badge variant="outline" className="border-emerald-500/20 bg-emerald-500/10 text-emerald-500">
-              LIVE · {stats?.dailyJobs || '12,400+'} jobs today
+              {hero?.liveBadge || 'LIVE'} · {stats?.dailyJobs || '12,400+'} jobs today
             </Badge>
           </motion.div>
 
           <motion.h1
             variants={heroFadeUp}
-            transition={motionTransition(reducedMotion, { duration: 0.75, delay: 0.7 })}
-            className="text-3xl font-bold leading-[1.1] tracking-tight text-foreground sm:text-4xl lg:text-5xl"
+            transition={motionTransition(reducedMotion, { duration: 0.75, delay: 0.3 })}
+            className="text-3xl font-bold leading-[1.1] tracking-tight text-foreground sm:text-4xl lg:text-[2.65rem]"
           >
-            Your Career Starts{' '}
-            <span className="text-primary">Right Here</span>
+            {hasHighlight ? (
+              <>
+                {headlineParts[0]}
+                <span className="text-primary">{highlight}</span>
+                {headlineParts.slice(1).join(highlight)}
+              </>
+            ) : (
+              headline
+            )}
           </motion.h1>
 
           <motion.p
             variants={heroFadeUp}
-            transition={motionTransition(reducedMotion, { duration: 0.7, delay: 0.82 })}
-            className="mx-auto max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base"
+            transition={motionTransition(reducedMotion, { duration: 0.7, delay: 0.42 })}
+            className="max-w-xl text-sm leading-relaxed text-muted-foreground md:text-base"
           >
-            Build a beautiful resume in minutes, get AI-matched to jobs across 50+ portals, and apply with one click —
-            built for students and fresh graduates.
+            {hero?.subheadline}
           </motion.p>
 
           <motion.div
             variants={heroFadeUp}
-            transition={motionTransition(reducedMotion, { duration: 0.65, delay: 0.95 })}
-            className="flex flex-wrap items-center justify-center gap-2"
+            transition={motionTransition(reducedMotion, { duration: 0.65, delay: 0.52 })}
+          >
+            <LandingHeroMetrics metrics={heroMetrics} />
+          </motion.div>
+
+          <motion.div
+            variants={heroFadeUp}
+            transition={motionTransition(reducedMotion, { duration: 0.65, delay: 0.62 })}
+            className="flex flex-wrap items-center gap-2"
           >
             <motion.div whileHover={reducedMotion ? {} : { y: -2, scale: 1.01 }} whileTap={reducedMotion ? {} : { y: 1 }}>
               <Button size="lg" onClick={onSignup} className="gap-2">
-                Get started
+                {hero?.primaryCta || 'Build Your Resume'}
                 <AppIcon name="send" className="size-4" />
               </Button>
             </motion.div>
             <motion.div whileHover={reducedMotion ? {} : { y: -2, scale: 1.01 }} whileTap={reducedMotion ? {} : { y: 1 }}>
               <Button size="lg" variant="outline" onClick={() => navigate('/features')} className="gap-2">
                 <AppIcon name="sparkle" className="size-4" />
-                View features
+                {hero?.secondaryCta || 'Explore Tools'}
               </Button>
             </motion.div>
           </motion.div>
 
-          <motion.p
+          <motion.div
             variants={heroFadeUp}
-            transition={motionTransition(reducedMotion, { duration: 0.6, delay: 1.05 })}
-            className="text-sm text-muted-foreground"
+            transition={motionTransition(reducedMotion, { duration: 0.6, delay: 0.72 })}
           >
-            Trusted by {stats?.students || '52K+'} students · {stats?.matchRate || '94%'} match rate
-          </motion.p>
+            <LandingTrustBadges badges={trustBadges} />
+          </motion.div>
         </motion.div>
-      </div>
 
-      {!reducedMotion ? (
-        <motion.div
-          aria-hidden
-          className="absolute bottom-8 left-1/2 z-10 flex h-8 w-5 -translate-x-1/2 items-start justify-center rounded-full border border-muted-foreground/30 p-1.5"
-          animate={{ y: [0, 5, 0] }}
-          transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-        >
-          <div className="h-1.5 w-1 rounded-full bg-muted-foreground/50" />
-        </motion.div>
-      ) : null}
+        <div className="order-2 lg:order-2">
+          <LandingHeroVideo />
+        </div>
+      </div>
     </section>
   )
 }

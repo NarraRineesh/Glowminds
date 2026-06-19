@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import useAppStore from '@/store/authStore'
 import SEO from '@/components/SEO'
+import { PAGE_SEO } from '@/config/seo'
 import BrandLogo, { GlowmindsWordmark } from '@/components/BrandLogo'
 import { Badge, Button, Card, CardContent, FormField, FormRow, Input, Separator, AppIcon } from '@/components/ui'
 
@@ -77,7 +78,7 @@ export default function SignupPage() {
 
   return (
     <>
-      <SEO title="Sign Up" path="/signup" description="Create your Glowminds account. Build ATS resumes, get matched to jobs, and launch your career today." noIndex />
+      <SEO {...PAGE_SEO.signup} />
       <div className="relative flex min-h-svh overflow-hidden">
         <div aria-hidden className="pointer-events-none absolute inset-0 bg-background" />
         <div
@@ -97,7 +98,7 @@ export default function SignupPage() {
           <GlowmindsWordmark className="hidden text-sm text-foreground sm:inline" />
         </Link>
 
-        <div className="relative z-10 mx-auto grid w-full max-w-6xl flex-1 items-center gap-8 px-4 py-8 md:grid-cols-2 md:gap-12 md:px-8 lg:gap-16">
+        <div className="relative z-10 mx-auto grid w-full max-w-6xl flex-1 items-center gap-8 px-4 py-10 pb-12 md:grid-cols-2 md:gap-12 md:px-8 md:py-8 lg:gap-16">
 
           {/* Left: Benefits panel (hidden on mobile) */}
           <motion.div className="hidden flex-col gap-7 md:flex" variants={stagger} initial="hidden" animate="visible">

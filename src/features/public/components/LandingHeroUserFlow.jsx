@@ -4,19 +4,6 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 /** Percent-based cursor path + optional scroll on screenshot */
 const FLOW_SCENES = [
   {
-    id: 'overview',
-    src: '/hero/overview-light.png',
-    alt: 'Dashboard overview',
-    duration: 5,
-    scrollY: [0, 0],
-    cursor: {
-      left: ['48%', '56%', '56%', '13%', '13%'],
-      top: ['72%', '40%', '40%', '22%', '22%'],
-      times: [0, 0.35, 0.55, 0.78, 1],
-    },
-    clickAt: 0.92,
-  },
-  {
     id: 'resume',
     src: '/hero/resume-builder.png',
     alt: 'Resume builder',
@@ -28,6 +15,19 @@ const FLOW_SCENES = [
       times: [0, 0.3, 0.55, 0.75, 1],
     },
     clickAt: 0.94,
+  },
+  {
+    id: 'overview',
+    src: '/hero/overview-light.png',
+    alt: 'Dashboard overview',
+    duration: 5,
+    scrollY: [0, 0],
+    cursor: {
+      left: ['48%', '56%', '56%', '13%', '13%'],
+      top: ['72%', '40%', '40%', '22%', '22%'],
+      times: [0, 0.35, 0.55, 0.78, 1],
+    },
+    clickAt: 0.92,
   },
   {
     id: 'jobs',
@@ -171,11 +171,13 @@ function SceneLayer({ scene, clicking, reducedMotion }) {
   )
 }
 
-export default function LandingHeroUserFlow() {
+export default function LandingHeroUserFlow({ initialSceneId = 'resume' } = {}) {
   const reducedMotion = useReducedMotion()
-  const [sceneIndex, setSceneIndex] = useState(0)
+  const initialIndex = Math.max(0, FLOW_SCENES.findIndex((s) => s.id === initialSceneId))
+  const [sceneIndex, setSceneIndex] = useState(initialIndex)
   const [clicking, setClicking] = useState(false)
   const scene = FLOW_SCENES[sceneIndex]
+  const staticScene = FLOW_SCENES.find((s) => s.id === initialSceneId) || FLOW_SCENES[0]
 
   useEffect(() => {
     if (reducedMotion) return undefined
@@ -206,8 +208,8 @@ export default function LandingHeroUserFlow() {
   if (reducedMotion) {
     return (
       <img
-        src={FLOW_SCENES[0].src}
-        alt={FLOW_SCENES[0].alt}
+        src={staticScene.src}
+        alt={staticScene.alt}
         className="block size-full min-h-[inherit] object-cover object-left-top"
         draggable={false}
       />

@@ -1,10 +1,22 @@
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import Footer from '@/components/layout/Footer'
 import SEO from '@/components/SEO'
-import { pageUrl } from '@/config/site'
+import {
+  PAGE_SEO,
+  breadcrumbSchema,
+  itemListSchema,
+  normalizeStructuredData,
+  organizationSchema,
+  webPageSchema,
+} from '@/config/seo'
 import { fadeUp, motionEase, staggerFast } from '@/features/public/motionVariants'
-import { AppIcon,
+import {
+  COMPARISON_HEADER_CLASS,
+  COMPARISON_ROW_CLASS,
+  ComparisonTableShell,
+} from '@/features/public/components/publicPageUi'
+import {
+  AppIcon,
   Badge,
   Button,
   Card,
@@ -16,28 +28,73 @@ import { AppIcon,
   cn,
 } from '@/components/ui'
 
-const MORE_FEATURES = [
-  { ico: 'bell', bg: 'bg-violet-500/10', title: 'Real-time Job Alerts', desc: 'Instant push + email alerts the moment a high-match job drops. Be first in line, every time.' },
-  { ico: 'lightning', bg: 'bg-destructive/10', title: '1-Click Apply', desc: 'Your profile auto-fills every form. One click, details go straight to the recruiter.' },
-  { ico: 'cover-letters', bg: 'bg-primary/10', title: 'Cover Letter AI', desc: 'AI reads the JD, pulls your achievements, and generates a tailored cover letter in seconds.' },
-  { ico: 'salary', bg: 'bg-amber-500/10', title: 'Salary Insights', desc: 'Real market-rate salary data for your target role, city, and experience level.' },
-  { ico: 'trend-up', bg: 'bg-emerald-500/10', title: 'Career Analytics', desc: 'Track response rates, interview conversion, and time-to-offer with visual dashboards.' },
-  { ico: 'admin', bg: 'bg-violet-500/10', title: 'Privacy & Security', desc: 'End-to-end encryption, zero data selling, and full control to export or delete anytime.' },
-  { ico: 'globe', bg: 'bg-primary/10', title: 'Multi-Portal Sync', desc: 'One profile syncs across 50+ job portals. Update once, apply everywhere.' },
-  { ico: 'brain', bg: 'bg-amber-500/10', title: 'Skill Gap Analysis', desc: 'AI identifies missing skills for your dream role and recommends courses to bridge the gap.' },
+const CAPABILITY_PILLS = [
+  { icon: 'target', label: 'Updated Job Database Daily' },
+  { icon: 'sparkle', label: 'AI-Powered Matching' },
+  { icon: 'resume', label: 'ATS Resume Optimization' },
+  { icon: 'microphone', label: 'Mock Interview Practice' },
+]
+
+const MATCH_PREVIEW_JOBS = [
+  { title: 'Frontend Developer', score: '95%', scoreCls: 'bg-emerald-500/15 text-emerald-500' },
+  { title: 'React Developer', score: '91%', scoreCls: 'bg-emerald-500/15 text-emerald-500' },
+  { title: 'Software Engineer', score: '88%', scoreCls: 'bg-primary/15 text-primary' },
+]
+
+const COACH_EXAMPLES = [
+  'How do I answer "Tell me about yourself"?',
+  'What projects should I add to my resume?',
+  'How do I negotiate salary?',
+]
+
+const PIPELINE_STAGES = ['Applied', 'Review', 'Interview', 'Offer']
+
+const FEATURE_CATEGORIES = [
+  {
+    title: 'Job Search',
+    items: ['Smart Matching', 'Job Alerts', 'Salary Insights'],
+  },
+  {
+    title: 'Applications',
+    items: ['One Click Apply', 'Multi Portal Sync', 'Application Tracking'],
+  },
+  {
+    title: 'Career Growth',
+    items: ['Skill Gap Analysis', 'Career Analytics', 'Cover Letter AI'],
+  },
+]
+
+const COMPARISON_ROWS = [
+  'Resume website',
+  'LinkedIn',
+  'Job board',
+  'Notes spreadsheet',
+  'Interview prep site',
+  'One platform',
+]
+
+const SOCIAL_PROOF = [
+  {
+    label: 'ATS Score Improved',
+    before: '42',
+    after: '89',
+    icon: 'resume',
+    color: 'text-emerald-500',
+  },
+  {
+    label: 'Interview Calls',
+    before: '0',
+    after: '5 in 3 weeks',
+    icon: 'microphone',
+    color: 'text-violet-500',
+  },
 ]
 
 const STEPS = [
   { n: '01', t: 'Create Profile', d: 'Sign up in 30 seconds. Add skills, education, and preferences.', color: 'text-primary' },
   { n: '02', t: 'Build Resume', d: 'AI generates an ATS-optimized resume with live preview.', color: 'text-emerald-500' },
-  { n: '03', t: 'Get Matched', d: '50+ portals scanned. Jobs ranked by your match score.', color: 'text-amber-500' },
-  { n: '04', t: 'Land Offers', d: 'One-click apply, AI interview prep, Kanban tracking.', color: 'text-violet-500' },
-]
-
-const PREVIEW_JOBS = [
-  { logo: 'search', bg: 'bg-blue-500/15', title: 'Software Intern — Python', co: 'Google · Hyderabad', score: '96%', scoreCls: 'bg-emerald-500/15 text-emerald-500' },
-  { logo: 'food', bg: 'bg-emerald-500/15', title: 'Frontend Developer', co: 'Swiggy · Bangalore', score: '91%', scoreCls: 'bg-emerald-500/15 text-emerald-500' },
-  { logo: 'credit-card', bg: 'bg-violet-500/15', title: 'Full Stack Engineer', co: 'Razorpay · Remote', score: '85%', scoreCls: 'bg-primary/15 text-primary' },
+  { n: '03', t: 'Get Matched', d: 'Jobs ranked by your skills and preferences — apply faster.', color: 'text-amber-500' },
+  { n: '04', t: 'Land Offers', d: 'Practice interviews, track applications, and close the offer.', color: 'text-violet-500' },
 ]
 
 function SectionHead({ badge, badgeClass, title, highlight, description }) {
@@ -53,7 +110,8 @@ function SectionHead({ badge, badgeClass, title, highlight, description }) {
         {badge}
       </Badge>
       <h2 className="mb-3 text-3xl font-black text-foreground md:text-4xl">
-        {title} <span className="bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">{highlight}</span>
+        {title}{' '}
+        <span className="bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">{highlight}</span>
       </h2>
       <p className="mx-auto max-w-2xl text-muted-foreground">{description}</p>
     </motion.div>
@@ -73,33 +131,113 @@ function CheckList({ items }) {
   )
 }
 
+function AtsScoreHeroVisual() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.7, ease: motionEase, delay: 0.35 }}
+      className="mx-auto mt-8 max-w-md"
+    >
+      <p className="mb-4 text-sm font-semibold text-foreground">See Your Resume Score Improve</p>
+      <Card className="border-primary/20 bg-card/80 text-left shadow-lg backdrop-blur-sm">
+        <CardContent className="space-y-4 p-5">
+          <div>
+            <div className="mb-1 flex justify-between text-sm">
+              <span className="text-muted-foreground">Current ATS Score</span>
+              <span className="font-bold text-orange-500">42</span>
+            </div>
+            <Progress value={42} className="h-2 bg-muted [&>div]:bg-orange-500" />
+          </div>
+          <div className="flex flex-col items-center gap-1 py-1 text-xs font-medium text-primary">
+            <AppIcon name="caret-down" className="size-4" />
+            <span>Glowminds Optimization</span>
+            <AppIcon name="caret-down" className="size-4" />
+          </div>
+          <div>
+            <div className="mb-1 flex justify-between text-sm">
+              <span className="text-muted-foreground">Optimized ATS Score</span>
+              <span className="font-bold text-emerald-500">91</span>
+            </div>
+            <Progress value={91} className="h-2 bg-muted [&>div]:bg-emerald-500" />
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  )
+}
+
+function PipelineVisualization() {
+  return (
+    <div className="rounded-xl border border-border bg-muted/30 p-4">
+      <div className="flex flex-wrap items-center justify-center gap-2 text-sm font-semibold">
+        {PIPELINE_STAGES.map((stage, index) => (
+          <div key={stage} className="flex items-center gap-2">
+            <span className="rounded-lg border border-border bg-card px-3 py-2 text-foreground">{stage}</span>
+            {index < PIPELINE_STAGES.length - 1 ? (
+              <span className="text-muted-foreground" aria-hidden>→</span>
+            ) : null}
+          </div>
+        ))}
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[
+          { l: 'Applied', v: '12', c: 'text-primary' },
+          { l: 'Review', v: '8', c: 'text-amber-500' },
+          { l: 'Interview', v: '5', c: 'text-violet-500' },
+          { l: 'Offered', v: '3', c: 'text-emerald-500' },
+        ].map((k) => (
+          <div key={k.l} className="rounded-xl border border-border bg-card p-3 text-center">
+            <div className="text-xs font-semibold text-muted-foreground">{k.l}</div>
+            <div className={cn('text-xl font-black', k.c)}>{k.v}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+const FEATURE_SEO_NAMES = [
+  'ATS Resume Builder',
+  'Smart Job Matching',
+  'AI Mock Interviews',
+  'Application Tracker',
+  'AI Cover Letters',
+  'AI Career Coach',
+  'Grammar Checker',
+  'LinkedIn Optimizer',
+  'Salary Insights',
+]
+
 export default function FeaturesPage() {
   const navigate = useNavigate()
 
   return (
     <div>
       <SEO
-        title="Features"
-        path="/features"
-        description="Explore 15+ AI-powered career tools: AI Resume Builder, Smart Job Matching across 50+ portals, AI Career Coach, Interview Prep, Application Tracker, Cover Letter Generator, and more."
-        keywords="AI resume builder features, smart job matching, AI career coach, interview prep features, application tracker, cover letter generator, career tools"
-        structuredData={{
-          '@context': 'https://schema.org',
-          '@type': 'CollectionPage',
-          name: 'Glowminds AI Features',
-          description: 'Explore 15+ AI-powered career tools for students and job seekers',
-          url: pageUrl('/features'),
-        }}
+        {...PAGE_SEO.features}
+        structuredData={normalizeStructuredData([
+          organizationSchema(),
+          webPageSchema({
+            name: PAGE_SEO.features.title,
+            description: PAGE_SEO.features.description,
+            path: PAGE_SEO.features.path,
+          }),
+          itemListSchema(FEATURE_SEO_NAMES),
+          breadcrumbSchema([
+            { label: 'Home', path: '/' },
+            { label: 'Features', path: '/features' },
+          ]),
+        ])}
       />
 
-      <section className="relative overflow-hidden px-4 py-12 md:px-8 md:py-16">
+      {/* Hero */}
+      <section className="relative overflow-hidden py-12 md:py-16">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,color-mix(in_oklab,var(--primary)_12%,transparent),transparent)]" />
-        <div className="pointer-events-none absolute -left-24 top-1/4 size-72 rounded-full bg-primary/10 blur-3xl" />
-        <div className="pointer-events-none absolute -right-16 top-1/3 size-56 rounded-full bg-emerald-500/10 blur-3xl" />
         <div className="relative z-10 mx-auto max-w-6xl px-4 text-center md:px-8">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: motionEase }}>
             <Badge variant="secondary" className="mb-4 gap-2 border-primary/20 bg-primary/10 text-primary">
-              <span className="size-1.5 rounded-full bg-primary animate-pulse" />
+              <span className="size-1.5 animate-pulse rounded-full bg-primary" />
               Platform Features
             </Badge>
           </motion.div>
@@ -124,302 +262,36 @@ export default function FeaturesPage() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: motionEase, delay: 0.3 }}
-            className="mb-8 flex flex-wrap justify-center gap-3"
+            className="mb-6 flex flex-wrap justify-center gap-3"
           >
-            <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
-              <Button onClick={() => navigate('/signup')}>Get Started Free</Button>
-            </motion.div>
-            <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
-              <Button variant="outline" onClick={() => navigate('/pricing')}>
-                View Pricing
-              </Button>
-            </motion.div>
+            <Button onClick={() => navigate('/signup')}>Get Started Free</Button>
+            <Button variant="outline" onClick={() => navigate('/pricing')}>View Pricing</Button>
           </motion.div>
+
+          <AtsScoreHeroVisual />
+
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-            className="flex flex-wrap justify-center gap-8"
+            transition={{ duration: 0.6, delay: 0.55 }}
+            className="mt-8 flex flex-wrap justify-center gap-3"
           >
-            {[
-              ['12K+', 'Daily Jobs'],
-              ['94%', 'Match Rate'],
-              ['52K+', 'Students'],
-              ['4.9/5', 'Rating'],
-            ].map(([v, l]) => (
-              <div key={l} className="text-center">
-                <strong className="block font-mono text-2xl font-black bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">
-                  {v}
-                </strong>
-                <span className="text-xs text-muted-foreground">{l}</span>
-              </div>
+            {CAPABILITY_PILLS.map((pill) => (
+              <Badge
+                key={pill.label}
+                variant="outline"
+                className="gap-1.5 border-border/80 bg-muted/40 px-3 py-1.5 text-xs font-normal text-muted-foreground"
+              >
+                <AppIcon name={pill.icon} className="size-3.5 text-primary" />
+                {pill.label}
+              </Badge>
             ))}
           </motion.div>
         </div>
       </section>
 
-      <section className="py-12 md:py-16">
-        <div className="mx-auto max-w-6xl px-4 md:px-8">
-          <SectionHead
-            badge="Core Features"
-            badgeClass="border-primary/20 bg-primary/10 text-primary"
-            title="Powerful Tools,"
-            highlight="One Platform"
-            description="Every feature is designed to eliminate friction from your job search and maximize your chances."
-          />
-
-          <motion.div
-            variants={staggerFast}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-40px' }}
-            className="grid grid-cols-1 gap-4 lg:grid-cols-2"
-          >
-            <motion.div variants={fadeUp} transition={{ duration: 0.55, ease: motionEase }} className="lg:col-span-2">
-              <Card className="relative overflow-hidden">
-                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,color-mix(in_oklab,var(--primary)_8%,transparent),transparent)]" />
-                <CardHeader>
-                  <div className="mb-2 flex size-10 items-center justify-center rounded-lg bg-primary/15 text-xl"><AppIcon name="resume" className="size-5 text-primary" /></div>
-                  <CardTitle>AI Resume Builder</CardTitle>
-                  <CardDescription>
-                    Answer a few questions about your education, skills, and experience — our AI crafts a polished, ATS-optimized PDF resume in under 2 minutes.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <CheckList items={['6 Pro Templates', 'ATS Score Checker', 'Live Preview', 'PDF Export', 'AI Keywords', 'Drag & Drop Sections']} />
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="secondary" className="border-primary/20 bg-primary/10 text-primary">
-                      Pro Feature
-                    </Badge>
-                    <Badge variant="secondary" className="border-emerald-500/20 bg-emerald-500/10 text-emerald-500">
-                      Most Popular
-                    </Badge>
-                  </div>
-                  <div className="rounded-xl border border-border bg-muted/40 p-4">
-                    <div className="mb-2 flex justify-between text-sm">
-                      <span className="font-semibold">ATS Score</span>
-                      <span className="font-bold text-emerald-500">96/100</span>
-                    </div>
-                    <Progress value={96} className="mb-3 h-2" />
-                    <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                      <div>
-                        <span className="text-muted-foreground">Keywords</span>
-                        <strong className="block text-emerald-500">14/15</strong>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Format</span>
-                        <strong className="block text-emerald-500">Perfect</strong>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Length</span>
-                        <strong className="block text-primary">1 Page</strong>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            <motion.div variants={fadeUp} transition={{ duration: 0.55, ease: motionEase }}>
-              <Card className="relative h-full overflow-hidden">
-                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_70%_20%,color-mix(in_oklab,var(--emerald-500)_8%,transparent),transparent)]" />
-                <CardHeader>
-                  <div className="mb-2 flex size-10 items-center justify-center rounded-lg bg-emerald-500/15 text-xl"><AppIcon name="target" className="size-5 text-emerald-500" /></div>
-                  <CardTitle>Smart Job Matching</CardTitle>
-                  <CardDescription>AI scans 50+ portals daily and ranks every job by how well it fits your skills, role, and location preferences.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="secondary" className="border-emerald-500/20 bg-emerald-500/10 text-emerald-500">
-                      94% Accuracy
-                    </Badge>
-                    <Badge variant="secondary" className="border-primary/20 bg-primary/10 text-primary">
-                      Free Tier
-                    </Badge>
-                  </div>
-                  {PREVIEW_JOBS.map((j) => (
-                    <div key={j.title} className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-2.5">
-                      <div className={cn('flex size-9 shrink-0 items-center justify-center rounded-lg text-lg', j.bg)}><AppIcon name={j.logo} className="size-5" /></div>
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-bold">{j.title}</div>
-                        <div className="text-xs text-muted-foreground">{j.co}</div>
-                      </div>
-                      <Badge variant="secondary" className={cn('shrink-0 font-extrabold', j.scoreCls)}>
-                        {j.score}
-                      </Badge>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            <motion.div variants={fadeUp} transition={{ duration: 0.55, ease: motionEase }}>
-              <Card className="relative h-full overflow-hidden">
-                <CardHeader>
-                  <div className="mb-2 flex size-10 items-center justify-center rounded-lg bg-amber-500/15 text-xl"><AppIcon name="robot" className="size-5 text-amber-500" /></div>
-                  <CardTitle>AI Career Coach</CardTitle>
-                  <CardDescription>A senior mentor available 24/7. Resume tips, interview prep, salary negotiation — expert-level answers instantly.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="secondary" className="border-amber-500/20 bg-amber-500/10 text-amber-500">
-                      Gemini Powered
-                    </Badge>
-                    <Badge variant="secondary" className="border-violet-500/20 bg-violet-500/10 text-violet-500">
-                      STAR Method
-                    </Badge>
-                  </div>
-                  <div className="rounded-xl border border-border bg-muted/40 p-3">
-                    <div className="mb-3 flex items-center gap-2">
-                      <span className="flex size-8 items-center justify-center rounded-full bg-primary/15"><AppIcon name="robot" className="size-4 text-primary" /></span>
-                      <div>
-                        <div className="text-sm font-bold">Glowminds Coach</div>
-                        <div className="text-xs text-emerald-500">Online</div>
-                      </div>
-                    </div>
-                    <div className="space-y-2 text-xs">
-                      <div className="ml-auto max-w-[85%] rounded-lg bg-primary/15 px-3 py-2 text-right">
-                        How do I answer &quot;Tell me about yourself&quot;?
-                      </div>
-                      <div className="max-w-[90%] rounded-lg border border-border bg-card px-3 py-2 text-muted-foreground">
-                        Use a <strong className="text-foreground">Present-Past-Future</strong> formula: start with your current role/studies, highlight relevant achievements, then connect to why this role excites you...
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            <motion.div variants={fadeUp} transition={{ duration: 0.55, ease: motionEase }} className="lg:col-span-2">
-              <Card>
-                <CardHeader>
-                  <div className="mb-2 flex size-10 items-center justify-center rounded-lg bg-pink-500/15 text-xl"><AppIcon name="chart" className="size-5 text-pink-500" /></div>
-                  <CardTitle>Kanban Application Tracker</CardTitle>
-                  <CardDescription>
-                    Manage your entire job hunt visually. A drag-and-drop board organises every application into stages — see your full pipeline at a glance.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <CheckList items={['Drag & Drop Board', 'Status Tracking', 'Notes & Deadlines', 'Visual Pipeline', 'Export History', 'Auto-Sync']} />
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    {[
-                      { l: 'Applied', v: '12', c: 'text-primary' },
-                      { l: 'Review', v: '8', c: 'text-amber-500' },
-                      { l: 'Interview', v: '5', c: 'text-violet-500' },
-                      { l: 'Offered', v: '3', c: 'text-emerald-500' },
-                    ].map((k) => (
-                      <div key={k.l} className="rounded-xl border border-border bg-muted/40 p-4 text-center">
-                        <div className="text-xs font-semibold text-muted-foreground">{k.l}</div>
-                        <div className={cn('text-2xl font-black', k.c)}>{k.v}</div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            <motion.div variants={fadeUp} transition={{ duration: 0.55, ease: motionEase }} className="lg:col-span-2">
-              <Card className="relative overflow-hidden">
-                <CardContent className="grid gap-6 p-6 md:grid-cols-2 md:p-8">
-                  <div>
-                    <div className="mb-2 flex size-10 items-center justify-center rounded-lg bg-violet-500/15 text-xl"><AppIcon name="microphone" className="size-5 text-violet-500" /></div>
-                    <h3 className="mb-2 text-xl font-bold">AI Mock Interviews</h3>
-                    <p className="mb-4 text-sm text-muted-foreground">
-                      Practice with an AI interviewer that adapts to your target role. Get scored on content, structure, and delivery — with actionable feedback after every answer.
-                    </p>
-                    <CheckList items={['Technical Questions', 'Behavioral (STAR)', 'HR & Culture Fit', 'Real-time Scoring', 'Detailed Feedback', 'Sample Answers']} />
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <Badge variant="secondary" className="border-violet-500/20 bg-violet-500/10 text-violet-500">
-                        AI Evaluator
-                      </Badge>
-                      <Badge variant="secondary" className="border-emerald-500/20 bg-emerald-500/10 text-emerald-500">
-                        12 Roles
-                      </Badge>
-                      <Badge variant="secondary" className="border-primary/20 bg-primary/10 text-primary">
-                        Pro Feature
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="space-y-3">
-                    <div className="rounded-xl border border-border bg-muted/40 p-4">
-                      <div className="mb-2 flex flex-wrap gap-2">
-                        <Badge variant="secondary" className="border-violet-500/20 bg-violet-500/10 text-violet-500">
-                          Technical
-                        </Badge>
-                        <Badge variant="secondary" className="border-amber-500/20 bg-amber-500/10 text-amber-500">
-                          Medium
-                        </Badge>
-                        <span className="ml-auto text-xs text-muted-foreground">Q3 of 5</span>
-                      </div>
-                      <p className="text-sm font-medium">
-                        &quot;Explain the difference between useEffect and useLayoutEffect in React. When would you use each?&quot;
-                      </p>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2 text-center">
-                      {[
-                        { label: 'Overall', score: '8.7', c: 'text-emerald-500' },
-                        { label: 'Content', score: '9.1', c: 'text-primary' },
-                        { label: 'Structure', score: '8.2', c: 'text-amber-500' },
-                      ].map((s) => (
-                        <div key={s.label} className="rounded-xl border border-border bg-card p-3">
-                          <div className={cn('text-xl font-black', s.c)}>{s.score}</div>
-                          <div className="text-xs text-muted-foreground">{s.label}</div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
-                      {[
-                        { label: 'Role', val: 'React Dev', c: 'text-primary' },
-                        { label: 'Questions', val: '5', c: 'text-violet-500' },
-                        { label: 'Avg Score', val: '8.7/10', c: 'text-emerald-500' },
-                        { label: 'Duration', val: '18 min', c: 'text-amber-500' },
-                      ].map((s) => (
-                        <div key={s.label} className="rounded-lg border border-border bg-muted/30 p-2 text-center">
-                          <div className="text-[10px] text-muted-foreground">{s.label}</div>
-                          <strong className={cn('text-sm', s.c)}>{s.val}</strong>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
-
+      {/* Journey — moved up after hero */}
       <section className="border-y border-border bg-muted/30 py-12 md:py-16">
-        <div className="mx-auto max-w-6xl px-4 md:px-8">
-          <SectionHead
-            badge="Full Toolkit"
-            badgeClass="border-emerald-500/20 bg-emerald-500/10 text-emerald-500"
-            title="And"
-            highlight="So Much More"
-            description="Beyond the core, Glowminds packs a full toolkit designed to give you an unfair advantage."
-          />
-          <motion.div
-            variants={staggerFast}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-40px' }}
-            className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
-          >
-            {MORE_FEATURES.map((f) => (
-              <motion.div key={f.title} variants={fadeUp} transition={{ duration: 0.45, ease: motionEase }}>
-                <Card className="h-full">
-                  <CardContent className="pt-6">
-                    <div className={cn('mb-3 flex size-10 items-center justify-center rounded-lg text-xl', f.bg)}><AppIcon name={f.ico} className="size-5 text-primary" /></div>
-                    <CardTitle className="mb-2 text-base">{f.title}</CardTitle>
-                    <CardDescription>{f.desc}</CardDescription>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      <section className="py-12 md:py-16">
         <div className="mx-auto max-w-6xl px-4 md:px-8">
           <SectionHead
             badge="How It Works"
@@ -450,6 +322,322 @@ export default function FeaturesPage() {
         </div>
       </section>
 
+      {/* Core features — priority order */}
+      <section className="py-12 md:py-16">
+        <div className="mx-auto max-w-6xl px-4 md:px-8">
+          <SectionHead
+            badge="Core Features"
+            badgeClass="border-primary/20 bg-primary/10 text-primary"
+            title="Powerful Tools,"
+            highlight="One Platform"
+            description="Start with your resume and matched jobs — then prep, track, and get coached."
+          />
+
+          <motion.div
+            variants={staggerFast}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-40px' }}
+            className="grid grid-cols-1 gap-6"
+          >
+            {/* 1. Resume Builder — largest */}
+            <motion.div variants={fadeUp} transition={{ duration: 0.55, ease: motionEase }}>
+              <Card className="relative overflow-hidden border-primary/20 shadow-md">
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,color-mix(in_oklab,var(--primary)_8%,transparent),transparent)]" />
+                <CardHeader className="pb-2">
+                  <Badge variant="outline" className="mb-3 w-fit border-emerald-500/20 bg-emerald-500/10 text-emerald-500">
+                    #1 — Start Here
+                  </Badge>
+                  <div className="mb-2 flex size-12 items-center justify-center rounded-xl bg-primary/15">
+                    <AppIcon name="resume" className="size-6 text-primary" />
+                  </div>
+                  <CardTitle className="text-2xl md:text-3xl">AI Resume Builder</CardTitle>
+                  <CardDescription className="text-base">
+                    Answer a few questions — our AI crafts a polished, ATS-optimized resume in under 2 minutes.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-6 md:grid-cols-2">
+                  <div className="space-y-4">
+                    <CheckList items={['6 Pro Templates', 'ATS Score Checker', 'Live Preview', 'PDF Export', 'AI Keywords', 'Drag & Drop Sections']} />
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="secondary" className="border-primary/20 bg-primary/10 text-primary">Most Popular</Badge>
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-border bg-muted/40 p-4">
+                    <div className="mb-2 flex justify-between text-sm">
+                      <span className="font-semibold">ATS Score</span>
+                      <span className="font-bold text-emerald-500">91/100</span>
+                    </div>
+                    <Progress value={91} className="mb-3 h-2" />
+                    <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                      <div>
+                        <span className="text-muted-foreground">Keywords</span>
+                        <strong className="block text-emerald-500">14/15</strong>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Format</span>
+                        <strong className="block text-emerald-500">Perfect</strong>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Length</span>
+                        <strong className="block text-primary">1 Page</strong>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* 2. Job Matching — large */}
+            <motion.div variants={fadeUp} transition={{ duration: 0.55, ease: motionEase }}>
+              <Card className="relative overflow-hidden border-emerald-500/20 shadow-md">
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_70%_20%,color-mix(in_oklab,var(--emerald-500)_8%,transparent),transparent)]" />
+                <CardHeader className="pb-2">
+                  <Badge variant="outline" className="mb-3 w-fit border-emerald-500/20 bg-emerald-500/10 text-emerald-500">
+                    #2 — Find Roles That Fit
+                  </Badge>
+                  <div className="mb-2 flex size-12 items-center justify-center rounded-xl bg-emerald-500/15">
+                    <AppIcon name="target" className="size-6 text-emerald-500" />
+                  </div>
+                  <CardTitle className="text-2xl md:text-3xl">Smart Job Matching</CardTitle>
+                  <CardDescription className="text-base">
+                    Jobs ranked by how well they fit your skills, role, and location — so you apply where you have the best shot.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-6 md:grid-cols-2">
+                  <CheckList items={['Daily refreshed job database', 'Skill-based match scores', 'Remote & location filters', 'Save and apply in one place']} />
+                  <div className="space-y-3">
+                    {MATCH_PREVIEW_JOBS.map((j) => (
+                      <div key={j.title} className="flex items-center gap-3 rounded-lg border border-border bg-card p-3">
+                        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10">
+                          <AppIcon name="target" className="size-5 text-emerald-500" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-bold text-foreground">{j.title}</div>
+                          <div className="text-xs text-muted-foreground">Match score</div>
+                        </div>
+                        <Badge variant="secondary" className={cn('shrink-0 text-base font-extrabold', j.scoreCls)}>
+                          {j.score}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* 3. Mock Interviews */}
+            <motion.div variants={fadeUp} transition={{ duration: 0.55, ease: motionEase }}>
+              <Card className="relative overflow-hidden">
+                <CardContent className="grid gap-6 p-6 md:grid-cols-2 md:p-8">
+                  <div>
+                    <div className="mb-2 flex size-10 items-center justify-center rounded-lg bg-violet-500/15">
+                      <AppIcon name="microphone" className="size-5 text-violet-500" />
+                    </div>
+                    <h3 className="mb-2 text-xl font-bold">AI Mock Interviews</h3>
+                    <p className="mb-4 text-sm text-muted-foreground">
+                      Practice with an AI interviewer that adapts to your target role. Get scored on content, structure, and delivery.
+                    </p>
+                    <CheckList items={['Technical Questions', 'Behavioral (STAR)', 'HR & Culture Fit', 'Real-time Scoring', 'Detailed Feedback']} />
+                  </div>
+                  <div className="space-y-3">
+                    <div className="rounded-xl border border-border bg-muted/40 p-4">
+                      <p className="text-sm font-medium">
+                        &quot;Explain the difference between useEffect and useLayoutEffect in React.&quot;
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      {[
+                        { label: 'Overall Score', score: '8.7', c: 'text-emerald-500' },
+                        { label: 'Confidence', score: '8.4', c: 'text-primary' },
+                        { label: 'Technical Score', score: '9.1', c: 'text-violet-500' },
+                      ].map((s) => (
+                        <div key={s.label} className="rounded-xl border border-border bg-card p-3">
+                          <div className={cn('text-xl font-black', s.c)}>{s.score}</div>
+                          <div className="text-xs text-muted-foreground">{s.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* 4. Application Tracker */}
+            <motion.div variants={fadeUp} transition={{ duration: 0.55, ease: motionEase }}>
+              <Card>
+                <CardHeader>
+                  <div className="mb-2 flex size-10 items-center justify-center rounded-lg bg-pink-500/15">
+                    <AppIcon name="chart" className="size-5 text-pink-500" />
+                  </div>
+                  <CardTitle>Kanban Application Tracker</CardTitle>
+                  <CardDescription>
+                    See every application move from applied to offer — no more lost spreadsheets.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <PipelineVisualization />
+                  <CheckList items={['Drag & Drop Board', 'Status Tracking', 'Notes & Deadlines', 'Export History']} />
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* 5. AI Coach — smaller emphasis */}
+            <motion.div variants={fadeUp} transition={{ duration: 0.55, ease: motionEase }}>
+              <Card>
+                <CardHeader>
+                  <div className="mb-2 flex size-10 items-center justify-center rounded-lg bg-amber-500/15">
+                    <AppIcon name="robot" className="size-5 text-amber-500" />
+                  </div>
+                  <CardTitle>Ask Career Questions Anytime</CardTitle>
+                  <CardDescription>
+                    Get expert-level answers on resumes, interviews, and salary — whenever you are stuck.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex flex-wrap gap-2">
+                    {COACH_EXAMPLES.map((q) => (
+                      <Badge key={q} variant="secondary" className="max-w-full whitespace-normal text-left font-normal">
+                        {q}
+                      </Badge>
+                    ))}
+                  </div>
+                  <div className="rounded-xl border border-border bg-muted/40 p-3">
+                    <div className="mb-3 flex items-center gap-2">
+                      <span className="flex size-8 items-center justify-center rounded-full bg-primary/15">
+                        <AppIcon name="robot" className="size-4 text-primary" />
+                      </span>
+                      <div>
+                        <div className="text-sm font-bold">Glowminds Coach</div>
+                        <div className="text-xs text-emerald-500">Online</div>
+                      </div>
+                    </div>
+                    <div className="space-y-2 text-xs">
+                      <div className="ml-auto max-w-[85%] rounded-lg bg-primary/15 px-3 py-2 text-right">
+                        How do I answer &quot;Tell me about yourself&quot;?
+                      </div>
+                      <div className="max-w-[90%] rounded-lg border border-border bg-card px-3 py-2 text-muted-foreground">
+                        Use a <strong className="text-foreground">Present-Past-Future</strong> formula: current role, relevant wins, then why this opportunity fits you.
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Comparison */}
+      <section className="border-y border-border bg-muted/30 py-12 md:py-16">
+        <div className="mx-auto max-w-6xl px-4 md:px-8">
+          <SectionHead
+            badge="Why Glowminds"
+            badgeClass="border-primary/20 bg-primary/10 text-primary"
+            title="Why Use"
+            highlight="Glowminds?"
+            description="Stop juggling five different tools for one job search."
+          />
+          <Card className="mx-auto max-w-3xl overflow-hidden">
+            <CardContent className="p-0">
+              <ComparisonTableShell>
+                <div className={COMPARISON_HEADER_CLASS}>
+                  <span>Tool</span>
+                  <span className="text-center">Without</span>
+                  <span className="text-center text-primary">With</span>
+                </div>
+                {COMPARISON_ROWS.map((row, index) => (
+                  <div
+                    key={row}
+                    className={cn(
+                      COMPARISON_ROW_CLASS,
+                      index < COMPARISON_ROWS.length - 1 && 'border-b border-border',
+                    )}
+                  >
+                    <span className="min-w-0 font-medium text-foreground">{row}</span>
+                    <span className="flex justify-center">
+                      {row === 'One platform' ? (
+                        <AppIcon name="x" className="size-4 text-muted-foreground/50" />
+                      ) : (
+                        <AppIcon name="check" className="size-4 text-muted-foreground/60" />
+                      )}
+                    </span>
+                    <span className="flex justify-center">
+                      <AppIcon name="check" className="size-4 text-emerald-500" />
+                    </span>
+                  </div>
+                ))}
+              </ComparisonTableShell>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+      {/* Social proof */}
+      <section className="py-12 md:py-16">
+        <div className="mx-auto max-w-6xl px-4 md:px-8">
+          <SectionHead
+            badge="Results"
+            badgeClass="border-violet-500/20 bg-violet-500/10 text-violet-500"
+            title="Real"
+            highlight="Outcomes"
+            description="Illustrative examples of what focused job seekers achieve with Glowminds."
+          />
+          <div className="mx-auto grid max-w-3xl gap-4 sm:grid-cols-2">
+            {SOCIAL_PROOF.map((item) => (
+              <Card key={item.label}>
+                <CardContent className="flex items-center gap-4 pt-6">
+                  <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-muted">
+                    <AppIcon name={item.icon} className={cn('size-6', item.color)} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">{item.label}</p>
+                    <p className="text-lg font-black">
+                      <span className="text-muted-foreground line-through decoration-muted-foreground/50">{item.before}</span>
+                      <span className="mx-2 text-muted-foreground">→</span>
+                      <span className={item.color}>{item.after}</span>
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Categorized extras */}
+      <section className="border-t border-border bg-muted/30 py-12 md:py-16">
+        <div className="mx-auto max-w-6xl px-4 md:px-8">
+          <SectionHead
+            badge="Full Toolkit"
+            badgeClass="border-emerald-500/20 bg-emerald-500/10 text-emerald-500"
+            title="And"
+            highlight="So Much More"
+            description="Everything else you need — grouped so you can scan quickly."
+          />
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+            {FEATURE_CATEGORIES.map((cat) => (
+              <Card key={cat.title} className="h-full">
+                <CardHeader>
+                  <CardTitle className="text-lg">{cat.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-3">
+                    {cat.items.map((item) => (
+                      <li key={item} className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <AppIcon name="check" className="size-4 shrink-0 text-emerald-500" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Exit CTA */}
       <section className="pb-12 md:pb-16">
         <div className="mx-auto max-w-6xl px-4 md:px-8">
           <motion.div
@@ -461,26 +649,17 @@ export default function FeaturesPage() {
             <Card className="relative overflow-hidden border-primary/20 bg-gradient-to-br from-card to-muted text-center">
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,color-mix(in_oklab,var(--primary)_12%,transparent),transparent)]" />
               <CardContent className="relative py-10 md:py-12">
-                <h2 className="mb-3 text-2xl font-black text-foreground md:text-3xl">Ready to Experience the Difference?</h2>
-                <p className="mx-auto mb-6 max-w-md text-muted-foreground">Start free, go Pro for just ₹49/mo. No credit card required.</p>
-                <div className="mb-3 flex flex-wrap justify-center gap-3">
-                  <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
-                    <Button onClick={() => navigate('/signup')}>Get Started Free</Button>
-                  </motion.div>
-                  <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
-                    <Button variant="outline" onClick={() => navigate('/pricing')}>
-                      View Pricing
-                    </Button>
-                  </motion.div>
-                </div>
-                <p className="text-xs text-muted-foreground">Cancel anytime · Free forever tier available</p>
+                <h2 className="mb-3 text-2xl font-black text-foreground md:text-3xl">Ready to Land More Interviews?</h2>
+                <p className="mx-auto mb-6 max-w-lg text-muted-foreground">
+                  Build your resume, discover jobs, and practice interviews — all for free.
+                </p>
+                <Button size="lg" onClick={() => navigate('/signup')}>Start Free</Button>
+                <p className="mt-3 text-xs text-muted-foreground">No credit card required · Free tier forever</p>
               </CardContent>
             </Card>
           </motion.div>
         </div>
       </section>
-
-      <Footer />
     </div>
   )
 }

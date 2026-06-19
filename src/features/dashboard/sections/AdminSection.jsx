@@ -273,8 +273,8 @@ function PricingPanel({ addToast }) {
   const hydrateForm = useCallback((config) => {
     setYearlyInr(inrFromPaise(config?.plans?.yearly?.amountPaise))
     setMonthlyInr(inrFromPaise(config?.plans?.monthly?.amountPaise))
-    setFreeApplications(String(config?.freeLimits?.applications ?? 5))
-    setFreeResumes(String(config?.freeLimits?.resumes ?? 3))
+    setFreeApplications(String(config?.freeLimits?.applications ?? 10))
+    setFreeResumes(String(config?.freeLimits?.resumes ?? 1))
     setFreeTemplate(config?.freeLimits?.template || 'onyx')
     setProTagline(config?.marketing?.proTagline || '')
     setHeroDescription(config?.marketing?.heroDescription || '')

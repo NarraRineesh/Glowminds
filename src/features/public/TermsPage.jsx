@@ -1,5 +1,16 @@
 import SEO from '@/components/SEO'
+import {
+  PAGE_SEO,
+  breadcrumbSchema,
+  normalizeStructuredData,
+  webPageSchema,
+} from '@/config/seo'
 import usePricingConfig from '@/hooks/usePricingConfig'
+import {
+  PublicPageContainer,
+  PublicPageHeroBackdrop,
+  PublicPageSection,
+} from '@/features/public/components/publicPageUi'
 import { AppIcon, Badge, Card, CardContent } from '@/components/ui'
 
 function LegalSection({ title, children }) {
@@ -31,15 +42,23 @@ export default function TermsPage() {
   return (
     <div>
       <SEO
-        title="Terms of Service"
-        path="/terms"
-        description="Glowminds Terms and Conditions for using our AI career platform. Read our service terms, user responsibilities, and policies."
-        keywords="Glowminds terms of service, terms and conditions, user agreement, career platform terms, service terms India"
+        {...PAGE_SEO.terms}
+        structuredData={normalizeStructuredData([
+          webPageSchema({
+            name: PAGE_SEO.terms.title,
+            description: PAGE_SEO.terms.description,
+            path: PAGE_SEO.terms.path,
+          }),
+          breadcrumbSchema([
+            { label: 'Home', path: '/' },
+            { label: 'Terms of Service', path: '/terms' },
+          ]),
+        ])}
       />
 
-      <section className="relative overflow-hidden px-4 pb-10 pt-8 md:px-8">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,color-mix(in_oklab,var(--primary)_12%,transparent),transparent)]" />
-        <div className="relative z-10 mx-auto max-w-6xl px-4 text-center md:px-8">
+      <section className="relative overflow-hidden py-12 md:py-16">
+        <PublicPageHeroBackdrop />
+        <PublicPageContainer className="relative z-10 text-center">
           <Badge variant="secondary" className="mb-4 border-emerald-500/20 bg-emerald-500/10 text-emerald-500">
             TERMS OF SERVICE
           </Badge>
@@ -47,11 +66,11 @@ export default function TermsPage() {
             Terms & <span className="bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">Conditions</span>
           </h1>
           <p className="mx-auto max-w-xl text-sm text-muted-foreground md:text-base">Last updated: May 4, 2026</p>
-        </div>
+        </PublicPageContainer>
       </section>
 
-      <section className="pb-16 md:pb-20">
-        <div className="mx-auto max-w-3xl px-4 md:px-8">
+      <PublicPageSection className="pt-0 pb-16 md:pb-20">
+        <PublicPageContainer narrow>
           <Card>
             <CardContent className="p-6 md:p-10">
               <LegalSection title="1. Acceptance of Terms">
@@ -82,7 +101,7 @@ export default function TermsPage() {
               <LegalSection title="4. Subscription & Payment">
                 <LegalP>
                   {marketing?.termsBillingText ||
-                    'Pro subscriptions are billed annually at ₹399/year. Payments are processed securely through Razorpay. You can cancel your subscription at any time from your dashboard. Cancellations take effect at the end of the current billing period.'}
+                    'Pro subscriptions are billed at ₹599/year (founding member offer; regular price ₹999/year) or ₹99/month. Payments are processed securely through Razorpay. You can cancel your subscription at any time from your dashboard. Cancellations take effect at the end of the current billing period.'}
                 </LegalP>
               </LegalSection>
 
@@ -132,12 +151,12 @@ export default function TermsPage() {
               <div className="rounded-xl border border-border bg-muted/50 p-5">
                 <h3 className="mb-2 text-lg font-extrabold text-foreground">Contact Us</h3>
                 <LegalP>Questions about these terms? Contact us at:</LegalP>
-                <p className="mt-2 text-sm text-primary">legal@studentsai.in</p>
+                <p className="mt-2 text-sm text-primary">legal@glowminds.in</p>
               </div>
             </CardContent>
           </Card>
-        </div>
-      </section>
+        </PublicPageContainer>
+      </PublicPageSection>
 
     </div>
   )

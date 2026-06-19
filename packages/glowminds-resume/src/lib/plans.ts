@@ -1,7 +1,7 @@
 import { getEmbedConfig, isPackageEmbed } from "@/embed/runtime";
 
 export const FREE_LIMITS = {
-	resumes: 3,
+	resumes: 1,
 	template: "onyx" as const,
 };
 

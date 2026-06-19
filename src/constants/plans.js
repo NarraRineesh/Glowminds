@@ -4,24 +4,26 @@ export const PLANS = {
   yearly: {
     id: 'yearly',
     label: 'Glowminds Pro Yearly',
-    displayPrice: '₹399',
+    displayPrice: '₹599',
+    regularPrice: '₹999',
     period: '/year',
-    amountPaise: 39900,
+    amountPaise: 59900,
     durationDays: 365,
   },
   monthly: {
     id: 'monthly',
     label: 'Glowminds Pro Monthly',
-    displayPrice: '₹49',
+    displayPrice: '₹99',
     period: '/month',
-    amountPaise: 4900,
+    amountPaise: 9900,
     durationDays: 30,
   },
 }
 
 export const FREE_LIMITS = {
-  applications: 5,
-  resumes: 3,
+  applications: 10,
+  resumes: 1,
+  aiCredits: 5,
   template: 'onyx',
 }
 

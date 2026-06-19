@@ -21,14 +21,25 @@ export const DEFAULT_PRICING_CONFIG = {
   pricingComparison: pricingComparison.map((r) => ({ ...r })),
   pricingFaqs: pricingFaqs.map((f) => ({ ...f })),
   marketing: {
-    proTagline: 'Just ₹33/month billed yearly — less than a cup of coffee',
-    monthlyEquivalent: '₹33/month',
+    proTagline: 'Only ₹50/month when billed annually — less than ₹2/day',
+    monthlyEquivalent: 'Only ₹50/month when billed annually',
+    dailyEquivalent: 'Less than ₹2/day',
     heroDescription:
-      'Unlimited access to AI-powered career tools. Built for students, priced for students. Just ₹33/month.',
+      'AI-powered resumes, interview prep, and job matching — built for students and early-career professionals. Join as a founding member at our launch price.',
     billingBlurb:
-      'One payment of ₹399/year — about ₹33/month. Secure checkout via Razorpay (UPI, cards, net banking).',
+      'Founding member offer: ₹599/year (regular ₹999). Secure checkout via Razorpay (UPI, cards, net banking).',
     termsBillingText:
-      'Pro subscriptions are billed annually at ₹399/year. Payments are processed securely through Razorpay. You can cancel your subscription at any time from your dashboard. Cancellations take effect at the end of the current billing period.',
+      'Pro subscriptions are billed at ₹599/year (founding member offer; regular price ₹999/year) or ₹99/month. Payments are processed securely through Razorpay. You can cancel your subscription at any time from your dashboard. Cancellations take effect at the end of the current billing period.',
+    proHighlights: [
+      'ATS Resume Builder',
+      'AI Mock Interviews',
+      'AI Cover Letters',
+      'Smart Job Matching',
+      'Application Tracking',
+    ],
+    launchOfferText: 'Founding Member Offer',
+    guaranteeText: '7-day money-back guarantee — try Pro risk-free.',
+    socialProof: 'Trusted by students from NITs, IIITs, and state universities across India.',
   },
 }
 
@@ -62,12 +73,12 @@ export { mergePricingConfig }
 
 export function yearlyPriceLabel(config = DEFAULT_PRICING_CONFIG) {
   const plan = config?.plans?.yearly
-  if (!plan) return '₹399/year'
-  return `${plan.displayPrice || '₹399'}${plan.period || '/year'}`
+  if (!plan) return '₹599/year'
+  return `${plan.displayPrice || '₹599'}${plan.period || '/year'}`
 }
 
 export function yearlySeoPrice(config = DEFAULT_PRICING_CONFIG) {
   const plan = config?.plans?.yearly
-  if (!plan?.displayPrice) return '399'
-  return String(plan.displayPrice).replace(/[^\d]/g, '') || '399'
+  if (!plan?.displayPrice) return '599'
+  return String(plan.displayPrice).replace(/[^\d]/g, '') || '599'
 }

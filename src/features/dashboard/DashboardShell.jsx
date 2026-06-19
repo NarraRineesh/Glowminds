@@ -1,5 +1,7 @@
 import { Outlet, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import SEO from '@/components/SEO'
+import { PAGE_SEO } from '@/config/seo'
 import DashboardSidebar from '@/components/layout/DashboardSidebar'
 import ThemeSync from '@/components/ThemeSync'
 import DashboardModalsHost from '@/features/dashboard/modals/DashboardModalsHost'
@@ -11,6 +13,7 @@ export default function DashboardShell() {
 
   return (
     <SidebarProvider defaultOpen className="dashboard-shell min-h-svh bg-background font-sans">
+      <SEO {...PAGE_SEO.dashboard} path={location.pathname} />
       <ThemeSync />
       <DashboardSidebar />
 

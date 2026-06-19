@@ -29,6 +29,6 @@ export default function ProFeatureLockTooltip({ label, hint, children }) {
   )
 }
 
-export function proNavCollapsedTooltip(label, hint, priceLabel = '₹399/year') {
+export function proNavCollapsedTooltip(label, hint, priceLabel = '₹599/year') {
   return `${label} (Pro) — ${hint} · ${priceLabel}`
 }

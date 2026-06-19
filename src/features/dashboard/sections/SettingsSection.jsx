@@ -340,6 +340,16 @@ function SettingsTabPanel({ activeSection, children }) {
   )
 }
 
+function comparisonCellText(row, tier) {
+  if ('freeIncluded' in row || 'proIncluded' in row) {
+    const included = tier === 'free' ? row.freeIncluded : row.proIncluded
+    const detail = tier === 'free' ? row.freeDetail : row.proDetail
+    if (detail) return detail
+    return included ? 'Included' : '—'
+  }
+  return tier === 'free' ? row.free : row.pro
+}
+
 function BillingPanel({
   subscription,
   proActive,
@@ -370,7 +380,7 @@ function BillingPanel({
     ? `···${String(subscription.razorpayPaymentId).slice(-8)}`
     : null
 
-  const freeSummary = `Job search, profile, up to ${freeLimits.resumes} resumes (${freeLimits.template} template), and ${freeLimits.applications} application slots.`
+  const freeSummary = `Job search, profile, up to ${freeLimits.resumes} resume${freeLimits.resumes === 1 ? '' : 's'} (${freeLimits.template} template), and ${freeLimits.applications} application slots.`
 
   return (
     <div className="flex flex-col gap-4">
@@ -440,8 +450,8 @@ function BillingPanel({
                 {pricingComparison.map((row) => (
                   <tr key={row.feature} className="border-b border-border/60 last:border-0">
                     <td className="px-3 py-2 font-medium text-foreground">{row.feature}</td>
-                    <td className="px-3 py-2 text-muted-foreground">{row.free}</td>
-                    <td className="px-3 py-2 font-medium text-primary">{row.pro}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{comparisonCellText(row, 'free')}</td>
+                    <td className="px-3 py-2 font-medium text-primary">{comparisonCellText(row, 'pro')}</td>
                   </tr>
                 ))}
               </tbody>

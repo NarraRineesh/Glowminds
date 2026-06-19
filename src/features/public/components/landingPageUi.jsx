@@ -69,6 +69,10 @@ const TOOL_ICON_BG = {
   pencil: 'bg-violet-500/10 text-violet-500',
   calendar: 'bg-emerald-500/10 text-emerald-500',
   code: 'bg-amber-500/10 text-amber-500',
+  chart: 'bg-primary/10 text-primary',
+  bell: 'bg-amber-500/10 text-amber-500',
+  lock: 'bg-muted text-foreground',
+  sparkle: 'bg-violet-500/10 text-violet-500',
 }
 
 export function toolIconClass(ico) {

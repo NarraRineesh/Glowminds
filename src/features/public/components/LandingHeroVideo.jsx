@@ -19,8 +19,8 @@ export default function LandingHeroVideo() {
   const springX = useSpring(normX, TILT_SPRING)
   const springY = useSpring(normY, TILT_SPRING)
 
-  const rotateX = useTransform(springY, [-0.5, 0.5], [5, -5])
-  const rotateY = useTransform(springX, [-0.5, 0.5], [-6, 6])
+  const rotateX = useTransform(springY, [-0.5, 0.5], [4, -4])
+  const rotateY = useTransform(springX, [-0.5, 0.5], [-5, 5])
 
   const onMove = useCallback(
     (event) => {
@@ -40,10 +40,10 @@ export default function LandingHeroVideo() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 80, scale: 0.96 }}
+      initial={{ opacity: 0, y: 40, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: reducedMotion ? 0 : 1.1, ease: [0.16, 1, 0.3, 1], delay: reducedMotion ? 0 : 0.05 }}
-      className="perspective-[1400px] relative mx-auto w-full max-w-6xl pt-6 md:pt-10"
+      transition={{ duration: reducedMotion ? 0 : 0.9, ease: [0.16, 1, 0.3, 1], delay: reducedMotion ? 0 : 0.15 }}
+      className="perspective-[1200px] relative w-full"
     >
       <motion.div
         ref={wrapRef}
@@ -60,23 +60,23 @@ export default function LandingHeroVideo() {
         }
         className="relative will-change-transform"
       >
-        <div className="overflow-hidden rounded-xl border border-border bg-card shadow-2xl shadow-black/10 dark:shadow-black/40">
-          <div className="flex items-center gap-2 border-b border-border bg-muted/50 px-4 py-2.5">
+        <div className="overflow-hidden rounded-xl border border-border bg-card shadow-xl shadow-black/10 dark:shadow-black/40">
+          <div className="flex items-center gap-2 border-b border-border bg-muted/50 px-3 py-2">
             <div className="flex gap-1.5">
-              <span className="size-2.5 rounded-full bg-destructive/80" />
-              <span className="size-2.5 rounded-full bg-amber-500/80" />
-              <span className="size-2.5 rounded-full bg-emerald-500/80" />
+              <span className="size-2 rounded-full bg-destructive/80" />
+              <span className="size-2 rounded-full bg-amber-500/80" />
+              <span className="size-2 rounded-full bg-emerald-500/80" />
             </div>
-            <div className="mx-auto hidden max-w-md flex-1 truncate rounded-md border border-border/80 bg-background/80 px-3 py-1 text-center text-[11px] text-muted-foreground sm:block">
+            <div className="mx-auto hidden max-w-md flex-1 truncate rounded-md border border-border/80 bg-background/80 px-2 py-0.5 text-center text-[10px] text-muted-foreground sm:block">
               app.glowminds.in/dashboard
             </div>
           </div>
 
-          <div className="relative min-h-[420px] overflow-hidden bg-muted/20 sm:min-h-[480px] md:min-h-[540px] lg:min-h-[600px]">
-            <LandingHeroUserFlow />
+          <div className="relative min-h-[280px] overflow-hidden bg-muted/20 sm:min-h-[320px] md:min-h-[360px]">
+            <LandingHeroUserFlow initialSceneId="resume" />
             <div
               aria-hidden
-              className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-32 bg-gradient-to-t from-background via-background/95 to-transparent md:h-40"
+              className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-16 bg-gradient-to-t from-background/80 to-transparent md:h-20"
             />
           </div>
         </div>

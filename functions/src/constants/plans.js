@@ -1,8 +1,8 @@
 /** Razorpay billing + Pro entitlement helpers (backend source of truth). */
 
 export const PLANS = {
-  monthly: { amount: 4900, label: "Glowminds Pro Monthly", durationDays: 30 },
-  yearly: { amount: 39900, label: "Glowminds Pro Yearly", durationDays: 365 },
+  monthly: { amount: 9900, label: "Glowminds Pro Monthly", durationDays: 30 },
+  yearly: { amount: 59900, label: "Glowminds Pro Yearly", durationDays: 365 },
 };
 
 export const PRO_TIER = "pro";

@@ -5,6 +5,7 @@ import { sendPasswordResetEmail } from 'firebase/auth'
 import { auth } from '@/services/firebase'
 import useAppStore from '@/store/authStore'
 import SEO from '@/components/SEO'
+import { PAGE_SEO } from '@/config/seo'
 import BrandLogo, { GlowmindsWordmark } from '@/components/BrandLogo'
 import { Badge, Button, Card, CardContent, FormField, Input, Separator, AppIcon } from '@/components/ui'
 
@@ -89,7 +90,7 @@ export default function LoginPage() {
 
   return (
     <>
-      <SEO title="Log In" path="/login" description="Log in to Glowminds to access your dashboard, resume builder, job matches, and AI career coach." noIndex />
+      <SEO {...PAGE_SEO.login} />
       <div className="relative flex min-h-svh overflow-hidden">
         <div aria-hidden className="pointer-events-none absolute inset-0 bg-background" />
         <div
@@ -109,7 +110,7 @@ export default function LoginPage() {
           <GlowmindsWordmark className="hidden text-sm text-foreground sm:inline" />
         </Link>
 
-        <div className="relative z-10 mx-auto grid w-full max-w-6xl flex-1 items-center gap-8 px-4 py-8 md:grid-cols-2 md:gap-12 md:px-8 lg:gap-16">
+        <div className="relative z-10 mx-auto grid w-full max-w-6xl flex-1 items-center gap-8 px-4 py-10 pb-12 md:grid-cols-2 md:gap-12 md:px-8 md:py-8 lg:gap-16">
 
           {/* Left: Features panel (hidden on mobile) */}
           <motion.div className="hidden flex-col gap-7 md:flex" variants={stagger} initial="hidden" animate="visible">

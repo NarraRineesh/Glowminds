@@ -1,5 +1,16 @@
 import SEO from '@/components/SEO'
-import { AppIcon, Badge, Card, CardContent } from '@/components/ui'
+import {
+  PAGE_SEO,
+  breadcrumbSchema,
+  normalizeStructuredData,
+  webPageSchema,
+} from '@/config/seo'
+import {
+  PublicPageContainer,
+  PublicPageHeroBackdrop,
+  PublicPageSection,
+} from '@/features/public/components/publicPageUi'
+import { Badge, Card, CardContent } from '@/components/ui'
 
 function LegalSection({ title, children }) {
   return (
@@ -28,15 +39,23 @@ export default function PrivacyPage() {
   return (
     <div>
       <SEO
-        title="Privacy Policy"
-        path="/privacy"
-        description="Glowminds Privacy Policy - Learn how we protect your data. We never sell your information. End-to-end encryption, secure payments via Razorpay."
-        keywords="Glowminds privacy policy, data protection policy, student data privacy, secure career platform, GDPR compliance India, data security"
+        {...PAGE_SEO.privacy}
+        structuredData={normalizeStructuredData([
+          webPageSchema({
+            name: PAGE_SEO.privacy.title,
+            description: PAGE_SEO.privacy.description,
+            path: PAGE_SEO.privacy.path,
+          }),
+          breadcrumbSchema([
+            { label: 'Home', path: '/' },
+            { label: 'Privacy Policy', path: '/privacy' },
+          ]),
+        ])}
       />
 
-      <section className="relative overflow-hidden px-4 pb-10 pt-8 md:px-8">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,color-mix(in_oklab,var(--primary)_12%,transparent),transparent)]" />
-        <div className="relative z-10 mx-auto max-w-6xl px-4 text-center md:px-8">
+      <section className="relative overflow-hidden py-12 md:py-16">
+        <PublicPageHeroBackdrop />
+        <PublicPageContainer className="relative z-10 text-center">
           <Badge variant="secondary" className="mb-4 border-primary/20 bg-primary/10 text-primary">
             PRIVACY POLICY
           </Badge>
@@ -44,11 +63,11 @@ export default function PrivacyPage() {
             Your Privacy <span className="bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">Matters</span>
           </h1>
           <p className="mx-auto max-w-xl text-sm text-muted-foreground md:text-base">Last updated: May 4, 2026</p>
-        </div>
+        </PublicPageContainer>
       </section>
 
-      <section className="pb-16 md:pb-20">
-        <div className="mx-auto max-w-3xl px-4 md:px-8">
+      <PublicPageSection className="pt-0 pb-16 md:pb-20">
+        <PublicPageContainer narrow>
           <Card>
             <CardContent className="p-6 md:p-10">
               <LegalSection title="1. Information We Collect">
@@ -131,12 +150,12 @@ export default function PrivacyPage() {
               <div className="rounded-xl border border-border bg-muted/50 p-5">
                 <h3 className="mb-2 text-lg font-extrabold text-foreground">Contact Us</h3>
                 <LegalP>If you have questions about this privacy policy or our data practices, please contact us at:</LegalP>
-                <p className="mt-2 text-sm text-primary">privacy@studentsai.in</p>
+                <p className="mt-2 text-sm text-primary">privacy@glowminds.in</p>
               </div>
             </CardContent>
           </Card>
-        </div>
-      </section>
+        </PublicPageContainer>
+      </PublicPageSection>
 
     </div>
   )

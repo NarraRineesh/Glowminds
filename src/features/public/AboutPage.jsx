@@ -1,7 +1,13 @@
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import SEO from '@/components/SEO'
-import { pageUrl } from '@/config/site'
+import {
+  PAGE_SEO,
+  breadcrumbSchema,
+  normalizeStructuredData,
+  organizationSchema,
+  webPageSchema,
+} from '@/config/seo'
 import { fadeUp, motionEase, staggerContact } from '@/features/public/motionVariants'
 import { AppIcon,
   Avatar,
@@ -39,7 +45,7 @@ const VALUE_BADGES = [
 
 function PageHero({ badge, title, highlight, description }) {
   return (
-    <section className="relative overflow-hidden px-4 py-12 md:px-8 md:py-16">
+    <section className="relative overflow-hidden py-12 md:py-16">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,color-mix(in_oklab,var(--primary)_12%,transparent),transparent)]" />
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,color-mix(in_oklab,var(--border)_50%,transparent)_1px,transparent_1px),linear-gradient(to_bottom,color-mix(in_oklab,var(--border)_50%,transparent)_1px,transparent_1px)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]" />
       <div className="relative z-10 mx-auto max-w-6xl px-4 text-center md:px-8">
@@ -75,17 +81,20 @@ export default function AboutPage() {
   return (
     <div>
       <SEO
-        title="About Us"
-        path="/about"
-        description="Learn about Glowminds - the AI-powered career platform helping 52,000+ Indian students land their dream jobs. Our mission is to democratize career opportunities."
-        keywords="about Glowminds, AI career platform team, student career help, career democratization, Indian student jobs, Glowminds mission"
-        structuredData={{
-          '@context': 'https://schema.org',
-          '@type': 'AboutPage',
-          name: 'About Glowminds',
-          description: 'Learn about Glowminds - the AI-powered career platform helping 52,000+ students',
-          url: pageUrl('/about'),
-        }}
+        {...PAGE_SEO.about}
+        structuredData={normalizeStructuredData([
+          organizationSchema(),
+          webPageSchema({
+            name: PAGE_SEO.about.title,
+            description: PAGE_SEO.about.description,
+            path: PAGE_SEO.about.path,
+            type: 'AboutPage',
+          }),
+          breadcrumbSchema([
+            { label: 'Home', path: '/' },
+            { label: 'About', path: '/about' },
+          ]),
+        ])}
       />
 
       <PageHero

@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv } from 'vite'
 import tailwindcss from '@tailwindcss/vite'
+import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { glowmindsResumeAlias, glowmindsResumePlugins, glowmindsResumePublicAssets } from './vite.glowminds-resume.js'
@@ -8,7 +9,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  const siteUrl = (env.VITE_PUBLIC_SITE_URL || 'https://studentsai.in').replace(/\/$/, '')
+  const siteUrl = (env.VITE_PUBLIC_SITE_URL || 'https://glowminds.in').replace(/\/$/, '')
 
   const firebaseProjectId = env.VITE_FIREBASE_PROJECT_ID || 'glowminds-abc84'
 
@@ -32,6 +33,20 @@ export default defineConfig(({ mode }) => {
         name: 'inject-site-url-html',
         transformIndexHtml(html) {
           return html.replace(/%SITE_URL%/g, siteUrl)
+        },
+      },
+      {
+        name: 'inject-site-url-public-files',
+        closeBundle() {
+          const distDir = path.join(__dirname, 'dist')
+          for (const file of ['robots.txt', 'sitemap.xml']) {
+            const filePath = path.join(distDir, file)
+            if (!fs.existsSync(filePath)) continue
+            fs.writeFileSync(
+              filePath,
+              fs.readFileSync(filePath, 'utf8').replace(/https:\/\/glowminds\.in/g, siteUrl),
+            )
+          }
         },
       },
     ],

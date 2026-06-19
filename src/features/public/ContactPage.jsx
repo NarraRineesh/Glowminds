@@ -3,9 +3,20 @@ import { motion } from 'framer-motion'
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '@/services/firebase'
 import useAppStore from '@/store/authStore'
-import Footer from '@/components/layout/Footer'
 import SEO from '@/components/SEO'
+import {
+  PAGE_SEO,
+  breadcrumbSchema,
+  contactPageSchema,
+  normalizeStructuredData,
+  organizationSchema,
+} from '@/config/seo'
 import PublicFaqItem from '@/features/public/components/PublicFaqItem'
+import {
+  PublicPageContainer,
+  PublicPageHeroBackdrop,
+  PublicPageSection,
+} from '@/features/public/components/publicPageUi'
 import { fadeUp, motionEase, staggerContact } from '@/features/public/motionVariants'
 import { AppIcon,
   Accordion,
@@ -23,7 +34,7 @@ import { AppIcon,
 } from '@/components/ui'
 
 const CONTACT_INFO = [
-  { ico: 'envelope', title: 'Email Us', value: 'hello@studentsai.in', desc: 'We reply within 24 hours' },
+  { ico: 'envelope', title: 'Email Us', value: 'hello@glowminds.in', desc: 'We reply within 24 hours' },
   { ico: 'phone', title: 'Call Us', value: '+91 98765 43210', desc: 'Mon-Fri, 9 AM - 6 PM IST' },
   { ico: 'map-pin', title: 'Visit Us', value: 'Bangalore, India', desc: 'HSR Layout, Sector 1' },
   { ico: 'chat', title: 'Live Chat', value: 'In-app AI assistant', desc: 'Available 24/7' },
@@ -91,15 +102,20 @@ export default function ContactPage() {
   return (
     <div>
       <SEO
-        title="Contact Us"
-        path="/contact"
-        description="Get in touch with the Glowminds team. Email us at hello@studentsai.in for support, partnerships, or media inquiries. We reply within 24 hours."
-        keywords="contact Glowminds, Glowminds support email, career platform contact, student support team, partnership inquiry, media contact"
+        {...PAGE_SEO.contact}
+        structuredData={normalizeStructuredData([
+          organizationSchema(),
+          contactPageSchema(),
+          breadcrumbSchema([
+            { label: 'Home', path: '/' },
+            { label: 'Contact', path: '/contact' },
+          ]),
+        ])}
       />
 
-      <section className="relative overflow-hidden px-4 pb-10 pt-8 md:px-8">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,color-mix(in_oklab,var(--primary)_12%,transparent),transparent)]" />
-        <div className="relative z-10 mx-auto max-w-6xl px-4 text-center md:px-8">
+      <section className="relative overflow-hidden py-12 md:py-16">
+        <PublicPageHeroBackdrop />
+        <PublicPageContainer className="relative z-10 text-center">
           <Badge variant="secondary" className="mb-4 border-primary/20 bg-primary/10 text-primary">
             ✦ CONTACT US
           </Badge>
@@ -109,11 +125,11 @@ export default function ContactPage() {
           <p className="mx-auto max-w-xl text-sm leading-relaxed text-muted-foreground md:text-base">
             Have questions, feedback, or just want to say hi? We&apos;d love to hear from you.
           </p>
-        </div>
+        </PublicPageContainer>
       </section>
 
-      <section className="pb-12">
-        <div className="mx-auto max-w-6xl px-4 md:px-8">
+      <PublicPageSection className="pt-0 pb-16 md:pb-20">
+        <PublicPageContainer className="space-y-12">
           <motion.div
             variants={staggerContact}
             initial="hidden"
@@ -134,11 +150,8 @@ export default function ContactPage() {
               </motion.div>
             ))}
           </motion.div>
-        </div>
-      </section>
 
-      <section className="pb-16 pt-4 md:pb-20">
-        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-4 px-4 md:px-8 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-10">
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, ease: motionEase }}>
             <Card>
               <CardHeader>
@@ -245,10 +258,9 @@ export default function ContactPage() {
               ))}
             </Accordion>
           </motion.div>
-        </div>
-      </section>
-
-      <Footer />
+          </div>
+        </PublicPageContainer>
+      </PublicPageSection>
     </div>
   )
 }

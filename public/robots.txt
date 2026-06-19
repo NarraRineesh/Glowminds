@@ -1,8 +1,9 @@
 User-agent: *
 Allow: /
 Disallow: /dashboard
-Disallow: /signup
+Disallow: /dashboard/
 Disallow: /login
+Disallow: /signup
 Disallow: /api
 
-Sitemap: https://ai-jobcopilot.web.app/sitemap.xml
+Sitemap: https://glowminds.in/sitemap.xml
