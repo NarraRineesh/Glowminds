@@ -1,12 +1,13 @@
 import { Router } from "express";
 import { requireAuth } from "../../middleware/auth.js";
+import { requireCredits } from "../../middleware/requireCredits.js";
 import { ApiError } from "../../middleware/errors.js";
 import { completionTask } from "../../services/aiClient.js";
 import { stripJsonFences } from "../../utils/stripJsonFences.js";
 
 const router = Router();
 
-router.post("/profile-review", requireAuth, async (req, res, next) => {
+router.post("/profile-review", requireAuth, requireCredits("profileReview"), async (req, res, next) => {
   try {
     const { profile = {} } = req.body || {};
     if (!profile || Object.keys(profile).length === 0) {

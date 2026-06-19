@@ -1,11 +1,12 @@
 import { Router } from "express";
 import { requireAuth } from "../../middleware/auth.js";
+import { requireCredits } from "../../middleware/requireCredits.js";
 import { ApiError } from "../../middleware/errors.js";
 import { completionTask } from "../../services/aiClient.js";
 
 const router = Router();
 
-router.post("/cover-letter", requireAuth, async (req, res, next) => {
+router.post("/cover-letter", requireAuth, requireCredits("coverLetter"), async (req, res, next) => {
   try {
     const { profile, jobTitle, company, jobDescription } = req.body || {};
     if (!profile || !jobTitle || !company) {

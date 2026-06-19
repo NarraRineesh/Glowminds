@@ -28,6 +28,17 @@ export const DEFAULT_PRICING_CONFIG = {
     aiCredits: 5,
     template: "onyx",
   },
+  proLimits: {
+    aiCreditsPerMonth: 100,
+  },
+  creditCosts: {
+    careerChat: 1,
+    coverLetter: 5,
+    interviewSession: 10,
+    profileReview: 1,
+    grammar: 1,
+    paraphrase: 1,
+  },
   pricing: {
     free: {
       label: "FREE",

@@ -128,18 +128,20 @@ function BuilderHeaderDropdown() {
 	};
 
 	const handleDuplicate = () => {
-		try {
-			const duplicate = duplicateLocalResume(id);
-			toast.success(t`Resume duplicated successfully.`);
-			void navigate({ to: "/builder/$resumeId", params: { resumeId: duplicate.id } });
-		} catch (error) {
-			if (error instanceof ResumeLimitError) {
-				toast.error(error.message);
-				notifyResumeLimit();
-				return;
+		void (async () => {
+			try {
+				const duplicate = await duplicateLocalResume(id);
+				toast.success(t`Resume duplicated successfully.`);
+				void navigate({ to: "/builder/$resumeId", params: { resumeId: duplicate.id } });
+			} catch (error) {
+				if (error instanceof ResumeLimitError) {
+					toast.error(error.message);
+					notifyResumeLimit();
+					return;
+				}
+				toast.error(error instanceof Error ? error.message : t`Failed to duplicate resume.`);
 			}
-			toast.error(error instanceof Error ? error.message : t`Failed to duplicate resume.`);
-		}
+		})();
 	};
 
 	const handleToggleLock = async () => {

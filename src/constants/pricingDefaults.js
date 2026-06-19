@@ -47,7 +47,7 @@ function mergePricingConfig(data) {
   const base = structuredClone(DEFAULT_PRICING_CONFIG)
   if (!data || typeof data !== 'object') return base
 
-  return {
+  const merged = {
     ...base,
     ...data,
     plans: {
@@ -67,6 +67,18 @@ function mergePricingConfig(data) {
       : base.pricingComparison,
     pricingFaqs: Array.isArray(data.pricingFaqs) ? data.pricingFaqs : base.pricingFaqs,
   }
+
+  if (merged.plans.yearly?.amountPaise === 39900) {
+    merged.plans.yearly = { ...merged.plans.yearly, ...base.plans.yearly }
+  }
+  if (merged.plans.monthly?.amountPaise === 4900) {
+    merged.plans.monthly = { ...merged.plans.monthly, ...base.plans.monthly }
+  }
+  if (merged.pricing?.pro?.price === '₹399') {
+    merged.pricing.pro = { ...merged.pricing.pro, price: base.pricing.pro.price, regularPrice: base.pricing.pro.regularPrice }
+  }
+
+  return merged
 }
 
 export { mergePricingConfig }

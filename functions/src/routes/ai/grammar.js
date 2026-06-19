@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { requireAuth } from "../../middleware/auth.js";
+import { requireCredits } from "../../middleware/requireCredits.js";
 import { ApiError } from "../../middleware/errors.js";
 import { completionTask } from "../../services/aiClient.js";
 import { stripJsonFences } from "../../utils/stripJsonFences.js";
@@ -25,7 +26,7 @@ Input text:
 
 const router = Router();
 
-router.post("/grammar", requireAuth, async (req, res, next) => {
+router.post("/grammar", requireAuth, requireCredits("grammar"), async (req, res, next) => {
   try {
     const { text } = req.body || {};
     if (!text || typeof text !== "string" || text.trim().length < 3) {

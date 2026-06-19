@@ -39,6 +39,7 @@ export const SIDEBAR_GROUPS = [
         icon: 'interview',
         label: 'Interview Prep',
         proOnly: true,
+        creditAction: 'interviewSession',
         proHint: 'AI mock interviews with MCQs, scoring, and study plans.',
       },
     ],
@@ -53,6 +54,7 @@ export const SIDEBAR_GROUPS = [
         icon: 'ai',
         label: 'AI Coach',
         proOnly: true,
+        creditAction: 'careerChat',
         proHint: '24/7 personalized career coaching for students and freshers.',
       },
       {
@@ -60,6 +62,7 @@ export const SIDEBAR_GROUPS = [
         icon: 'cover-letters',
         label: 'Cover Letters',
         proOnly: true,
+        creditAction: 'coverLetter',
         proHint: 'AI cover letters tailored to each role and company.',
       },
       {
@@ -74,6 +77,7 @@ export const SIDEBAR_GROUPS = [
         icon: 'grammar-check',
         label: 'Grammar Check',
         proOnly: true,
+        creditAction: 'grammar',
         proHint: 'Fix grammar, tone, and clarity in your career documents.',
       },
       {
@@ -81,6 +85,7 @@ export const SIDEBAR_GROUPS = [
         icon: 'paraphrase',
         label: 'Paraphrasing Tool',
         proOnly: true,
+        creditAction: 'paraphrase',
         proHint: 'Rewrite bullets and paragraphs in different tones instantly.',
       },
     ],

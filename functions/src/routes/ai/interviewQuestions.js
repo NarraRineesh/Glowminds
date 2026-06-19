@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { requireAuth } from "../../middleware/auth.js";
+import { requireCredits } from "../../middleware/requireCredits.js";
 import { ApiError } from "../../middleware/errors.js";
 import { completionTask } from "../../services/aiClient.js";
 import { trackAsync } from "../../services/usageTracker.js";
@@ -19,7 +20,7 @@ const TYPE_DESC = {
 // `correctIndex` to the client up front (this is a self-practice tool, not
 // a proctored test) — the UI hides correctness until the user submits the
 // session.
-router.post("/interview-questions", requireAuth, async (req, res, next) => {
+router.post("/interview-questions", requireAuth, requireCredits("interviewSession"), async (req, res, next) => {
   try {
     const {
       role = "Software Engineer",

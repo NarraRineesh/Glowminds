@@ -54,21 +54,25 @@ function RouteComponent() {
 	};
 
 	const handleCreate = () => {
-		try {
-			const resume = createLocalResume();
-			void navigate({ to: "/builder/$resumeId", params: { resumeId: resume.id } });
-		} catch (err) {
-			if (!handleResumeLimit(err)) throw err;
-		}
+		void (async () => {
+			try {
+				const resume = await createLocalResume();
+				void navigate({ to: "/builder/$resumeId", params: { resumeId: resume.id } });
+			} catch (err) {
+				if (!handleResumeLimit(err)) throw err;
+			}
+		})();
 	};
 
 	const handleCreateSample = () => {
-		try {
-			const resume = createLocalResumeFromSample();
-			void navigate({ to: "/builder/$resumeId", params: { resumeId: resume.id } });
-		} catch (err) {
-			if (!handleResumeLimit(err)) throw err;
-		}
+		void (async () => {
+			try {
+				const resume = await createLocalResumeFromSample();
+				void navigate({ to: "/builder/$resumeId", params: { resumeId: resume.id } });
+			} catch (err) {
+				if (!handleResumeLimit(err)) throw err;
+			}
+		})();
 	};
 
 	const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -78,7 +82,7 @@ function RouteComponent() {
 		try {
 			const parsed = JSON.parse(await file.text()) as unknown;
 			const data = resumeDataSchema.parse(parsed) as ResumeData;
-			const resume = importLocalResume(data);
+			const resume = await importLocalResume(data);
 			toast.success(t`Resume imported successfully.`);
 			void navigate({ to: "/builder/$resumeId", params: { resumeId: resume.id } });
 		} catch (err) {

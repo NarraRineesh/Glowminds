@@ -9,6 +9,8 @@ export const PRO_TIER = "pro";
 
 const PAID_PLANS = new Set(["yearly", "monthly"]);
 
+const TRUSTED_PRO_SOURCES = new Set(["verify", "webhook", "admin_grant"]);
+
 function parseEndDate(endDate) {
   if (!endDate) return null;
   if (typeof endDate?.toDate === "function") return endDate.toDate();
@@ -17,6 +19,7 @@ function parseEndDate(endDate) {
 }
 
 /**
+ * Active Pro by dates/plan only — does not verify payment proof.
  * @param {Record<string, unknown> | null | undefined} sub
  * @returns {boolean}
  */
@@ -36,11 +39,18 @@ export function isActiveProSubscription(sub) {
   return end >= new Date();
 }
 
+/** Pro subscription backed by Razorpay payment or a trusted server source. */
+export function isTrustedProSubscription(sub) {
+  if (!isActiveProSubscription(sub)) return false;
+  if (sub.razorpayPaymentId) return true;
+  return TRUSTED_PRO_SOURCES.has(sub.source);
+}
+
 /**
  * @param {Record<string, unknown> | null | undefined} sub
  * @param {boolean} [isAdmin]
  */
 export function hasProAccess(sub, isAdmin = false) {
   if (isAdmin) return true;
-  return isActiveProSubscription(sub);
+  return isTrustedProSubscription(sub);
 }

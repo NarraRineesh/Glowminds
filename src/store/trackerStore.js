@@ -1,6 +1,7 @@
 import { create } from 'zustand'
-import { collection, doc, addDoc, updateDoc, deleteDoc, getDocs, serverTimestamp, query, orderBy } from 'firebase/firestore'
+import { collection, doc, updateDoc, deleteDoc, getDocs, serverTimestamp, query, orderBy } from 'firebase/firestore'
 import { db, auth } from '@/services/firebase'
+import { apiFetch } from '@/services/apiClient'
 import { APPLICATION_STATUS, normalizeApplicationStatus } from '@/constants/schema'
 import useGamificationStore from '@/store/gamificationStore'
 
@@ -75,18 +76,20 @@ const useTrackerStore = create((set, get) => ({
       if (existing) return existing
     }
     try {
-      const docRef = await addDoc(collection(db, 'users', uid, 'applications'), {
+      const created = await apiFetch('/applications', { body: payload })
+      const newApp = normalizeApp({
+        id: created.id,
         ...payload,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+        ...created,
+        createdAt: created.createdAt || new Date(),
+        updatedAt: created.updatedAt || new Date(),
       })
-      const newApp = normalizeApp({ id: docRef.id, ...payload, createdAt: new Date(), updatedAt: new Date() })
       set((s) => ({ apps: [newApp, ...s.apps] }))
       useGamificationStore.getState().syncEligibleBadges({ applicationCount: get().apps.length }).catch(() => {})
       return newApp
     } catch (err) {
       console.error('Add app failed:', err)
-      return null
+      throw err
     }
   },
 

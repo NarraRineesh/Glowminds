@@ -71,6 +71,8 @@ function mergeWithDefaults(data) {
       monthly: normalizePlanFields({ ...base.plans.monthly, ...(data.plans?.monthly || {}) }),
     },
     freeLimits: { ...base.freeLimits, ...(data.freeLimits || {}) },
+    proLimits: { ...base.proLimits, ...(data.proLimits || {}) },
+    creditCosts: { ...base.creditCosts, ...(data.creditCosts || {}) },
     pricing: {
       free: { ...base.pricing.free, ...(data.pricing?.free || {}) },
       pro: { ...base.pricing.pro, ...(data.pricing?.pro || {}) },
@@ -83,6 +85,13 @@ function mergeWithDefaults(data) {
       : base.pricingComparison,
     pricingFaqs: Array.isArray(data.pricingFaqs) ? data.pricingFaqs : base.pricingFaqs,
   };
+
+  if (merged.plans.yearly?.amountPaise === 39900) {
+    merged.plans.yearly = { ...merged.plans.yearly, ...base.plans.yearly };
+  }
+  if (merged.plans.monthly?.amountPaise === 4900) {
+    merged.plans.monthly = { ...merged.plans.monthly, ...base.plans.monthly };
+  }
 
   return syncDerivedPricingFields(merged);
 }

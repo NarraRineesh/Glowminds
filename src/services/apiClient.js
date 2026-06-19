@@ -1,6 +1,7 @@
 import { signOut } from 'firebase/auth'
 import { auth } from './firebase'
 import useAppStore from '@/store/authStore'
+import { invalidateEntitlementsCache } from '@/hooks/useEntitlements'
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') || '/api'
@@ -128,7 +129,28 @@ export async function apiFetch(path, options = {}) {
       } catch { /* store may not be ready */ }
     }
 
+    if (response.status === 402 && code === 'credits-exhausted') {
+      try {
+        useAppStore.getState().addToast?.(
+          'info',
+          message || 'You have no AI credits left. Upgrade to Pro for 100 credits per month.',
+        )
+      } catch { /* store may not be ready */ }
+    }
+
+    if (response.status === 403 && code === 'permission-denied' && /application|resume/i.test(message)) {
+      try {
+        useAppStore.getState().addToast?.('info', message)
+      } catch { /* store may not be ready */ }
+    }
+
     throw new ApiError(message, { status: response.status, code, payload })
+  }
+
+  if (requireAuth && typeof path === 'string') {
+    if (path.includes('/ai/') || path.startsWith('/applications') || path.includes('/resumes/register')) {
+      invalidateEntitlementsCache()
+    }
   }
 
   return payload

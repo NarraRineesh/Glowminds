@@ -5,6 +5,7 @@ import AppIcon from '@/components/icons/AppIcon'
 import { Button, ButtonGroup, DashboardCard, Textarea, cn } from '@/components/ui'
 import useAppStore from '@/store/authStore'
 import UpgradeGate from '@/components/UpgradeGate'
+import { AiCreditsBadge } from '@/components/dashboard/PlanUsageSummary'
 import { apiFetch } from '@/services/apiClient'
 
 const TONES = [
@@ -69,7 +70,7 @@ export default function ParaphrasingSection() {
   )
 
   return (
-    <UpgradeGate feature="Paraphrasing">
+    <UpgradeGate feature="Paraphrasing" creditAction="paraphrase">
       <ToolPage>
         <SectionHeader
           badge="AI · Writing"
@@ -77,6 +78,7 @@ export default function ParaphrasingSection() {
           title="Three rewrites, one click"
           accent="three rewrites"
           subtitle="Pick a tone and we'll generate three distinct ways to say the same thing — perfect for resume bullets, cover letters, and outreach."
+          actions={<AiCreditsBadge action="paraphrase" />}
         />
 
         <ToolSidebarLayout sidebar={sidebar} sidebarRight>

@@ -14,6 +14,8 @@ import BadgesShowcase from '@/components/dashboard/BadgesShowcase'
 import Loader from '@/components/Loader'
 import { APPLICATION_STATUS, APPLICATION_STATUS_LABEL } from '@/constants/schema'
 import JobMiniRow from '@/features/dashboard/components/JobMiniRow'
+import PlanUsageSummary from '@/components/dashboard/PlanUsageSummary'
+import useEntitlements from '@/hooks/useEntitlements'
 import {
   AppIcon,
   Avatar,
@@ -140,6 +142,7 @@ export default function OverviewSection() {
   const loadGamificationCatalog = useGamificationStore((s) => s.loadCatalog)
   const savedJobs = useJobStore((s) => s.savedJobs)
   const loadSavedJobs = useJobStore((s) => s.loadSavedJobs)
+  const { creditBalance, isPro: entitlementsPro } = useEntitlements()
 
   const loadProfileData = useCallback(async () => {
     if (!auth.currentUser?.uid) return
@@ -373,9 +376,12 @@ export default function OverviewSection() {
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         <KpiCard icon="jobs" label="Job Matches" value={topMatchesLoading ? '…' : topMatches.length} sub="Matched to your profile" accent={1} onClick={() => navigate('/dashboard/jobs')} />
         <KpiCard icon="applications" label="Applications" value={apps.length} sub={apps.length === 0 ? 'Start applying!' : inReview > 0 ? `${inReview} in review` : 'Track every apply'} accent={2} onClick={() => navigate('/dashboard/applications')} />
-        <KpiCard icon="bookmark" label="Saved Jobs" value={savedJobs.length} sub={savedJobs.length > 0 ? 'Ready to apply' : 'Bookmark roles you like'} accent={3} onClick={() => navigate('/dashboard/jobs')} />
-        <KpiCard icon="microphone" label="Interviews" value={interviews} sub={interviews > 0 ? `${interviews} scheduled · prep with AI` : 'None yet — keep applying!'} accent={4} onClick={() => navigate('/dashboard/applications')} />
+        <KpiCard icon="sparkle" label="AI Credits" value={creditBalance ?? '…'} sub={entitlementsPro ? 'Pro · monthly pool' : 'Free · lifetime pool'} accent={3} onClick={() => navigate('/dashboard/settings')} />
+        <KpiCard icon="bookmark" label="Saved Jobs" value={savedJobs.length} sub={savedJobs.length > 0 ? 'Ready to apply' : 'Bookmark roles you like'} accent={4} onClick={() => navigate('/dashboard/jobs')} />
+        <KpiCard icon="microphone" label="Interviews" value={interviews} sub={interviews > 0 ? `${interviews} scheduled · prep with AI` : 'None yet — keep applying!'} accent={1} onClick={() => navigate('/dashboard/applications')} />
       </div>
+
+      <PlanUsageSummary />
 
       <div className="grid gap-4 lg:grid-cols-3">
         <DashboardCard

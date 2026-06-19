@@ -101,13 +101,19 @@ export function saveLocalResume(resume: Resume): Resume {
 	return deserialize(stored);
 }
 
-export function createLocalResume(input?: {
+async function registerResumeWithHost() {
+	const hook = getEmbedConfig()?.onResumeCreate;
+	if (hook) await hook();
+}
+
+export async function createLocalResume(input?: {
 	name?: string;
 	slug?: string;
 	tags?: string[];
 	withSampleData?: boolean;
-}): Resume {
+}): Promise<Resume> {
 	assertCanCreateLocalResume();
+	await registerResumeWithHost();
 	const name = input?.name ?? defaultResumeName();
 	const slug = input?.slug ?? slugify(name);
 	const resume: Resume = {
@@ -126,7 +132,7 @@ export function createLocalResume(input?: {
 	return resume;
 }
 
-export function createLocalResumeFromSample(): Resume {
+export async function createLocalResumeFromSample(): Promise<Resume> {
 	return createLocalResume({
 		name: "Sample Resume",
 		tags: ["sample"],
@@ -151,8 +157,9 @@ export function deleteLocalResume(id: string): void {
 	writeIndex(readIndex().filter((resumeId) => resumeId !== id));
 }
 
-export function duplicateLocalResume(id: string): Resume {
+export async function duplicateLocalResume(id: string): Promise<Resume> {
 	assertCanCreateLocalResume();
+	await registerResumeWithHost();
 	const source = getLocalResume(id);
 	if (!source) throw new Error("Resume not found");
 
@@ -195,8 +202,9 @@ export function setLocalResumeLocked(id: string, isLocked: boolean): Resume {
 	return saveLocalResume({ ...resume, isLocked });
 }
 
-export function importLocalResume(data: ResumeData, metadata?: { name?: string; slug?: string; tags?: string[] }): Resume {
+export async function importLocalResume(data: ResumeData, metadata?: { name?: string; slug?: string; tags?: string[] }): Promise<Resume> {
 	assertCanCreateLocalResume();
+	await registerResumeWithHost();
 	const name = metadata?.name ?? defaultResumeName();
 	const resume: Resume = {
 		id: generateId(),

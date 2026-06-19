@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useAppStore from '@/store/authStore'
 import useIsPro from '@/hooks/useIsPro'
-import { useFreeLimits } from '@/hooks/usePricingConfig'
+import useEntitlements from '@/hooks/useEntitlements'
 import useIsLg from '@/hooks/useIsLg'
 import useTrackerStore from '@/store/trackerStore'
 import Loader from '@/components/Loader'
@@ -29,6 +29,7 @@ import {
   APPLICATION_STATUSES,
   APPLICATION_STATUS_LABEL,
 } from '@/constants/schema'
+import { ApplicationLimitBanner } from '@/components/dashboard/PlanUsageSummary'
 
 const COLUMN_STYLE = {
   [APPLICATION_STATUS.APPLIED]: { text: 'text-primary', badge: 'bg-primary/20 text-primary' },
@@ -52,8 +53,9 @@ export default function ApplicationsSection() {
   const { addToast } = useAppStore()
   const navigate = useNavigate()
   const isPro = useIsPro()
-  const freeLimits = useFreeLimits()
-  const freeAppLimit = freeLimits.applications
+  const { entitlements } = useEntitlements()
+  const freeAppLimit = entitlements?.freeLimits?.applications ?? 10
+  const appCount = entitlements?.entitlements?.applicationCount ?? apps.length
   const { apps, loading, addApp, updateStatus, deleteApp, loadApps } = useTrackerStore()
   const isLg = useIsLg()
   const [modal, setModal] = useState(false)
@@ -63,19 +65,22 @@ export default function ApplicationsSection() {
 
   const handleAdd = async () => {
     if (!form.company || !form.role) { addToast('error', 'Company and role required'); return }
-    const application = await addApp({
-      company: form.company,
-      role: form.role,
-      status: form.status,
-      appliedDate: form.appliedDate || new Date().toISOString().split('T')[0],
-      salary: form.salary,
-      notes: form.notes,
-      logo: 'jobs',
-    })
-    if (application) addToast('success', `${form.role} at ${form.company} tracked!`)
-    else addToast('error', 'Failed to add application')
-    setModal(false)
-    setForm(EMPTY_FORM)
+    try {
+      const application = await addApp({
+        company: form.company,
+        role: form.role,
+        status: form.status,
+        appliedDate: form.appliedDate || new Date().toISOString().split('T')[0],
+        salary: form.salary,
+        notes: form.notes,
+        logo: 'jobs',
+      })
+      if (application) addToast('success', `${form.role} at ${form.company} tracked!`)
+      setModal(false)
+      setForm(EMPTY_FORM)
+    } catch {
+      addToast('error', 'Could not add application — you may have reached the free limit.')
+    }
   }
 
   const handleStatusChange = async (appId, newStatus) => {
@@ -88,16 +93,17 @@ export default function ApplicationsSection() {
     addToast('info', `${company} removed from tracker`)
   }
 
-  const canAdd = isPro || apps.length < freeAppLimit
+  const canAdd = isPro || appCount < freeAppLimit
 
   return (
     <>
       <div className="min-w-0 space-y-6">
+        <ApplicationLimitBanner />
         <div className="flex flex-wrap items-center justify-between gap-2.5">
           <PageTitle
             className="mb-0"
             title="Application Tracker"
-            subtitle={`Track every application · Kanban board · ${apps.length} total`}
+            subtitle={`Track every application · Kanban board · ${apps.length} total${!isPro ? ` · ${appCount}/${freeAppLimit} free slots` : ''}`}
           />
           {canAdd ? (
             <Button size="sm" onClick={() => setModal(true)}>+ Add application</Button>

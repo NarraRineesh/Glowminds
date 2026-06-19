@@ -3,6 +3,13 @@ import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
 import { db, auth } from '@/services/firebase'
 import { createDefaultProfile, normalizeProfile, normalizeSkills } from '@/constants/schema'
 
+const PROTECTED_USER_DOC_FIELDS = new Set([
+  'subscription',
+  'credits',
+  'billing',
+  'entitlements',
+])
+
 // Single source of truth for `users/{uid}` profile (and the rest of the user
 // doc). All sections read/write through this store so we don't duplicate
 // `getDoc(users/{uid})` calls.
@@ -97,11 +104,15 @@ const useProfileStore = create((set, get) => ({
   patchUserDoc: async (partial) => {
     const uid = auth.currentUser?.uid
     if (!uid) return
-    set((s) => ({ user: { ...(s.user || {}), ...partial } }))
+    const safe = { ...(partial || {}) }
+    for (const key of PROTECTED_USER_DOC_FIELDS) {
+      delete safe[key]
+    }
+    set((s) => ({ user: { ...(s.user || {}), ...safe } }))
     try {
       await setDoc(
         doc(db, 'users', uid),
-        { ...partial, updatedAt: serverTimestamp() },
+        { ...safe, updatedAt: serverTimestamp() },
         { merge: true },
       )
     } catch (err) {

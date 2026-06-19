@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { apiFetch } from '@/services/apiClient'
 import useAppStore from '@/store/authStore'
 import useProfileStore from '@/store/profileStore'
+import { invalidateEntitlementsCache } from '@/hooks/useEntitlements'
 
 function loadRazorpayScript() {
   return new Promise((resolve) => {
@@ -63,6 +64,7 @@ export default function useUpgradePro() {
                 },
               })
               const userDoc = await useProfileStore.getState().load({ force: true })
+              invalidateEntitlementsCache()
               if (userDoc?.subscription) {
                 const current = useAppStore.getState().user
                 if (current) {

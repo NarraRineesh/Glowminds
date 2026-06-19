@@ -9,21 +9,61 @@ service cloud.firestore {
     function isAdmin() {
       return request.auth != null && request.auth.token.admin == true;
     }
+    function protectedUserFieldsUnchanged() {
+      let affected = request.resource.data.diff(resource.data).affectedKeys();
+      return !affected.hasAny(['subscription', 'credits', 'billing', 'entitlements']);
+    }
+
+    // Free-tier subscription shape allowed on client create (signup / Google login).
+    function isFreeSubscriptionOnCreate(sub) {
+      return sub.plan == 'free'
+        && sub.get('tier', null) == null
+        && sub.get('status', null) != 'active'
+        && sub.get('razorpayPaymentId', null) == null
+        && sub.get('razorpayOrderId', null) == null
+        && !sub.keys().hasAny(['source', 'grantedBy', 'revokedBy']);
+    }
+
+    function userCreateAllowed() {
+      return isOwner(userId)
+        && !request.resource.data.keys().hasAny(['credits', 'billing', 'entitlements'])
+        && (
+          !request.resource.data.keys().hasAny(['subscription'])
+          || isFreeSubscriptionOnCreate(request.resource.data.subscription)
+        );
+    }
+
     // ----- users root doc -----
     match /users/{userId} {
       allow read: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
+      allow create: if userCreateAllowed();
+      allow update: if isOwner(userId) && protectedUserFieldsUnchanged();
       allow delete: if isOwner(userId);
     }
 
-    // ----- all user subcollections (resumes, applications, savedJobs,
-    // notifications, aiChats, interviewSessions, chat (legacy), ...).
-    // Note: cover letters, JD matches, and daily quiz answers are NOT
-    // persisted server-side; only gamification fields on the user doc are
-    // written (quiz → XP; login → streak). -----
-    match /users/{userId}/{document=**} {
-      allow read, write: if isOwner(userId);
+    // Application creates are server-authoritative (POST /api/applications).
+    match /users/{userId}/applications/{appId} {
+      allow read, update, delete: if isOwner(userId);
+      allow create: if false;
+    }
+
+    // Credit ledger is append-only via Admin SDK.
+    match /users/{userId}/creditLedger/{entryId} {
+      allow read: if isOwner(userId);
+      allow write: if false;
+    }
+
+    // Other user subcollections (resumes, savedJobs, notifications, …).
+    match /users/{userId}/{subcollection}/{docId} {
+      allow read, write: if isOwner(userId)
+        && subcollection != 'applications'
+        && subcollection != 'creditLedger';
+    }
+
+    match /users/{userId}/{subcollection}/{docId}/{rest=**} {
+      allow read, write: if isOwner(userId)
+        && subcollection != 'applications'
+        && subcollection != 'creditLedger';
     }
 
     // ----- jobs (curated, optional) -----

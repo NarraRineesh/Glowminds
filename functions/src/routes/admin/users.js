@@ -14,6 +14,7 @@ import {
   billingPlansFromConfig,
   getPricingConfig,
 } from "../../services/pricingConfig.js";
+import { grantProCredits } from "../../services/creditService.js";
 
 const router = Router();
 
@@ -223,6 +224,11 @@ router.post("/users/:uid/subscription", requireAuth, requireAdmin, async (req, r
       },
       { merge: true },
     );
+
+    if (action === "grant") {
+      const pricing = await getPricingConfig();
+      await grantProCredits(uid, pricing);
+    }
 
     let isAdmin = false;
     try {

@@ -5,6 +5,7 @@ import useJobStore from '@/store/jobStore'
 import useTrackerStore from '@/store/trackerStore'
 import useProfileStore from '@/store/profileStore'
 import useIsPro from '@/hooks/useIsPro'
+import useEntitlements from '@/hooks/useEntitlements'
 import useUpgradePro from '@/hooks/useUpgradePro'
 import { apiFetch } from '@/services/apiClient'
 import { getJobById } from '@/services/jobSearch'
@@ -41,9 +42,13 @@ export default function JobDetailSection() {
   const { jobs, isJobSaved, saveJob, unsaveJob, loadSavedJobs } = useJobStore()
   const loadProfile = useProfileStore((s) => s.load)
   const isPro = useIsPro()
+  const { entitlements } = useEntitlements()
   const { startUpgrade, loading: upgradeLoading } = useUpgradePro()
   const profile = useProfileStore((s) => s.profile)
   const { addApp, loadApps, apps } = useTrackerStore()
+  const freeAppLimit = entitlements?.freeLimits?.applications ?? 10
+  const appCount = entitlements?.entitlements?.applicationCount ?? apps.length
+  const canTrackMore = isPro || appCount < freeAppLimit
 
   const [job, setJob] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -108,26 +113,34 @@ export default function JobDetailSection() {
 
   const handleApply = async (j) => {
     if (applying || applied) return
+    if (!canTrackMore) {
+      addToast('info', `Free plan allows ${freeAppLimit} tracked applications. Upgrade for unlimited tracking.`)
+      navigate('/pricing')
+      return
+    }
     setApplying(true)
-    const company = j.company || j.co || ''
-    const application = await addApp({
-      company,
-      role: j.title,
-      status: APPLICATION_STATUS.APPLIED,
-      appliedDate: new Date().toISOString().split('T')[0],
-      salary: j.salary || j.sal || '',
-      notes: 'Applied via Glowminds',
-      logo: j.logo,
-      source: j.source || 'ats',
-      jobUrl: j.url,
-      jobId: j.id,
-    })
-    setApplying(false)
-    if (application) {
-      addToast('success', `Applied to ${j.title} at ${company}! Added to your tracker.`)
-      if (j.url) window.open(j.url, '_blank', 'noopener,noreferrer')
-    } else {
-      addToast('error', 'Failed to track application')
+    try {
+      const company = j.company || j.co || ''
+      const application = await addApp({
+        company,
+        role: j.title,
+        status: APPLICATION_STATUS.APPLIED,
+        appliedDate: new Date().toISOString().split('T')[0],
+        salary: j.salary || j.sal || '',
+        notes: 'Applied via Glowminds',
+        logo: j.logo,
+        source: j.source || 'ats',
+        jobUrl: j.url,
+        jobId: j.id,
+      })
+      if (application) {
+        addToast('success', `Applied to ${j.title} at ${company}! Added to your tracker.`)
+        if (j.url) window.open(j.url, '_blank', 'noopener,noreferrer')
+      }
+    } catch {
+      addToast('error', 'Could not track application — you may have reached the free limit.')
+    } finally {
+      setApplying(false)
     }
   }
 

@@ -4,14 +4,7 @@ import Razorpay from "razorpay";
 import { requireAuth } from "../../middleware/auth.js";
 import { ApiError } from "../../middleware/errors.js";
 import { env } from "../../config/env.js";
-import { getFirestore } from "../../config/firebase.js";
-import { admin } from "../../config/firebase.js";
-
-import { PRO_TIER } from "../../constants/plans.js";
-import {
-  billingPlansFromConfig,
-  getPricingConfig,
-} from "../../services/pricingConfig.js";
+import { fulfillOrder } from "../../services/fulfillOrder.js";
 
 function getClient() {
   if (!env.razorpayKeyId || !env.razorpayKeySecret) {
@@ -31,6 +24,9 @@ const router = Router();
 router.post("/create-order", requireAuth, async (req, res, next) => {
   try {
     const { plan } = req.body || {};
+    const { billingPlansFromConfig, getPricingConfig } = await import(
+      "../../services/pricingConfig.js"
+    );
     const pricing = await getPricingConfig();
     const PLANS = billingPlansFromConfig(pricing);
     if (!PLANS[plan]) throw new ApiError("invalid-argument", "Invalid plan");
@@ -73,40 +69,20 @@ router.post("/verify-payment", requireAuth, async (req, res, next) => {
 
     const rzp = getClient();
     const order = await rzp.orders.fetch(orderId);
-    const pricing = await getPricingConfig();
-    const PLANS = billingPlansFromConfig(pricing);
-    const plan = order.notes?.plan || "monthly";
-    const planConfig = PLANS[plan] || PLANS.monthly;
+    const payment = await rzp.payments.fetch(paymentId);
 
-    if (Number(order.amount) !== planConfig.amount) {
-      throw new ApiError("permission-denied", "Order amount does not match current plan pricing");
+    if (order.notes?.uid && order.notes.uid !== req.user.uid) {
+      throw new ApiError("permission-denied", "Order does not belong to this user");
     }
 
-    const now = new Date();
-    const endDate = new Date(
-      now.getTime() + planConfig.durationDays * 86400_000,
-    );
+    const result = await fulfillOrder({
+      uid: req.user.uid,
+      order,
+      payment,
+      source: "verify",
+    });
 
-    await getFirestore()
-      .collection("users")
-      .doc(req.user.uid)
-      .set(
-        {
-          subscription: {
-            plan,
-            tier: PRO_TIER,
-            status: "active",
-            startDate: now.toISOString(),
-            endDate: endDate.toISOString(),
-            razorpayOrderId: orderId,
-            razorpayPaymentId: paymentId,
-          },
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        },
-        { merge: true },
-      );
-
-    res.json({ success: true, plan, endDate: endDate.toISOString() });
+    res.json(result);
   } catch (err) {
     next(err instanceof ApiError ? err : new ApiError("internal", err.message));
   }

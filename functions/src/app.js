@@ -5,9 +5,13 @@ import { errorHandler, notFoundHandler } from "./middleware/errors.js";
 import aiRoutes from "./routes/ai/index.js";
 import jobsSearchRoutes from "./routes/jobs/search.js";
 import paymentRoutes from "./routes/payments/razorpay.js";
+import paymentWebhookRoutes from "./routes/payments/webhook.js";
 import usageRoutes from "./routes/usage/track.js";
 import adminRoutes from "./routes/admin/index.js";
 import configRoutes from "./routes/config/index.js";
+import entitlementsRoutes from "./routes/entitlements/index.js";
+import applicationsRoutes from "./routes/applications/index.js";
+import resumesRoutes from "./routes/resumes/index.js";
 
 export function createApp() {
   const app = express();
@@ -23,6 +27,13 @@ export function createApp() {
       },
       credentials: true,
     }),
+  );
+
+  // Razorpay webhook signature verification requires the raw request body.
+  app.use(
+    "/api/payments/webhook",
+    express.raw({ type: "application/json" }),
+    paymentWebhookRoutes,
   );
 
   app.use(express.json({ limit: "1mb" }));
@@ -42,8 +53,9 @@ export function createApp() {
   app.use("/api/usage", usageRoutes);
   app.use("/api/config", configRoutes);
   app.use("/api/admin", adminRoutes);
-  // Gamification (badges/streak/notifications) writes directly to Firestore
-  // from the client (firestore.rules enforces ownership). No backend route.
+  app.use("/api/entitlements", entitlementsRoutes);
+  app.use("/api/applications", applicationsRoutes);
+  app.use("/api/resumes", resumesRoutes);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

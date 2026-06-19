@@ -4,6 +4,7 @@ import useAppStore from '@/store/authStore'
 import useNotifStore from '@/store/notifStore'
 import useUpgradePro from '@/hooks/useUpgradePro'
 import useIsPro from '@/hooks/useIsPro'
+import useEntitlements from '@/hooks/useEntitlements'
 import { useYearlyPriceLabel } from '@/hooks/usePricingConfig'
 import SidebarProfileMenu from '@/components/layout/SidebarProfileMenu'
 import BrandLogo, { GlowmindsWordmark } from '@/components/BrandLogo'
@@ -58,6 +59,7 @@ export default function DashboardSidebar() {
   const { loadNotifs, reset: resetNotifs } = useNotifStore()
   const { startUpgrade, loading: upgradeLoading } = useUpgradePro()
   const isPro = useIsPro()
+  const { creditBalance, creditCosts } = useEntitlements()
   const yearlyPriceLabel = useYearlyPriceLabel()
   const { setOpenMobile, state } = useSidebarState()
   const iconCollapsed = state === 'collapsed'
@@ -135,7 +137,12 @@ export default function DashboardSidebar() {
 
   const renderNavItem = (item) => {
     const active = isNavActive(pathname, item)
-    const locked = item.proOnly && !isPro
+    const creditCost = item.creditAction ? creditCosts?.[item.creditAction] : null
+    const hasCreditsForItem =
+      typeof creditBalance === 'number' &&
+      typeof creditCost === 'number' &&
+      creditBalance >= creditCost
+    const locked = item.proOnly && !isPro && !hasCreditsForItem
     const collapsedTooltip = locked
       ? proNavCollapsedTooltip(item.label, item.proHint || 'Premium AI tool.', yearlyPriceLabel)
       : item.label
@@ -255,7 +262,26 @@ export default function DashboardSidebar() {
 
       <SidebarFooter className="gap-1">
         {!isPro && (
-          <Button
+          <>
+            {typeof creditBalance === 'number' && (
+              <div
+                className={cn(
+                  'rounded-lg border border-primary/20 bg-primary/5 px-2.5 py-2 text-left',
+                  iconCollapsed && 'px-2 text-center',
+                )}
+              >
+                {!iconCollapsed ? (
+                  <>
+                    <p className="text-[10.5px] font-bold uppercase tracking-wide text-primary">AI credits</p>
+                    <p className="text-sm font-black tabular-nums text-foreground">{creditBalance} left</p>
+                    <p className="text-[10px] text-muted-foreground">Try AI Coach, cover letters & more</p>
+                  </>
+                ) : (
+                  <AppIcon name="sparkle" className="mx-auto size-4 text-primary" aria-label={`${creditBalance} AI credits`} />
+                )}
+              </div>
+            )}
+            <Button
             type="button"
             variant="default"
             disabled={upgradeLoading}
@@ -280,6 +306,14 @@ export default function DashboardSidebar() {
               </span>
             )}
           </Button>
+          </>
+        )}
+
+        {isPro && typeof creditBalance === 'number' && !iconCollapsed && (
+          <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-2.5 py-2">
+            <p className="text-[10.5px] font-bold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">Pro credits</p>
+            <p className="text-sm font-black tabular-nums text-foreground">{creditBalance} remaining</p>
+          </div>
         )}
 
         <SidebarProfileMenu

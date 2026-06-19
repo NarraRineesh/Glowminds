@@ -4,6 +4,7 @@ import { ToolPage, ToolSidebarLayout } from '@/features/dashboard/components/too
 import { Badge, Button, DashboardCard, Progress, Textarea, cn } from '@/components/ui'
 import useAppStore from '@/store/authStore'
 import UpgradeGate from '@/components/UpgradeGate'
+import { AiCreditsBadge } from '@/components/dashboard/PlanUsageSummary'
 import { apiFetch } from '@/services/apiClient'
 
 const SAMPLE = `I has been working as a developer for 3 years, and i build many projects with React. My team mate said my english need improvement.`
@@ -104,7 +105,7 @@ export default function GrammarCheckSection() {
   )
 
   return (
-    <UpgradeGate feature="Grammar Check">
+    <UpgradeGate feature="Grammar Check" creditAction="grammar">
       <ToolPage>
         <SectionHeader
           badge="AI · Writing"
@@ -112,6 +113,7 @@ export default function GrammarCheckSection() {
           title="Polish every sentence"
           accent="every sentence"
           subtitle="Paste any text — bios, emails, application answers — and we'll fix grammar, score it, and call out specific edits."
+          actions={<AiCreditsBadge action="grammar" />}
         />
 
         <ToolSidebarLayout sidebar={sidebar} sidebarRight>

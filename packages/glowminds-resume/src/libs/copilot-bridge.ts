@@ -44,6 +44,7 @@ export type CopilotInitPayload = {
 	seedFromProfile?: boolean;
 	isPro?: boolean;
 	onUpgrade?: () => void;
+	onResumeCreate?: () => Promise<void>;
 };
 
 type BridgeMessage =

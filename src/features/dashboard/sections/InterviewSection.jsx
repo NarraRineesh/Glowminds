@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo } from 'react'
 import useAppStore from '@/store/authStore'
 import useInterviewStore from '@/store/interviewStore'
 import UpgradeGate from '@/components/UpgradeGate'
+import { AiCreditsBadge } from '@/components/dashboard/PlanUsageSummary'
 import {
   AppIcon,
   Badge,
@@ -214,11 +215,15 @@ export default function InterviewSection() {
 
   if (phase === 'setup') {
     return (
-      <UpgradeGate feature="Interview Prep">
+      <UpgradeGate feature="Interview Prep" creditAction="interviewSession">
         <PageTitle
           title="Interview Prep"
           subtitle="AI-powered MCQ mock interviews — pick the best option, get instant scoring + study plan"
+          className="mb-4"
         />
+        <div className="mb-4">
+          <AiCreditsBadge action="interviewSession" />
+        </div>
 
         <Card>
           <CardHeader>
@@ -290,7 +295,7 @@ export default function InterviewSection() {
   if (phase === 'practicing' && q) {
     const selected = picks[currentIdx]
     return (
-      <UpgradeGate feature="Interview Prep">
+      <UpgradeGate feature="Interview Prep" creditAction="interviewSession">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
           <PageTitle
             title="Mock Interview"
@@ -440,7 +445,7 @@ export default function InterviewSection() {
 
   if (phase === 'grading') {
     return (
-      <UpgradeGate feature="Interview Prep">
+      <UpgradeGate feature="Interview Prep" creditAction="interviewSession">
         <PageTitle
           title="Grading Session…"
           subtitle="Computing your score and asking the AI for a tailored study plan"
@@ -463,7 +468,7 @@ export default function InterviewSection() {
     const summaryColor = percent >= 70 ? 'text-emerald-500' : percent >= 50 ? 'text-amber-500' : 'text-destructive'
 
     return (
-      <UpgradeGate feature="Interview Prep">
+      <UpgradeGate feature="Interview Prep" creditAction="interviewSession">
         <PageTitle
           title="Session Complete"
           subtitle={`Here's how you did in your ${role} mock interview`}

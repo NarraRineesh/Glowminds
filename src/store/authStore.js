@@ -48,22 +48,31 @@ const useAppStore = create((set) => ({
 
   doGoogleLogin: async () => {
     const cred = await signInWithPopup(auth, googleProvider)
-    const existing = await getDoc(doc(db, 'users', cred.user.uid))
+    const userRef = doc(db, 'users', cred.user.uid)
+    const existing = await getDoc(userRef)
+    const gName = cred.user.displayName || ''
+    const userDoc = createDefaultUserDoc({
+      uid: cred.user.uid,
+      email: cred.user.email,
+      firstName: gName.split(' ')[0] || '',
+      lastName: gName.split(' ').slice(1).join(' ') || '',
+      displayName: gName,
+      photoURL: cred.user.photoURL,
+    })
+
     if (!existing.exists()) {
-      const gName = cred.user.displayName || ''
-      const userDoc = createDefaultUserDoc({
-        uid: cred.user.uid,
-        email: cred.user.email,
-        firstName: gName.split(' ')[0] || '',
-        lastName: gName.split(' ').slice(1).join(' ') || '',
-        displayName: gName,
-        photoURL: cred.user.photoURL,
-      })
-      await setDoc(doc(db, 'users', cred.user.uid), {
+      await setDoc(userRef, {
         ...userDoc,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       })
+    } else {
+      // Merge safe profile fields only — subscription/credits are server-authoritative.
+      const { subscription: _subscription, ...safeFields } = userDoc
+      await setDoc(userRef, {
+        ...safeFields,
+        updatedAt: serverTimestamp(),
+      }, { merge: true })
     }
     return cred.user
   },

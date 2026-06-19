@@ -22,6 +22,7 @@ import useTheme from '@/hooks/useTheme'
 import useIsPro from '@/hooks/useIsPro'
 import useUpgradePro from '@/hooks/useUpgradePro'
 import usePricingConfig, { useYearlyPriceLabel } from '@/hooks/usePricingConfig'
+import useEntitlements from '@/hooks/useEntitlements'
 import { formatSubscriptionEndDate, isActiveProSubscription } from '@/constants/plans'
 import { FREE_LIMITS as DEFAULT_FREE_LIMITS } from '@/constants/plans'
 import { sendPasswordResetEmail } from 'firebase/auth'
@@ -354,7 +355,6 @@ function BillingPanel({
   subscription,
   proActive,
   isPro,
-  isAdmin,
   renewalLabel,
   upgradeLoading,
   startUpgrade,
@@ -367,12 +367,10 @@ function BillingPanel({
   yearlyPriceLabel,
   billingBlurb,
   termsBillingText,
+  credits,
+  creditCosts,
 }) {
-  const planTitle = isAdmin && !proActive
-    ? 'Glowminds Pro (Admin)'
-    : proActive || (isPro && !proActive)
-      ? 'Glowminds Pro'
-      : 'Free'
+  const planTitle = isPro ? 'Glowminds Pro' : 'Free'
 
   const billingPlan = planLabel(subscription, plans)
   const startLabel = formatSubDate(subscription?.startDate)
@@ -390,11 +388,6 @@ function BillingPanel({
             <div>
               <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Current plan</p>
               <p className="mt-1 text-lg font-black text-foreground">{planTitle}</p>
-              {isAdmin && !proActive && (
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Full Pro access via admin — no separate subscription required.
-                </p>
-              )}
               {proActive && renewalLabel && (
                 <p className="mt-1 text-sm text-muted-foreground">
                   {subscription?.status === 'active' ? 'Renews' : 'Expires'} on {renewalLabel}
@@ -404,13 +397,28 @@ function BillingPanel({
               {!isPro && (
                 <p className="mt-1 text-sm text-muted-foreground">{freeSummary}</p>
               )}
-              {isPro && !proActive && !isAdmin && (
+              {typeof credits?.balance === 'number' && (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  AI credits: <span className="font-semibold text-foreground">{credits.balance}</span>
+                  {isPro && credits.periodEnd
+                    ? ` · resets ${new Date(credits.periodEnd).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
+                    : !isPro
+                      ? ' lifetime (free tier)'
+                      : ''}
+                </p>
+              )}
+              {creditCosts && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Coach {creditCosts.careerChat} · Cover letter {creditCosts.coverLetter} · Interview {creditCosts.interviewSession} credits
+                </p>
+              )}
+              {isPro && !proActive && (
                 <p className="mt-1 text-sm text-muted-foreground">Your subscription is not active. Upgrade to restore Pro features.</p>
               )}
             </div>
             {isPro && (
               <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-500">
-                {isAdmin && !proActive ? 'Admin access' : 'Pro active'}
+                Pro active
               </span>
             )}
           </div>
@@ -489,11 +497,6 @@ function BillingPanel({
         </DashboardCard>
       )}
 
-      {isPro && !proActive && isAdmin && (
-        <DashboardCard titleIcon="admin" title="Admin billing" contentClassName="text-sm text-muted-foreground">
-          Admin accounts are not billed through Razorpay. Contact the platform owner if you need to change access.
-        </DashboardCard>
-      )}
     </div>
   )
 }
@@ -515,6 +518,7 @@ export default function SettingsSection() {
     marketing,
   } = usePricingConfig()
   const freeLimits = pricingFreeLimits || DEFAULT_FREE_LIMITS
+  const { entitlements } = useEntitlements()
   const userDoc = useProfileStore((s) => s.user)
   const profileLoaded = useProfileStore((s) => s.loaded)
   const patchUserDoc = useProfileStore((s) => s.patchUserDoc)
@@ -688,7 +692,6 @@ export default function SettingsSection() {
               subscription={subscription}
               proActive={proActive}
               isPro={isPro}
-              isAdmin={isAdmin}
               renewalLabel={renewalLabel}
               upgradeLoading={upgradeLoading}
               startUpgrade={startUpgrade}
@@ -701,6 +704,8 @@ export default function SettingsSection() {
               yearlyPriceLabel={yearlyPriceLabel}
               billingBlurb={marketing?.billingBlurb}
               termsBillingText={marketing?.termsBillingText}
+              credits={entitlements?.credits}
+              creditCosts={entitlements?.creditCosts}
             />
           </SettingsTabPanel>
         </TabsContent>

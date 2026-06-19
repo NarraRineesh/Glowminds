@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { requirePro } from "../../middleware/requirePro.js";
 
+import { aiRateLimitStack } from "../../middleware/aiRateLimit.js";
 import careerChat from "./careerChat.js";
 import interviewQuestions from "./interviewQuestions.js";
 import evaluateSession from "./evaluateSession.js";
@@ -11,7 +11,7 @@ import paraphrase from "./paraphrase.js";
 
 const router = Router();
 
-router.use(requirePro);
+router.use(aiRateLimitStack);
 router.use(careerChat);
 router.use(interviewQuestions);
 router.use(evaluateSession);

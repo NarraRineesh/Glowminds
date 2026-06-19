@@ -21,7 +21,7 @@ import {
   updateAdminPricingConfig,
 } from '@/services/adminApi'
 import usePricingStore from '@/store/pricingStore'
-import { formatSubscriptionEndDate } from '@/constants/plans'
+import { formatSubscriptionEndDate, PLANS, FREE_LIMITS } from '@/constants/plans'
 
 const BADGE_TONES = {
   gray: 'border-border bg-secondary text-muted-foreground',
@@ -260,10 +260,10 @@ function PricingPanel({ addToast }) {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
-  const [yearlyInr, setYearlyInr] = useState('399')
-  const [monthlyInr, setMonthlyInr] = useState('49')
-  const [freeApplications, setFreeApplications] = useState('5')
-  const [freeResumes, setFreeResumes] = useState('3')
+  const [yearlyInr, setYearlyInr] = useState(String(PLANS.yearly.amountPaise / 100))
+  const [monthlyInr, setMonthlyInr] = useState(String(PLANS.monthly.amountPaise / 100))
+  const [freeApplications, setFreeApplications] = useState(String(FREE_LIMITS.applications))
+  const [freeResumes, setFreeResumes] = useState(String(FREE_LIMITS.resumes))
   const [freeTemplate, setFreeTemplate] = useState('onyx')
   const [proTagline, setProTagline] = useState('')
   const [heroDescription, setHeroDescription] = useState('')
