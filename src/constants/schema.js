@@ -43,8 +43,8 @@ export function normalizeApplicationStatus(raw) {
 
 // ----- Default factories -----
 
-// Coarse-grained career level captured during onboarding. Drives default
-// resume sections and the recommended interview-question difficulty.
+// Coarse-grained career level used by profile preferences, resume defaults,
+// and recommended interview-question difficulty.
 export const CAREER_LEVELS = Object.freeze({
   FRESHER: 'fresher',
   ENTRY: '0-2',
@@ -259,11 +259,6 @@ function createDefaultSettings() {
 
 function createDefaultFlags() {
   return {
-    onboardingCompleted: false,
-    onboardingCompletedAt: null,
-    // Index of the last successfully completed onboarding wizard step
-    // (0-based). Allows resuming the wizard after refresh / partial close.
-    onboardingStep: 0,
     defaultResumeId: null,
   }
 }

@@ -4,7 +4,6 @@ import SEO from '@/components/SEO'
 import { PAGE_SEO } from '@/config/seo'
 import DashboardSidebar from '@/components/layout/DashboardSidebar'
 import ThemeSync from '@/components/ThemeSync'
-import DashboardModalsHost from '@/features/dashboard/modals/DashboardModalsHost'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui'
 
 export default function DashboardShell() {
@@ -50,8 +49,6 @@ export default function DashboardShell() {
           </motion.div>
         )}
       </SidebarInset>
-
-      <DashboardModalsHost />
     </SidebarProvider>
   )
 }

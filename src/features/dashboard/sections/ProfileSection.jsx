@@ -651,7 +651,7 @@ export default function ProfileSection() {
               <div className="min-w-0">
                 <h1
                   className="flex flex-wrap items-center gap-2 text-xl font-bold tracking-tight text-foreground sm:text-2xl"
-                  title="Name is set during onboarding and can’t be changed"
+                  title="Name is locked for account consistency"
                 >
                   <span>{name}</span>
                   <Badge variant="outline" className="text-[0.65rem] font-semibold uppercase tracking-wide">

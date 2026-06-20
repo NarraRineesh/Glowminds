@@ -48,12 +48,6 @@ export default function useAuthListener() {
         }
 
         setUser(baseUser)
-
-        try {
-          const uid = firebaseUser.uid
-          localStorage.removeItem(`nx_onboarding_done_${uid}`)
-          localStorage.removeItem('nx_onboarding_done')
-        } catch { /* ignore */ }
       } else {
         setUser(null)
         useProfileStore.getState().reset()

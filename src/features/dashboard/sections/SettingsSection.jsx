@@ -396,19 +396,6 @@ export default function SettingsSection() {
   const proActive = isActiveProSubscription(subscription)
   const renewalLabel = formatSubscriptionEndDate(subscription)
 
-  const replayOnboarding = async () => {
-    try {
-      const flags = useProfileStore.getState().user?.flags || {}
-      await useProfileStore.getState().patchUserDoc({
-        flags: { ...flags, onboardingCompleted: false, onboardingStep: 0 },
-      })
-      addToast('info', 'Onboarding will replay on next dashboard visit')
-    } catch (err) {
-      console.error('replayOnboarding:', err)
-      addToast('error', 'Could not reset onboarding')
-    }
-  }
-
   const sendPasswordReset = async () => {
     const email = user?.email
     if (!email) {
@@ -570,15 +557,6 @@ export default function SettingsSection() {
                 label="In-app notifications"
                 hint="Toasts inside Glowminds for product updates, job matches, and reminders while you’re active."
               />
-              <div className="mt-2 border-t border-border pt-3">
-                <p className="mb-2 text-sm text-muted-foreground">
-                  Re-run guided flows without losing your profile data.
-                </p>
-                <div className="mb-2 text-[0.66rem] font-bold uppercase tracking-wider text-muted-foreground">Replays</div>
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" size="sm" onClick={replayOnboarding}>Replay onboarding</Button>
-                </div>
-              </div>
             </DashboardCard>
           </SettingsTabPanel>
         </TabsContent>
