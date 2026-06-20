@@ -26,6 +26,7 @@ import {
   featureBadgeClass,
 } from '@/features/public/components/landingPageUi'
 import { DEFAULT_LANDING_CONTENT, getHomeFeatures } from '@/data/landingDefaults'
+import useLandingConfig from '@/hooks/useLandingConfig'
 import usePricingConfig from '@/hooks/usePricingConfig'
 import {
   Accordion,
@@ -53,32 +54,17 @@ const {
   testimonials,
   faqs,
   stats,
-  pricing: landingPricingCopy,
 } = DEFAULT_LANDING_CONTENT
 
 const HOME_FEATURES = getHomeFeatures(features)
 
 export default function LandingPage() {
   const navigate = useNavigate()
+  const { config: landingConfig } = useLandingConfig()
   const { pricing: configPricing } = usePricingConfig()
-
+  const resolvedHeroMetrics = landingConfig.heroMetrics || heroMetrics
+  const resolvedStats = landingConfig.stats || stats
   const pricing = configPricing
-    ? {
-        free: {
-          ...configPricing.free,
-          desc: landingPricingCopy?.free?.desc || configPricing.free.desc,
-          features: configPricing.free.features?.length
-            ? configPricing.free.features
-            : landingPricingCopy?.free?.features,
-        },
-        pro: {
-          ...configPricing.pro,
-          desc: landingPricingCopy?.pro?.desc || configPricing.pro.desc,
-          highlights: landingPricingCopy?.pro?.highlights,
-          features: configPricing.pro.features,
-        },
-      }
-    : landingPricingCopy
 
   const goSignup = () => navigate('/signup')
 
@@ -97,9 +83,9 @@ export default function LandingPage() {
 
       <LandingHero
         hero={hero}
-        heroMetrics={heroMetrics}
+        heroMetrics={resolvedHeroMetrics}
         trustBadges={trustBadges}
-        stats={stats}
+        stats={resolvedStats}
         onSignup={goSignup}
       />
 
@@ -135,7 +121,7 @@ export default function LandingPage() {
                     </Button>
                   ) : null}
                 </div>
-                <LandingMockupCard src={feature.image} />
+                <LandingMockupCard src={feature.image} stats={resolvedStats} />
               </LandingFeatureGrid>
             </LandingReveal>
           ))}

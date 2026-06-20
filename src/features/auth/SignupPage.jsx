@@ -5,18 +5,21 @@ import useAppStore from '@/store/authStore'
 import SEO from '@/components/SEO'
 import { PAGE_SEO } from '@/config/seo'
 import BrandLogo, { GlowmindsWordmark } from '@/components/BrandLogo'
+import useLandingConfig from '@/hooks/useLandingConfig'
 import { Badge, Button, Card, CardContent, FormField, FormRow, Input, Separator, AppIcon } from '@/components/ui'
 
 const fadeUp = { hidden: { opacity: 0, y: 24 }, visible: { opacity: 1, y: 0 } }
 const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.08, delayChildren: 0.1 } } }
 const ease = [0.16, 1, 0.3, 1]
 
-const BENEFITS = [
-  { ico: 'check-circle', title: 'Affordable Plans', desc: 'Powerful career tools at prices that work for students and freshers.' },
-  { ico: 'lightning', title: 'Ready in 2 Minutes', desc: 'Sign up, build your resume, and start applying — all in minutes.' },
-  { ico: 'target', title: '94% Match Accuracy', desc: 'Our AI finds the most relevant jobs for your skills and goals.' },
-  { ico: 'lock', title: 'Secure & Private', desc: 'Your data is encrypted. We never sell your information.' },
-]
+function getBenefits(stats = {}) {
+  return [
+    { ico: 'check-circle', title: 'Affordable Plans', desc: 'Powerful career tools at prices that work for students and freshers.' },
+    { ico: 'lightning', title: 'Ready in 2 Minutes', desc: 'Sign up, build your resume, and start applying — all in minutes.' },
+    { ico: 'target', title: `${stats.matchRate || '94%'} Match Accuracy`, desc: 'Our AI finds the most relevant jobs for your skills and goals.' },
+    { ico: 'lock', title: 'Secure & Private', desc: 'Your data is encrypted. We never sell your information.' },
+  ]
+}
 
 function AuthDivider({ label }) {
   return (
@@ -32,6 +35,9 @@ export default function SignupPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { doSignup, doGoogleLogin, addToast } = useAppStore()
+  const { config: landingConfig } = useLandingConfig()
+  const socialProof = landingConfig.socialProof || {}
+  const benefits = getBenefits(landingConfig.stats)
   const [fn, setFn] = useState('')
   const [ln, setLn] = useState('')
   const [email, setEmail] = useState('')
@@ -104,7 +110,7 @@ export default function SignupPage() {
           <motion.div className="hidden flex-col gap-7 md:flex" variants={stagger} initial="hidden" animate="visible">
             <motion.div variants={fadeUp} transition={{ duration: .6, ease }}>
               <Badge variant="outline" className="mb-4 border-emerald-500/20 bg-emerald-500/10 text-emerald-500">
-                ✦ JOIN 52,000+ STUDENTS
+                {socialProof.signupBadge || '✦ JOIN 52,000+ STUDENTS'}
               </Badge>
               <h2 className="mb-3 text-[clamp(1.6rem,3vw,2.4rem)] font-black leading-tight tracking-tight">
                 Launch Your Career<br />
@@ -116,7 +122,7 @@ export default function SignupPage() {
             </motion.div>
 
             <motion.div variants={fadeUp} transition={{ duration: .5, ease }} className="grid grid-cols-2 gap-3">
-              {BENEFITS.map(b => (
+              {benefits.map(b => (
                 <div key={b.title} className="rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/30">
                   <AppIcon name={b.ico} className="mb-2 size-5 text-primary" />
                   <div className="mb-1 text-[0.82rem] font-extrabold">{b.title}</div>

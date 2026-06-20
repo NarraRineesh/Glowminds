@@ -15,12 +15,12 @@ export function getLandingPreviewKey(src) {
   return match?.[1] || 'dashboard'
 }
 
-function DashboardPreview() {
+function DashboardPreview({ stats }) {
   return (
     <MockupShell className="space-y-4">
       <div className="grid grid-cols-3 gap-2">
         {[
-          { label: 'Match rate', value: '94%', tone: 'text-emerald-500' },
+          { label: 'Match rate', value: stats?.matchRate || '94%', tone: 'text-emerald-500' },
           { label: 'Applications', value: '12', tone: 'text-primary' },
           { label: 'Interviews', value: '3', tone: 'text-violet-500' },
         ].map((stat) => (
@@ -329,17 +329,17 @@ const PREVIEWS = {
   'grammar-checker': GrammarCheckerPreview,
 }
 
-export function LandingMockupPreview({ preview, src, className }) {
+export function LandingMockupPreview({ preview, src, stats, className }) {
   const key = preview || getLandingPreviewKey(src)
   const Preview = PREVIEWS[key] || DashboardPreview
   return (
     <div className={cn('w-full', className)} aria-hidden>
-      <Preview />
+      <Preview stats={stats} />
     </div>
   )
 }
 
-export function LandingMockupCard({ preview, src, className }) {
+export function LandingMockupCard({ preview, src, stats, className }) {
   return (
     <div className={cn('overflow-hidden rounded-lg border border-border bg-card', className)}>
       <div className="flex gap-1.5 border-b border-border px-3 py-2">
@@ -347,7 +347,7 @@ export function LandingMockupCard({ preview, src, className }) {
         <span className="size-2 rounded-full bg-amber-500/80" />
         <span className="size-2 rounded-full bg-emerald-500/80" />
       </div>
-      <LandingMockupPreview preview={preview} src={src} />
+      <LandingMockupPreview preview={preview} src={src} stats={stats} />
     </div>
   )
 }

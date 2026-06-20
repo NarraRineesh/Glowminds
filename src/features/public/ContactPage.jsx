@@ -18,6 +18,7 @@ import {
   PublicPageSection,
 } from '@/features/public/components/publicPageUi'
 import { fadeUp, motionEase, staggerContact } from '@/features/public/motionVariants'
+import useLandingConfig from '@/hooks/useLandingConfig'
 import { AppIcon,
   Accordion,
   Badge,
@@ -33,13 +34,6 @@ import { AppIcon,
   Textarea,
 } from '@/components/ui'
 
-const CONTACT_INFO = [
-  { ico: 'envelope', title: 'Email Us', value: 'hello@glowminds.in', desc: 'We reply within 24 hours' },
-  { ico: 'phone', title: 'Call Us', value: '+91 98765 43210', desc: 'Mon-Fri, 9 AM - 6 PM IST' },
-  { ico: 'map-pin', title: 'Visit Us', value: 'Bangalore, India', desc: 'HSR Layout, Sector 1' },
-  { ico: 'chat', title: 'Live Chat', value: 'In-app AI assistant', desc: 'Available 24/7' },
-]
-
 const FAQS = [
   { q: 'Is Glowminds affordable?', a: 'Absolutely! Glowminds offers affordable plans designed for students and fresh graduates. All core features — resume builder, job matching, AI coach, and application tracker — are available at student-friendly prices.' },
   { q: 'How does the AI job matching work?', a: 'Our AI scans 50+ job portals daily and compares job requirements with your skills, education, and preferences to generate a personalized match score.' },
@@ -50,6 +44,8 @@ const FAQS = [
 
 export default function ContactPage() {
   const { addToast } = useAppStore()
+  const { config: landingConfig } = useLandingConfig()
+  const contactInfo = landingConfig.contactInfo || []
   const [form, setForm] = useState({ name: '', email: '', mobile: '', subject: '', message: '' })
   const [sending, setSending] = useState(false)
   const [errors, setErrors] = useState({})
@@ -135,9 +131,9 @@ export default function ContactPage() {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: '-40px' }}
-            className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
+            className="grid grid-cols-1 gap-4 sm:grid-cols-3"
           >
-            {CONTACT_INFO.map((c) => (
+            {contactInfo.map((c) => (
               <motion.div key={c.title} variants={fadeUp} transition={{ duration: 0.5, ease: motionEase }}>
                 <Card className="h-full text-center transition-colors hover:border-primary/30">
                   <CardContent className="pt-6">

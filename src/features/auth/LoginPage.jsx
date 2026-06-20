@@ -7,6 +7,7 @@ import useAppStore from '@/store/authStore'
 import SEO from '@/components/SEO'
 import { PAGE_SEO } from '@/config/seo'
 import BrandLogo, { GlowmindsWordmark } from '@/components/BrandLogo'
+import useLandingConfig from '@/hooks/useLandingConfig'
 import { Badge, Button, Card, CardContent, FormField, Input, Separator, AppIcon } from '@/components/ui'
 
 const fadeUp = { hidden: { opacity: 0, y: 24 }, visible: { opacity: 1, y: 0 } }
@@ -37,6 +38,8 @@ function AuthDivider({ label }) {
 export default function LoginPage() {
   const navigate = useNavigate()
   const { doLogin, doGoogleLogin, addToast } = useAppStore()
+  const { config: landingConfig } = useLandingConfig()
+  const socialProof = landingConfig.socialProof || {}
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -149,7 +152,7 @@ export default function LoginPage() {
                 ))}
               </div>
               <div>
-                <div className="text-sm font-bold">52,000+ students</div>
+                <div className="text-sm font-bold">{socialProof.loginStudents || '52,000+ students'}</div>
                 <div className="text-xs text-muted-foreground">already building their careers</div>
               </div>
             </motion.div>

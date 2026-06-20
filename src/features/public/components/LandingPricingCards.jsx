@@ -49,9 +49,9 @@ export default function LandingPricingCards({ pricing, onSignup }) {
           subtitle="Start free. Upgrade when you need more power."
         />
       </LandingReveal>
-      <LandingRevealStagger className={cn('mx-auto grid max-w-4xl gap-4 lg:items-stretch', isLg ? 'grid-cols-2' : 'grid-cols-1')}>
+      <LandingRevealStagger className={cn('mx-auto grid max-w-4xl gap-5 pt-2 lg:items-stretch', isLg ? 'grid-cols-2' : 'grid-cols-1')}>
         <LandingRevealItem>
-          <Card className="h-full">
+          <Card className="flex h-full flex-col">
             <CardHeader>
               <Badge variant="secondary">{pricing.free.label}</Badge>
               <div className="flex items-baseline gap-1 pt-2">
@@ -60,7 +60,7 @@ export default function LandingPricingCards({ pricing, onSignup }) {
               </div>
               <CardDescription>{pricing.free.desc}</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent className="flex-1 space-y-2">
               <LandingCheckList items={pricing.free.features} />
             </CardContent>
             <CardFooter className="mt-auto">
@@ -73,17 +73,17 @@ export default function LandingPricingCards({ pricing, onSignup }) {
         <LandingRevealItem>
           <Card
             className={cn(
-              'relative h-full border-primary/50 bg-gradient-to-b from-primary/5 to-card shadow-lg shadow-primary/10',
-              isLg && 'lg:scale-[1.02] lg:z-[1]',
+              'relative flex h-full flex-col border-primary/50 bg-gradient-to-b from-primary/5 to-card shadow-lg shadow-primary/10',
+              isLg && 'lg:z-[1]',
             )}
           >
             <Badge
               variant="outline"
-              className="absolute -top-3 left-1/2 -translate-x-1/2 border-primary/30 bg-primary text-primary-foreground"
+              className="absolute left-1/2 top-3 -translate-x-1/2 border-primary/30 bg-primary text-primary-foreground shadow-sm"
             >
               {launchOfferText}
             </Badge>
-            <CardHeader className="pt-8">
+            <CardHeader className="pt-12">
               <Badge variant="outline" className="w-fit border-primary/20 bg-primary/10 text-primary">
                 {pricing.pro.label}
               </Badge>
@@ -98,7 +98,7 @@ export default function LandingPricingCards({ pricing, onSignup }) {
               <p className="text-xs text-muted-foreground">{dailyEquivalent}</p>
               <CardDescription>{pricing.pro.desc}</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent className="flex-1 space-y-2">
               <LandingCheckList items={proHighlights} />
             </CardContent>
             <CardFooter className="mt-auto">
