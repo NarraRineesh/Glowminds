@@ -71,8 +71,7 @@ export function BrandLogo({
 export function GlowmindsWordmark({ className, as: Tag = 'span' }) {
   return (
     <Tag className={cn('truncate font-bold', className)}>
-      Glow
-      <span className="text-primary dark:text-inherit">minds</span>
+      Glowminds
     </Tag>
   )
 }
