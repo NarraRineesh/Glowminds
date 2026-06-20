@@ -72,7 +72,7 @@ export function buildResumeProfileSnapshot(authUser, profile, userDoc) {
   }
 }
 
-/** Firestore payload for users/{uid}/resumes/{resumeId}. */
+/** Firestore payload for resumes/{uid}_{resumeId}. */
 export function createResumeFirestorePayload({
   user,
   profile,

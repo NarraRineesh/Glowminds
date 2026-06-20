@@ -1,21 +1,24 @@
 import { i18n } from "@lingui/core";
 import { I18nProvider } from "@lingui/react";
 import { RouterProvider } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { LoadingScreen } from "@/components/layout/loading-screen";
 import type { CopilotInitPayload } from "@/libs/copilot-bridge";
 import { cn } from "@/lib/utils/style";
 import { getEmbedRouter } from "@/embed/router";
-import { clearEmbedConfig, setEmbedConfig } from "@/embed/runtime";
+import { clearEmbedConfig, setEmbedConfig, setEmbedRouteSync } from "@/embed/runtime";
 import { getLocale, loadLocale } from "@/libs/locale";
 
 export type ResumeBuilderRootProps = CopilotInitPayload & {
 	className?: string;
 	initialPath?: string;
+	externalPath?: string;
+	onRouteChange?: (embedPath: string, replace: boolean) => void;
 };
 
 export function ResumeBuilderRoot(props: ResumeBuilderRootProps) {
-	const { className, initialPath = "/local", ...config } = props;
+	const { className, initialPath = "/local", externalPath, onRouteChange, ...config } = props;
+	const initialPathRef = useRef(initialPath);
 	const [router, setRouter] = useState<Awaited<ReturnType<typeof getEmbedRouter>> | null>(null);
 	const [i18nReady, setI18nReady] = useState(() => i18n.locale !== undefined);
 	const resumeIdsKey = useMemo(
@@ -27,7 +30,27 @@ export function ResumeBuilderRoot(props: ResumeBuilderRootProps) {
 
 	useEffect(() => {
 		setEmbedConfig(config);
-	}, [resumeIdsKey, config.theme, themeTokensKey, config.user?.uid, isProKey]);
+	}, [resumeIdsKey, config.theme, themeTokensKey, config.user?.uid, isProKey, config.onResumeSave, config.onResumeDelete]);
+
+	useEffect(() => {
+		if (!router) return;
+		void import("@/features/resume/builder/copilot-storage").then(({ hydrateFromCopilot, migrateLocalResumesToHost }) => {
+			hydrateFromCopilot(config);
+			if ((config.resumes?.length ?? 0) === 0) {
+				void migrateLocalResumesToHost(config.onResumeSave);
+			}
+		});
+	}, [router, resumeIdsKey, config.onResumeSave]);
+
+	useEffect(() => {
+		if (!externalPath) {
+			setEmbedRouteSync(null);
+			return undefined;
+		}
+
+		setEmbedRouteSync({ externalPath, onRouteChange });
+		return () => setEmbedRouteSync(null);
+	}, [externalPath, onRouteChange]);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -37,14 +60,14 @@ export function ResumeBuilderRoot(props: ResumeBuilderRootProps) {
 			if (cancelled) return;
 			setI18nReady(true);
 
-			const instance = await getEmbedRouter(initialPath);
+			const instance = await getEmbedRouter(initialPathRef.current);
 			if (!cancelled) setRouter(instance);
 		})();
 
 		return () => {
 			cancelled = true;
 		};
-	}, [initialPath]);
+	}, []);
 
 	useEffect(() => () => clearEmbedConfig(), []);
 

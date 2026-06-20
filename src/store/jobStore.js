@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 import { searchBoardJobs, getTopMatches } from '@/services/jobSearch'
-import { doc, setDoc, deleteDoc, collection, getDocs, serverTimestamp } from 'firebase/firestore'
-import { db, auth } from '@/services/firebase'
+import { setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
+import { auth } from '@/services/firebase'
+import { savedJobRef, loadSavedJobs } from '@/utils/firestoreCollections'
 
 function buildJobSnapshot(job) {
   return {
@@ -213,8 +214,10 @@ const useJobStore = create((set, get) => ({
     if (!uid) return
     const snapshot = buildJobSnapshot(job)
     try {
-      await setDoc(doc(db, 'users', uid, 'savedJobs', snapshot.id), {
+      await setDoc(savedJobRef(uid, snapshot.id), {
         ...snapshot,
+        userId: uid,
+        jobId: snapshot.id,
         savedAt: serverTimestamp(),
       })
       set((s) => ({ savedJobs: [...s.savedJobs, { ...snapshot, savedAt: new Date() }] }))
@@ -227,7 +230,7 @@ const useJobStore = create((set, get) => ({
     const uid = auth.currentUser?.uid
     if (!uid) return
     try {
-      await deleteDoc(doc(db, 'users', uid, 'savedJobs', jobId))
+      await deleteDoc(savedJobRef(uid, jobId))
       set((s) => ({ savedJobs: s.savedJobs.filter((j) => j.id !== jobId) }))
     } catch (err) {
       console.error('Unsave job failed:', err)
@@ -243,8 +246,7 @@ const useJobStore = create((set, get) => ({
     if (!uid) return
     if (!force && get().savedJobsLoaded) return
     try {
-      const snap = await getDocs(collection(db, 'users', uid, 'savedJobs'))
-      const saved = snap.docs.map((d) => ({ ...d.data(), id: d.id }))
+      const saved = await loadSavedJobs(uid)
       set({ savedJobs: saved, savedJobsLoaded: true })
     } catch (err) {
       console.error('Load saved jobs failed:', err)

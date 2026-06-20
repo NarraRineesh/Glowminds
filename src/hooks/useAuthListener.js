@@ -42,7 +42,6 @@ export default function useAuthListener() {
           baseUser.lastName = userDoc.lastName || baseUser.lastName
           baseUser.displayName = userDoc.displayName || baseUser.displayName
           if (userDoc.photoURL) baseUser.photoURL = userDoc.photoURL
-          if (userDoc.subscription) baseUser.subscription = userDoc.subscription
           if (userDoc.settings) baseUser.settings = userDoc.settings
           if (userDoc.flags) baseUser.flags = userDoc.flags
         }

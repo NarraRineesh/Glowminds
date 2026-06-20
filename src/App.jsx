@@ -82,7 +82,7 @@ function AnimatedRoutes() {
             <JobDetailSection />
           </Suspense>
         } />
-        <Route path="resume" element={
+        <Route path="resume/:resumeId?" element={
           <Suspense fallback={<PageLoader />}>
             <GlowmindsResumeSection />
           </Suspense>

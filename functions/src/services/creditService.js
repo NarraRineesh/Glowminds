@@ -1,6 +1,14 @@
 import { admin, getFirestore } from "../config/firebase.js";
 import { hasProAccess, isTrustedProSubscription } from "../constants/plans.js";
 import { getPricingConfig } from "./pricingConfig.js";
+import {
+  applicationsCol,
+  readCredits,
+  readEntitlements,
+  readSubscription,
+  userCreditsRef,
+  userEntitlementsRef,
+} from "./userCollections.js";
 
 function defaultCredits(freeGrant) {
   return {
@@ -16,6 +24,7 @@ function defaultEntitlements() {
   return {
     resumeCount: 0,
     registeredResumeIds: [],
+    usage: {},
   };
 }
 
@@ -34,30 +43,43 @@ function addCalendarMonth(from) {
 /** Initialize free-tier credits on first access; cap client-seeded inflation. */
 export async function grantFreeTierIfNeeded(uid, pricing) {
   const freeGrant = pricing.freeLimits?.aiCredits ?? 10;
-  const db = getFirestore();
-  const ref = db.collection("users").doc(uid);
+  const ref = userCreditsRef(uid);
+  const sub = await readSubscription(uid);
 
-  await db.runTransaction(async (tx) => {
+  await getFirestore().runTransaction(async (tx) => {
     const snap = await tx.get(ref);
-    const data = snap.exists ? snap.data() : {};
-    const trustedPro = isTrustedProSubscription(data.subscription);
+    const entRef = userEntitlementsRef(uid);
+    const entSnap = await tx.get(entRef);
+    const trustedPro = isTrustedProSubscription(sub);
 
-    if (!data.credits) {
+    if (!snap.exists) {
       tx.set(
         ref,
         {
-          credits: defaultCredits(freeGrant),
-          entitlements: data.entitlements || defaultEntitlements(),
+          userId: uid,
+          ...defaultCredits(freeGrant),
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         },
         { merge: true },
       );
+
+      if (!entSnap.exists) {
+        tx.set(
+          entRef,
+          {
+            userId: uid,
+            ...defaultEntitlements(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          },
+          { merge: true },
+        );
+      }
       return;
     }
 
     if (trustedPro) return;
 
-    const credits = data.credits;
+    const credits = snap.data() || {};
     const used = credits.lifetimeUsed ?? 0;
     const granted = credits.lifetimeGranted ?? freeGrant;
     const inflated =
@@ -72,13 +94,12 @@ export async function grantFreeTierIfNeeded(uid, pricing) {
     tx.set(
       ref,
       {
-        credits: {
-          balance: Math.max(0, cappedGranted - used),
-          lifetimeGranted: cappedGranted,
-          lifetimeUsed: used,
-          periodStart: null,
-          periodEnd: null,
-        },
+        userId: uid,
+        balance: Math.max(0, cappedGranted - used),
+        lifetimeGranted: cappedGranted,
+        lifetimeUsed: used,
+        periodStart: null,
+        periodEnd: null,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       },
       { merge: true },
@@ -89,18 +110,17 @@ export async function grantFreeTierIfNeeded(uid, pricing) {
 /** Lazy monthly reset for active Pro subscribers. */
 export async function resetProPeriodIfNeeded(uid, pricing) {
   const proMonthly = pricing.proLimits?.aiCreditsPerMonth ?? 100;
-  const db = getFirestore();
-  const ref = db.collection("users").doc(uid);
+  const ref = userCreditsRef(uid);
   const now = new Date();
 
-  await db.runTransaction(async (tx) => {
+  await getFirestore().runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     if (!snap.exists) return;
 
-    const sub = snap.get("subscription");
+    const sub = await readSubscription(uid);
     if (!isTrustedProSubscription(sub)) return;
 
-    const credits = snap.get("credits") || {};
+    const credits = snap.data() || {};
     const periodEnd = parseIso(credits.periodEnd);
     if (periodEnd && periodEnd > now) return;
 
@@ -110,12 +130,10 @@ export async function resetProPeriodIfNeeded(uid, pricing) {
     tx.set(
       ref,
       {
-        credits: {
-          ...credits,
-          balance: proMonthly,
-          periodStart,
-          periodEnd: nextEnd,
-        },
+        userId: uid,
+        balance: proMonthly,
+        periodStart,
+        periodEnd: nextEnd,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       },
       { merge: true },
@@ -127,28 +145,21 @@ export async function getEntitlements(uid) {
   const pricing = await getPricingConfig();
   await grantFreeTierIfNeeded(uid, pricing);
 
-  const db = getFirestore();
-  const ref = db.collection("users").doc(uid);
-  let snap = await ref.get();
-  let data = snap.exists ? snap.data() : {};
-
-  const sub = data.subscription || null;
+  const sub = await readSubscription(uid);
   const isPro = hasProAccess(sub);
 
   if (isPro) {
     await resetProPeriodIfNeeded(uid, pricing);
-    snap = await ref.get();
-    data = snap.data() || {};
   }
 
-  const credits = data.credits || defaultCredits(pricing.freeLimits?.aiCredits ?? 10);
-  const entitlements = data.entitlements || defaultEntitlements();
+  const credits = (await readCredits(uid)) || defaultCredits(pricing.freeLimits?.aiCredits ?? 10);
+  const entitlements = (await readEntitlements(uid)) || defaultEntitlements();
 
   const freeGrant = pricing.freeLimits?.aiCredits ?? 10;
   const proMonthly = pricing.proLimits?.aiCreditsPerMonth ?? 100;
   const balance = isPro ? proMonthly : freeGrant;
 
-  const applicationCountSnap = await ref.collection("applications").count().get();
+  const applicationCountSnap = await applicationsCol().where("userId", "==", uid).count().get();
   const applicationCount = applicationCountSnap.data().count || 0;
 
   const creditPayload = {
@@ -183,19 +194,17 @@ export async function grantProCredits(uid, pricing) {
   const now = new Date();
   const periodStart = now.toISOString();
   const periodEnd = addCalendarMonth(now).toISOString();
-  const db = getFirestore();
-  const ref = db.collection("users").doc(uid);
+  const ref = userCreditsRef(uid);
   const snap = await ref.get();
-  const existing = snap.exists ? snap.get("credits") || {} : {};
+  const existing = snap.exists ? snap.data() : {};
 
   await ref.set(
     {
-      credits: {
-        ...existing,
-        balance: proMonthly,
-        periodStart,
-        periodEnd,
-      },
+      userId: uid,
+      ...existing,
+      balance: proMonthly,
+      periodStart,
+      periodEnd,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     },
     { merge: true },
@@ -209,15 +218,13 @@ export async function registerResume(uid, { resumeId } = {}) {
     return { allowed: true, resumeCount: entitlements.entitlements.resumeCount };
   }
 
-  const db = getFirestore();
-  const ref = db.collection("users").doc(uid);
+  const ref = userEntitlementsRef(uid);
 
-  return db.runTransaction(async (tx) => {
+  return getFirestore().runTransaction(async (tx) => {
     const snap = await tx.get(ref);
-    const data = snap.exists ? snap.data() : {};
-    const ent = data.entitlements || defaultEntitlements();
-    const ids = Array.isArray(ent.registeredResumeIds) ? ent.registeredResumeIds : [];
-    const count = ent.resumeCount ?? ids.length;
+    const data = snap.exists ? snap.data() : defaultEntitlements();
+    const ids = Array.isArray(data.registeredResumeIds) ? data.registeredResumeIds : [];
+    const count = data.resumeCount ?? ids.length;
 
     if (resumeId && ids.includes(resumeId)) {
       return { allowed: true, resumeCount: count };
@@ -229,11 +236,9 @@ export async function registerResume(uid, { resumeId } = {}) {
     tx.set(
       ref,
       {
-        entitlements: {
-          ...ent,
-          resumeCount: nextCount,
-          registeredResumeIds: resumeId ? nextIds : ids,
-        },
+        userId: uid,
+        resumeCount: nextCount,
+        registeredResumeIds: resumeId ? nextIds : ids,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       },
       { merge: true },

@@ -237,41 +237,6 @@ function RouteComponent() {
 					</p>
 				</div>
 
-				<section
-					className={cn(
-						"mb-8 rounded-2xl border border-border/80 bg-gradient-to-b from-muted/40 to-card p-4 shadow-sm",
-						embedded && "mb-6",
-					)}
-				>
-					<div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-						<div>
-							<h2 className="text-base font-semibold text-foreground">
-								<Trans>Quick start</Trans>
-							</h2>
-							<p className="text-sm text-muted-foreground">
-								<Trans>Choose how you want to begin your resume</Trans>
-								{embedded && !isPro && (
-									<span className="mt-1 block text-xs font-medium text-muted-foreground">
-										<Trans>{resumes.length} of {FREE_LIMITS.resumes} free resumes used</Trans>
-									</span>
-								)}
-							</p>
-						</div>
-						<Button type="button" className="shrink-0" onClick={handleCreateSample}>
-							<SparkleIcon className="me-2" weight="fill" />
-							<Trans>Start from Sample</Trans>
-						</Button>
-					</div>
-					{quickActions}
-					<input
-						ref={fileInputRef}
-						type="file"
-						accept="application/json,.json"
-						className="hidden"
-						onChange={handleImport}
-					/>
-				</section>
-
 				{resumes.length === 0 ? (
 					<Card className="border-dashed">
 						<CardHeader className="text-center">
@@ -289,6 +254,34 @@ function RouteComponent() {
 					</Card>
 				) : (
 					<>
+						<section
+							className={cn(
+								"mb-8 rounded-2xl border border-border/80 bg-gradient-to-b from-muted/40 to-card p-4 shadow-sm",
+								embedded && "mb-6",
+							)}
+						>
+							<div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+								<div>
+									<h2 className="text-base font-semibold text-foreground">
+										<Trans>Quick start</Trans>
+									</h2>
+									<p className="text-sm text-muted-foreground">
+										<Trans>Choose how you want to begin your resume</Trans>
+										{embedded && !isPro && (
+											<span className="mt-1 block text-xs font-medium text-muted-foreground">
+												<Trans>{resumes.length} of {FREE_LIMITS.resumes} free resumes used</Trans>
+											</span>
+										)}
+									</p>
+								</div>
+								<Button type="button" className="shrink-0" onClick={handleCreateSample}>
+									<SparkleIcon className="me-2" weight="fill" />
+									<Trans>Start from Sample</Trans>
+								</Button>
+							</div>
+							{quickActions}
+						</section>
+
 						<h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
 							<Trans>Your resumes</Trans>
 						</h2>
@@ -340,6 +333,14 @@ function RouteComponent() {
 						</div>
 					</>
 				)}
+
+				<input
+					ref={fileInputRef}
+					type="file"
+					accept="application/json,.json"
+					className="hidden"
+					onChange={handleImport}
+				/>
 			</div>
 		</main>
 	);

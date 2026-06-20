@@ -11,7 +11,7 @@
     "dev:full": "concurrently -n web,fn -c blue,green \"pnpm:dev:web\" \"pnpm:dev:fn\"",
     "dev:fn": "firebase emulators:start --only functions",
     "dev:fn:full": "firebase emulators:start --only functions,firestore",
-    "build": "vite build",
+    "build": "pnpm --filter glowminds-resume compile && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "deploy": "pnpm build && firebase deploy --only functions,hosting,firestore"

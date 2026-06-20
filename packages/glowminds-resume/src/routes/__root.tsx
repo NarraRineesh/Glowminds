@@ -9,7 +9,7 @@ import { HotkeysProvider } from "@tanstack/react-hotkeys";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { createRootRouteWithContext, HeadContent, Outlet } from "@tanstack/react-router";
 import { domAnimation, LazyMotion, MotionConfig } from "motion/react";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DirectionProvider } from "@/lib/ui/components/direction";
 import { Toaster } from "@/lib/ui/components/sonner";
 import { TooltipProvider } from "@/lib/ui/components/tooltip";
@@ -17,6 +17,8 @@ import { DialogManager } from "@/dialogs/manager";
 import { ThemeProvider } from "@/features/theme/provider";
 import { ConfirmDialogProvider } from "@/hooks/use-confirm";
 import { PromptDialogProvider } from "@/hooks/use-prompt";
+import { EmbedRouteSync } from "@/embed/EmbedRouteSync";
+import { getEmbedRouteSync, isPackageEmbed, subscribeEmbedRouteSync } from "@/embed/runtime";
 import { getLocale, isRTL, loadLocale } from "@/libs/locale";
 import { publicAsset } from "@/libs/public-asset";
 import { getTheme } from "@/libs/theme";
@@ -59,6 +61,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 function RootComponent() {
 	const { theme, locale, queryClient } = Route.useRouteContext();
 	const dir = isRTL(locale) ? "rtl" : "ltr";
+	const [routeSync, setRouteSync] = useState(getEmbedRouteSync);
 
 	const iconContextValue = useMemo<IconProps>(() => ({ size: 16, weight: "regular" }), []);
 
@@ -66,6 +69,8 @@ function RootComponent() {
 		document.documentElement.lang = locale;
 		document.documentElement.dir = dir;
 	}, [dir, locale]);
+
+	useEffect(() => subscribeEmbedRouteSync(() => setRouteSync(getEmbedRouteSync())), []);
 
 	return (
 		<>
@@ -83,6 +88,12 @@ function RootComponent() {
 												<ConfirmDialogProvider>
 													<PromptDialogProvider>
 														<Outlet />
+														{isPackageEmbed() && routeSync ? (
+															<EmbedRouteSync
+																externalPath={routeSync.externalPath}
+																onRouteChange={routeSync.onRouteChange}
+															/>
+														) : null}
 
 														<DialogManager />
 														<Toaster richColors position="bottom-right" />

@@ -8,7 +8,7 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui'
 
 export default function DashboardShell() {
   const location = useLocation()
-  const isResumeRoute = /\/dashboard\/resume\/?$/.test(location.pathname)
+  const isResumeRoute = /^\/dashboard\/resume(\/|$)/.test(location.pathname)
 
   return (
     <SidebarProvider defaultOpen className="dashboard-shell min-h-svh bg-background font-sans">

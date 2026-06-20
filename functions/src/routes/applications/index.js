@@ -1,10 +1,11 @@
 import { Router } from "express";
 import { requireAuth } from "../../middleware/auth.js";
 import { ApiError } from "../../middleware/errors.js";
-import { admin, getFirestore } from "../../config/firebase.js";
+import { admin } from "../../config/firebase.js";
 import {
   assertCanCreateApplication,
 } from "../../services/creditService.js";
+import { applicationsCol } from "../../services/userCollections.js";
 
 const router = Router();
 
@@ -30,11 +31,10 @@ router.post("/", requireAuth, async (req, res, next) => {
       throw new ApiError("invalid-argument", "company and role are required");
     }
 
-    const db = getFirestore();
-    const col = db.collection("users").doc(uid).collection("applications");
+    const col = applicationsCol();
 
     if (jobId) {
-      const existing = await col.where("jobId", "==", jobId).limit(1).get();
+      const existing = await col.where("userId", "==", uid).where("jobId", "==", jobId).limit(1).get();
       if (!existing.empty) {
         const doc = existing.docs[0];
         res.json({ id: doc.id, ...doc.data() });
@@ -43,6 +43,7 @@ router.post("/", requireAuth, async (req, res, next) => {
     }
 
     const payload = {
+      userId: uid,
       company: String(company).trim(),
       role: String(role).trim(),
       status: String(status || "applied"),

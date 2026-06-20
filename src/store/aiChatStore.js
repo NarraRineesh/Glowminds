@@ -1,54 +1,37 @@
 import { create } from 'zustand'
 import {
-  doc,
   collection,
-  setDoc,
   addDoc,
+  setDoc,
   getDoc,
-  getDocs,
-  query,
-  orderBy,
-  limit,
   serverTimestamp,
   arrayUnion,
 } from 'firebase/firestore'
 import { db, auth } from '@/services/firebase'
-
-// Multi-chat AI Coach storage backed by users/{uid}/aiChats/{chatId}.
-// Each chat doc holds an append-only `messages` array.
-
-function chatColl(uid) {
-  return collection(db, 'users', uid, 'aiChats')
-}
+import { loadAiChats, aiChatDocRef } from '@/utils/firestoreCollections'
 
 const useAiChatStore = create((set, get) => ({
   loading: false,
   loaded: false,
-  chats: [],            // metadata list [{ id, title, updatedAt, ... }]
+  chats: [],
   currentChatId: null,
   currentMessages: [],
 
   reset: () => set({ chats: [], currentChatId: null, currentMessages: [], loading: false, loaded: false }),
 
-  // Cached by default. The local `chats` list is kept in sync by createChat /
-  // appendMessage so re-mounting the AI section doesn't re-query Firestore.
   loadChats: async ({ force = false } = {}) => {
     const uid = auth.currentUser?.uid
     if (!uid) return []
     if (!force && get().loaded) return get().chats
     set({ loading: true })
     try {
-      const q = query(chatColl(uid), orderBy('updatedAt', 'desc'), limit(20))
-      const snap = await getDocs(q)
-      const chats = snap.docs.map((d) => {
-        const data = d.data()
-        return {
-          id: d.id,
-          title: data.title || 'Untitled chat',
-          messageCount: Array.isArray(data.messages) ? data.messages.length : 0,
-          updatedAt: data.updatedAt,
-        }
-      })
+      const rows = await loadAiChats(uid, 20)
+      const chats = rows.map((data) => ({
+        id: data.id,
+        title: data.title || 'Untitled chat',
+        messageCount: Array.isArray(data.messages) ? data.messages.length : 0,
+        updatedAt: data.updatedAt,
+      }))
       set({ chats, loading: false, loaded: true })
       return chats
     } catch (err) {
@@ -62,7 +45,7 @@ const useAiChatStore = create((set, get) => ({
     const uid = auth.currentUser?.uid
     if (!uid) return null
     try {
-      const snap = await getDoc(doc(db, 'users', uid, 'aiChats', chatId))
+      const snap = await getDoc(aiChatDocRef(chatId))
       if (!snap.exists()) return null
       const data = snap.data()
       const messages = Array.isArray(data.messages) ? data.messages : []
@@ -74,19 +57,17 @@ const useAiChatStore = create((set, get) => ({
     }
   },
 
-  // Create a new empty chat doc (or reuse an existing untouched one if you want).
   createChat: async (title = 'New chat') => {
     const uid = auth.currentUser?.uid
     if (!uid) return null
     try {
-      const ref = await addDoc(chatColl(uid), {
+      const ref = await addDoc(collection(db, 'aiChats'), {
+        userId: uid,
         title,
         messages: [],
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       })
-      // Mirror into the cached chats[] so the picker stays accurate without
-      // forcing another loadChats round-trip.
       set((s) => ({
         currentChatId: ref.id,
         currentMessages: [],
@@ -102,20 +83,17 @@ const useAiChatStore = create((set, get) => ({
     }
   },
 
-  // Append a single message (any role) to the current chat. Creates the chat
-  // doc lazily if there isn't one yet.
   appendMessage: async (message) => {
     const uid = auth.currentUser?.uid
     if (!uid) return
     let chatId = get().currentChatId
     if (!chatId) {
-      // First message becomes the chat title (truncated).
       const title = String(message.text || '').slice(0, 60) || 'New chat'
       chatId = await get().createChat(title)
       if (!chatId) return
     }
     const stamped = {
-      role: message.role,        // 'user' | 'assistant'
+      role: message.role,
       text: String(message.text || ''),
       timestamp: new Date().toISOString(),
     }
@@ -129,7 +107,7 @@ const useAiChatStore = create((set, get) => ({
     }))
     try {
       await setDoc(
-        doc(db, 'users', uid, 'aiChats', chatId),
+        aiChatDocRef(chatId),
         { messages: arrayUnion(stamped), updatedAt: serverTimestamp() },
         { merge: true },
       )

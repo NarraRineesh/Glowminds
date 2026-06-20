@@ -43,6 +43,12 @@ msgstr "{0, plural, one {# item} other {# items}}"
 msgid "{0, plural, one {# role} other {# roles}}"
 msgstr "{0, plural, one {# role} other {# roles}}"
 
+#. placeholder {0}: resumes.length
+#. placeholder {1}: FREE_LIMITS.resumes
+#: src/routes/local/index.tsx
+msgid "{0} of {1} free resumes used"
+msgstr "{0} of {1} free resumes used"
+
 #: src/routes/builder/$resumeId/-sidebar/left/sections/custom.tsx
 #: src/routes/builder/$resumeId/-sidebar/left/shared/section-menu.tsx
 msgid "{column, plural, one {# Column} other {# Columns}}"
@@ -121,6 +127,11 @@ msgstr "A4"
 #: src/routes/builder/$resumeId/-sidebar/left/sections/custom-fields.tsx
 msgid "Add a custom field"
 msgstr "Add a custom field"
+
+#: src/components/input/ai-enhance-dialog.tsx
+#: src/components/input/rich-input.tsx
+msgid "Add a few words before using AI enhance."
+msgstr "Add a few words before using AI enhance."
 
 #: src/components/input/chip-input.tsx
 msgid "Add a keyword..."
@@ -256,6 +267,10 @@ msgstr "Add Row Before"
 #~ msgid "AI"
 #~ msgstr "AI"
 
+#: src/components/input/ai-enhance-dialog.tsx
+msgid "AI · Enhance"
+msgstr "AI · Enhance"
+
 #: src/routes/agent/-components/new-thread-setup.tsx
 #~ msgid "AI agent setup is unavailable right now. Please try again in a moment."
 #~ msgstr "AI agent setup is unavailable right now. Please try again in a moment."
@@ -263,6 +278,10 @@ msgstr "Add Row Before"
 #: src/routes/agent/-components/new-thread-setup.tsx
 #~ msgid "AI agent setup is unavailable until REDIS_URL and ENCRYPTION_SECRET are configured."
 #~ msgstr "AI agent setup is unavailable until REDIS_URL and ENCRYPTION_SECRET are configured."
+
+#: src/components/input/rich-input.tsx
+msgid "AI Enhance"
+msgstr "AI Enhance"
 
 #: src/features/settings/integrations/components/ai-section.tsx
 #~ msgid "AI provider management is unavailable until REDIS_URL and ENCRYPTION_SECRET are configured."
@@ -503,6 +522,10 @@ msgstr "Basics"
 #~ msgid "Blank draft"
 #~ msgstr "Blank draft"
 
+#: src/routes/local/index.tsx
+msgid "Blank resume"
+msgstr "Blank resume"
+
 #: src/routes/builder/$resumeId/-sidebar/right/sections/typography.tsx
 msgctxt "Body Text (paragraphs, lists, etc.)"
 msgid "Body"
@@ -547,6 +570,7 @@ msgstr "Bullet List"
 #. Confirmation dialog button label to abort deleting a custom section in resume builder
 #. Confirmation dialog button label to abort deleting a section item in resume builder
 #. Confirmation dialog button label to abort resetting a resume section
+#: src/components/input/ai-enhance-dialog.tsx
 #: src/dialogs/resume/sections/award.tsx
 #: src/dialogs/resume/sections/certification.tsx
 #: src/dialogs/resume/sections/cover-letter.tsx
@@ -647,6 +671,10 @@ msgstr "Choose a preset or custom shade."
 #: src/routes/agent/index.tsx
 #~ msgid "Choose an existing conversation from the sidebar, or start a new draft-focused thread."
 #~ msgstr "Choose an existing conversation from the sidebar, or start a new draft-focused thread."
+
+#: src/routes/local/index.tsx
+msgid "Choose how you want to begin your resume"
+msgstr "Choose how you want to begin your resume"
 
 #: src/components/level/combobox.tsx
 msgid "Circle"
@@ -770,6 +798,10 @@ msgstr "Content"
 #~ msgid "Copy URL"
 #~ msgstr "Copy URL"
 
+#: src/components/input/ai-enhance-dialog.tsx
+msgid "Could not enhance text. Try again."
+msgstr "Could not enhance text. Try again."
+
 #: src/routes/local/index.tsx
 msgid "Could not import resume. Please upload a valid Reactive Resume JSON file."
 msgstr "Could not import resume. Please upload a valid Reactive Resume JSON file."
@@ -815,6 +847,10 @@ msgstr "Cover Letter"
 #: src/dialogs/resume/sections/volunteer.tsx
 msgid "Create"
 msgstr "Create"
+
+#: src/routes/local/index.tsx
+msgid "Create a blank resume, start from our sample profile, or import an existing JSON export."
+msgstr "Create a blank resume, start from our sample profile, or import an existing JSON export."
 
 #: src/features/auth/pages/register.tsx
 #~ msgid "Create a new account"
@@ -881,8 +917,8 @@ msgstr "Create a new reference"
 #~ msgstr "Create a new resume"
 
 #: src/routes/local/index.tsx
-msgid "Create a new resume or import an existing JSON export to get started."
-msgstr "Create a new resume or import an existing JSON export to get started."
+#~ msgid "Create a new resume or import an existing JSON export to get started."
+#~ msgstr "Create a new resume or import an existing JSON export to get started."
 
 #: src/dialogs/resume/sections/skill.tsx
 msgid "Create a new skill"
@@ -901,8 +937,12 @@ msgstr "Create a new volunteer experience"
 #~ msgstr "Create a Sample Resume"
 
 #: src/routes/local/index.tsx
-msgid "Create and edit resumes in your browser. Everything is saved to localStorage — no login, database, or server required."
-msgstr "Create and edit resumes in your browser. Everything is saved to localStorage — no login, database, or server required."
+#~ msgid "Create and edit resumes in your browser. Everything is saved to localStorage — no login, database, or server required."
+#~ msgstr "Create and edit resumes in your browser. Everything is saved to localStorage — no login, database, or server required."
+
+#: src/routes/local/index.tsx
+msgid "Create and edit resumes in your browser. Everything is saved to localStorage on this device."
+msgstr "Create and edit resumes in your browser. Everything is saved to localStorage on this device."
 
 #: src/routes/_home/-sections/features.tsx
 #~ msgid "Create as many resumes as you want, without limits."
@@ -966,8 +1006,8 @@ msgstr "Custom Styles"
 #~ msgstr "Danish"
 
 #: src/libs/theme.ts
-msgid "Dark"
-msgstr "Dark"
+#~ msgid "Dark"
+#~ msgstr "Dark"
 
 #: src/features/command-palette/pages/preferences/theme.tsx
 #~ msgid "Dark theme"
@@ -996,9 +1036,13 @@ msgstr "Degree"
 #: src/routes/builder/$resumeId/-components/header.tsx
 #: src/routes/builder/$resumeId/-sidebar/left/sections/custom.tsx
 #: src/routes/builder/$resumeId/-sidebar/left/shared/section-item.tsx
-#: src/routes/local/index.tsx
 msgid "Delete"
 msgstr "Delete"
+
+#. placeholder {0}: resume.name
+#: src/routes/local/index.tsx
+msgid "Delete {0}"
+msgstr "Delete {0}"
 
 #: src/features/settings/pages/danger-zone.tsx
 #~ msgid "Delete Account"
@@ -1057,6 +1101,10 @@ msgstr "Delete Table"
 #: src/dialogs/resume/sections/volunteer.tsx
 msgid "Description"
 msgstr "Description"
+
+#: src/components/input/ai-enhance-dialog.tsx
+msgid "Description updated"
+msgstr "Description updated"
 
 #: src/libs/resume/section.tsx
 msgid "Design"
@@ -1380,6 +1428,10 @@ msgstr "Failed to duplicate resume."
 #~ msgid "Failed to link provider. Please try again."
 #~ msgstr "Failed to link provider. Please try again."
 
+#: src/routes/builder/$resumeId/-components/header.tsx
+msgid "Failed to load sample data."
+msgstr "Failed to load sample data."
+
 #. Fallback toast when passkey registration fails
 #: src/features/settings/authentication/components/passkeys.tsx
 #~ msgid "Failed to register passkey. Please try again."
@@ -1558,6 +1610,10 @@ msgstr "Format"
 #~ msgid "Free"
 #~ msgstr "Free"
 
+#: src/routes/local/index.tsx
+msgid "Free plan allows up to 3 resumes. Upgrade to Pro for unlimited resumes."
+msgstr "Free plan allows up to 3 resumes. Upgrade to Pro for unlimited resumes."
+
 #: src/routes/builder/$resumeId/-sidebar/right/sections/page.tsx
 msgid "Free-form"
 msgstr "Free-form"
@@ -1583,6 +1639,10 @@ msgstr "Fullscreen Editor"
 #: src/dialogs/resume/index.tsx
 #~ msgid "Generate a random name"
 #~ msgstr "Generate a random name"
+
+#: src/components/input/ai-enhance-dialog.tsx
+msgid "Generating…"
+msgstr "Generating…"
 
 #: src/libs/locale.ts
 #~ msgid "German"
@@ -1815,6 +1875,10 @@ msgstr "Import JSON"
 #~ msgid "Increase zoom"
 #~ msgstr "Increase zoom"
 
+#: src/routes/local/index.tsx
+msgid "Indian software engineer profile with projects & skills"
+msgstr "Indian software engineer profile with projects & skills"
+
 #: src/libs/locale.ts
 #~ msgid "Indonesian"
 #~ msgstr "Indonesian"
@@ -2019,8 +2083,8 @@ msgstr "Level {level} of 5"
 #~ msgstr "Licensed under <0>MIT</0>."
 
 #: src/libs/theme.ts
-msgid "Light"
-msgstr "Light"
+#~ msgid "Light"
+#~ msgstr "Light"
 
 #: src/features/command-palette/pages/preferences/theme.tsx
 #~ msgid "Light theme"
@@ -2050,6 +2114,14 @@ msgstr "Line Height"
 #~ msgid "Lithuanian"
 #~ msgstr "Lithuanian"
 
+#: src/routes/builder/$resumeId/-components/header.tsx
+msgid "Load sample data"
+msgstr "Load sample data"
+
+#: src/routes/builder/$resumeId/-components/header.tsx
+msgid "Load sample data into this resume?"
+msgstr "Load sample data into this resume?"
+
 #: src/routes/agent/$threadId.tsx
 #~ msgid "Loading agent workspace…"
 #~ msgstr "Loading agent workspace…"
@@ -2073,16 +2145,16 @@ msgstr "Line Height"
 #~ msgstr "Loading threads…"
 
 #: src/routes/local/index.tsx
-msgid "Loading your resumes…"
-msgstr "Loading your resumes…"
+#~ msgid "Loading your resumes…"
+#~ msgstr "Loading your resumes…"
 
 #: src/components/layout/loading-screen.tsx
 msgid "Loading…"
 msgstr "Loading…"
 
 #: src/routes/local/index.tsx
-msgid "Local Resume Builder"
-msgstr "Local Resume Builder"
+#~ msgid "Local Resume Builder"
+#~ msgstr "Local Resume Builder"
 
 #: src/dialogs/resume/sections/education.tsx
 #: src/dialogs/resume/sections/experience.tsx
@@ -2213,8 +2285,8 @@ msgstr "New Page"
 #~ msgstr "New Password"
 
 #: src/routes/local/index.tsx
-msgid "New Resume"
-msgstr "New Resume"
+#~ msgid "New Resume"
+#~ msgstr "New Resume"
 
 #: src/routes/builder/$resumeId/-sidebar/left/shared/section-item.tsx
 msgid "New Section"
@@ -2249,6 +2321,10 @@ msgstr "No resumes yet"
 msgid "No style rules yet."
 msgstr "No style rules yet."
 
+#: src/components/input/ai-enhance-dialog.tsx
+msgid "No suggestions returned. Try again."
+msgstr "No suggestions returned. Try again."
+
 #: src/features/settings/integrations/components/ai-section.tsx
 #~ msgid "No tested provider"
 #~ msgstr "No tested provider"
@@ -2264,6 +2340,10 @@ msgstr "No style rules yet."
 #: src/libs/resume/section.tsx
 msgid "Notes"
 msgstr "Notes"
+
+#: src/components/input/ai-enhance-dialog.tsx
+msgid "Nothing to enhance."
+msgstr "Nothing to enhance."
 
 #: src/libs/locale.ts
 #~ msgid "Odia"
@@ -2284,6 +2364,11 @@ msgstr "Notes"
 #: src/routes/local/index.tsx
 msgid "Open"
 msgstr "Open"
+
+#. placeholder {0}: resume.name
+#: src/routes/local/index.tsx
+msgid "Open {0}"
+msgstr "Open {0}"
 
 #: src/routes/builder/$resumeId/-components/dock.tsx
 #~ msgid "Open AI agent"
@@ -2339,6 +2424,10 @@ msgstr "Ordered List"
 #: src/dialogs/resume/sections/volunteer.tsx
 msgid "Organization"
 msgstr "Organization"
+
+#: src/components/input/ai-enhance-dialog.tsx
+msgid "Original"
+msgstr "Original"
 
 #: src/routes/builder/$resumeId/-sidebar/right/sections/resume-analysis.tsx
 #~ msgid "Overall Score"
@@ -2461,6 +2550,10 @@ msgstr "Period"
 msgid "Phone"
 msgstr "Phone"
 
+#: src/components/input/ai-enhance-dialog.tsx
+msgid "Pick a rewrite"
+msgstr "Pick a rewrite"
+
 #: src/libs/resume/section.tsx
 msgid "Picture"
 msgstr "Picture"
@@ -2540,6 +2633,10 @@ msgstr "Press <0>{RETURN_KEY}</0> or <1>{COMMA_KEY}</1> to add or save the curre
 msgid "Primary Color"
 msgstr "Primary Color"
 
+#: src/dialogs/resume/template/gallery.tsx
+msgid "Pro"
+msgstr "Pro"
+
 #: src/dialogs/resume/sections/skill.tsx
 msgid "Proficiency"
 msgstr "Proficiency"
@@ -2591,6 +2688,10 @@ msgstr "Publications"
 #: src/dialogs/resume/sections/publication.tsx
 msgid "Publisher"
 msgstr "Publisher"
+
+#: src/routes/local/index.tsx
+msgid "Quick start"
+msgstr "Quick start"
 
 #: src/routes/_home/-sections/header.tsx
 #~ msgid "Reactive Resume - Go to homepage"
@@ -2653,6 +2754,10 @@ msgstr "References"
 msgid "Refresh"
 msgstr "Refresh"
 
+#: src/components/input/ai-enhance-dialog.tsx
+msgid "Regenerate"
+msgstr "Regenerate"
+
 #: src/features/settings/authentication/components/passkeys.tsx
 #~ msgid "Register New Device"
 #~ msgstr "Register New Device"
@@ -2685,6 +2790,10 @@ msgstr "Rename"
 #: src/dialogs/resume/sections/experience.tsx
 msgid "Reorder"
 msgstr "Reorder"
+
+#: src/components/input/ai-enhance-dialog.tsx
+msgid "Replaces the full description in this field."
+msgstr "Replaces the full description in this field."
 
 #: src/routes/builder/$resumeId/-sidebar/right/sections/information.tsx
 #~ msgid "Report a Bug"
@@ -2749,6 +2858,10 @@ msgstr "Resume Analysis"
 #~ msgstr "Resume analysis complete."
 
 #: src/routes/local/index.tsx
+msgid "Resume Builder"
+msgstr "Resume Builder"
+
+#: src/routes/local/index.tsx
 msgid "Resume deleted."
 msgstr "Resume deleted."
 
@@ -2782,8 +2895,8 @@ msgstr "Resume updated successfully."
 
 #. placeholder {0}: copilotUser?.displayName ? ` (${copilotUser.displayName})` : ""
 #: src/routes/local/index.tsx
-msgid "Resumes are synced from your copilot profile{0}. Edits are saved in this browser."
-msgstr "Resumes are synced from your copilot profile{0}. Edits are saved in this browser."
+#~ msgid "Resumes are synced from your copilot profile{0}. Edits are saved in this browser."
+#~ msgstr "Resumes are synced from your copilot profile{0}. Edits are saved in this browser."
 
 #: src/routes/agent/$threadId.tsx
 #~ msgid "Retry"
@@ -2832,6 +2945,10 @@ msgstr "rules"
 #: src/libs/locale.ts
 #~ msgid "Russian"
 #~ msgstr "Russian"
+
+#: src/routes/builder/$resumeId/-components/header.tsx
+msgid "Sample data loaded successfully."
+msgstr "Sample data loaded successfully."
 
 #. Passkey rename prompt confirm action in authentication settings
 #: src/features/settings/authentication/components/passkeys.tsx
@@ -3188,6 +3305,18 @@ msgstr "Square"
 #~ msgid "Start building your resume from scratch"
 #~ msgstr "Start building your resume from scratch"
 
+#: src/routes/local/index.tsx
+msgid "Start from an empty template"
+msgstr "Start from an empty template"
+
+#: src/routes/local/index.tsx
+msgid "Start from sample"
+msgstr "Start from sample"
+
+#: src/routes/local/index.tsx
+msgid "Start from Sample"
+msgstr "Start from Sample"
+
 #: src/routes/agent/index.tsx
 #~ msgid "Start new thread"
 #~ msgstr "Start new thread"
@@ -3220,9 +3349,9 @@ msgstr "Strike"
 #~ msgid "Subreddit"
 #~ msgstr "Subreddit"
 
-#: src/routes/builder/$resumeId/-sidebar/right/sections/resume-analysis.tsx
-#~ msgid "Suggestions"
-#~ msgstr "Suggestions"
+#: src/components/input/ai-enhance-dialog.tsx
+msgid "Suggestions"
+msgstr "Suggestions"
 
 #. Fallback title for a custom summary item in resume builder when content is empty
 #. Fallback title for a custom summary item in resume builder when content is unavailable
@@ -3246,12 +3375,12 @@ msgstr "Summary"
 #~ msgstr "Swedish"
 
 #: src/features/theme/toggle-button.tsx
-msgid "Switch to dark theme"
-msgstr "Switch to dark theme"
+#~ msgid "Switch to dark theme"
+#~ msgstr "Switch to dark theme"
 
 #: src/features/theme/toggle-button.tsx
-msgid "Switch to light theme"
-msgstr "Switch to light theme"
+#~ msgid "Switch to light theme"
+#~ msgstr "Switch to light theme"
 
 #: src/components/input/rich-input.tsx
 msgid "Table"
@@ -3410,6 +3539,10 @@ msgstr "This action cannot be undone."
 #~ msgid "This may take a few minutes, depending on the response of the AI provider. Please do not close the window or refresh the page."
 #~ msgstr "This may take a few minutes, depending on the response of the AI provider. Please do not close the window or refresh the page."
 
+#: src/routes/builder/$resumeId/-components/header.tsx
+msgid "This replaces all sections with the Glowminds sample profile. You can undo only if you have not saved other changes."
+msgstr "This replaces all sections with the Glowminds sample profile. You can undo only if you have not saved other changes."
+
 #: src/features/resume/builder/draft.ts
 msgid "This resume is locked and cannot be updated."
 msgstr "This resume is locked and cannot be updated."
@@ -3512,6 +3645,10 @@ msgstr "Toggle right sidebar"
 #: src/routes/agent/$threadId.tsx
 #~ msgid "Toggle threads"
 #~ msgstr "Toggle threads"
+
+#: src/components/input/ai-enhance-dialog.tsx
+msgid "Tone"
+msgstr "Tone"
 
 #: src/routes/builder/$resumeId/-sidebar/right/sections/statistics.tsx
 #~ msgid "Track your resume's views and downloads"
@@ -3725,6 +3862,10 @@ msgstr "Update an existing volunteer experience"
 #: src/dialogs/resume/index.tsx
 #~ msgid "Updating your resume..."
 #~ msgstr "Updating your resume..."
+
+#: src/routes/local/index.tsx
+msgid "Upload a Reactive Resume export"
+msgstr "Upload a Reactive Resume export"
 
 #: src/routes/agent/$threadId.tsx
 #~ msgid "Upload attachments"
@@ -3952,6 +4093,10 @@ msgstr "Your resume has been deleted successfully."
 #: src/routes/builder/$resumeId/-sidebar/right/sections/sharing.tsx
 #~ msgid "Your resume's public link is currently protected by a password. Share the password only with people you trust."
 #~ msgstr "Your resume's public link is currently protected by a password. Share the password only with people you trust."
+
+#: src/routes/local/index.tsx
+msgid "Your resumes"
+msgstr "Your resumes"
 
 #: src/routes/_home/-sections/donate.tsx
 #~ msgid "Your support ensures the project remains free and accessible for everyone, now and in the future."

@@ -24,15 +24,30 @@ import useEntitlements from '@/hooks/useEntitlements'
 import { formatSubscriptionEndDate, isActiveProSubscription } from '@/constants/plans'
 import { sendPasswordResetEmail } from 'firebase/auth'
 import { auth } from '@/services/firebase'
+import { loadUserUsage } from '@/utils/firestoreCollections'
 import { Link, useNavigate } from 'react-router-dom'
 
 const SECTIONS = [
   { id: 'account', icon: 'user', title: 'Account', desc: 'Profile and security' },
   { id: 'billing', icon: 'credit-card', title: 'Billing', desc: 'Plan, renewal, upgrade' },
+  { id: 'usage', icon: 'chart', title: 'Usage', desc: 'Tool activity counters' },
   { id: 'appearance', icon: 'palette', title: 'Appearance', desc: 'Theme, density, motion' },
   { id: 'notifications', icon: 'bell', title: 'Notifications', desc: 'Email & in-app alerts' },
   { id: 'privacy', icon: 'lock', title: 'Privacy & Data', desc: 'Export, delete, visibility' },
 ]
+
+const USAGE_LABELS = {
+  'ai.cover-letter': 'Cover letters',
+  'ai.career-chat': 'Career coach chats',
+  'ai.interview': 'Interview sessions',
+  'ai.profile-review': 'Profile reviews',
+  'ai.resume-review': 'Resume reviews',
+  'ai.grammar': 'Grammar checks',
+  'ai.paraphrase': 'Paraphrasing',
+  'resume.export': 'Resume exports',
+  'linkedinAudit.complete': 'LinkedIn audits',
+  'savedJobs.toggle': 'Saved jobs',
+}
 
 const SECTION_BY_ID = Object.fromEntries(SECTIONS.map((s) => [s.id, s]))
 
@@ -191,6 +206,73 @@ function comparisonCellText(row, tier) {
     return included ? 'Included' : '—'
   }
   return tier === 'free' ? row.free : row.pro
+}
+
+function UsagePanel({ uid }) {
+  const [usageData, setUsageData] = useState({ usage: {}, updatedAt: null })
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!uid) return undefined
+    let cancelled = false
+    setLoading(true)
+    loadUserUsage(uid)
+      .then((data) => {
+        if (!cancelled) setUsageData(data)
+      })
+      .catch((err) => {
+        console.error('UsagePanel load:', err)
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => { cancelled = true }
+  }, [uid])
+
+  const entries = Object.entries(usageData.usage || {})
+    .filter(([, count]) => Number(count) > 0)
+    .sort((a, b) => Number(b[1]) - Number(a[1]))
+
+  const updatedLabel = usageData.updatedAt
+    ? (typeof usageData.updatedAt?.toDate === 'function'
+      ? usageData.updatedAt.toDate()
+      : new Date(usageData.updatedAt)
+    ).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+    : null
+
+  return (
+    <div className="flex flex-col gap-4">
+      <DashboardCard titleIcon="chart" title="Tool usage" contentClassName="flex flex-col gap-4">
+        <p className="text-sm text-muted-foreground">
+          Counts how many times you have used each Glowminds tool. These counters are informational and do not limit access.
+        </p>
+        {loading ? (
+          <p className="text-sm text-muted-foreground">Loading usage…</p>
+        ) : entries.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border bg-muted/30 px-4 py-8 text-center">
+            <p className="text-sm font-medium text-foreground">No usage recorded yet</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Start using AI tools, export a resume, or save jobs to see activity here.
+            </p>
+          </div>
+        ) : (
+          <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border">
+            {entries.map(([key, count]) => (
+              <li key={key} className="flex items-center justify-between gap-4 px-4 py-3">
+                <span className="text-sm font-medium text-foreground">
+                  {USAGE_LABELS[key] || key}
+                </span>
+                <span className="text-sm font-bold tabular-nums text-primary">{count}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        {updatedLabel && (
+          <p className="text-xs text-muted-foreground">Last updated {updatedLabel}</p>
+        )}
+      </DashboardCard>
+    </div>
+  )
 }
 
 function BillingPanel({
@@ -392,7 +474,7 @@ export default function SettingsSection() {
     persistSettings({ theme: next })
   }
 
-  const subscription = userDoc?.subscription
+  const subscription = entitlements?.subscription
   const proActive = isActiveProSubscription(subscription)
   const renewalLabel = formatSubscriptionEndDate(subscription)
 
@@ -500,6 +582,12 @@ export default function SettingsSection() {
               termsBillingText={marketing?.termsBillingText}
               credits={entitlements?.credits}
             />
+          </SettingsTabPanel>
+        </TabsContent>
+
+        <TabsContent value="usage" className="mt-1 outline-none">
+          <SettingsTabPanel activeSection={SECTION_BY_ID.usage}>
+            <UsagePanel uid={user?.uid} />
           </SettingsTabPanel>
         </TabsContent>
 

@@ -80,6 +80,7 @@ router.post("/verify-payment", requireAuth, async (req, res, next) => {
       order,
       payment,
       source: "verify",
+      signature,
     });
 
     res.json(result);

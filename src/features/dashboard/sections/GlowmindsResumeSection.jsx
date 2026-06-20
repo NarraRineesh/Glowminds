@@ -1,12 +1,20 @@
-import { lazy, Suspense, useCallback, useLayoutEffect, useMemo, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import Loader from '@/components/Loader'
 import useTheme from '@/hooks/useTheme'
-import { invalidateEntitlementsCache } from '@/hooks/useEntitlements'
 import useAppStore from '@/store/authStore'
-import { apiFetch } from '@/services/apiClient'
 import { getCopilotThemeTokens } from '@/constants/copilotThemeTokens'
 import { applyCopilotTheme, clearCopilotTheme } from 'glowminds-resume/embed-theme'
+import {
+  dashboardPathFromEmbedPath,
+  embedPathFromDashboardPath,
+  embedPathFromResumeId,
+} from '@/utils/resumeEmbedPaths'
+import {
+  deleteEmbedResume,
+  loadEmbedResumes,
+  saveEmbedResume,
+} from '@/services/resumeStore'
 
 const ResumeBuilderRoot = lazy(() =>
   import('glowminds-resume/embed').then((module) => ({ default: module.ResumeBuilderRoot })),
@@ -15,9 +23,23 @@ const ResumeBuilderRoot = lazy(() =>
 export default function GlowmindsResumeSection() {
   const hostRef = useRef(null)
   const navigate = useNavigate()
+  const location = useLocation()
+  const { resumeId } = useParams()
   const { theme } = useTheme()
   const user = useAppStore((state) => state.user)
   const resolvedTheme = theme === 'dark' ? 'dark' : 'light'
+  const [cloudResumes, setCloudResumes] = useState(null)
+  const initialPath = useMemo(() => embedPathFromResumeId(resumeId), [resumeId])
+  const externalPath = useMemo(
+    () => embedPathFromDashboardPath(location.pathname),
+    [location.pathname],
+  )
+
+  const onEmbedRouteChange = useCallback((embedPath, replace) => {
+    const nextPath = dashboardPathFromEmbedPath(embedPath)
+    if (nextPath === location.pathname) return
+    navigate(nextPath, { replace })
+  }, [location.pathname, navigate])
 
   useLayoutEffect(() => {
     const host = hostRef.current
@@ -26,10 +48,33 @@ export default function GlowmindsResumeSection() {
     return () => clearCopilotTheme(host)
   }, [resolvedTheme])
 
-  const onResumeCreate = useCallback(async () => {
-    await apiFetch('/resumes/register', { body: {} })
-    invalidateEntitlementsCache()
-  }, [])
+  useEffect(() => {
+    if (!user?.uid) {
+      setCloudResumes([])
+      return undefined
+    }
+    let cancelled = false
+    loadEmbedResumes(user.uid)
+      .then((resumes) => {
+        if (!cancelled) setCloudResumes(resumes)
+      })
+      .catch((err) => {
+        console.error('Failed to load resumes from Firestore', err)
+        if (!cancelled) setCloudResumes([])
+      })
+    return () => { cancelled = true }
+  }, [user?.uid])
+
+  const onResumeSave = useCallback(async (resume) => {
+    if (!user?.uid) return
+    await saveEmbedResume(user.uid, resume)
+  }, [user?.uid])
+
+  const onResumeDelete = useCallback(async (resumeId) => {
+    if (!user?.uid) return
+    await deleteEmbedResume(user.uid, resumeId)
+    setCloudResumes((prev) => (prev ?? []).filter((row) => row.id !== resumeId))
+  }, [user?.uid])
 
   const payload = useMemo(() => ({
     theme: resolvedTheme,
@@ -41,12 +86,13 @@ export default function GlowmindsResumeSection() {
           displayName: user.displayName ?? undefined,
         }
       : undefined,
-    resumes: [],
+    resumes: cloudResumes ?? [],
     seedFromProfile: false,
     isPro: true,
     onUpgrade: () => navigate('/pricing'),
-    onResumeCreate,
-  }), [resolvedTheme, user, navigate, onResumeCreate])
+    onResumeSave,
+    onResumeDelete,
+  }), [resolvedTheme, user, navigate, cloudResumes, onResumeSave, onResumeDelete])
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
@@ -55,7 +101,17 @@ export default function GlowmindsResumeSection() {
         className="rr-copilot-host flex min-h-0 flex-1 flex-col overflow-hidden"
       >
         <Suspense fallback={<Loader variant="section" label="Loading resume builder…" />}>
-          <ResumeBuilderRoot {...payload} className="h-full min-h-0" />
+          {cloudResumes === null ? (
+            <Loader variant="section" label="Loading your resumes…" />
+          ) : (
+            <ResumeBuilderRoot
+              {...payload}
+              className="h-full min-h-0"
+              initialPath={initialPath}
+              externalPath={externalPath}
+              onRouteChange={onEmbedRouteChange}
+            />
+          )}
         </Suspense>
       </div>
     </div>

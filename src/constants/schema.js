@@ -234,18 +234,6 @@ export function normalizeProfile(profilePartial) {
   return profile
 }
 
-function createDefaultSubscription() {
-  return {
-    plan: 'free',
-    tier: null,
-    status: null,
-    startDate: null,
-    endDate: null,
-    razorpayOrderId: null,
-    razorpayPaymentId: null,
-  }
-}
-
 function createDefaultSettings() {
   return {
     theme: 'system',
@@ -275,7 +263,6 @@ export function createDefaultUserDoc({ uid, email, firstName = '', lastName = ''
     lastName,
     displayName: finalDisplay,
     photoURL,
-    subscription: createDefaultSubscription(),
     settings: createDefaultSettings(),
     flags: createDefaultFlags(),
     profile: createDefaultProfile(),

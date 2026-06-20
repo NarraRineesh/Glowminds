@@ -71,6 +71,34 @@ export function hydrateFromCopilot(payload: CopilotInitPayload) {
 	writeCopilotIndex(nextIds);
 }
 
+/** Upload browser-local resumes to the host when cloud storage is empty. */
+export async function migrateLocalResumesToHost(
+	onResumeSave?: (resume: import("@/libs/copilot-bridge").CopilotEmbedResume) => Promise<void>,
+) {
+	if (!onResumeSave) return;
+
+	const local = listLocalResumes();
+	if (local.length === 0) return;
+
+	await Promise.all(
+		local.map((resume) =>
+			onResumeSave({
+				id: resume.id,
+				name: resume.name,
+				slug: resume.slug,
+				tags: resume.tags,
+				data: resume.data,
+				isLocked: resume.isLocked,
+				isPublic: resume.isPublic,
+				hasPassword: resume.hasPassword,
+				updatedAt: resume.updatedAt.toISOString(),
+			}).catch((err) => {
+				console.error("Failed to migrate local resume", resume.id, err);
+			}),
+		),
+	);
+}
+
 export function listCopilotSyncedResumes() {
 	return readCopilotIndex()
 		.map((id) => getLocalResume(id))

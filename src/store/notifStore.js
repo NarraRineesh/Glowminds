@@ -1,26 +1,27 @@
 import { create } from 'zustand'
-import { collection, query, orderBy, limit, getDocs, doc, updateDoc, writeBatch, deleteDoc, addDoc, serverTimestamp } from 'firebase/firestore'
+import {
+  collection,
+  writeBatch,
+  updateDoc,
+  deleteDoc,
+  addDoc,
+  serverTimestamp,
+} from 'firebase/firestore'
 import { db } from '@/services/firebase'
+import { loadNotifications, notificationDocRef } from '@/utils/firestoreCollections'
 
 const useNotifStore = create((set, get) => ({
   notifs: [],
   loading: true,
   loaded: false,
 
-  /** One-shot load — avoids a persistent snapshot listener (each listener bills reads on every change). */
   loadNotifs: async (uid, { force = false } = {}) => {
     if (!uid) return
     if (!force && get().loaded) return
 
     set({ loading: true })
     try {
-      const q = query(
-        collection(db, 'users', uid, 'notifications'),
-        orderBy('createdAt', 'desc'),
-        limit(50),
-      )
-      const snap = await getDocs(q)
-      const notifs = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+      const notifs = await loadNotifications(uid, 50)
       set({ notifs, loading: false, loaded: true })
     } catch (err) {
       console.error('Notif load error:', err)
@@ -30,10 +31,8 @@ const useNotifStore = create((set, get) => ({
 
   reset: () => set({ notifs: [], loading: true, loaded: false }),
 
-  /** @deprecated Use loadNotifs — kept so older callers still work */
   listen: (uid) => get().loadNotifs(uid),
 
-  /** @deprecated No persistent listener anymore */
   stopListening: () => get().reset(),
 
   markRead: async (uid, notifId) => {
@@ -42,7 +41,7 @@ const useNotifStore = create((set, get) => ({
       notifs: s.notifs.map((n) => (n.id === notifId ? { ...n, read: true } : n)),
     }))
     try {
-      await updateDoc(doc(db, 'users', uid, 'notifications', notifId), { read: true })
+      await updateDoc(notificationDocRef(notifId), { read: true })
     } catch (e) {
       console.error('Mark read error:', e)
     }
@@ -58,7 +57,7 @@ const useNotifStore = create((set, get) => ({
     try {
       const batch = writeBatch(db)
       for (const n of unread) {
-        batch.update(doc(db, 'users', uid, 'notifications', n.id), { read: true })
+        batch.update(notificationDocRef(n.id), { read: true })
       }
       await batch.commit()
     } catch (e) {
@@ -70,7 +69,7 @@ const useNotifStore = create((set, get) => ({
     if (!uid || !notifId) return
     set((s) => ({ notifs: s.notifs.filter((n) => n.id !== notifId) }))
     try {
-      await deleteDoc(doc(db, 'users', uid, 'notifications', notifId))
+      await deleteDoc(notificationDocRef(notifId))
     } catch (e) {
       console.error('Delete notif error:', e)
     }
@@ -84,7 +83,7 @@ const useNotifStore = create((set, get) => ({
     try {
       const batch = writeBatch(db)
       for (const n of all) {
-        batch.delete(doc(db, 'users', uid, 'notifications', n.id))
+        batch.delete(notificationDocRef(n.id))
       }
       await batch.commit()
     } catch (e) {
@@ -95,7 +94,8 @@ const useNotifStore = create((set, get) => ({
   addNotif: async (uid, { icon, title, description, desc, color, type, link }) => {
     if (!uid) return
     try {
-      await addDoc(collection(db, 'users', uid, 'notifications'), {
+      await addDoc(collection(db, 'notifications'), {
+        userId: uid,
         icon: icon || 'bell',
         title,
         description: description || desc || '',

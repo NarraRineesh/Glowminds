@@ -67,10 +67,9 @@ const useAppStore = create((set) => ({
         updatedAt: serverTimestamp(),
       })
     } else {
-      // Merge safe profile fields only — subscription/credits are server-authoritative.
-      const { subscription: _subscription, ...safeFields } = userDoc
+      // Merge safe profile fields only — billing/credits live in top-level collections.
       await setDoc(userRef, {
-        ...safeFields,
+        ...userDoc,
         updatedAt: serverTimestamp(),
       }, { merge: true })
     }

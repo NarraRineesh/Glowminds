@@ -1,24 +1,15 @@
 import { create } from 'zustand'
 import {
   collection,
-  doc,
   addDoc,
   setDoc,
-  getDocs,
-  query,
-  orderBy,
-  limit,
   serverTimestamp,
 } from 'firebase/firestore'
 import { db, auth } from '@/services/firebase'
-
-// Persist interview practice sessions under users/{uid}/interviewSessions/{sid}.
-// Each session stores MCQ questions, the user's picks, and the AI session
-// summary that comes from /api/ai/evaluate-session (one call per session).
-
-function sessionsColl(uid) {
-  return collection(db, 'users', uid, 'interviewSessions')
-}
+import {
+  loadInterviewSessions,
+  interviewSessionDocRef,
+} from '@/utils/firestoreCollections'
 
 function normalizeMcq(q, fallbackType) {
   const options = Array.isArray(q?.options) ? q.options.slice(0, 4).map((o) => String(o || '')) : []
@@ -42,22 +33,18 @@ function normalizeMcq(q, fallbackType) {
 const useInterviewStore = create((set, get) => ({
   loading: false,
   loaded: false,
-  sessions: [],         // recent sessions for history list
+  sessions: [],
   currentSessionId: null,
 
   reset: () => set({ sessions: [], currentSessionId: null, loading: false, loaded: false }),
 
-  // Cached: revisiting the Interview section uses the in-memory list. Pass
-  // force:true to refresh (e.g. pull-to-refresh button if we add one).
   loadHistory: async ({ force = false } = {}) => {
     const uid = auth.currentUser?.uid
     if (!uid) return get().sessions
     if (!force && get().loaded) return get().sessions
     set({ loading: true })
     try {
-      const q = query(sessionsColl(uid), orderBy('createdAt', 'desc'), limit(20))
-      const snap = await getDocs(q)
-      const sessions = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+      const sessions = await loadInterviewSessions(uid, 20)
       set({ sessions, loading: false, loaded: true })
       return sessions
     } catch (err) {
@@ -72,7 +59,8 @@ const useInterviewStore = create((set, get) => ({
     if (!uid) return null
     try {
       const normalizedQs = (questions || []).map((q) => normalizeMcq(q, type))
-      const ref = await addDoc(sessionsColl(uid), {
+      const ref = await addDoc(collection(db, 'interviewSessions'), {
+        userId: uid,
         role: role || '',
         type: type || 'general',
         status: 'in-progress',
@@ -81,8 +69,6 @@ const useInterviewStore = create((set, get) => ({
         createdAt: serverTimestamp(),
         completedAt: null,
       })
-      // Mirror the new session into the in-memory list so cached loadHistory
-      // calls keep showing the latest state without another Firestore read.
       set((s) => ({
         currentSessionId: ref.id,
         sessions: [
@@ -106,9 +92,6 @@ const useInterviewStore = create((set, get) => ({
     }
   },
 
-  // Persist a single MCQ choice. `selectedIndex` is the option the user picked
-  // (-1 for skipped). We also stash the deterministic `isCorrect` flag so the
-  // history view doesn't have to recompute it.
   saveAnswer: async ({ sessionId, questions, questionIndex, selectedIndex, evaluation }) => {
     const uid = auth.currentUser?.uid
     const sid = sessionId || get().currentSessionId
@@ -126,7 +109,7 @@ const useInterviewStore = create((set, get) => ({
       })
       const totalScore = updatedQuestions.filter((q) => q.isCorrect).length
       await setDoc(
-        doc(db, 'users', uid, 'interviewSessions', sid),
+        interviewSessionDocRef(sid),
         { questions: updatedQuestions, totalScore, updatedAt: serverTimestamp() },
         { merge: true },
       )
@@ -152,7 +135,7 @@ const useInterviewStore = create((set, get) => ({
         ...(newQuestions || []).map((q) => normalizeMcq(q)),
       ]
       await setDoc(
-        doc(db, 'users', uid, 'interviewSessions', sid),
+        interviewSessionDocRef(sid),
         { questions: merged, updatedAt: serverTimestamp() },
         { merge: true },
       )
@@ -169,7 +152,7 @@ const useInterviewStore = create((set, get) => ({
     if (!uid || !sid) return
     try {
       await setDoc(
-        doc(db, 'users', uid, 'interviewSessions', sid),
+        interviewSessionDocRef(sid),
         { status: 'completed', completedAt: serverTimestamp() },
         { merge: true },
       )

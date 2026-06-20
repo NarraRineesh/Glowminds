@@ -63,17 +63,8 @@ export default function useUpgradePro() {
                   signature: response.razorpay_signature,
                 },
               })
-              const userDoc = await useProfileStore.getState().load({ force: true })
+              await useProfileStore.getState().load({ force: true })
               invalidateEntitlementsCache()
-              if (userDoc?.subscription) {
-                const current = useAppStore.getState().user
-                if (current) {
-                  useAppStore.getState().setUser({
-                    ...current,
-                    subscription: userDoc.subscription,
-                  })
-                }
-              }
               addToast('success', 'Welcome to Glowminds Pro!')
               setLoading(false)
               if (typeof onSuccess === 'function') {

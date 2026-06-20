@@ -1,14 +1,11 @@
 import AppIcon from '@/components/icons/AppIcon'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
   serverTimestamp,
   setDoc,
 } from 'firebase/firestore'
-import { db, auth } from '@/services/firebase'
+import { auth } from '@/services/firebase'
+import { resumeDocRef, loadResume } from '@/utils/firestoreCollections'
 import useAppStore from '@/store/authStore'
 import useProfileStore from '@/store/profileStore'
 import ImproveTextModal from './resume/ImproveTextModal'
@@ -1232,7 +1229,7 @@ export default function ResumeSection() {
     setProfileSynced(false)
   }, [applyTemplateState])
 
-  /* ---------- Initial load: single resume at users/{uid}/resumes/primary ---------- */
+  /* ---------- Initial load: single resume at resumes/{uid}_primary ---------- */
   useEffect(() => {
     if (!auth.currentUser) return
     let cancelled = false
@@ -1240,19 +1237,7 @@ export default function ResumeSection() {
       try {
         await useProfileStore.getState().load({ force: false })
         const uid = auth.currentUser.uid
-        let resumePayload = null
-        const primarySnap = await getDoc(doc(db, 'users', uid, 'resumes', PRIMARY_RESUME_ID))
-        if (primarySnap.exists()) {
-          resumePayload = { id: PRIMARY_RESUME_ID, ...primarySnap.data() }
-        } else {
-          const legacy = await getDocs(collection(db, 'users', uid, 'resumes'))
-          if (legacy.docs.length > 0) {
-            const best = [...legacy.docs].sort(
-              (a, b) => (b.data().updatedAt?.seconds || 0) - (a.data().updatedAt?.seconds || 0),
-            )[0]
-            resumePayload = { id: PRIMARY_RESUME_ID, ...best.data() }
-          }
-        }
+        const resumePayload = await loadResume(uid, PRIMARY_RESUME_ID)
 
         if (cancelled) return
 
@@ -1352,8 +1337,10 @@ export default function ResumeSection() {
         name: resumeName,
         templateId: design.template,
       })
-      await setDoc(doc(db, 'users', auth.currentUser.uid, 'resumes', PRIMARY_RESUME_ID), {
+      await setDoc(resumeDocRef(auth.currentUser.uid, PRIMARY_RESUME_ID), {
         ...payload,
+        userId: auth.currentUser.uid,
+        resumeId: PRIMARY_RESUME_ID,
         syncedFromProfile: profileSynced,
         updatedAt: serverTimestamp(),
       })

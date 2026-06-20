@@ -1,11 +1,10 @@
 import { create } from 'zustand'
-import { collection, doc, updateDoc, deleteDoc, getDocs, serverTimestamp, query, orderBy } from 'firebase/firestore'
-import { db, auth } from '@/services/firebase'
+import { updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
+import { auth } from '@/services/firebase'
 import { apiFetch } from '@/services/apiClient'
 import { APPLICATION_STATUS, normalizeApplicationStatus } from '@/constants/schema'
+import { applicationDocRef, loadApplications } from '@/utils/firestoreCollections'
 
-// Normalize a doc into the v2 application shape. Handles legacy docs that
-// still use abbreviated keys (co/rl/st/dt/sal/nt) until migration runs.
 function normalizeApp(raw) {
   if (!raw) return raw
   return {
@@ -47,18 +46,13 @@ const useTrackerStore = create((set, get) => ({
 
   reset: () => set({ apps: [], loading: false, loaded: false }),
 
-  // Defaults to a cached load — sections call this on mount but we only hit
-  // Firestore the first time per session (or when callers pass force:true).
-  // Mutations below keep `apps` in sync without needing a refetch.
   loadApps: async ({ force = false } = {}) => {
     const uid = auth.currentUser?.uid
     if (!uid) return
     if (!force && get().loaded) return
     set({ loading: true })
     try {
-      const q = query(collection(db, 'users', uid, 'applications'), orderBy('createdAt', 'desc'))
-      const snap = await getDocs(q)
-      const apps = snap.docs.map((d) => normalizeApp({ id: d.id, ...d.data() }))
+      const apps = (await loadApplications(uid)).map((raw) => normalizeApp(raw))
       set({ apps, loading: false, loaded: true })
     } catch (err) {
       console.error('Load apps failed:', err)
@@ -97,7 +91,7 @@ const useTrackerStore = create((set, get) => ({
     const safe = { ...updates }
     if (safe.status) safe.status = normalizeApplicationStatus(safe.status)
     try {
-      await updateDoc(doc(db, 'users', uid, 'applications', appId), {
+      await updateDoc(applicationDocRef(appId), {
         ...safe,
         updatedAt: serverTimestamp(),
       })
@@ -112,7 +106,7 @@ const useTrackerStore = create((set, get) => ({
     const uid = auth.currentUser?.uid
     if (!uid) return
     try {
-      await deleteDoc(doc(db, 'users', uid, 'applications', appId))
+      await deleteDoc(applicationDocRef(appId))
       set((s) => ({ apps: s.apps.filter((a) => a.id !== appId) }))
     } catch (err) {
       console.error('Delete app failed:', err)
