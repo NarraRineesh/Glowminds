@@ -444,7 +444,7 @@ export default function SettingsSection() {
               <TabsTrigger
                 key={section.id}
                 value={section.id}
-                className="shrink-0 gap-1.5 px-3 py-2.5 text-sm after:bottom-0 sm:px-4"
+                className="shrink-0 gap-1.5 rounded-t-lg px-3 py-2.5 text-sm data-active:bg-primary/10 data-active:text-primary data-active:after:bg-primary data-active:[&_svg]:text-primary after:bottom-0 sm:px-4"
               >
                 <AppIcon name={section.icon} className="size-4" />
                 <span>{section.title}</span>
