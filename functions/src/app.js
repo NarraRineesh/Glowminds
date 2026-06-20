@@ -7,7 +7,6 @@ import jobsSearchRoutes from "./routes/jobs/search.js";
 import paymentRoutes from "./routes/payments/razorpay.js";
 import paymentWebhookRoutes from "./routes/payments/webhook.js";
 import usageRoutes from "./routes/usage/track.js";
-import adminRoutes from "./routes/admin/index.js";
 import configRoutes from "./routes/config/index.js";
 import entitlementsRoutes from "./routes/entitlements/index.js";
 import applicationsRoutes from "./routes/applications/index.js";
@@ -52,7 +51,6 @@ export function createApp() {
   app.use("/api/payments", paymentRoutes);
   app.use("/api/usage", usageRoutes);
   app.use("/api/config", configRoutes);
-  app.use("/api/admin", adminRoutes);
   app.use("/api/entitlements", entitlementsRoutes);
   app.use("/api/applications", applicationsRoutes);
   app.use("/api/resumes", resumesRoutes);

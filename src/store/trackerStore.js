@@ -3,7 +3,6 @@ import { collection, doc, updateDoc, deleteDoc, getDocs, serverTimestamp, query,
 import { db, auth } from '@/services/firebase'
 import { apiFetch } from '@/services/apiClient'
 import { APPLICATION_STATUS, normalizeApplicationStatus } from '@/constants/schema'
-import useGamificationStore from '@/store/gamificationStore'
 
 // Normalize a doc into the v2 application shape. Handles legacy docs that
 // still use abbreviated keys (co/rl/st/dt/sal/nt) until migration runs.
@@ -85,7 +84,6 @@ const useTrackerStore = create((set, get) => ({
         updatedAt: created.updatedAt || new Date(),
       })
       set((s) => ({ apps: [newApp, ...s.apps] }))
-      useGamificationStore.getState().syncEligibleBadges({ applicationCount: get().apps.length }).catch(() => {})
       return newApp
     } catch (err) {
       console.error('Add app failed:', err)
@@ -105,10 +103,6 @@ const useTrackerStore = create((set, get) => ({
       })
       const nextApps = get().apps.map((a) => (a.id === appId ? { ...a, ...safe, updatedAt: new Date() } : a))
       set({ apps: nextApps })
-      useGamificationStore.getState().syncEligibleBadges({
-        applicationCount: nextApps.length,
-        hasOffer: nextApps.some((a) => a.status === 'offer'),
-      }).catch(() => {})
     } catch (err) {
       console.error('Update app failed:', err)
     }

@@ -3,7 +3,6 @@ import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from '@/services/firebase'
 import useAppStore from '@/store/authStore'
 import useProfileStore from '@/store/profileStore'
-import useGamificationStore from '@/store/gamificationStore'
 import useTrackerStore from '@/store/trackerStore'
 import useJobStore from '@/store/jobStore'
 import useInterviewStore from '@/store/interviewStore'
@@ -26,17 +25,6 @@ export default function useAuthListener() {
           photoURL: firebaseUser.photoURL,
           firstName: firebaseUser.displayName?.split(' ')[0] || '',
           lastName: firebaseUser.displayName?.split(' ').slice(1).join(' ') || '',
-          isAdmin: false,
-        }
-
-        // Read the `admin` custom claim from the ID token. Granted via
-        // Admin SDK (`setCustomUserClaims(uid, { admin: true })`) and
-        // surfaced here so the UI can gate the admin nav/page.
-        try {
-          const tokenResult = await firebaseUser.getIdTokenResult()
-          baseUser.isAdmin = tokenResult?.claims?.admin === true
-        } catch (e) {
-          console.warn('useAuthListener: failed to read token claims', e)
         }
 
         // Single users/{uid} read — load it through profileStore so the rest
@@ -57,29 +45,18 @@ export default function useAuthListener() {
           if (userDoc.subscription) baseUser.subscription = userDoc.subscription
           if (userDoc.settings) baseUser.settings = userDoc.settings
           if (userDoc.flags) baseUser.flags = userDoc.flags
-          if (userDoc.gamification) baseUser.gamification = userDoc.gamification
         }
 
         setUser(baseUser)
 
-        // hydrateFromUser is a pure local op; recordDailyVisit short-circuits
-        // when the in-memory `lastActiveDate` already equals today.
-        if (userDoc) useGamificationStore.getState().hydrateFromUser(userDoc)
-        useGamificationStore.getState().recordDailyVisit().catch(() => {})
-        useGamificationStore.getState().loadCatalog().catch(() => {})
-
         try {
           const uid = firebaseUser.uid
-          localStorage.removeItem('nx_daily_quiz_state')
           localStorage.removeItem(`nx_onboarding_done_${uid}`)
           localStorage.removeItem('nx_onboarding_done')
-          localStorage.removeItem(`nx_quiz_prompt_seen_${uid}`)
-          localStorage.removeItem('nx_quiz_prompt_seen')
         } catch { /* ignore */ }
       } else {
         setUser(null)
         useProfileStore.getState().reset()
-        useGamificationStore.getState().reset()
         // Per-user caches must be cleared on logout so a different account
         // signing in on the same browser tab never sees the previous user's
         // applications / saved jobs / interview history / chat list.

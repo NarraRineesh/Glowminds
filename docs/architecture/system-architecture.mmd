@@ -8,7 +8,6 @@ flowchart LR
     %% USERS
     %% ====================================================================
     USER(["👤 <b>End user</b><br/>browser"])
-    ADMIN(["🛡️ <b>Admin user</b><br/>browser (admin: true claim)"])
 
     %% ====================================================================
     %% CLIENT (Firebase Hosting)
@@ -18,7 +17,7 @@ flowchart LR
 
         subgraph clientShell ["App shell"]
             ROUTER["⚛️ React Router<br/>/, /dashboard/*"]
-            AUTHHK["🔐 useAuthListener<br/>onAuthStateChanged<br/>reads ID token + admin claim"]
+            AUTHHK["🔐 useAuthListener<br/>onAuthStateChanged<br/>loads user profile"]
             API["📡 apiClient<br/>fetch + ID token header<br/>401 → auto logout"]
         end
 
@@ -26,12 +25,10 @@ flowchart LR
             direction LR
             S_AUTH["authStore"]
             S_PROFILE["profileStore<br/>(users/{uid})"]
-            S_GAM["gamificationStore<br/>(badges/streak/xp)"]
             S_TRACK["trackerStore<br/>(applications)"]
             S_JOB["jobStore<br/>(saved + search cache)"]
             S_AI["aiChatStore<br/>(aiChats)"]
             S_INT["interviewStore<br/>(interviewSessions)"]
-            S_QUIZ["dailyQuizStore"]
             S_NOTIF["notifStore<br/>(onSnapshot)"]
         end
 
@@ -47,14 +44,13 @@ flowchart LR
             SEC_LIN["🔗 LinkedIn Optimizer"]
             SEC_GR["✍️ Grammar / Paraphrase"]
             SEC_PROF["👤 Profile / Settings"]
-            SEC_ADMIN["🛡️ Admin Console<br/>(gated by isAdmin)"]
         end
     end
 
     %% ====================================================================
     %% AUTH
     %% ====================================================================
-    FBAUTH[("🔥 <b>Firebase Auth</b><br/>Google / Email-password<br/>custom claim: admin")]
+    FBAUTH[("🔥 <b>Firebase Auth</b><br/>Google / Email-password")]
 
     %% ====================================================================
     %% HETZNER VPS — single host runs Express API + Python enrich + workers
@@ -66,7 +62,6 @@ flowchart LR
             direction TB
 
             MWAUTH["🔐 requireAuth<br/>verify Firebase ID token<br/>→ req.user.uid"]
-            MWADMIN["🛡️ requireAdmin<br/>check token.admin === true"]
             MWERR["⚠️ errorHandler<br/>sanitized JSON errors"]
 
             subgraph aiRoutes ["/api/ai/* (all behind requireAuth)"]
@@ -85,20 +80,8 @@ flowchart LR
                 R_SEARCH["POST /search<br/>profile-aware query + scoring"]
             end
 
-            subgraph adminRoutes ["/api/admin/* (requireAdmin)"]
-                R_OV["GET /overview<br/>users + companies + jobs counts<br/>(30s cache)"]
-                R_CO_LIST["GET /companies<br/>cursor pagination + search"]
-                R_CO_CRUD["POST/PATCH/DELETE /companies/:slug"]
-                R_CO_BULK["POST /companies/bulk<br/>(BULK_MAX = 1000)"]
-                R_CO_SYNC1["POST /companies/:slug/sync"]
-                R_SYNC["POST /sync<br/>fire-and-forget · 202"]
-                R_SS["GET /sync/status"]
-                R_SR["GET /sync-runs"]
-            end
-
             subgraph usageRoutes ["/api/usage/*"]
                 R_TRACK["POST /track<br/>(allowlist of UI-only tools)"]
-                R_AGG["GET /aggregate<br/>(requireAdmin · 60s cache)"]
             end
 
             subgraph payRoutes ["/api/payments/razorpay"]
@@ -173,7 +156,7 @@ flowchart LR
         end
 
         subgraph fsUser ["User-owned (rules: owner-read/write)"]
-            FS_USERS[("users/{uid}<br/>profile · gamification · flags<br/>settings · subscription · usage")]
+            FS_USERS[("users/{uid}<br/>profile · flags<br/>settings · subscription · usage")]
             FS_APPS[("users/{uid}/applications")]
             FS_SAVED[("users/{uid}/savedJobs")]
             FS_CHATS[("users/{uid}/aiChats")]
@@ -181,30 +164,26 @@ flowchart LR
             FS_RESUME[("users/{uid}/resumes/{id}")]
             FS_NOTIF[("users/{uid}/notifications")]
         end
-
-        FS_BADGE[("badges/{id}<br/>public read · admin write")]
     end
 
     %% ====================================================================
     %% ===== CLIENT FLOWS =====
     %% ====================================================================
     USER --> ROUTER
-    ADMIN --> ROUTER
     ROUTER --> clientSections
 
     %% Auth handshake
-    AUTHHK <-->|"sign-in · ID token<br/>+ custom claims"| FBAUTH
+    AUTHHK <-->|"sign-in · ID token"| FBAUTH
     AUTHHK --> S_AUTH
     AUTHHK -->|"profileStore.load (once)"| FS_USERS
 
     %% Section → store wiring (logical, not exhaustive)
-    SEC_OV --- S_PROFILE & S_TRACK & S_JOB & S_GAM
+    SEC_OV --- S_PROFILE & S_TRACK & S_JOB
     SEC_JOBS --- S_JOB
     SEC_APP --- S_TRACK
     SEC_AI --- S_AI
     SEC_INT --- S_INT
     SEC_PROF --- S_PROFILE
-    SEC_ADMIN --- S_AUTH
 
     %% Direct Firestore I/O for owner-scoped data (no backend hop)
     S_PROFILE <-->|"get/set users/{uid}"| FS_USERS
@@ -212,8 +191,6 @@ flowchart LR
     S_JOB <-->|"savedJobs CRUD"| FS_SAVED
     S_AI <-->|"aiChats CRUD"| FS_CHATS
     S_INT <-->|"interviewSessions CRUD"| FS_SESS
-    S_GAM -->|"runTransaction<br/>badges/streak/xp"| FS_USERS
-    S_GAM -->|"loadCatalog (once)"| FS_BADGE
     S_NOTIF <-->|"onSnapshot · limit 50"| FS_NOTIF
 
     %% Backend-bound traffic
@@ -223,8 +200,7 @@ flowchart LR
     %% ====================================================================
     %% ===== BACKEND ROUTING =====
     %% ====================================================================
-    expressApi --> MWAUTH --> MWADMIN
-    MWADMIN --> adminRoutes
+    expressApi --> MWAUTH
     MWAUTH --> aiRoutes
     MWAUTH --> jobsRoutes
     MWAUTH --> usageRoutes
@@ -243,23 +219,8 @@ flowchart LR
     R_SEARCH -->|".where(status=ACTIVE)<br/>.where(searchText ARRAY_CONTAINS)"| FS_JOBS
     R_SEARCH -->|"loadProfileContext"| FS_USERS
 
-    %% Admin overview reads counts + latest run
-    R_OV -->|".count() x4 + limit(1)"| FS_USERS & FS_COMP & FS_JOBS & FS_RUNS
-
-    %% Admin companies CRUD
-    R_CO_LIST -->|"cursor · orderBy(slug)"| FS_COMP
-    R_CO_CRUD --> FS_COMP
-    R_CO_BULK --> FS_COMP
-    R_CO_SYNC1 --> syncPipeline
-
-    %% Admin sync
-    R_SYNC -.->|"fire-and-forget"| syncPipeline
-    R_SS -->|"in-memory flag"| expressApi
-    R_SR --> FS_RUNS
-
     %% Usage
     R_TRACK --> TRACK
-    R_AGG -->|"scan users/{uid}.usage<br/>(60s cache)"| FS_USERS
 
     %% Payments
     R_ORDER --> RZP
@@ -301,17 +262,17 @@ flowchart LR
     classDef ats fill:#831843,stroke:#fbcfe8,color:#fff
     classDef auth fill:#7e22ce,stroke:#e9d5ff,color:#fff,stroke-width:2px
 
-    class USER,ADMIN user
+    class USER user
     class ROUTER,AUTHHK,API client
-    class S_AUTH,S_PROFILE,S_GAM,S_TRACK,S_JOB,S_AI,S_INT,S_QUIZ,S_NOTIF store
-    class SEC_OV,SEC_RES,SEC_JOBS,SEC_APP,SEC_INT,SEC_AI,SEC_COV,SEC_LIN,SEC_GR,SEC_PROF,SEC_ADMIN section
-    class MWAUTH,MWADMIN,MWERR mw
-    class R_CHAT,R_IQ,R_EV,R_JM,R_PR,R_CL,R_GR,R_PP,R_RP,R_SEARCH,R_OV,R_CO_LIST,R_CO_CRUD,R_CO_BULK,R_CO_SYNC1,R_SYNC,R_SS,R_SR,R_TRACK,R_AGG,R_ORDER,R_VERIFY,R_HEALTH route
+    class S_AUTH,S_PROFILE,S_TRACK,S_JOB,S_AI,S_INT,S_NOTIF store
+    class SEC_OV,SEC_RES,SEC_JOBS,SEC_APP,SEC_INT,SEC_AI,SEC_COV,SEC_LIN,SEC_GR,SEC_PROF section
+    class MWAUTH,MWERR mw
+    class R_CHAT,R_IQ,R_EV,R_JM,R_PR,R_CL,R_GR,R_PP,R_RP,R_SEARCH,R_TRACK,R_ORDER,R_VERIFY,R_HEALTH route
     class TASK_REG,GEM,OR,TRACK ai
     class PY_H,PY_E py
     class SYNC_RUN,SYNC_ONE sync
     class BW_EXP,BW_RT,BW_HE bg
     class GEMINI,OPENR,RZP ext
-    class FS_COMP,FS_JOBS,FS_RUNS,FS_RT,FS_FAIL,FS_USERS,FS_APPS,FS_SAVED,FS_CHATS,FS_SESS,FS_RESUME,FS_NOTIF,FS_BADGE db
+    class FS_COMP,FS_JOBS,FS_RUNS,FS_RT,FS_FAIL,FS_USERS,FS_APPS,FS_SAVED,FS_CHATS,FS_SESS,FS_RESUME,FS_NOTIF db
     class GH,LV,ASH,BB,WD ats
     class FBAUTH auth

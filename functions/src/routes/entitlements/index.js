@@ -7,8 +7,7 @@ const router = Router();
 
 router.get("/", requireAuth, async (req, res, next) => {
   try {
-    const isAdmin = req.user.token?.admin === true;
-    const entitlements = await getEntitlements(req.user.uid, { isAdmin });
+    const entitlements = await getEntitlements(req.user.uid);
     res.json(entitlements);
   } catch (err) {
     next(err instanceof ApiError ? err : new ApiError("internal", err.message));

@@ -11,7 +11,6 @@ const CACHE_TTL_MS = 30_000
 export default function useEntitlements({ enabled = true } = {}) {
   const loggedIn = useAppStore((s) => s.loggedIn)
   const uid = useAppStore((s) => s.user?.uid)
-  const isAdmin = useAppStore((s) => s.user?.isAdmin)
   const [data, setData] = useState(cache.uid === uid ? cache.data : null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -53,9 +52,7 @@ export default function useEntitlements({ enabled = true } = {}) {
     loading,
     error,
     refresh,
-    isPro: !!(data?.isPro || isAdmin),
-    creditBalance: data?.credits?.balance ?? null,
-    creditCosts: data?.creditCosts ?? null,
+    isPro: !!data?.isPro,
     freeLimits: data?.freeLimits ?? null,
   }
 }

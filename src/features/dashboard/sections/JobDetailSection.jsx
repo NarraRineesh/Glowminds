@@ -4,9 +4,6 @@ import useAppStore from '@/store/authStore'
 import useJobStore from '@/store/jobStore'
 import useTrackerStore from '@/store/trackerStore'
 import useProfileStore from '@/store/profileStore'
-import useIsPro from '@/hooks/useIsPro'
-import useEntitlements from '@/hooks/useEntitlements'
-import useUpgradePro from '@/hooks/useUpgradePro'
 import { apiFetch } from '@/services/apiClient'
 import { getJobById } from '@/services/jobSearch'
 import { buildJobMatchAnalysis } from '@/utils/jobMatchAnalysis'
@@ -41,14 +38,8 @@ export default function JobDetailSection() {
   const { addToast } = useAppStore()
   const { jobs, isJobSaved, saveJob, unsaveJob, loadSavedJobs } = useJobStore()
   const loadProfile = useProfileStore((s) => s.load)
-  const isPro = useIsPro()
-  const { entitlements } = useEntitlements()
-  const { startUpgrade, loading: upgradeLoading } = useUpgradePro()
   const profile = useProfileStore((s) => s.profile)
   const { addApp, loadApps, apps } = useTrackerStore()
-  const freeAppLimit = entitlements?.freeLimits?.applications ?? 10
-  const appCount = entitlements?.entitlements?.applicationCount ?? apps.length
-  const canTrackMore = isPro || appCount < freeAppLimit
 
   const [job, setJob] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -113,11 +104,6 @@ export default function JobDetailSection() {
 
   const handleApply = async (j) => {
     if (applying || applied) return
-    if (!canTrackMore) {
-      addToast('info', `Free plan allows ${freeAppLimit} tracked applications. Upgrade for unlimited tracking.`)
-      navigate('/pricing')
-      return
-    }
     setApplying(true)
     try {
       const company = j.company || j.co || ''
@@ -138,7 +124,7 @@ export default function JobDetailSection() {
         if (j.url) window.open(j.url, '_blank', 'noopener,noreferrer')
       }
     } catch {
-      addToast('error', 'Could not track application — you may have reached the free limit.')
+      addToast('error', 'Could not track application. Please try again.')
     } finally {
       setApplying(false)
     }
@@ -276,20 +262,10 @@ export default function JobDetailSection() {
           </Button>
           <Button
             variant="outline"
-            disabled={clLoading || upgradeLoading}
-            onClick={() => {
-              if (!isPro) {
-                void startUpgrade({ plan: 'yearly' })
-                return
-              }
-              generateCoverLetter()
-            }}
+            disabled={clLoading}
+            onClick={generateCoverLetter}
           >
-            {clLoading ? 'Generating…' : !isPro ? (
-              <><AppIcon name="lock" className="size-4" /> Cover Letter (Pro)</>
-            ) : (
-              <><AppIcon name="cover-letters" className="size-4" /> Cover Letter</>
-            )}
+            {clLoading ? 'Generating…' : <><AppIcon name="cover-letters" className="size-4" /> Cover Letter</>}
           </Button>
           {applied ? (
             <Button variant="secondary" onClick={() => navigate('/dashboard/applications')}>

@@ -248,7 +248,7 @@ export default function PricingPage() {
                   {marketing?.dailyEquivalent || 'Less than ₹2/day'}
                 </p>
                 <CardDescription className="pt-1">
-                  100 AI credits/month — cover letters, mock interviews, and AI coach chat. Fair usage policy applies.
+                  100 AI credits/month, AI mock interviews, cover letters, career coach, and resume ATS reviews.
                 </CardDescription>
               </CardHeader>
               <CardFooter className="flex-col items-stretch gap-4">

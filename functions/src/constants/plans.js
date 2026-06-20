@@ -46,11 +46,6 @@ export function isTrustedProSubscription(sub) {
   return TRUSTED_PRO_SOURCES.has(sub.source);
 }
 
-/**
- * @param {Record<string, unknown> | null | undefined} sub
- * @param {boolean} [isAdmin]
- */
-export function hasProAccess(sub, isAdmin = false) {
-  if (isAdmin) return true;
+export function hasProAccess(sub) {
   return isTrustedProSubscription(sub);
 }

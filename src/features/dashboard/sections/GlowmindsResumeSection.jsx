@@ -2,9 +2,7 @@ import { lazy, Suspense, useCallback, useLayoutEffect, useMemo, useRef } from 'r
 import { useNavigate } from 'react-router-dom'
 import Loader from '@/components/Loader'
 import useTheme from '@/hooks/useTheme'
-import useIsPro from '@/hooks/useIsPro'
 import { invalidateEntitlementsCache } from '@/hooks/useEntitlements'
-import PlanUsageSummary from '@/components/dashboard/PlanUsageSummary'
 import useAppStore from '@/store/authStore'
 import { apiFetch } from '@/services/apiClient'
 import { getCopilotThemeTokens } from '@/constants/copilotThemeTokens'
@@ -18,7 +16,6 @@ export default function GlowmindsResumeSection() {
   const hostRef = useRef(null)
   const navigate = useNavigate()
   const { theme } = useTheme()
-  const isPro = useIsPro()
   const user = useAppStore((state) => state.user)
   const resolvedTheme = theme === 'dark' ? 'dark' : 'light'
 
@@ -46,14 +43,13 @@ export default function GlowmindsResumeSection() {
       : undefined,
     resumes: [],
     seedFromProfile: false,
-    isPro: isPro || !!user?.isAdmin,
+    isPro: true,
     onUpgrade: () => navigate('/pricing'),
     onResumeCreate,
-  }), [resolvedTheme, user, isPro, navigate, onResumeCreate])
+  }), [resolvedTheme, user, navigate, onResumeCreate])
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
-      <PlanUsageSummary compact className="shrink-0" />
       <div
         ref={hostRef}
         className="rr-copilot-host flex min-h-0 flex-1 flex-col overflow-hidden"

@@ -1,21 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import OnboardingModal from './OnboardingModal'
-import DailyQuizModal from './DailyQuizModal'
 import useAppStore from '@/store/authStore'
 import useProfileStore from '@/store/profileStore'
-import useGamificationStore from '@/store/gamificationStore'
-import { todayKey as quizTodayKey } from '@/utils/dateKeys'
-import { getTodayKey } from '@/features/dashboard/data/quizQuestions'
 
 /**
  * Mounted inside DashboardShell. Decides which modal (if any) should appear:
  *  1. Onboarding — once per user (users/{uid}.flags.onboardingCompleted),
  *     shown only on /dashboard.
- *  2. Daily Quiz — once per day on /dashboard if today's quiz hasn't been
- *     answered and the prompt hasn't been dismissed today.
- *     "Answered today" = users/{uid}.gamification.dailyQuizLastAnsweredDate
- *     equals today's YYYYMMDD key.
  *
  * The host is intentionally lightweight; modals own their own UI/state.
  */
@@ -24,12 +16,10 @@ export default function DashboardModalsHost() {
   const profile = useProfileStore((s) => s.profile)
   const flagsLoaded = useProfileStore((s) => s.loaded)
   const patchUserDoc = useProfileStore((s) => s.patchUserDoc)
-  const quizLastAnsweredDate = useGamificationStore((s) => s.gamification?.dailyQuizLastAnsweredDate)
   const navigate = useNavigate()
   const { pathname } = useLocation()
 
   const [showOnboarding, setShowOnboarding] = useState(false)
-  const [showQuiz, setShowQuiz] = useState(false)
   const [resumeStepId, setResumeStepId] = useState('name')
 
   const onDashboardRoot = pathname === '/dashboard' || pathname === '/dashboard/'
@@ -39,9 +29,6 @@ export default function DashboardModalsHost() {
 
     const userDoc = useProfileStore.getState().user
     const onboardingDone = !!(userDoc?.flags?.onboardingCompleted)
-
-    const quizPromptSeenToday = userDoc?.flags?.quizPromptSeenAt === getTodayKey()
-    const answeredToday = quizLastAnsweredDate === quizTodayKey()
 
     if (!onboardingDone) {
       // Resume at the last persisted step (stored as the visible-array index
@@ -54,12 +41,7 @@ export default function DashboardModalsHost() {
       const t = setTimeout(() => setShowOnboarding(true), 600)
       return () => clearTimeout(t)
     }
-
-    if (!quizPromptSeenToday && !answeredToday) {
-      const t = setTimeout(() => setShowQuiz(true), 800)
-      return () => clearTimeout(t)
-    }
-  }, [loggedIn, user?.uid, onDashboardRoot, flagsLoaded, profile, quizLastAnsweredDate])
+  }, [loggedIn, user?.uid, onDashboardRoot, flagsLoaded, profile])
 
   const closeOnboarding = async () => {
     setShowOnboarding(false)
@@ -76,25 +58,12 @@ export default function DashboardModalsHost() {
     }
   }
 
-  const closeQuiz = async () => {
-    setShowQuiz(false)
-    try {
-      const existingFlags = useProfileStore.getState().user?.flags || {}
-      await patchUserDoc({ flags: { ...existingFlags, quizPromptSeenAt: getTodayKey() } })
-    } catch (err) {
-      console.error('persist quiz prompt flag:', err)
-    }
-  }
-
   return (
-    <>
-      <OnboardingModal
-        open={showOnboarding}
-        initialStepId={resumeStepId}
-        onClose={closeOnboarding}
-        onPickAction={(path) => navigate(path)}
-      />
-      <DailyQuizModal open={showQuiz} onClose={closeQuiz} />
-    </>
+    <OnboardingModal
+      open={showOnboarding}
+      initialStepId={resumeStepId}
+      onClose={closeOnboarding}
+      onPickAction={(path) => navigate(path)}
+    />
   )
 }

@@ -12,6 +12,8 @@ import {
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
+import { defaultResumeData } from "@/lib/schema/resume/default";
+import { glowmindsSampleResumeData } from "@/lib/schema/resume/glowminds-sample";
 import { BrandIcon } from "@/lib/ui/components/brand-icon";
 import { Button } from "@/lib/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/lib/ui/components/card";
@@ -25,6 +27,7 @@ import {
 } from "@/features/resume/builder/local-storage";
 import { isEmbedded } from "@/embed/runtime";
 import { FREE_LIMITS, getEmbedIsPro } from "@/lib/plans";
+import { ResumePreview } from "@/features/resume/preview/preview";
 import { createNoindexFollowMeta } from "@/libs/seo";
 import { cn } from "@/lib/utils/style";
 
@@ -34,6 +37,34 @@ export const Route = createFileRoute("/local/")({
 		meta: [{ title: "Local Resume Builder" }, createNoindexFollowMeta()],
 	}),
 });
+
+type MiniResumePreviewProps = {
+	className?: string;
+	data: ResumeData;
+};
+
+function MiniResumePreview({ className, data }: MiniResumePreviewProps) {
+	return (
+		<div
+			className={cn(
+				"relative overflow-hidden rounded-xl border border-border/70 bg-muted/40",
+				"before:pointer-events-none before:absolute before:inset-0 before:z-10 before:bg-gradient-to-b before:from-transparent before:to-background/75",
+				className,
+			)}
+		>
+			<div className="pointer-events-none flex h-full justify-center overflow-hidden pt-3">
+				<ResumePreview
+					data={data}
+					pageGap={0}
+					pageLayout="vertical"
+					pageScale={0.2}
+					pageClassName="shadow-sm ring-1 ring-border/60"
+					showPageNumbers={false}
+				/>
+			</div>
+		</div>
+	);
+}
 
 function RouteComponent() {
 	const embedded = isEmbedded();
@@ -110,19 +141,24 @@ function RouteComponent() {
 				onClick={handleCreate}
 				disabled={atResumeLimit}
 				className={cn(
-					"group flex flex-col items-start gap-2 rounded-xl border border-border bg-card p-4 text-left transition-colors",
+					"group flex aspect-square flex-col items-start justify-between gap-2.5 rounded-xl border border-border bg-card p-2.5 text-left transition-colors",
 					"hover:border-primary/40 hover:bg-primary/5",
 					atResumeLimit && "cursor-not-allowed opacity-60 hover:border-border hover:bg-card",
 				)}
 			>
-				<span className="flex size-10 items-center justify-center rounded-lg bg-muted transition-colors group-hover:bg-primary/10">
-					<PlusIcon className="size-5 text-foreground" />
-				</span>
-				<span className="font-semibold text-foreground">
-					<Trans>Blank resume</Trans>
-				</span>
-				<span className="text-sm text-muted-foreground">
-					<Trans>Start from an empty template</Trans>
+				<MiniResumePreview data={defaultResumeData} className="h-20 w-full" />
+				<span className="flex items-start gap-2.5">
+					<span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted transition-colors group-hover:bg-primary/10">
+						<PlusIcon className="size-4 text-foreground" />
+					</span>
+					<span className="min-w-0">
+						<span className="block font-semibold text-foreground">
+							<Trans>Blank resume</Trans>
+						</span>
+						<span className="mt-0.5 block text-xs text-muted-foreground">
+							<Trans>Start from an empty template</Trans>
+						</span>
+					</span>
 				</span>
 			</button>
 			<button
@@ -130,37 +166,49 @@ function RouteComponent() {
 				onClick={handleCreateSample}
 				disabled={atResumeLimit}
 				className={cn(
-					"group flex flex-col items-start gap-2 rounded-xl border border-primary/30 bg-gradient-to-br from-primary/10 via-card to-card p-4 text-left transition-colors",
+					"group flex aspect-square flex-col items-start justify-between gap-2.5 rounded-xl border border-primary/30 bg-gradient-to-br from-primary/10 via-card to-card p-2.5 text-left transition-colors",
 					"hover:border-primary/50 hover:from-primary/15",
 					atResumeLimit && "cursor-not-allowed opacity-60",
 				)}
 			>
-				<span className="flex size-10 items-center justify-center rounded-lg bg-primary/15 transition-colors group-hover:bg-primary/20">
-					<SparkleIcon className="size-5 text-primary" weight="fill" />
-				</span>
-				<span className="font-semibold text-foreground">
-					<Trans>Start from sample</Trans>
-				</span>
-				<span className="text-sm text-muted-foreground">
-					<Trans>Indian software engineer profile with projects & skills</Trans>
+				<MiniResumePreview data={glowmindsSampleResumeData} className="h-20 w-full border-primary/25 bg-primary/5" />
+				<span className="flex items-start gap-2.5">
+					<span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/15 transition-colors group-hover:bg-primary/20">
+						<SparkleIcon className="size-4 text-primary" weight="fill" />
+					</span>
+					<span className="min-w-0">
+						<span className="block font-semibold text-foreground">
+							<Trans>Start from sample</Trans>
+						</span>
+						<span className="mt-0.5 block text-xs text-muted-foreground">
+							<Trans>Indian software engineer profile with projects & skills</Trans>
+						</span>
+					</span>
 				</span>
 			</button>
 			<button
 				type="button"
 				onClick={() => fileInputRef.current?.click()}
 				className={cn(
-					"group flex flex-col items-start gap-2 rounded-xl border border-border bg-card p-4 text-left transition-colors",
+					"group flex aspect-square flex-col items-start justify-between gap-2.5 rounded-xl border border-border bg-card p-2.5 text-left transition-colors",
 					"hover:border-primary/40 hover:bg-primary/5",
 				)}
 			>
-				<span className="flex size-10 items-center justify-center rounded-lg bg-muted transition-colors group-hover:bg-primary/10">
-					<FileArrowUpIcon className="size-5 text-foreground" />
-				</span>
-				<span className="font-semibold text-foreground">
-					<Trans>Import JSON</Trans>
-				</span>
-				<span className="text-sm text-muted-foreground">
-					<Trans>Upload a Reactive Resume export</Trans>
+				<div className="flex h-20 w-full items-center justify-center rounded-xl border border-dashed border-border/80 bg-muted/40">
+					<FileArrowUpIcon className="size-8 text-muted-foreground/70 transition-colors group-hover:text-primary" />
+				</div>
+				<span className="flex items-start gap-2.5">
+					<span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted transition-colors group-hover:bg-primary/10">
+						<FileArrowUpIcon className="size-4 text-foreground" />
+					</span>
+					<span className="min-w-0">
+						<span className="block font-semibold text-foreground">
+							<Trans>Import JSON</Trans>
+						</span>
+						<span className="mt-0.5 block text-xs text-muted-foreground">
+							<Trans>Upload a Reactive Resume export</Trans>
+						</span>
+					</span>
 				</span>
 			</button>
 		</div>
@@ -191,7 +239,7 @@ function RouteComponent() {
 
 				<section
 					className={cn(
-						"mb-8 rounded-2xl border border-border/80 bg-gradient-to-b from-muted/40 to-card p-5 shadow-sm",
+						"mb-8 rounded-2xl border border-border/80 bg-gradient-to-b from-muted/40 to-card p-4 shadow-sm",
 						embedded && "mb-6",
 					)}
 				>
@@ -244,37 +292,47 @@ function RouteComponent() {
 						<h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
 							<Trans>Your resumes</Trans>
 						</h2>
-						<div className={cn("grid gap-4", embedded ? "sm:grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-3")}>
+						<div className={cn("grid gap-3", embedded ? "grid-cols-2 md:grid-cols-3" : "sm:grid-cols-2 lg:grid-cols-3")}>
 							{resumes.map((resume) => (
 								<Card
 									key={resume.id}
-									className="group flex flex-col transition-shadow hover:border-primary/30 hover:shadow-md"
+									className="group flex aspect-square overflow-hidden flex-col transition-shadow hover:border-primary/30 hover:shadow-md"
 								>
-									<CardHeader className="pb-3">
-										<div className="flex items-start gap-3">
-											<span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted transition-colors group-hover:bg-primary/10">
-												<FileTextIcon className="size-4 text-muted-foreground group-hover:text-primary" />
+									<button
+										type="button"
+										className="block p-3 pb-0 text-left"
+										onClick={() => handleOpen(resume.id)}
+										aria-label={t`Open ${resume.name}`}
+									>
+										<MiniResumePreview data={resume.data} className="h-28 w-full transition-colors group-hover:border-primary/30" />
+									</button>
+									<CardHeader className="pb-2 pt-2.5">
+										<div className="flex items-center gap-2.5">
+											<span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 transition-colors group-hover:bg-primary/15">
+												<FileTextIcon className="size-3.5 text-primary" />
 											</span>
 											<div className="min-w-0 flex-1">
-												<CardTitle className="truncate text-base">{resume.name}</CardTitle>
-												<CardDescription className={cn(embedded && "text-foreground/70")}>
+												<CardTitle className="truncate text-sm">{resume.name}</CardTitle>
+												<CardDescription className={cn("truncate text-xs", embedded && "text-foreground/70")}>
 													<Trans>Last updated {resume.updatedAt.toLocaleString()}</Trans>
 												</CardDescription>
 											</div>
 										</div>
 									</CardHeader>
-									<CardContent className="mt-auto flex gap-2 pt-0">
+									<CardContent className="mt-auto flex items-center gap-2 pt-0">
 										<Button type="button" className="flex-1" onClick={() => handleOpen(resume.id)}>
 											<Trans>Open</Trans>
 										</Button>
 										<Button
 											type="button"
-											variant="destructive"
-											className="shrink-0"
+											variant="outline"
+											size="icon"
+											className="shrink-0 text-muted-foreground hover:border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
 											onClick={() => handleDelete(resume.id)}
+											aria-label={t`Delete ${resume.name}`}
+											title={t`Delete ${resume.name}`}
 										>
-											<TrashSimpleIcon className="me-1.5" />
-											<Trans>Delete</Trans>
+											<TrashSimpleIcon className="size-4" />
 										</Button>
 									</CardContent>
 								</Card>

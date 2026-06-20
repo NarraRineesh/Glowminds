@@ -23,7 +23,7 @@ export const PLANS = {
 export const FREE_LIMITS = {
   applications: 10,
   resumes: 1,
-  aiCredits: 5,
+  aiCredits: 10,
   template: 'onyx',
 }
 
@@ -65,9 +65,8 @@ export function formatSubscriptionEndDate(sub) {
 }
 
 /**
- * @param {{ subscription?: import('@/constants/schema').Subscription | null, isAdmin?: boolean }} opts
+ * @param {{ subscription?: import('@/constants/schema').Subscription | null }} opts
  */
-export function hasProAccess({ subscription, isAdmin = false } = {}) {
-  if (isAdmin) return true
+export function hasProAccess({ subscription } = {}) {
   return isActiveProSubscription(subscription)
 }

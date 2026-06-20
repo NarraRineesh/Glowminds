@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import SectionHeader from '@/components/dashboard/SectionHeader'
 import UpgradeGate from '@/components/UpgradeGate'
-import { AiCreditsBadge } from '@/components/dashboard/PlanUsageSummary'
 import { ToolPage, ToolSidebarLayout } from '@/features/dashboard/components/toolSectionLayout'
 import AppIcon from '@/components/icons/AppIcon'
 import { Button, DashboardCard, FormField, Input, cn } from '@/components/ui'
@@ -192,7 +191,7 @@ export default function CoverLettersSection() {
   )
 
   return (
-    <UpgradeGate feature="Cover Letters" creditAction="coverLetter">
+    <UpgradeGate>
     <ToolPage>
       <SectionHeader
         badge="Generate · 1-click"
@@ -200,7 +199,6 @@ export default function CoverLettersSection() {
         title="Cover letters that get replies"
         accent="get replies"
         subtitle="Pick a template, drop in the role and company, and we'll draft a ready-to-edit cover letter in seconds."
-        actions={<AiCreditsBadge action="coverLetter" />}
       />
 
       <ToolSidebarLayout sidebar={sidebar}>

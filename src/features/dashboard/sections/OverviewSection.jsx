@@ -4,18 +4,11 @@ import useAppStore from '@/store/authStore'
 import useJobStore from '@/store/jobStore'
 import useTrackerStore from '@/store/trackerStore'
 import useProfileStore from '@/store/profileStore'
-import useGamificationStore from '@/store/gamificationStore'
-import { computeXpProgress } from '@/utils/gamification'
 import { profileHasEducation } from '@/utils/educationEntries'
 import { auth } from '@/services/firebase'
-import StreakCard from '@/components/dashboard/StreakCard'
-import LevelProgress from '@/components/dashboard/LevelProgress'
-import BadgesShowcase from '@/components/dashboard/BadgesShowcase'
 import Loader from '@/components/Loader'
 import { APPLICATION_STATUS, APPLICATION_STATUS_LABEL } from '@/constants/schema'
 import JobMiniRow from '@/features/dashboard/components/JobMiniRow'
-import PlanUsageSummary from '@/components/dashboard/PlanUsageSummary'
-import useEntitlements from '@/hooks/useEntitlements'
 import {
   AppIcon,
   Avatar,
@@ -138,11 +131,8 @@ export default function OverviewSection() {
   const { apps, loadApps } = useTrackerStore()
   const profileData = useProfileStore((s) => s.profile)
   const loadProfileStore = useProfileStore((s) => s.load)
-  const gamification = useGamificationStore((s) => s.gamification)
-  const loadGamificationCatalog = useGamificationStore((s) => s.loadCatalog)
   const savedJobs = useJobStore((s) => s.savedJobs)
   const loadSavedJobs = useJobStore((s) => s.loadSavedJobs)
-  const { creditBalance, isPro: entitlementsPro } = useEntitlements()
 
   const loadProfileData = useCallback(async () => {
     if (!auth.currentUser?.uid) return
@@ -157,13 +147,8 @@ export default function OverviewSection() {
     // bundle to re-fire every time the jobs cache flipped from 0 → N.
     //
     // Every load below is cache-aware (see profileStore.loaded,
-    // trackerStore.loaded, jobStore.savedJobsLoaded / lastFetched,
-    // gamificationStore.catalogLoaded), so revisiting the Overview tab is
-    // free in Firestore reads. syncEligibleBadges was removed from this
-    // bootstrap on purpose — it ran on every mount and triggered up to
-    // three collection scans per call. Badge re-evaluation now only happens
-    // after the mutations that could actually unlock a badge (recordDailyVisit,
-    // addApp/updateApp, appendMessage, completeSession, profile save).
+    // trackerStore.loaded, jobStore.savedJobsLoaded / lastFetched), so
+    // revisiting the Overview tab stays light on Firestore reads.
     // Top matches for overview cards; job board loads on /dashboard/jobs only.
     const id = requestAnimationFrame(() => {
       loadProfileData()
@@ -173,14 +158,9 @@ export default function OverviewSection() {
       }
       loadApps()
       loadSavedJobs()
-      loadGamificationCatalog()
     })
     return () => cancelAnimationFrame(id)
-  }, [fetchTopMatches, loadApps, loadProfileData, loadProfileForJobs, loadSavedJobs, loadGamificationCatalog])
-
-  const streak = gamification?.streak || {}
-  const streakCurrent = streak.current || 0
-  const xpProgress = computeXpProgress(gamification?.xp || 0, gamification?.level)
+  }, [fetchTopMatches, loadApps, loadProfileData, loadProfileForJobs, loadSavedJobs])
 
   const inReview = apps.filter(a => a.status === APPLICATION_STATUS.IN_REVIEW).length
   const interviews = apps.filter(a => a.status === APPLICATION_STATUS.INTERVIEW).length
@@ -337,25 +317,25 @@ export default function OverviewSection() {
         tone: 'gold',
       }
     }
-    if (streakCurrent < 3) {
+    if (savedJobs.length === 0) {
       return {
-        icon: 'fire',
-        label: 'Build a 3-day apply streak',
-        body: 'Consistency compounds — even 1 application per day keeps recruiters seeing you near the top.',
-        cta: 'Browse Job Board',
+        icon: 'bookmark',
+        label: 'Save roles worth revisiting',
+        body: 'Bookmark promising jobs as you browse so you can compare and apply in focused batches.',
+        cta: 'Find roles',
         href: '/dashboard/jobs',
         tone: 'grn',
       }
     }
     return {
-      icon: 'graduation',
-      label: 'Sharpen your skills with the daily quiz',
-      body: 'Earn XP, keep your streak alive, and stay interview-ready while you wait for responses.',
-      cta: 'Practice now',
+      icon: 'microphone',
+      label: 'Practice for your next interview',
+      body: 'Use Interview Prep to warm up with role-specific MCQs and review your weak areas.',
+      cta: 'Start practice',
       href: '/dashboard/interview',
       tone: 'blu',
     }
-  }, [apps.length, savedJobs.length, interviews, profileScore, responseRate, streakCurrent])
+  }, [apps.length, savedJobs.length, interviews, profileScore, responseRate])
 
   return (
     <div className="space-y-6">
@@ -376,12 +356,9 @@ export default function OverviewSection() {
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         <KpiCard icon="jobs" label="Job Matches" value={topMatchesLoading ? '…' : topMatches.length} sub="Matched to your profile" accent={1} onClick={() => navigate('/dashboard/jobs')} />
         <KpiCard icon="applications" label="Applications" value={apps.length} sub={apps.length === 0 ? 'Start applying!' : inReview > 0 ? `${inReview} in review` : 'Track every apply'} accent={2} onClick={() => navigate('/dashboard/applications')} />
-        <KpiCard icon="sparkle" label="AI Credits" value={creditBalance ?? '…'} sub={entitlementsPro ? 'Pro · monthly pool' : 'Free · lifetime pool'} accent={3} onClick={() => navigate('/dashboard/settings')} />
         <KpiCard icon="bookmark" label="Saved Jobs" value={savedJobs.length} sub={savedJobs.length > 0 ? 'Ready to apply' : 'Bookmark roles you like'} accent={4} onClick={() => navigate('/dashboard/jobs')} />
         <KpiCard icon="microphone" label="Interviews" value={interviews} sub={interviews > 0 ? `${interviews} scheduled · prep with AI` : 'None yet — keep applying!'} accent={1} onClick={() => navigate('/dashboard/applications')} />
       </div>
-
-      <PlanUsageSummary />
 
       <div className="grid gap-4 lg:grid-cols-3">
         <DashboardCard
@@ -637,12 +614,6 @@ export default function OverviewSection() {
             </div>
           ))}
         </DashboardCard>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <StreakCard currentStreak={streak.current || 0} longestStreak={streak.longest || 0} />
-        <LevelProgress level={xpProgress.level} xp={xpProgress.xp} xpToNext={xpProgress.xpToNext} />
-        <BadgesShowcase className="md:col-span-2 lg:col-span-1" />
       </div>
     </div>
   )

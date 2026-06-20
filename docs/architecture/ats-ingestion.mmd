@@ -7,12 +7,11 @@
 %%     -o ats-ingestion.png -w 2800 -H 3400 -b transparent
 flowchart TB
     %% ====================================================================
-    %% TRIGGERS — sync starts either from a cron tick or an admin click.
+    %% TRIGGERS — sync starts from the scheduler.
     %% ====================================================================
     subgraph triggers ["⏱️ Sync triggers"]
         direction LR
         CRON["⏰ <b>node-cron</b><br/>(in-process scheduler)<br/>Greenhouse 2h · Lever 2h<br/>Ashby 4h · Bamboo 6h"]
-        ADMIN["🛡️ <b>Admin Console</b><br/>POST /api/admin/sync<br/>POST /api/admin/companies/:slug/sync"]
     end
 
     %% ====================================================================
@@ -74,8 +73,6 @@ flowchart TB
     %% TRIGGER FLOWS
     %% ====================================================================
     CRON --> RS
-    ADMIN -->|"fire-and-forget · 202 Accepted"| RS
-    ADMIN -.->|"GET /api/admin/sync/status<br/>GET /api/admin/sync-runs"| FS_RUNS
 
     %% ====================================================================
     %% INGESTION FLOW (per company)
@@ -121,7 +118,7 @@ flowchart TB
     classDef db fill:#b45309,stroke:#fcd34d,color:#fff,stroke-width:2px
     classDef bg fill:#374151,stroke:#9ca3af,color:#fff
 
-    class CRON,ADMIN trigger
+    class CRON trigger
     class RS,FETCH,SNAP,IND,DET,ENRICH,MERGE stage
     class G1,G2 gate
     class W0,W1 write

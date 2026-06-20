@@ -74,16 +74,22 @@ function mergeWithDefaults(data) {
     proLimits: { ...base.proLimits, ...(data.proLimits || {}) },
     creditCosts: { ...base.creditCosts, ...(data.creditCosts || {}) },
     pricing: {
-      free: { ...base.pricing.free, ...(data.pricing?.free || {}) },
-      pro: { ...base.pricing.pro, ...(data.pricing?.pro || {}) },
+      free: {
+        ...base.pricing.free,
+        ...(data.pricing?.free || {}),
+        features: base.pricing.free.features,
+      },
+      pro: {
+        ...base.pricing.pro,
+        ...(data.pricing?.pro || {}),
+        features: base.pricing.pro.features,
+      },
     },
     marketing: { ...base.marketing, ...(data.marketing || {}) },
-    freeFeatures: Array.isArray(data.freeFeatures) ? data.freeFeatures : base.freeFeatures,
-    proFeatures: Array.isArray(data.proFeatures) ? data.proFeatures : base.proFeatures,
-    pricingComparison: Array.isArray(data.pricingComparison)
-      ? data.pricingComparison
-      : base.pricingComparison,
-    pricingFaqs: Array.isArray(data.pricingFaqs) ? data.pricingFaqs : base.pricingFaqs,
+    freeFeatures: base.freeFeatures,
+    proFeatures: base.proFeatures,
+    pricingComparison: base.pricingComparison,
+    pricingFaqs: base.pricingFaqs,
   };
 
   if (merged.plans.yearly?.amountPaise === 39900) {

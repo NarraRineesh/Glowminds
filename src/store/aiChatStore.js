@@ -13,7 +13,6 @@ import {
   arrayUnion,
 } from 'firebase/firestore'
 import { db, auth } from '@/services/firebase'
-import useGamificationStore from '@/store/gamificationStore'
 
 // Multi-chat AI Coach storage backed by users/{uid}/aiChats/{chatId}.
 // Each chat doc holds an append-only `messages` array.
@@ -134,9 +133,6 @@ const useAiChatStore = create((set, get) => ({
         { messages: arrayUnion(stamped), updatedAt: serverTimestamp() },
         { merge: true },
       )
-      if (message.role === 'user') {
-        useGamificationStore.getState().syncEligibleBadges({ aiChatCount: 1 }).catch(() => {})
-      }
     } catch (err) {
       console.error('aiChatStore.appendMessage:', err)
     }

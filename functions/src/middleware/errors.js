@@ -1,9 +1,7 @@
 const CODE_TO_STATUS = {
   "invalid-argument": 400,
   unauthenticated: 401,
-  "credits-exhausted": 402,
   "permission-denied": 403,
-  "pro-required": 403,
   "not-found": 404,
   "already-exists": 409,
   "failed-precondition": 412,

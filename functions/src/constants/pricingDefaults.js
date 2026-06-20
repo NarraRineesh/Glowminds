@@ -3,6 +3,7 @@
 export const DEFAULT_PRICING_CONFIG = {
   currency: "INR",
   currencySymbol: "₹",
+
   plans: {
     yearly: {
       id: "yearly",
@@ -13,6 +14,7 @@ export const DEFAULT_PRICING_CONFIG = {
       amountPaise: 59900,
       durationDays: 365,
     },
+
     monthly: {
       id: "monthly",
       label: "Glowminds Pro Monthly",
@@ -22,23 +24,30 @@ export const DEFAULT_PRICING_CONFIG = {
       durationDays: 30,
     },
   },
+
   freeLimits: {
     applications: 10,
     resumes: 1,
-    aiCredits: 5,
+    aiCredits: 10,
     template: "onyx",
   },
+
   proLimits: {
+    applications: -1,
+    resumes: -1,
     aiCreditsPerMonth: 100,
   },
+
   creditCosts: {
     careerChat: 1,
     coverLetter: 5,
     interviewSession: 10,
     profileReview: 1,
+    resumeReview: 5,
     grammar: 1,
     paraphrase: 1,
   },
+
   pricing: {
     free: {
       label: "FREE",
@@ -47,13 +56,14 @@ export const DEFAULT_PRICING_CONFIG = {
       desc: "Perfect for getting started with job hunting.",
       features: [
         "Job search & matching",
-        "1 resume (Onyx template)",
-        "10 application tracking slots",
-        "5 AI credits to try",
+        "1 ATS resume",
+        "Track up to 10 applications",
+        "10 AI credits/month",
+        "Basic job alerts",
         "Profile & portfolio",
-        "Job alerts",
       ],
     },
+
     pro: {
       label: "PRO",
       price: "₹599",
@@ -61,113 +71,252 @@ export const DEFAULT_PRICING_CONFIG = {
       period: "/year",
       desc: "Everything you need to land your dream job.",
       highlights: [
-        "ATS Resume Builder",
+        "100 AI Credits / Month",
         "AI Mock Interviews",
         "AI Cover Letters",
+        "AI Career Coach",
         "Smart Job Matching",
-        "Application Tracking",
       ],
       features: [
-        "100 AI credits/month (fair usage applies)",
-        "All 6 resume templates",
+        "Unlimited resumes",
         "Unlimited application tracking",
-        "AI Mock Interviews (10 credits/session)",
-        "AI Cover Letters (5 credits each)",
-        "AI Coach Chat (1 credit/message)",
-        "Smart job matching & alerts",
+        "100 AI credits every month",
+        "AI Mock Interviews",
+        "AI Cover Letters",
+        "AI Career Coach Chat",
+        "Resume ATS Reviews",
+        "All 6 premium templates",
         "Salary insights & analytics",
+        "Real-time job alerts",
+        "Priority support",
       ],
     },
   },
+
   freeFeatures: [
     { text: "Job Search & Browse", included: true },
     { text: "Profile & Portfolio", included: true },
-    { text: "1 Resume (Onyx template)", included: true },
-    { text: "10 Application Tracking", included: true },
-    { text: "5 AI Credits", included: true },
-    { text: "Job Alerts", included: true },
+    { text: "1 Resume", included: true },
+    { text: "10 Application Tracks", included: true },
+    { text: "10 AI Credits / Month", included: true },
+    { text: "Basic Job Alerts", included: true },
     { text: "AI Career Coach", included: false },
-    { text: "Interview Prep AI", included: false },
-    { text: "Cover Letter Generator", included: false },
-    { text: "All Resume Templates", included: false },
-    { text: "Unlimited Tracking", included: false },
+    { text: "AI Interview Prep", included: false },
+    { text: "AI Cover Letters", included: false },
     { text: "Salary Insights", included: false },
-    { text: "Priority Support", included: false },
   ],
+
   proFeatures: [
-    { text: "Everything in Free", included: true, highlight: false },
-    { text: "100 AI Credits/month", included: true, highlight: true },
-    { text: "AI Mock Interviews (10 credits/session)", included: true, highlight: true },
-    { text: "AI Cover Letters (5 credits each)", included: true, highlight: true },
-    { text: "AI Coach Chat (1 credit/message)", included: true, highlight: true },
-    { text: "All 6 Resume Templates", included: true, highlight: false },
-    { text: "Unlimited Applications", included: true, highlight: false },
-    { text: "Unlimited Resumes", included: true, highlight: false },
-    { text: "Salary Insights & Analytics", included: true, highlight: false },
-    { text: "Real-time Job Alerts", included: true, highlight: false },
-    { text: "Priority Support", included: true, highlight: false },
+    {
+      text: "Everything in Free",
+      included: true,
+      highlight: false,
+    },
+    {
+      text: "100 AI Credits / Month",
+      included: true,
+      highlight: true,
+    },
+    {
+      text: "AI Mock Interviews",
+      included: true,
+      highlight: true,
+    },
+    {
+      text: "AI Cover Letters",
+      included: true,
+      highlight: true,
+    },
+    {
+      text: "AI Career Coach Chat",
+      included: true,
+      highlight: true,
+    },
+    {
+      text: "Resume ATS Reviews",
+      included: true,
+      highlight: true,
+    },
+    {
+      text: "Unlimited Applications",
+      included: true,
+      highlight: false,
+    },
+    {
+      text: "Unlimited Resumes",
+      included: true,
+      highlight: false,
+    },
+    {
+      text: "All 6 Resume Templates",
+      included: true,
+      highlight: false,
+    },
+    {
+      text: "Salary Insights & Analytics",
+      included: true,
+      highlight: false,
+    },
+    {
+      text: "Real-time Job Alerts",
+      included: true,
+      highlight: false,
+    },
+    {
+      text: "Priority Support",
+      included: true,
+      highlight: false,
+    },
   ],
+
   pricingComparison: [
-    { feature: "Job Search", freeIncluded: true, proIncluded: true, freeDetail: "Basic", proDetail: "Advanced + AI" },
-    { feature: "Resume Builder", freeIncluded: true, proIncluded: true, freeDetail: "1 resume · Onyx", proDetail: "Unlimited · all templates" },
-    { feature: "Application Tracker", freeIncluded: true, proIncluded: true, freeDetail: "10 apps", proDetail: "Unlimited" },
-    { feature: "AI Credits", freeIncluded: true, proIncluded: true, freeDetail: "5 total", proDetail: "100/month" },
-    { feature: "AI Career Coach", freeIncluded: false, proIncluded: true, proDetail: "1 credit/message" },
-    { feature: "Interview Prep", freeIncluded: false, proIncluded: true, proDetail: "10 credits/session" },
-    { feature: "Cover Letters", freeIncluded: false, proIncluded: true, proDetail: "5 credits each" },
-    { feature: "Salary Insights", freeIncluded: false, proIncluded: true },
-    { feature: "Job Alerts", freeIncluded: true, proIncluded: true, freeDetail: "Basic", proDetail: "Real-time" },
-    { feature: "Support", freeIncluded: true, proIncluded: true, freeDetail: "Community", proDetail: "Priority" },
+    {
+      feature: "Job Search",
+      freeIncluded: true,
+      proIncluded: true,
+      freeDetail: "Basic",
+      proDetail: "Advanced + AI Matching",
+    },
+    {
+      feature: "Resume Builder",
+      freeIncluded: true,
+      proIncluded: true,
+      freeDetail: "1 Resume",
+      proDetail: "Unlimited Resumes",
+    },
+    {
+      feature: "Application Tracker",
+      freeIncluded: true,
+      proIncluded: true,
+      freeDetail: "10 Applications",
+      proDetail: "Unlimited",
+    },
+    {
+      feature: "AI Credits",
+      freeIncluded: true,
+      proIncluded: true,
+      freeDetail: "10 Credits",
+      proDetail: "100 Credits / Month",
+    },
+    {
+      feature: "AI Career Coach",
+      freeIncluded: false,
+      proIncluded: true,
+      freeDetail: "-",
+      proDetail: "Included",
+    },
+    {
+      feature: "Interview Prep",
+      freeIncluded: false,
+      proIncluded: true,
+      freeDetail: "-",
+      proDetail: "AI Mock Interviews",
+    },
+    {
+      feature: "Cover Letters",
+      freeIncluded: false,
+      proIncluded: true,
+      freeDetail: "-",
+      proDetail: "AI Generated",
+    },
+    {
+      feature: "Resume ATS Reviews",
+      freeIncluded: false,
+      proIncluded: true,
+      freeDetail: "-",
+      proDetail: "Included",
+    },
+    {
+      feature: "Salary Insights",
+      freeIncluded: false,
+      proIncluded: true,
+      freeDetail: "-",
+      proDetail: "Full Analytics",
+    },
+    {
+      feature: "Job Alerts",
+      freeIncluded: true,
+      proIncluded: true,
+      freeDetail: "Basic",
+      proDetail: "Real-time",
+    },
+    {
+      feature: "Support",
+      freeIncluded: true,
+      proIncluded: true,
+      freeDetail: "Community",
+      proDetail: "Priority",
+    },
   ],
+
   pricingFaqs: [
     {
       q: "Is Glowminds free?",
-      a: "Yes. The free plan includes job search, profile, job alerts, 1 resume, 10 application tracking slots, and 5 AI credits to try our tools. No credit card required.",
+      a: "Yes. You can create a resume, search jobs, track applications, and receive 10 AI credits every month for free. No credit card required.",
     },
     {
       q: "Why is Glowminds Pro so affordable?",
-      a: "We're in our founding launch phase and priced Pro for students and early-career professionals in India. Founding members lock in ₹599/year (regular ₹999) — less than ₹2/day for AI resumes, interview prep, and job matching.",
+      a: "We're currently offering a founding member launch price of ₹599/year (regular ₹999/year) for students and early-career professionals.",
     },
     {
       q: "Do AI features have usage limits?",
-      a: "Yes. Pro includes 100 AI credits per month. Cover letters cost 5 credits, mock interview sessions cost 10 credits, and AI Coach chat messages cost 1 credit each. A fair usage policy applies to prevent abuse.",
+      a: "Yes. Free users receive 10 AI credits per month. Pro users receive 100 AI credits per month.",
+    },
+    {
+      q: "How do AI credits work?",
+      a: "Career Chat, Grammar Check, Paraphrasing and Profile Reviews cost 1 credit. Resume Reviews and Cover Letters cost 5 credits. Mock Interview Sessions cost 10 credits.",
     },
     {
       q: "Can I cancel anytime?",
-      a: "Yes. Cancel from your dashboard at any time. You'll keep Pro access until the end of your billing period. No questions asked.",
+      a: "Yes. Cancel from your dashboard anytime. You'll retain Pro access until the end of your billing cycle.",
     },
     {
       q: "Is my resume data secure?",
-      a: "Yes. Your resumes and profile data are stored securely. Payments are processed through Razorpay — we never store your card or UPI details.",
+      a: "Yes. Your resumes and profile data are stored securely. Payments are processed through Razorpay and we never store payment details.",
     },
     {
       q: "Do I need a credit card for the free plan?",
-      a: "No. Sign up and use the free tier forever without entering payment details. Upgrade to Pro only when you're ready.",
+      a: "No. The free plan requires no payment information.",
     },
     {
       q: "Can working professionals use Glowminds?",
-      a: "Absolutely. While Glowminds is optimized for students and fresh graduates, anyone early in their career or switching roles can benefit from our AI tools.",
+      a: "Absolutely. Glowminds is ideal for students, fresh graduates, career switchers, and professionals with up to 5 years of experience.",
     },
   ],
+
   marketing: {
-    proTagline: "Only ₹50/month when billed annually — less than ₹2/day",
-    monthlyEquivalent: "Only ₹50/month when billed annually",
-    dailyEquivalent: "Less than ₹2/day",
+    proTagline:
+      "Only ₹50/month when billed annually — less than ₹2/day",
+
+    monthlyEquivalent:
+      "Only ₹50/month when billed annually",
+
+    dailyEquivalent:
+      "Less than ₹2/day",
+
     heroDescription:
-      "AI-powered resumes, interview prep, and job matching — built for students and early-career professionals. Join as a founding member at our launch price.",
+      "Build ATS-friendly resumes, discover relevant jobs, generate AI cover letters, practice interviews, and track applications — all in one platform.",
+
     billingBlurb:
-      "Founding member offer: ₹599/year (regular ₹999). Secure checkout via Razorpay (UPI, cards, net banking).",
+      "Founding member offer: ₹599/year (regular ₹999). Secure checkout via Razorpay (UPI, Cards, Net Banking).",
+
     termsBillingText:
-      "Pro subscriptions are billed at ₹599/year (founding member offer; regular price ₹999/year) or ₹99/month. Payments are processed securely through Razorpay. You can cancel your subscription at any time from your dashboard. Cancellations take effect at the end of the current billing period.",
+      "Pro subscriptions are billed at ₹599/year (founding member offer) or ₹99/month. Payments are processed securely through Razorpay. Cancel anytime from your dashboard.",
+
     proHighlights: [
-      "ATS Resume Builder",
+      "100 AI Credits / Month",
       "AI Mock Interviews",
       "AI Cover Letters",
-      "Smart Job Matching",
-      "Application Tracking",
+      "AI Career Coach",
+      "Resume ATS Reviews",
     ],
+
     launchOfferText: "Founding Member Offer",
-    guaranteeText: "7-day money-back guarantee — try Pro risk-free.",
-    socialProof: "Trusted by students from NITs, IIITs, and state universities across India.",
+
+    guaranteeText:
+      "7-day money-back guarantee — try Pro risk-free.",
+
+    socialProof:
+      "Built for students and early-career professionals across India.",
   },
 };

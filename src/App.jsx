@@ -31,15 +31,12 @@ const AISection = lazy(() => import('@/features/dashboard/sections/AISection'))
 const ApplicationsSection = lazy(() => import('@/features/dashboard/sections/ApplicationsSection'))
 const ProfileSection = lazy(() => import('@/features/dashboard/sections/ProfileSection'))
 const InterviewSection = lazy(() => import('@/features/dashboard/sections/InterviewSection'))
-const DailyQuizSection = lazy(() => import('@/features/dashboard/sections/DailyQuizSection'))
 const CoverLettersSection = lazy(() => import('@/features/dashboard/sections/CoverLettersSection'))
 const LinkedInOptimizerSection = lazy(() => import('@/features/dashboard/sections/LinkedInOptimizerSection'))
 const SalaryInsightsSection = lazy(() => import('@/features/dashboard/sections/SalaryInsightsSection'))
-const BadgesSection = lazy(() => import('@/features/dashboard/sections/BadgesSection'))
 const SettingsSection = lazy(() => import('@/features/dashboard/sections/SettingsSection'))
 const GrammarCheckSection = lazy(() => import('@/features/dashboard/sections/GrammarCheckSection'))
 const ParaphrasingSection = lazy(() => import('@/features/dashboard/sections/ParaphrasingSection'))
-const AdminSection = lazy(() => import('@/features/dashboard/sections/AdminSection'))
 
 
 function AnimatedRoutes() {
@@ -110,11 +107,6 @@ function AnimatedRoutes() {
             <ProfileSection />
           </Suspense>
         } />
-        <Route path="quiz" element={
-          <Suspense fallback={<PageLoader />}>
-            <DailyQuizSection />
-          </Suspense>
-        } />
         <Route path="jd-matcher" element={<Navigate to="/dashboard/jobs" replace />} />
         <Route path="cover-letters" element={
           <Suspense fallback={<PageLoader />}>
@@ -131,11 +123,6 @@ function AnimatedRoutes() {
             <SalaryInsightsSection />
           </Suspense>
         } />
-        <Route path="badges" element={
-          <Suspense fallback={<PageLoader />}>
-            <BadgesSection />
-          </Suspense>
-        } />
         <Route path="settings" element={
           <Suspense fallback={<PageLoader />}>
             <SettingsSection />
@@ -149,11 +136,6 @@ function AnimatedRoutes() {
         <Route path="paraphrase" element={
           <Suspense fallback={<PageLoader />}>
             <ParaphrasingSection />
-          </Suspense>
-        } />
-        <Route path="admin" element={
-          <Suspense fallback={<PageLoader />}>
-            <AdminSection />
           </Suspense>
         } />
       </Route>

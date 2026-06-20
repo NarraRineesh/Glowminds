@@ -2,7 +2,6 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import useAppStore from '@/store/authStore'
 import useAiChatStore from '@/store/aiChatStore'
 import UpgradeGate from '@/components/UpgradeGate'
-import { AiCreditsBadge } from '@/components/dashboard/PlanUsageSummary'
 import { AppIcon,
   Avatar,
   AvatarFallback,
@@ -302,7 +301,7 @@ export default function AISection() {
   const userInitial = user?.firstName?.[0] || user?.displayName?.[0] || 'U'
 
   return (
-    <UpgradeGate feature="AI Career Coach" creditAction="careerChat">
+    <UpgradeGate>
       <div className="flex min-h-0 w-full flex-1 flex-col">
       <div className="mb-4 flex shrink-0 flex-wrap items-start justify-between gap-2">
         <PageTitle
@@ -311,7 +310,6 @@ export default function AISection() {
           className="mb-0"
         />
         <div className="flex items-center gap-2">
-          <AiCreditsBadge action="careerChat" />
           {chats.length > 1 && (
             <Select
               className="h-8 min-w-[180px] text-[0.72rem]"

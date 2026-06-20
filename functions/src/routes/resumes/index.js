@@ -8,11 +8,9 @@ const router = Router();
 router.post("/register", requireAuth, async (req, res, next) => {
   try {
     const { resumeId } = req.body || {};
-    const isAdmin = req.user.token?.admin === true;
     const result = await registerResume(
       req.user.uid,
       { resumeId: resumeId ? String(resumeId) : undefined },
-      { isAdmin },
     );
     res.json(result);
   } catch (err) {

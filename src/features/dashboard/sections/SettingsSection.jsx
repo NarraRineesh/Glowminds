@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import SectionHeader from '@/components/dashboard/SectionHeader'
 import {
@@ -12,29 +12,22 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
-  StatusBadge,
   cn,
 } from '@/components/ui'
 import useAppStore from '@/store/authStore'
 import useProfileStore from '@/store/profileStore'
-import useGamificationStore from '@/store/gamificationStore'
 import useTheme from '@/hooks/useTheme'
 import useIsPro from '@/hooks/useIsPro'
 import useUpgradePro from '@/hooks/useUpgradePro'
 import usePricingConfig, { useYearlyPriceLabel } from '@/hooks/usePricingConfig'
 import useEntitlements from '@/hooks/useEntitlements'
 import { formatSubscriptionEndDate, isActiveProSubscription } from '@/constants/plans'
-import { FREE_LIMITS as DEFAULT_FREE_LIMITS } from '@/constants/plans'
 import { sendPasswordResetEmail } from 'firebase/auth'
 import { auth } from '@/services/firebase'
 import { Link, useNavigate } from 'react-router-dom'
-import LevelProgress from '@/components/dashboard/LevelProgress'
-import StreakCard from '@/components/dashboard/StreakCard'
-import { computeXpProgress } from '@/utils/gamification'
-import { badgeXp } from '@/constants/badgesCatalog'
 
 const SECTIONS = [
-  { id: 'account', icon: 'user', title: 'Account', desc: 'Level, badges & security' },
+  { id: 'account', icon: 'user', title: 'Account', desc: 'Profile and security' },
   { id: 'billing', icon: 'credit-card', title: 'Billing', desc: 'Plan, renewal, upgrade' },
   { id: 'appearance', icon: 'palette', title: 'Appearance', desc: 'Theme, density, motion' },
   { id: 'notifications', icon: 'bell', title: 'Notifications', desc: 'Email & in-app alerts' },
@@ -156,157 +149,6 @@ function SettingsInfoBox({ children, icon = 'info' }) {
   )
 }
 
-const BADGE_TIER_STYLE = {
-  bronze: { ring: '#cd7f32', glow: 'rgba(205,127,50,.15)' },
-  silver: { ring: '#c0c0c0', glow: 'rgba(192,192,192,.15)' },
-  gold: { ring: '#f59e0b', glow: 'rgba(245,158,11,.18)' },
-}
-
-function GamificationSettingsPanel() {
-  const gamification = useGamificationStore((s) => s.gamification)
-  const catalog = useGamificationStore((s) => s.catalog)
-  const catalogLoaded = useGamificationStore((s) => s.catalogLoaded)
-  const loadCatalog = useGamificationStore((s) => s.loadCatalog)
-
-  useEffect(() => {
-    if (!catalogLoaded) loadCatalog()
-  }, [catalogLoaded, loadCatalog])
-
-  const earnedSet = useMemo(
-    () => new Set(gamification?.earnedBadgeIds || []),
-    [gamification?.earnedBadgeIds],
-  )
-
-  const badges = useMemo(
-    () => (catalog || [])
-      .map((b) => ({ ...b, unlocked: earnedSet.has(b.id), xp: badgeXp(b) }))
-      .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)),
-    [catalog, earnedSet],
-  )
-
-  const unlocked = badges.filter((b) => b.unlocked)
-  const badgeXpTotal = unlocked.reduce((sum, b) => sum + b.xp, 0)
-  const pct = badges.length ? Math.round((unlocked.length / badges.length) * 100) : 0
-  const nextBadge = badges.find((b) => !b.unlocked)
-  const totalXp = gamification?.xp || 0
-  const xpProgress = computeXpProgress(totalXp, gamification?.level)
-  const streak = gamification?.streak || {}
-
-  return (
-    <div className="flex flex-col gap-4">
-      <SettingsInfoBox icon="trophy">
-        <p className="font-medium text-foreground">Levels & badges</p>
-        <p>
-          Earn XP from badges, daily quizzes, and activity. Your level reflects total XP;
-          badges unlock as you complete profile, applications, interviews, and streak milestones.
-        </p>
-      </SettingsInfoBox>
-
-      <div className="grid gap-4 @lg/dashboard:grid-cols-2">
-        <LevelProgress
-          level={xpProgress.level}
-          xp={xpProgress.xp}
-          xpToNext={xpProgress.xpToNext}
-        />
-        <StreakCard
-          currentStreak={streak.current || 0}
-          longestStreak={streak.longest || 0}
-        />
-      </div>
-
-      <DashboardCard
-        titleIcon="trophy"
-        title="Badges"
-        action={
-          <Link
-            to="/dashboard/badges"
-            className="text-xs font-semibold text-primary hover:underline"
-          >
-            View all badges →
-          </Link>
-        }
-        contentClassName="flex flex-col gap-4"
-      >
-        <div className="flex flex-wrap items-center gap-2">
-          <StatusBadge tone="default">{unlocked.length}/{badges.length || '—'} unlocked</StatusBadge>
-          <StatusBadge tone="success">{pct}% complete</StatusBadge>
-          <span className="text-sm text-muted-foreground">
-            {totalXp.toLocaleString()} total XP · {badgeXpTotal.toLocaleString()} from badges
-          </span>
-        </div>
-
-        {nextBadge && (
-          <p className="text-sm text-muted-foreground">
-            Next up: <span className="font-medium text-foreground">{nextBadge.name}</span>
-            {' — '}
-            {nextBadge.description}
-            <span className="text-primary"> (+{nextBadge.xp} XP)</span>
-          </p>
-        )}
-
-        {badges.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">
-            {catalogLoaded ? 'No badges in catalog yet.' : 'Loading badges…'}
-          </p>
-        ) : (
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 @xl/dashboard:grid-cols-4">
-            {badges.map((b) => {
-              const tier = BADGE_TIER_STYLE[b.tier] || BADGE_TIER_STYLE.bronze
-              return (
-                <div
-                  key={b.id}
-                  className={cn(
-                    'relative flex flex-col items-center gap-1.5 rounded-xl border p-3 text-center',
-                    b.unlocked
-                      ? 'border-border bg-card'
-                      : 'border-border bg-muted/60 opacity-75',
-                  )}
-                  title={b.unlocked ? `${b.name} — +${b.xp} XP` : b.description}
-                >
-                  {b.unlocked && (
-                    <div
-                      aria-hidden
-                      className="pointer-events-none absolute inset-0 rounded-xl"
-                      style={{ background: `radial-gradient(circle at 50% 0%, ${tier.glow}, transparent 65%)` }}
-                    />
-                  )}
-                  <div
-                    className={cn(
-                      'relative flex size-11 items-center justify-center rounded-full',
-                      b.unlocked ? 'bg-background' : 'bg-muted',
-                    )}
-                    style={{
-                      boxShadow: b.unlocked ? `0 0 0 2px ${tier.ring}44` : undefined,
-                    }}
-                  >
-                    {b.unlocked ? (
-                      <AppIcon name={b.icon} className="size-5" />
-                    ) : (
-                      <AppIcon name="lock" className="size-4 text-muted-foreground" />
-                    )}
-                  </div>
-                  <div className="relative text-xs font-bold leading-tight text-foreground">
-                    {b.unlocked ? b.name : 'Locked'}
-                  </div>
-                  <div className="relative line-clamp-2 text-[0.65rem] leading-snug text-muted-foreground">
-                    {b.unlocked ? b.description : 'Keep using Glowminds to unlock'}
-                  </div>
-                  <span
-                    className="relative mt-auto text-[0.58rem] font-bold uppercase tracking-wider"
-                    style={{ color: b.unlocked ? tier.ring : undefined }}
-                  >
-                    {b.tier || 'bronze'} · +{b.xp} XP
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </DashboardCard>
-    </div>
-  )
-}
-
 function SettingsPanelHeader({ section }) {
   return (
     <header className="mb-5 border-b border-border/80 pb-4">
@@ -360,7 +202,6 @@ function BillingPanel({
   startUpgrade,
   navigate,
   plans,
-  freeLimits,
   freeFeatures,
   proFeatures,
   pricingComparison,
@@ -368,7 +209,6 @@ function BillingPanel({
   billingBlurb,
   termsBillingText,
   credits,
-  creditCosts,
 }) {
   const planTitle = isPro ? 'Glowminds Pro' : 'Free'
 
@@ -378,7 +218,9 @@ function BillingPanel({
     ? `···${String(subscription.razorpayPaymentId).slice(-8)}`
     : null
 
-  const freeSummary = `Job search, profile, up to ${freeLimits.resumes} resume${freeLimits.resumes === 1 ? '' : 's'} (${freeLimits.template} template), and ${freeLimits.applications} application slots.`
+  const includedSummary = isPro
+    ? 'Pro includes 100 AI credits every month, unlimited resumes, unlimited application tracking, and premium career tools.'
+    : 'Free includes job search, 1 ATS resume, up to 10 application tracks, and 10 AI credits every month.'
 
   return (
     <div className="flex flex-col gap-4">
@@ -394,22 +236,15 @@ function BillingPanel({
                   {subscription?.plan === 'yearly' ? ' · Yearly billing' : subscription?.plan === 'monthly' ? ' · Monthly billing' : ''}
                 </p>
               )}
-              {!isPro && (
-                <p className="mt-1 text-sm text-muted-foreground">{freeSummary}</p>
-              )}
+              <p className="mt-1 text-sm text-muted-foreground">{includedSummary}</p>
               {typeof credits?.balance === 'number' && (
                 <p className="mt-2 text-sm text-muted-foreground">
-                  AI credits: <span className="font-semibold text-foreground">{credits.balance}</span>
+                  Monthly AI credit allowance: <span className="font-semibold text-foreground">{credits.balance}</span>
                   {isPro && credits.periodEnd
                     ? ` · resets ${new Date(credits.periodEnd).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
                     : !isPro
-                      ? ' lifetime (free tier)'
+                      ? ' included on Free'
                       : ''}
-                </p>
-              )}
-              {creditCosts && (
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Coach {creditCosts.careerChat} · Cover letter {creditCosts.coverLetter} · Interview {creditCosts.interviewSession} credits
                 </p>
               )}
               {isPro && !proActive && (
@@ -503,7 +338,6 @@ function BillingPanel({
 
 export default function SettingsSection() {
   const { user, addToast, doLogout } = useAppStore()
-  const isAdmin = !!user?.isAdmin
   const { theme, setTheme } = useTheme()
   const isPro = useIsPro()
   const { startUpgrade, loading: upgradeLoading } = useUpgradePro()
@@ -511,13 +345,11 @@ export default function SettingsSection() {
   const yearlyPriceLabel = useYearlyPriceLabel()
   const {
     plans,
-    freeLimits: pricingFreeLimits,
     freeFeatures,
     proFeatures,
     pricingComparison,
     marketing,
   } = usePricingConfig()
-  const freeLimits = pricingFreeLimits || DEFAULT_FREE_LIMITS
   const { entitlements } = useEntitlements()
   const userDoc = useProfileStore((s) => s.user)
   const profileLoaded = useProfileStore((s) => s.loaded)
@@ -595,28 +427,6 @@ export default function SettingsSection() {
     }
   }
 
-  const replayQuiz = async () => {
-    try {
-      const flags = useProfileStore.getState().user?.flags || {}
-      const gam = useGamificationStore.getState().gamification || {}
-      await useProfileStore.getState().patchUserDoc({
-        flags: { ...flags, quizPromptSeenAt: null },
-        gamification: { ...gam, dailyQuizLastAnsweredDate: '' },
-      })
-      useGamificationStore.setState((s) => ({
-        gamification: { ...s.gamification, dailyQuizLastAnsweredDate: '' },
-      }))
-      const uid = auth.currentUser?.uid
-      try {
-        if (uid) localStorage.removeItem(`nx_quiz_prompt_seen_${uid}`)
-      } catch { /* ignore */ }
-      addToast('info', 'Today’s quiz reset')
-    } catch (err) {
-      console.error('replayQuiz:', err)
-      addToast('error', 'Could not reset today’s quiz')
-    }
-  }
-
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-5">
       <SectionHeader
@@ -658,9 +468,7 @@ export default function SettingsSection() {
 
         <TabsContent value="account" className="mt-1 outline-none">
           <SettingsTabPanel activeSection={SECTION_BY_ID.account}>
-            <GamificationSettingsPanel />
-
-            <DashboardCard titleIcon="admin" title="Security" contentClassName="flex flex-col gap-3">
+            <DashboardCard titleIcon="shield" title="Security" contentClassName="flex flex-col gap-3">
               {user?.email && (
                 <FormField label="Email" hint="Sign-in address — contact support to change.">
                   <Input disabled readOnly value={user.email} />
@@ -697,7 +505,6 @@ export default function SettingsSection() {
               startUpgrade={startUpgrade}
               navigate={navigate}
               plans={plans}
-              freeLimits={freeLimits}
               freeFeatures={freeFeatures}
               proFeatures={proFeatures}
               pricingComparison={pricingComparison}
@@ -705,7 +512,6 @@ export default function SettingsSection() {
               billingBlurb={marketing?.billingBlurb}
               termsBillingText={marketing?.termsBillingText}
               credits={entitlements?.credits}
-              creditCosts={entitlements?.creditCosts}
             />
           </SettingsTabPanel>
         </TabsContent>
@@ -748,7 +554,7 @@ export default function SettingsSection() {
               <p className="font-medium text-foreground">What you’ll hear from us</p>
               <p>
                 Email is used for important account and career updates. In-app alerts appear while you’re signed in
-                on the dashboard — they don’t require browser push permission.
+                on the dashboard.
               </p>
             </SettingsInfoBox>
             <DashboardCard titleIcon="bell" title="Notification preferences" contentClassName="flex flex-col gap-3">
@@ -762,7 +568,7 @@ export default function SettingsSection() {
                 checked={pushNotifs}
                 onChange={onTogglePush}
                 label="In-app notifications"
-                hint="Badges and toasts inside Glowminds: new job matches, streak reminders, and gamification nudges while you’re active."
+                hint="Toasts inside Glowminds for product updates, job matches, and reminders while you’re active."
               />
               <div className="mt-2 border-t border-border pt-3">
                 <p className="mb-2 text-sm text-muted-foreground">
@@ -771,7 +577,6 @@ export default function SettingsSection() {
                 <div className="mb-2 text-[0.66rem] font-bold uppercase tracking-wider text-muted-foreground">Replays</div>
                 <div className="flex flex-wrap gap-2">
                   <Button variant="outline" size="sm" onClick={replayOnboarding}>Replay onboarding</Button>
-                  <Button variant="outline" size="sm" onClick={replayQuiz}>Reset today’s quiz</Button>
                 </div>
               </div>
             </DashboardCard>

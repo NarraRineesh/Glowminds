@@ -11,8 +11,7 @@ const router = Router();
 router.post("/", requireAuth, async (req, res, next) => {
   try {
     const uid = req.user.uid;
-    const isAdmin = req.user.token?.admin === true;
-    await assertCanCreateApplication(uid, { isAdmin });
+    await assertCanCreateApplication(uid);
 
     const {
       company = "",

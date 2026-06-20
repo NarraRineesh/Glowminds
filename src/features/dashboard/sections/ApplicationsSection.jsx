@@ -1,8 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import useAppStore from '@/store/authStore'
-import useIsPro from '@/hooks/useIsPro'
-import useEntitlements from '@/hooks/useEntitlements'
 import useIsLg from '@/hooks/useIsLg'
 import useTrackerStore from '@/store/trackerStore'
 import Loader from '@/components/Loader'
@@ -29,7 +26,6 @@ import {
   APPLICATION_STATUSES,
   APPLICATION_STATUS_LABEL,
 } from '@/constants/schema'
-import { ApplicationLimitBanner } from '@/components/dashboard/PlanUsageSummary'
 
 const COLUMN_STYLE = {
   [APPLICATION_STATUS.APPLIED]: { text: 'text-primary', badge: 'bg-primary/20 text-primary' },
@@ -51,11 +47,6 @@ const EMPTY_FORM = {
 
 export default function ApplicationsSection() {
   const { addToast } = useAppStore()
-  const navigate = useNavigate()
-  const isPro = useIsPro()
-  const { entitlements } = useEntitlements()
-  const freeAppLimit = entitlements?.freeLimits?.applications ?? 10
-  const appCount = entitlements?.entitlements?.applicationCount ?? apps.length
   const { apps, loading, addApp, updateStatus, deleteApp, loadApps } = useTrackerStore()
   const isLg = useIsLg()
   const [modal, setModal] = useState(false)
@@ -79,7 +70,7 @@ export default function ApplicationsSection() {
       setModal(false)
       setForm(EMPTY_FORM)
     } catch {
-      addToast('error', 'Could not add application — you may have reached the free limit.')
+      addToast('error', 'Could not add application. Please try again.')
     }
   }
 
@@ -93,26 +84,16 @@ export default function ApplicationsSection() {
     addToast('info', `${company} removed from tracker`)
   }
 
-  const canAdd = isPro || appCount < freeAppLimit
-
   return (
     <>
       <div className="min-w-0 space-y-6">
-        <ApplicationLimitBanner />
         <div className="flex flex-wrap items-center justify-between gap-2.5">
           <PageTitle
             className="mb-0"
             title="Application Tracker"
-            subtitle={`Track every application · Kanban board · ${apps.length} total${!isPro ? ` · ${appCount}/${freeAppLimit} free slots` : ''}`}
+            subtitle={`Track every application · Kanban board · ${apps.length} total`}
           />
-          {canAdd ? (
-            <Button size="sm" onClick={() => setModal(true)}>+ Add application</Button>
-          ) : (
-            <Button variant="ghost" size="sm" className="opacity-60" onClick={() => navigate('/pricing')}>
-              <AppIcon name="lock" className="size-3.5" />
-              Limit reached (Pro)
-            </Button>
-          )}
+          <Button size="sm" onClick={() => setModal(true)}>+ Add application</Button>
         </div>
 
         {loading ? (
@@ -175,7 +156,7 @@ export default function ApplicationsSection() {
                           </div>
                         </div>
                       ))}
-                      {col === APPLICATION_STATUS.APPLIED && canAdd && (
+                      {col === APPLICATION_STATUS.APPLIED && (
                         <Button
                           type="button"
                           variant="outline"
@@ -185,20 +166,6 @@ export default function ApplicationsSection() {
                         >
                           + Add manually
                         </Button>
-                      )}
-                      {col === APPLICATION_STATUS.APPLIED && !canAdd && (
-                        <div className="rounded-lg border border-dashed border-border p-2 text-center text-xs text-muted-foreground">
-                          <AppIcon name="lock" className="inline size-3.5" /> {freeAppLimit}/{freeAppLimit} free apps used ·{' '}
-                          <Button
-                            type="button"
-                            variant="link"
-                            size="sm"
-                            className="h-auto px-0 text-xs"
-                            onClick={() => navigate('/pricing')}
-                          >
-                            Upgrade
-                          </Button>
-                        </div>
                       )}
                     </CardContent>
                   </ScrollArea>

@@ -1358,9 +1358,6 @@ export default function ResumeSection() {
         updatedAt: serverTimestamp(),
       })
       dirtyRef.current = false
-      import('@/store/gamificationStore').then((m) => {
-        m.default.getState().syncEligibleBadges({ resumeCount: 1 }).catch(() => {})
-      }).catch(() => {})
     } catch (err) {
       console.error('Save resume:', err)
       addToast('error', 'Failed to save resume')

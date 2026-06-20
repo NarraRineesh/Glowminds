@@ -257,16 +257,6 @@ function createDefaultSettings() {
   }
 }
 
-export function createDefaultGamification() {
-  return {
-    xp: 0,
-    level: 1,
-    streak: { current: 0, longest: 0, lastActiveDate: '' },
-    dailyQuizLastAnsweredDate: '',
-    earnedBadgeIds: [],
-  }
-}
-
 function createDefaultFlags() {
   return {
     onboardingCompleted: false,
@@ -274,7 +264,6 @@ function createDefaultFlags() {
     // Index of the last successfully completed onboarding wizard step
     // (0-based). Allows resuming the wizard after refresh / partial close.
     onboardingStep: 0,
-    quizPromptSeenAt: null,
     defaultResumeId: null,
   }
 }
@@ -293,7 +282,6 @@ export function createDefaultUserDoc({ uid, email, firstName = '', lastName = ''
     photoURL,
     subscription: createDefaultSubscription(),
     settings: createDefaultSettings(),
-    gamification: createDefaultGamification(),
     flags: createDefaultFlags(),
     profile: createDefaultProfile(),
   }

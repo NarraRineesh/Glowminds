@@ -11,7 +11,6 @@ import {
   serverTimestamp,
 } from 'firebase/firestore'
 import { db, auth } from '@/services/firebase'
-import useGamificationStore from '@/store/gamificationStore'
 
 // Persist interview practice sessions under users/{uid}/interviewSessions/{sid}.
 // Each session stores MCQ questions, the user's picks, and the AI session
@@ -179,8 +178,6 @@ const useInterviewStore = create((set, get) => ({
           sess.id === sid ? { ...sess, status: 'completed' } : sess,
         ),
       }))
-      const completed = get().sessions.filter((s) => s.status === 'completed').length
-      useGamificationStore.getState().syncEligibleBadges({ interviewCount: completed }).catch(() => {})
     } catch (err) {
       console.error('interviewStore.completeSession:', err)
     }

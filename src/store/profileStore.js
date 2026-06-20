@@ -32,9 +32,6 @@ const useProfileStore = create((set, get) => ({
       const data = snap.exists() ? snap.data() : {}
       const profile = normalizeProfile(data.profile)
       set({ user: data, profile, loaded: true, loading: false })
-      import('@/store/gamificationStore').then((m) => {
-        m.default.getState().hydrateFromUser(data)
-      }).catch(() => {})
       return data
     } catch (err) {
       console.error('profileStore.load:', err)
@@ -93,10 +90,6 @@ const useProfileStore = create((set, get) => ({
     } catch (err) {
       console.error('profileStore.replaceProfile:', err)
       throw err
-    } finally {
-      import('@/store/gamificationStore').then((m) => {
-        m.default.getState().syncEligibleBadges().catch(() => {})
-      }).catch(() => {})
     }
   },
 

@@ -120,24 +120,6 @@ export async function apiFetch(path, options = {}) {
       handleUnauthorized().catch(() => {})
     }
 
-    if (response.status === 403 && code === 'pro-required') {
-      try {
-        useAppStore.getState().addToast?.(
-          'info',
-          'Glowminds Pro is required for this feature.',
-        )
-      } catch { /* store may not be ready */ }
-    }
-
-    if (response.status === 402 && code === 'credits-exhausted') {
-      try {
-        useAppStore.getState().addToast?.(
-          'info',
-          message || 'You have no AI credits left. Upgrade to Pro for 100 credits per month.',
-        )
-      } catch { /* store may not be ready */ }
-    }
-
     if (response.status === 403 && code === 'permission-denied' && /application|resume/i.test(message)) {
       try {
         useAppStore.getState().addToast?.('info', message)

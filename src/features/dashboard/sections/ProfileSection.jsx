@@ -1,9 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
 import useAppStore from '@/store/authStore'
 import useProfileStore from '@/store/profileStore'
-import useIsPro from '@/hooks/useIsPro'
-import useUpgradePro from '@/hooks/useUpgradePro'
 import { auth } from '@/services/firebase'
 import { apiFetch } from '@/services/apiClient'
 import Loader from '@/components/Loader'
@@ -107,9 +104,6 @@ export default function ProfileSection() {
   const replaceProfile = useProfileStore((s) => s.replaceProfile)
   const updateProfile = useProfileStore((s) => s.updateProfile)
   const isLg = useIsLg()
-  const isPro = useIsPro()
-  const navigate = useNavigate()
-  const { startUpgrade, loading: upgradeLoading } = useUpgradePro()
 
   const [profile, setProfile] = useState(EMPTY_PROFILE)
   const [loading, setLoading] = useState(true)
@@ -1018,7 +1012,6 @@ export default function ProfileSection() {
       <ProfileCard id="profile-ai-review" className="scroll-mt-20 overflow-visible"
         title="AI Profile Review" titleIcon="robot"
         action={(
-          isPro ? (
           <Button size="sm" disabled={reviewLoading} onClick={async () => {
             setReviewLoading(true)
             try {
@@ -1039,26 +1032,9 @@ export default function ProfileSection() {
           }}>
             {reviewLoading ? 'Analyzing…' : aiReview ? 'Re-analyze' : 'Get AI Review'}
           </Button>
-          ) : (
-          <Button size="sm" variant="outline" disabled={upgradeLoading} onClick={() => void startUpgrade({ plan: 'yearly' })}>
-            <AppIcon name="lock" className="size-3.5" />
-            {upgradeLoading ? 'Opening…' : 'Upgrade for AI Review'}
-          </Button>
-          )
         )}
       >
-          {!aiReview && !reviewLoading && !isPro && (
-            <div className="flex flex-col items-center gap-2 py-6 text-center">
-              <AppIcon name="lock" className="size-10 text-primary/70" />
-              <p className="text-sm font-semibold text-foreground">AI Profile Review is a Pro feature</p>
-              <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
-                Upgrade to Glowminds Pro for AI-powered feedback on skills, gaps, and your summary.
-              </p>
-              <Button size="sm" variant="outline" onClick={() => navigate('/pricing')}>View pricing</Button>
-            </div>
-          )}
-
-          {!aiReview && !reviewLoading && isPro && (
+          {!aiReview && !reviewLoading && (
             <div className="flex flex-col items-center gap-2 py-6 text-center">
               <AppIcon name="robot" className="size-10 text-muted-foreground/60" />
               <p className="text-sm font-semibold text-foreground">Get AI-powered profile feedback</p>

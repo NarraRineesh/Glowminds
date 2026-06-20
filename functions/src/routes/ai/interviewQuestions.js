@@ -81,8 +81,7 @@ Rules:
       throw new ApiError("internal", "AI did not return valid MCQs");
     }
 
-    // Count each generated MCQ as one tool use — a 50-question session
-    // should weigh 50× a 5-question session in the admin metrics.
+    // Count each generated MCQ as one tool use so usage reflects session size.
     trackAsync(req.user?.uid, "ai.interview-questions", questions.length);
 
     res.json({ questions });

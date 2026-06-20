@@ -44,7 +44,7 @@ export const PAGE_SEO = {
   pricing: {
     title: 'Pricing — Free Plan & Pro from ₹599/year',
     description:
-      'Start free with job search, 1 resume, and 5 AI credits. Glowminds Pro founding offer: ₹599/year for 100 AI credits/month, unlimited resumes, and full AI career tools.',
+      'Start free with job search, 1 ATS resume, 10 application tracks, and 10 AI credits/month. Glowminds Pro founding offer: ₹599/year.',
     path: '/pricing',
     keywords:
       'Glowminds pricing, student career tools price, affordable resume builder India, AI interview prep cost, Pro plan India',
