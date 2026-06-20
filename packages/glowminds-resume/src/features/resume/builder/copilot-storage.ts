@@ -3,11 +3,15 @@ import { resumeDataSchema } from "@/lib/schema/resume/data";
 import type { CopilotEmbedResume, CopilotInitPayload } from "@/libs/copilot-bridge";
 import type { Resume } from "@/features/resume/builder/draft";
 import {
+	clearEmbedLocalResumes,
 	deleteLocalResume,
 	getLocalResume,
 	listLocalResumes,
 	saveLocalResume,
 } from "@/features/resume/builder/local-storage";
+import { isEmbedded } from "@/embed/runtime";
+
+export const EMBED_RESUMES_READY_EVENT = "embed:resumes-ready";
 
 const COPILOT_INDEX_KEY = "rr:copilot-resume-ids";
 
@@ -51,9 +55,13 @@ export function hydrateFromCopilot(payload: CopilotInitPayload) {
 	const trackedIds = readCopilotIndex();
 	const incomingIds = new Set(incoming.map((resume) => resume.id));
 
+	if (isEmbedded() && incoming.length > 0) {
+		clearEmbedLocalResumes();
+	}
+
 	for (const id of trackedIds) {
 		if (!incomingIds.has(id)) {
-			deleteLocalResume(id);
+			deleteLocalResume(id, { syncHost: false });
 		}
 	}
 
@@ -61,7 +69,7 @@ export function hydrateFromCopilot(payload: CopilotInitPayload) {
 
 	for (const record of incoming) {
 		try {
-			saveLocalResume(toResume(record));
+			saveLocalResume(toResume(record), { syncHost: false });
 			nextIds.push(record.id);
 		} catch (error) {
 			console.error("Failed to hydrate copilot resume", record.id, error);
@@ -69,6 +77,11 @@ export function hydrateFromCopilot(payload: CopilotInitPayload) {
 	}
 
 	writeCopilotIndex(nextIds);
+}
+
+export function notifyEmbedResumesReady() {
+	if (typeof window === "undefined") return;
+	window.dispatchEvent(new CustomEvent(EMBED_RESUMES_READY_EVENT));
 }
 
 /** Upload browser-local resumes to the host when cloud storage is empty. */

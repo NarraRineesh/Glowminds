@@ -34,13 +34,17 @@ export function ResumeBuilderRoot(props: ResumeBuilderRootProps) {
 
 	useEffect(() => {
 		if (!router) return;
-		void import("@/features/resume/builder/copilot-storage").then(({ hydrateFromCopilot, migrateLocalResumesToHost }) => {
-			hydrateFromCopilot(config);
-			if ((config.resumes?.length ?? 0) === 0) {
-				void migrateLocalResumesToHost(config.onResumeSave);
-			}
-		});
-	}, [router, resumeIdsKey, config.onResumeSave]);
+		void import("@/features/resume/builder/copilot-storage").then(
+			({ hydrateFromCopilot, migrateLocalResumesToHost, notifyEmbedResumesReady }) => {
+				hydrateFromCopilot(config);
+				const migrate =
+					(config.allowLocalMigration ?? false) && (config.resumes?.length ?? 0) === 0
+						? migrateLocalResumesToHost(config.onResumeSave)
+						: Promise.resolve();
+				void migrate.finally(() => notifyEmbedResumesReady());
+			},
+		);
+	}, [router, resumeIdsKey, config.onResumeSave, config.allowLocalMigration, config.resumes?.length]);
 
 	useEffect(() => {
 		if (!externalPath) {

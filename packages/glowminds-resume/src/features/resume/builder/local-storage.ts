@@ -89,7 +89,12 @@ export function getLocalResume(id: string): Resume | null {
 	}
 }
 
-export function saveLocalResume(resume: Resume): Resume {
+type SaveLocalResumeOptions = {
+	syncHost?: boolean;
+};
+
+export function saveLocalResume(resume: Resume, options: SaveLocalResumeOptions = {}): Resume {
+	const { syncHost = true } = options;
 	const stored = serialize({ ...resume, data: cloneResumeData(resume.data), updatedAt: new Date() });
 	localStorage.setItem(resumeKey(resume.id), JSON.stringify(stored));
 
@@ -100,10 +105,22 @@ export function saveLocalResume(resume: Resume): Resume {
 	}
 
 	const saved = deserialize(stored);
-	void syncResumeWithHost(saved).catch((err) => {
-		console.error("Failed to sync resume with host", err);
-	});
+	if (syncHost) {
+		void syncResumeWithHost(saved).catch((err) => {
+			console.error("Failed to sync resume with host", err);
+		});
+	}
 	return saved;
+}
+
+/** Remove all embed-scoped resume entries from localStorage. */
+export function clearEmbedLocalResumes(): void {
+	if (typeof window === "undefined" || !isEmbedded()) return;
+
+	for (const id of readIndex()) {
+		localStorage.removeItem(resumeKey(id));
+	}
+	writeIndex([]);
 }
 
 function resumeToEmbedRecord(resume: Resume): import("@/libs/copilot-bridge").CopilotEmbedResume {
@@ -175,9 +192,11 @@ export function applyGlowmindsSampleToResume(id: string): Resume {
 	});
 }
 
-export function deleteLocalResume(id: string): void {
+export function deleteLocalResume(id: string, options: SaveLocalResumeOptions = {}): void {
+	const { syncHost = true } = options;
 	localStorage.removeItem(resumeKey(id));
 	writeIndex(readIndex().filter((resumeId) => resumeId !== id));
+	if (!syncHost) return;
 	const hook = getEmbedConfig()?.onResumeDelete;
 	if (hook) {
 		void hook(id).catch((err) => {

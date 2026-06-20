@@ -47,6 +47,7 @@ export type CopilotInitPayload = {
 	onResumeCreate?: () => Promise<void>;
 	onResumeSave?: (resume: CopilotEmbedResume) => Promise<void>;
 	onResumeDelete?: (resumeId: string) => Promise<void>;
+	allowLocalMigration?: boolean;
 };
 
 type BridgeMessage =

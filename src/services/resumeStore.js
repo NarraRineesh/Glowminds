@@ -5,28 +5,14 @@ import { invalidateEntitlementsCache } from '@/hooks/useEntitlements'
 
 export { loadUserResumes }
 
+const CLOUD_SAVE_DEBOUNCE_MS = 1500
+const pendingCloudSaves = new Map()
+
 function parseUpdatedAt(value) {
   if (!value) return new Date().toISOString()
   if (typeof value?.toDate === 'function') return value.toDate().toISOString()
   if (value instanceof Date) return value.toISOString()
   return String(value)
-}
-
-/** Map Firestore resume doc → embed payload shape. */
-export function resumeDocToEmbedRecord(doc) {
-  const data = doc.data()
-  const id = data.id || doc.id.replace(/^[^_]+_/, '')
-  return {
-    id,
-    name: data.name || 'Untitled Resume',
-    slug: data.slug || id,
-    tags: Array.isArray(data.tags) ? data.tags : [],
-    data: data.data,
-    isLocked: !!data.isLocked,
-    isPublic: !!data.isPublic,
-    hasPassword: !!data.hasPassword,
-    updatedAt: parseUpdatedAt(data.updatedAt),
-  }
 }
 
 export async function loadEmbedResumes(uid) {
@@ -44,19 +30,9 @@ export async function loadEmbedResumes(uid) {
   }))
 }
 
-export async function saveEmbedResume(uid, resume) {
-  if (!uid || !resume?.id) return
-
-  const ref = resumeDocRef(uid, resume.id)
-  const existing = await getDoc(ref)
-
-  if (!existing.exists()) {
-    await apiFetch('/resumes/register', { body: { resumeId: resume.id } })
-    invalidateEntitlementsCache()
-  }
-
+async function writeEmbedResume(uid, resume) {
   await setDoc(
-    ref,
+    resumeDocRef(uid, resume.id),
     {
       userId: uid,
       id: resume.id,
@@ -73,7 +49,63 @@ export async function saveEmbedResume(uid, resume) {
   )
 }
 
+async function registerEmbedResumeIfNeeded(uid, resume, isPro) {
+  if (isPro) return
+
+  const ref = resumeDocRef(uid, resume.id)
+  const existing = await getDoc(ref)
+  if (existing.exists()) return
+
+  await apiFetch('/resumes/register', { body: { resumeId: resume.id } })
+  invalidateEntitlementsCache()
+}
+
+export async function saveEmbedResumeImmediate(uid, resume, { isPro = false } = {}) {
+  if (!uid || !resume?.id) return
+
+  await registerEmbedResumeIfNeeded(uid, resume, isPro)
+  await writeEmbedResume(uid, resume)
+}
+
+export function scheduleEmbedResumeSave(uid, resume, { isPro = false } = {}) {
+  if (!uid || !resume?.id) return
+
+  const key = `${uid}:${resume.id}`
+  const existing = pendingCloudSaves.get(key)
+  if (existing) clearTimeout(existing.timer)
+
+  const timer = setTimeout(() => {
+    pendingCloudSaves.delete(key)
+    void saveEmbedResumeImmediate(uid, resume, { isPro }).catch((err) => {
+      console.error('Failed to save resume to Firestore', err)
+    })
+  }, CLOUD_SAVE_DEBOUNCE_MS)
+
+  pendingCloudSaves.set(key, { timer, resume, isPro })
+}
+
+export async function flushEmbedResumeSave(uid, resume, { isPro = false } = {}) {
+  if (!uid || !resume?.id) return
+
+  const key = `${uid}:${resume.id}`
+  const pending = pendingCloudSaves.get(key)
+  if (pending) {
+    clearTimeout(pending.timer)
+    pendingCloudSaves.delete(key)
+  }
+
+  await saveEmbedResumeImmediate(uid, resume, { isPro })
+}
+
 export async function deleteEmbedResume(uid, resumeId) {
   if (!uid || !resumeId) return
+
+  const key = `${uid}:${resumeId}`
+  const pending = pendingCloudSaves.get(key)
+  if (pending) {
+    clearTimeout(pending.timer)
+    pendingCloudSaves.delete(key)
+  }
+
   await deleteDoc(resumeDocRef(uid, resumeId))
 }

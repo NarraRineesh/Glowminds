@@ -212,10 +212,9 @@ export async function grantProCredits(uid, pricing) {
 }
 
 export async function registerResume(uid, { resumeId } = {}) {
-  const entitlements = await getEntitlements(uid);
-
-  if (entitlements.isPro) {
-    return { allowed: true, resumeCount: entitlements.entitlements.resumeCount };
+  const sub = await readSubscription(uid);
+  if (hasProAccess(sub)) {
+    return { allowed: true, resumeCount: 0 };
   }
 
   const ref = userEntitlementsRef(uid);

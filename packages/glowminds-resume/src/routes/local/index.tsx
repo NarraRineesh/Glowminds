@@ -10,7 +10,7 @@ import {
 	TrashSimpleIcon,
 } from "@phosphor-icons/react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { defaultResumeData } from "@/lib/schema/resume/default";
 import { glowmindsSampleResumeData } from "@/lib/schema/resume/glowminds-sample";
@@ -25,6 +25,7 @@ import {
 	listLocalResumes,
 	ResumeLimitError,
 } from "@/features/resume/builder/local-storage";
+import { EMBED_RESUMES_READY_EVENT, listDashboardResumes } from "@/features/resume/builder/copilot-storage";
 import { isEmbedded } from "@/embed/runtime";
 import { FREE_LIMITS, getEmbedIsPro } from "@/lib/plans";
 import { ResumePreview } from "@/features/resume/preview/preview";
@@ -70,9 +71,16 @@ function RouteComponent() {
 	const embedded = isEmbedded();
 	const navigate = useNavigate();
 	const fileInputRef = useRef<HTMLInputElement>(null);
-	const [resumes, setResumes] = useState(() => listLocalResumes());
+	const [resumes, setResumes] = useState(() => (embedded ? listDashboardResumes() : listLocalResumes()));
 
-	const refresh = () => setResumes(listLocalResumes());
+	const refresh = () => setResumes(embedded ? listDashboardResumes() : listLocalResumes());
+
+	useEffect(() => {
+		if (!embedded) return undefined;
+		const onReady = () => refresh();
+		window.addEventListener(EMBED_RESUMES_READY_EVENT, onReady);
+		return () => window.removeEventListener(EMBED_RESUMES_READY_EVENT, onReady);
+	}, [embedded]);
 	const isPro = getEmbedIsPro();
 	const atResumeLimit = embedded && !isPro && resumes.length >= FREE_LIMITS.resumes;
 
