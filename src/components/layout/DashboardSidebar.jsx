@@ -3,7 +3,7 @@ import { Link, NavLink, useLocation } from 'react-router-dom'
 import useAppStore from '@/store/authStore'
 import useNotifStore from '@/store/notifStore'
 import useUpgradePro from '@/hooks/useUpgradePro'
-import useIsPro from '@/hooks/useIsPro'
+import useEntitlements from '@/hooks/useEntitlements'
 import { useYearlyPriceLabel } from '@/hooks/usePricingConfig'
 import SidebarProfileMenu from '@/components/layout/SidebarProfileMenu'
 import BrandLogo, { GlowmindsWordmark } from '@/components/BrandLogo'
@@ -56,7 +56,7 @@ export default function DashboardSidebar() {
   const { user } = useAppStore()
   const { loadNotifs, reset: resetNotifs } = useNotifStore()
   const { startUpgrade, loading: upgradeLoading } = useUpgradePro()
-  const isPro = useIsPro()
+  const { isPro, loading: entitlementsLoading } = useEntitlements()
   const yearlyPriceLabel = useYearlyPriceLabel()
   const { setOpenMobile, state } = useSidebarState()
   const iconCollapsed = state === 'collapsed'
@@ -223,6 +223,22 @@ export default function DashboardSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="gap-1">
+        {!entitlementsLoading && isPro ? (
+          <div
+            className={cn(
+              'flex w-full items-center gap-3 rounded-lg border border-primary/25 bg-primary/10 p-2.5',
+              iconCollapsed && 'justify-center px-2',
+            )}
+          >
+            <AppIcon name="star" className="size-5 shrink-0 text-primary" weight="fill" />
+            {!iconCollapsed && (
+              <span className="min-w-0 flex-1">
+                <span className="block text-[0.82rem] font-bold text-foreground">Glowminds Pro</span>
+                <span className="block text-[10.5px] text-muted-foreground">All features unlocked</span>
+              </span>
+            )}
+          </div>
+        ) : !entitlementsLoading ? (
         <Button
           type="button"
           variant="default"
@@ -248,6 +264,7 @@ export default function DashboardSidebar() {
             </span>
           )}
         </Button>
+        ) : null}
 
         <SidebarProfileMenu
           user={user}
