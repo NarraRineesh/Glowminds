@@ -3,6 +3,7 @@ import { Link, NavLink, useLocation } from 'react-router-dom'
 import useAppStore from '@/store/authStore'
 import useNotifStore from '@/store/notifStore'
 import useUpgradePro from '@/hooks/useUpgradePro'
+import useIsPro from '@/hooks/useIsPro'
 import { useYearlyPriceLabel } from '@/hooks/usePricingConfig'
 import SidebarProfileMenu from '@/components/layout/SidebarProfileMenu'
 import BrandLogo, { GlowmindsWordmark } from '@/components/BrandLogo'
@@ -55,6 +56,7 @@ export default function DashboardSidebar() {
   const { user } = useAppStore()
   const { loadNotifs, reset: resetNotifs } = useNotifStore()
   const { startUpgrade, loading: upgradeLoading } = useUpgradePro()
+  const isPro = useIsPro()
   const yearlyPriceLabel = useYearlyPriceLabel()
   const { setOpenMobile, state } = useSidebarState()
   const iconCollapsed = state === 'collapsed'
@@ -141,6 +143,9 @@ export default function DashboardSidebar() {
         >
           <AppIcon name={item.icon} className="size-4 shrink-0" />
           <span className="truncate">{item.label}</span>
+          {item.proOnly && !isPro && (
+            <AppIcon name="lock" className="ml-auto size-3 shrink-0 text-muted-foreground" />
+          )}
         </SidebarMenuButton>
       </SidebarMenuItem>
     )

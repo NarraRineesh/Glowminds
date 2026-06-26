@@ -179,7 +179,7 @@ export default function JobDetailSection() {
       setCoverLetter(data.coverLetter)
     } catch (err) {
       console.error('Cover letter error:', err)
-      addToast('error', 'Failed to generate cover letter')
+      addToast('error', err?.message || 'Failed to generate cover letter')
     }
     setClLoading(false)
   }

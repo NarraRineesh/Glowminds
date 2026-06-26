@@ -4,7 +4,9 @@ import { ToolPage, ToolSidebarLayout } from '@/features/dashboard/components/too
 import AppIcon from '@/components/icons/AppIcon'
 import { Button, ButtonGroup, DashboardCard, Textarea } from '@/components/ui'
 import useAppStore from '@/store/authStore'
-import UpgradeGate from '@/components/UpgradeGate'
+import useEntitlements from '@/hooks/useEntitlements'
+import AiCreditBar from '@/components/AiCreditBar'
+import { DEFAULT_PRICING_CONFIG } from '@/constants/pricingDefaults'
 import { apiFetch } from '@/services/apiClient'
 
 const TONES = [
@@ -19,6 +21,10 @@ const SAMPLE = `I worked on a side project for 3 months that helps students disc
 
 export default function ParaphrasingSection() {
   const { addToast } = useAppStore()
+  const { credits, creditCosts, isPro, loading: entitlementsLoading, refresh: refreshEntitlements } = useEntitlements()
+  const paraphraseCost = creditCosts?.paraphrase ?? DEFAULT_PRICING_CONFIG.creditCosts.paraphrase ?? 1
+  const creditBalance = credits?.balance
+  const canRun = creditBalance == null || creditBalance >= paraphraseCost
   const [text, setText] = useState('')
   const [tone, setTone] = useState('professional')
   const [variants, setVariants] = useState([])
@@ -29,11 +35,16 @@ export default function ParaphrasingSection() {
       addToast('error', 'Add some text to paraphrase')
       return
     }
+    if (!canRun) {
+      addToast('error', 'Not enough AI credits for paraphrasing')
+      return
+    }
     setLoading(true)
     setVariants([])
     try {
       const data = await apiFetch('/ai/paraphrase', { body: { text, tone } })
       setVariants(data?.variants || [])
+      refreshEntitlements({ force: true }).catch(() => {})
     } catch (err) {
       console.error('paraphrase:', err)
       addToast('error', err.message || 'Paraphrase failed')
@@ -69,14 +80,24 @@ export default function ParaphrasingSection() {
   )
 
   return (
-    <UpgradeGate>
-      <ToolPage>
-        <SectionHeader
+    <ToolPage>
+      <SectionHeader
           badge="AI · Writing"
           badgeClassName="border-purple-500/20 bg-purple-500/10 text-purple-500"
           title="Three rewrites, one click"
           accent="three rewrites"
           subtitle="Pick a tone and we'll generate three distinct ways to say the same thing — perfect for resume bullets, cover letters, and outreach."
+        />
+
+        <AiCreditBar
+          className="mb-4"
+          balance={creditBalance}
+          cost={paraphraseCost}
+          periodEnd={credits?.periodEnd}
+          isPro={isPro}
+          loading={entitlementsLoading}
+          unitLabel="per rewrite"
+          onUpgradeSuccess={() => refreshEntitlements({ force: true })}
         />
 
         <ToolSidebarLayout sidebar={sidebar} sidebarRight>
@@ -86,7 +107,7 @@ export default function ParaphrasingSection() {
             action={(
               <div className="flex gap-2">
                 <Button variant="ghost" size="sm" onClick={() => setText(SAMPLE)}>Use sample</Button>
-                <Button size="sm" onClick={run} disabled={loading || !text.trim()}>
+                <Button size="sm" onClick={run} disabled={loading || !text.trim() || !canRun}>
                   {loading ? 'Rewriting…' : 'Generate variants'}
                 </Button>
               </div>
@@ -121,6 +142,5 @@ export default function ParaphrasingSection() {
           </DashboardCard>
         </ToolSidebarLayout>
       </ToolPage>
-    </UpgradeGate>
   )
 }

@@ -12,6 +12,7 @@ import entitlementsRoutes from "./routes/entitlements/index.js";
 import applicationsRoutes from "./routes/applications/index.js";
 import resumesRoutes from "./routes/resumes/index.js";
 import skillsRoutes from "./routes/skills/index.js";
+import salaryRoutes from "./routes/salary/index.js";
 
 export function createApp() {
   const app = express();
@@ -56,6 +57,7 @@ export function createApp() {
   app.use("/api/applications", applicationsRoutes);
   app.use("/api/resumes", resumesRoutes);
   app.use("/api/skills", skillsRoutes);
+  app.use("/api/salary", salaryRoutes);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

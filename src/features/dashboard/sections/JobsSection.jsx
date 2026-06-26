@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useJobStore from '@/store/jobStore'
+import ProUpgradeInline from '@/components/ProUpgradeInline'
+import { isProUpgradeRequired } from '@/utils/proErrors'
 import Loader from '@/components/Loader'
 import { JobGridSkeleton } from '@/features/dashboard/components/JobCardSkeleton'
 import { JobMetaItem, JobMetaRow } from '@/features/dashboard/components/JobMeta'
@@ -91,6 +93,8 @@ export default function JobsSection() {
   const hasActiveSearch = Boolean(search.trim())
   const subtitleQuery = hasActiveSearch ? search.trim() : queryUsed
 
+  const selectFilter = (f) => setActiveF(f)
+
   const openJob = (j) => navigate(`/dashboard/jobs/${encodeURIComponent(j.id)}`)
 
   const toggleSave = async (j, e) => {
@@ -156,7 +160,7 @@ export default function JobsSection() {
 
         <ButtonGroup className="flex-wrap">
           {JF.map(f => (
-            <Button key={f} type="button" variant={f === activeF ? 'default' : 'outline'} size="sm" disabled={loading} onClick={() => setActiveF(f)}>
+            <Button key={f} type="button" variant={f === activeF ? 'default' : 'outline'} size="sm" disabled={loading} onClick={() => selectFilter(f)}>
               {f}
             </Button>
           ))}
@@ -166,12 +170,16 @@ export default function JobsSection() {
       {isInitialLoad && <JobGridSkeleton count={PER_PAGE} />}
 
       {error && !loading && (
+        isProUpgradeRequired({ message: error, code: 'permission-denied' }) || /pro/i.test(error) ? (
+          <ProUpgradeInline message={error} />
+        ) : (
         <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {error}
           <div className="mt-2">
             <Button variant="outline" size="sm" onClick={() => fetchJobs({ search, page: page, pageSize: PER_PAGE, filters, force: true })}>Retry</Button>
           </div>
         </div>
+        )
       )}
 
       {!isInitialLoad && (

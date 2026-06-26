@@ -1,6 +1,9 @@
 import { Router } from "express";
 import { requireAuth } from "../../middleware/auth.js";
+import { requirePro } from "../../middleware/requirePro.js";
 import { ApiError } from "../../middleware/errors.js";
+import { hasProAccess } from "../../constants/plans.js";
+import { readSubscription } from "../../services/userCollections.js";
 import {
   buildBoardSearchParams,
   countMatchingJobs,
@@ -65,6 +68,16 @@ async function handleBoardSearch(req, res, next) {
       ...filtersFromRequest({ type, minMatch, newToday }),
     };
 
+    if (filters.minMatch != null && filters.minMatch > 0) {
+      const sub = await readSubscription(req.user.uid);
+      if (!hasProAccess(sub)) {
+        throw new ApiError(
+          "permission-denied",
+          "Glowminds Pro is required for smart job matching filters.",
+        );
+      }
+    }
+
     const { jobs, pagination, sources, partialErrors, meta } = await searchBoardJobs({
       search,
       category,
@@ -96,7 +109,7 @@ router.post("/board", requireAuth, handleBoardSearch);
 router.post("/search", requireAuth, handleBoardSearch);
 
 /** Profile top matches — dual skills + title query, merge, rank, top N. */
-router.get("/top-matches", requireAuth, async (req, res, next) => {
+router.get("/top-matches", requireAuth, requirePro(), async (req, res, next) => {
   try {
     const uid = req.user.uid;
     const limit = clampInt(req.query.limit, { min: 1, max: 25, fallback: 10 });

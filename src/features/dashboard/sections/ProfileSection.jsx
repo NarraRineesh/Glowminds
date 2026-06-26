@@ -5,6 +5,9 @@ import { auth } from '@/services/firebase'
 import { apiFetch } from '@/services/apiClient'
 import Loader from '@/components/Loader'
 import SkillSuggestInput from '@/components/SkillSuggestInput'
+import AiCreditBar from '@/components/AiCreditBar'
+import useEntitlements from '@/hooks/useEntitlements'
+import { DEFAULT_PRICING_CONFIG } from '@/constants/pricingDefaults'
 import useIsLg from '@/hooks/useIsLg'
 import AppIcon from '@/components/icons/AppIcon'
 import {
@@ -105,6 +108,10 @@ export default function ProfileSection() {
   const replaceProfile = useProfileStore((s) => s.replaceProfile)
   const updateProfile = useProfileStore((s) => s.updateProfile)
   const isLg = useIsLg()
+  const { credits, creditCosts, isPro, loading: entitlementsLoading, refresh: refreshEntitlements } = useEntitlements()
+  const reviewCost = creditCosts?.profileReview ?? DEFAULT_PRICING_CONFIG.creditCosts.profileReview ?? 1
+  const creditBalance = credits?.balance
+  const canReview = creditBalance == null || creditBalance >= reviewCost
 
   const [profile, setProfile] = useState(EMPTY_PROFILE)
   const [loading, setLoading] = useState(true)
@@ -1013,7 +1020,11 @@ export default function ProfileSection() {
       <ProfileCard id="profile-ai-review" className="scroll-mt-20 overflow-visible"
         title="AI Profile Review" titleIcon="robot"
         action={(
-          <Button size="sm" disabled={reviewLoading} onClick={async () => {
+          <Button size="sm" disabled={reviewLoading || !canReview} onClick={async () => {
+            if (!canReview) {
+              addToast('error', 'Not enough AI credits for profile review')
+              return
+            }
             setReviewLoading(true)
             try {
               const data = await apiFetch('/ai/profile-review', {
@@ -1025,6 +1036,7 @@ export default function ProfileSection() {
               await replaceProfile(updated)
               setLastUpdated(new Date())
               addToast('success', 'AI review ready!')
+              refreshEntitlements({ force: true }).catch(() => {})
             } catch (err) {
               console.error('Profile review error:', err)
               addToast('error', 'Failed to get AI review')
@@ -1035,6 +1047,16 @@ export default function ProfileSection() {
           </Button>
         )}
       >
+          <AiCreditBar
+            className="mb-4"
+            balance={creditBalance}
+            cost={reviewCost}
+            periodEnd={credits?.periodEnd}
+            isPro={isPro}
+            loading={entitlementsLoading}
+            unitLabel="per review"
+            onUpgradeSuccess={() => refreshEntitlements({ force: true })}
+          />
           {!aiReview && !reviewLoading && (
             <div className="flex flex-col items-center gap-2 py-6 text-center">
               <AppIcon name="robot" className="size-10 text-muted-foreground/60" />

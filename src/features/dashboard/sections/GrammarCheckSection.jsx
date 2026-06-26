@@ -3,7 +3,9 @@ import SectionHeader from '@/components/dashboard/SectionHeader'
 import { ToolPage, ToolSidebarLayout } from '@/features/dashboard/components/toolSectionLayout'
 import { Badge, Button, DashboardCard, Progress, Textarea, cn } from '@/components/ui'
 import useAppStore from '@/store/authStore'
-import UpgradeGate from '@/components/UpgradeGate'
+import useEntitlements from '@/hooks/useEntitlements'
+import AiCreditBar from '@/components/AiCreditBar'
+import { DEFAULT_PRICING_CONFIG } from '@/constants/pricingDefaults'
 import { apiFetch } from '@/services/apiClient'
 
 const SAMPLE = `I has been working as a developer for 3 years, and i build many projects with React. My team mate said my english need improvement.`
@@ -35,6 +37,10 @@ function normalizeSuggestion(raw) {
 
 export default function GrammarCheckSection() {
   const { addToast } = useAppStore()
+  const { credits, creditCosts, isPro, loading: entitlementsLoading, refresh: refreshEntitlements } = useEntitlements()
+  const grammarCost = creditCosts?.grammar ?? DEFAULT_PRICING_CONFIG.creditCosts.grammar ?? 1
+  const creditBalance = credits?.balance
+  const canRun = creditBalance == null || creditBalance >= grammarCost
   const [text, setText] = useState('')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
@@ -44,11 +50,16 @@ export default function GrammarCheckSection() {
       addToast('error', 'Add some text to check')
       return
     }
+    if (!canRun) {
+      addToast('error', 'Not enough AI credits for grammar check')
+      return
+    }
     setLoading(true)
     setResult(null)
     try {
       const data = await apiFetch('/ai/grammar', { body: { text } })
       setResult(data)
+      refreshEntitlements({ force: true }).catch(() => {})
     } catch (err) {
       console.error('grammar check:', err)
       addToast('error', err.message || 'Grammar check failed')
@@ -104,14 +115,24 @@ export default function GrammarCheckSection() {
   )
 
   return (
-    <UpgradeGate>
-      <ToolPage>
-        <SectionHeader
+    <ToolPage>
+      <SectionHeader
           badge="AI · Writing"
           badgeClassName="border-primary/20 bg-primary/10 text-primary"
           title="Polish every sentence"
           accent="every sentence"
           subtitle="Paste any text — bios, emails, application answers — and we'll fix grammar, score it, and call out specific edits."
+        />
+
+        <AiCreditBar
+          className="mb-4"
+          balance={creditBalance}
+          cost={grammarCost}
+          periodEnd={credits?.periodEnd}
+          isPro={isPro}
+          loading={entitlementsLoading}
+          unitLabel="per check"
+          onUpgradeSuccess={() => refreshEntitlements({ force: true })}
         />
 
         <ToolSidebarLayout sidebar={sidebar} sidebarRight>
@@ -121,7 +142,7 @@ export default function GrammarCheckSection() {
             action={(
               <div className="flex gap-2">
                 <Button variant="ghost" size="sm" onClick={() => setText(SAMPLE)}>Use sample</Button>
-                <Button size="sm" onClick={run} disabled={loading || !text.trim()}>
+                <Button size="sm" onClick={run} disabled={loading || !text.trim() || !canRun}>
                   {loading ? 'Checking…' : 'Check grammar'}
                 </Button>
               </div>
@@ -188,6 +209,5 @@ export default function GrammarCheckSection() {
           )}
         </ToolSidebarLayout>
       </ToolPage>
-    </UpgradeGate>
   )
 }

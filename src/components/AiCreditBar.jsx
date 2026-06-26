@@ -19,6 +19,7 @@ export default function AiCreditBar({
   isPro = false,
   loading = false,
   className,
+  unitLabel = 'per use',
   onUpgradeSuccess,
 }) {
   const { startUpgrade, loading: upgradeLoading } = useUpgradePro()
@@ -41,7 +42,7 @@ export default function AiCreditBar({
           <div className="min-w-0">
             <p className="text-sm font-semibold text-foreground">No AI credits left</p>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Career chat uses {safeCost} credit per message.
+              Uses {safeCost} credit{safeCost === 1 ? '' : 's'} {unitLabel}.
               {resetLabel ? ` Credits reset ${resetLabel}.` : ''}
               {!isPro ? ' Upgrade to Pro for 100 credits/month.' : ''}
             </p>
@@ -64,7 +65,7 @@ export default function AiCreditBar({
           {safeBalance == null ? '—' : safeBalance} credits
         </Badge>
         <span className="text-xs text-muted-foreground">
-          {safeCost} per message
+          {safeCost} {unitLabel}
           {resetLabel ? ` · resets ${resetLabel}` : ''}
         </span>
         {lowCredits && (

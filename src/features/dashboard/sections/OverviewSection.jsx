@@ -4,6 +4,8 @@ import useAppStore from '@/store/authStore'
 import useJobStore from '@/store/jobStore'
 import useTrackerStore from '@/store/trackerStore'
 import useProfileStore from '@/store/profileStore'
+import ProUpgradeInline from '@/components/ProUpgradeInline'
+import { isProUpgradeRequired } from '@/utils/proErrors'
 import { profileHasEducation } from '@/utils/educationEntries'
 import { auth } from '@/services/firebase'
 import Loader from '@/components/Loader'
@@ -396,12 +398,16 @@ export default function OverviewSection() {
           {topMatchesLoading ? (
             <Loader variant="block" label="Loading jobs…" />
           ) : topMatchesError ? (
+            isProUpgradeRequired({ message: topMatchesError, code: 'permission-denied' }) || /pro/i.test(topMatchesError) ? (
+              <ProUpgradeInline message={topMatchesError} />
+            ) : (
             <div className="py-8 text-center text-sm">
               <p className="text-destructive">{topMatchesError}</p>
               <Button variant="outline" size="sm" className="mt-3" onClick={() => fetchTopMatches({ limit: 5, force: true })}>
                 Retry
               </Button>
             </div>
+            )
           ) : topMatches.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">No jobs yet. Check back soon!</p>
           ) : (

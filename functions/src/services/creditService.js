@@ -357,11 +357,13 @@ export async function grantProCredits(uid, pricing) {
 }
 
 export async function registerResume(uid, { resumeId } = {}) {
+  const pricing = await getPricingConfig();
   const sub = await readSubscription(uid);
   if (hasProAccess(sub)) {
     return { allowed: true, resumeCount: 0 };
   }
 
+  const freeLimit = pricing.freeLimits?.resumes ?? 1;
   const ref = userEntitlementsRef(uid);
 
   return getFirestore().runTransaction(async (tx) => {
@@ -372,6 +374,15 @@ export async function registerResume(uid, { resumeId } = {}) {
 
     if (resumeId && ids.includes(resumeId)) {
       return { allowed: true, resumeCount: count };
+    }
+
+    if (count >= freeLimit) {
+      return {
+        allowed: false,
+        resumeCount: count,
+        limit: freeLimit,
+        message: `Free plan allows ${freeLimit} resume. Upgrade to Pro for unlimited resumes.`,
+      };
     }
 
     const nextIds = resumeId ? [...ids, resumeId] : ids;
@@ -394,5 +405,17 @@ export async function registerResume(uid, { resumeId } = {}) {
 
 export async function assertCanCreateApplication(uid) {
   const entitlements = await getEntitlements(uid);
+  if (entitlements.isPro) return entitlements;
+
+  const limit = entitlements.freeLimits?.applications ?? 10;
+  const count = entitlements.entitlements?.applicationCount ?? 0;
+
+  if (limit >= 0 && count >= limit) {
+    throw new ApiError(
+      "permission-denied",
+      `Free plan allows up to ${limit} tracked applications. Upgrade to Pro for unlimited tracking.`,
+    );
+  }
+
   return entitlements;
 }

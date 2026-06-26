@@ -1,7 +1,6 @@
 import { useState, useCallback, useMemo } from 'react'
 import useAppStore from '@/store/authStore'
 import useInterviewStore from '@/store/interviewStore'
-import UpgradeGate from '@/components/UpgradeGate'
 import {
   AppIcon,
   Badge,
@@ -214,7 +213,7 @@ export default function InterviewSection() {
 
   if (phase === 'setup') {
     return (
-      <UpgradeGate>
+      <>
         <PageTitle
           title="Interview Prep"
           subtitle="AI-powered MCQ mock interviews — pick the best option, get instant scoring + study plan"
@@ -284,14 +283,14 @@ export default function InterviewSection() {
             </Button>
           </CardContent>
         </Card>
-      </UpgradeGate>
+      </>
     )
   }
 
   if (phase === 'practicing' && q) {
     const selected = picks[currentIdx]
     return (
-      <UpgradeGate>
+      <>
         <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
           <PageTitle
             title="Mock Interview"
@@ -435,13 +434,13 @@ export default function InterviewSection() {
             })}
           </div>
         </div>
-      </UpgradeGate>
+      </>
     )
   }
 
   if (phase === 'grading') {
     return (
-      <UpgradeGate>
+      <>
         <PageTitle
           title="Grading Session…"
           subtitle="Computing your score and asking the AI for a tailored study plan"
@@ -453,7 +452,7 @@ export default function InterviewSection() {
             <div className="mt-1.5 text-[0.76rem] text-muted-foreground">Per-question correctness is instant. The AI summary takes ~5–10 s.</div>
           </CardContent>
         </Card>
-      </UpgradeGate>
+      </>
     )
   }
 
@@ -464,7 +463,7 @@ export default function InterviewSection() {
     const summaryColor = percent >= 70 ? 'text-emerald-500' : percent >= 50 ? 'text-amber-500' : 'text-destructive'
 
     return (
-      <UpgradeGate>
+      <>
         <PageTitle
           title="Session Complete"
           subtitle={`Here's how you did in your ${role} mock interview`}
@@ -599,7 +598,7 @@ export default function InterviewSection() {
             </div>
           </CardContent>
         </Card>
-      </UpgradeGate>
+      </>
     )
   }
 

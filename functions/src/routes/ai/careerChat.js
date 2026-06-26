@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { requireAuth } from "../../middleware/auth.js";
 import { requireCredits } from "../../middleware/requireCredits.js";
+import { requirePro } from "../../middleware/requirePro.js";
 import { ApiError } from "../../middleware/errors.js";
 import { chatTask } from "../../services/aiClient.js";
 import { withCreditDebit } from "../../utils/creditResponse.js";
@@ -28,7 +29,7 @@ Formatting rules:
 
 const router = Router();
 
-router.post("/career-chat", requireAuth, requireCredits("careerChat"), async (req, res, next) => {
+router.post("/career-chat", requireAuth, requirePro(), requireCredits("careerChat"), async (req, res, next) => {
   try {
     const { message, history = [] } = req.body || {};
     if (!message || typeof message !== "string" || !message.trim()) {

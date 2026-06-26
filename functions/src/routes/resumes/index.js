@@ -12,6 +12,9 @@ router.post("/register", requireAuth, async (req, res, next) => {
       req.user.uid,
       { resumeId: resumeId ? String(resumeId) : undefined },
     );
+    if (!result.allowed) {
+      throw new ApiError("permission-denied", result.message || "Resume limit reached");
+    }
     res.json(result);
   } catch (err) {
     next(err instanceof ApiError ? err : new ApiError("internal", err.message));

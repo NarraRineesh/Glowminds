@@ -352,6 +352,7 @@ export default function AISection() {
         periodEnd={credits?.periodEnd}
         isPro={isPro}
         loading={entitlementsLoading}
+        unitLabel="per message"
         onUpgradeSuccess={() => refreshEntitlements({ force: true })}
       />
 

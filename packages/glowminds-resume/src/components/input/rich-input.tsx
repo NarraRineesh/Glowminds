@@ -49,7 +49,6 @@ import { EditorContent, EditorContext, useEditor, useEditorState } from "@tiptap
 import StarterKit from "@tiptap/starter-kit";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { getEmbedIsPro } from "@/lib/plans";
 import { match } from "ts-pattern";
 import z from "zod";
 import { Button } from "@/lib/ui/components/button";
@@ -156,7 +155,7 @@ export function RichInput({
 
 	if (!editor) return null;
 
-	const aiEnhanceAllowed = enableAiEnhance && getEmbedIsPro();
+	const aiEnhanceAllowed = enableAiEnhance;
 
 	const handleAiEnhance = () => {
 		const plain = htmlToPlainText(editor.getHTML());

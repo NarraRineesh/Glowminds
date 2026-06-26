@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import useAppStore from '@/store/authStore'
 import useIsLg from '@/hooks/useIsLg'
 import useTrackerStore from '@/store/trackerStore'
+import useEntitlements from '@/hooks/useEntitlements'
 import Loader from '@/components/Loader'
 import {
   AppIcon,
@@ -48,6 +49,9 @@ const EMPTY_FORM = {
 export default function ApplicationsSection() {
   const { addToast } = useAppStore()
   const { apps, loading, addApp, updateStatus, deleteApp, loadApps } = useTrackerStore()
+  const { isPro, freeLimits, loading: entitlementsLoading } = useEntitlements()
+  const appLimit = isPro ? -1 : (freeLimits?.applications ?? 10)
+  const atAppLimit = !isPro && appLimit >= 0 && apps.length >= appLimit
   const isLg = useIsLg()
   const [modal, setModal] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
@@ -56,6 +60,10 @@ export default function ApplicationsSection() {
 
   const handleAdd = async () => {
     if (!form.company || !form.role) { addToast('error', 'Company and role required'); return }
+    if (atAppLimit) {
+      addToast('error', `Free plan allows up to ${appLimit} applications. Upgrade to Pro for unlimited tracking.`)
+      return
+    }
     try {
       const application = await addApp({
         company: form.company,
@@ -69,8 +77,8 @@ export default function ApplicationsSection() {
       if (application) addToast('success', `${form.role} at ${form.company} tracked!`)
       setModal(false)
       setForm(EMPTY_FORM)
-    } catch {
-      addToast('error', 'Could not add application. Please try again.')
+    } catch (err) {
+      addToast('error', err?.message || 'Could not add application. Please try again.')
     }
   }
 
@@ -91,10 +99,20 @@ export default function ApplicationsSection() {
           <PageTitle
             className="mb-0"
             title="Application Tracker"
-            subtitle={`Track every application · Kanban board · ${apps.length} total`}
+            subtitle={`Track every application · Kanban board · ${apps.length}${!isPro && appLimit >= 0 ? ` / ${appLimit}` : ''} total`}
           />
-          <Button size="sm" onClick={() => setModal(true)}>+ Add application</Button>
+          <Button size="sm" onClick={() => setModal(true)} disabled={atAppLimit}>+ Add application</Button>
         </div>
+
+        {!entitlementsLoading && atAppLimit && (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-muted-foreground">
+            You&apos;ve reached the free plan limit of {appLimit} tracked applications.{' '}
+            <button type="button" className="font-semibold text-primary underline-offset-2 hover:underline" onClick={() => { window.location.href = '/pricing' }}>
+              Upgrade to Pro
+            </button>
+            {' '}for unlimited tracking.
+          </div>
+        )}
 
         {loading ? (
           <Loader variant="section" label="Loading your applications…" />

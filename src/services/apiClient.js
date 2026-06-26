@@ -121,12 +121,14 @@ export async function apiFetch(path, options = {}) {
     }
 
     if (response.status === 403 && code === 'permission-denied') {
+      const needsProUpgrade = /pro/i.test(message)
       try {
         useAppStore.getState().addToast?.('info', message)
       } catch { /* store may not be ready */ }
       if (/credit/i.test(message)) {
         invalidateEntitlementsCache()
       }
+      throw new ApiError(message, { status: response.status, code, payload, needsProUpgrade })
     }
 
     throw new ApiError(message, { status: response.status, code, payload })

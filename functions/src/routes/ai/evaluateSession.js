@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { requireAuth } from "../../middleware/auth.js";
 import { requireCredits } from "../../middleware/requireCredits.js";
+import { requirePro } from "../../middleware/requirePro.js";
 import { ApiError } from "../../middleware/errors.js";
 import { completionTask } from "../../services/aiClient.js";
 import { stripJsonFences } from "../../utils/stripJsonFences.js";
@@ -22,7 +23,7 @@ const router = Router();
 //     role: "Software Engineer",
 //     items: [{ question, type, difficulty, options, correctIndex, selectedIndex }]
 //   }
-router.post("/evaluate-session", requireAuth, requireCredits("interviewSession"), async (req, res, next) => {
+router.post("/evaluate-session", requireAuth, requirePro(), requireCredits("interviewSession"), async (req, res, next) => {
   try {
     const { role = "Software Engineer", items = [] } = req.body || {};
 
