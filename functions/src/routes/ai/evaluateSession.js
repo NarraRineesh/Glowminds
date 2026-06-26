@@ -4,6 +4,7 @@ import { requireCredits } from "../../middleware/requireCredits.js";
 import { ApiError } from "../../middleware/errors.js";
 import { completionTask } from "../../services/aiClient.js";
 import { stripJsonFences } from "../../utils/stripJsonFences.js";
+import { withCreditDebit } from "../../utils/creditResponse.js";
 
 const MAX_ITEMS = 50;
 
@@ -105,7 +106,7 @@ Rules:
       correctIndex: it.correctIndex,
     }));
 
-    res.json({
+    res.json(await withCreditDebit(req, {
       evaluations,
       session: {
         score: correct,
@@ -113,7 +114,7 @@ Rules:
         percent,
         ...(session || {}),
       },
-    });
+    }));
   } catch (err) {
     next(err instanceof ApiError ? err : new ApiError("internal", err.message));
   }

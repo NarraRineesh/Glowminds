@@ -4,6 +4,7 @@ import { requireCredits } from "../../middleware/requireCredits.js";
 import { ApiError } from "../../middleware/errors.js";
 import { completionTask } from "../../services/aiClient.js";
 import { stripJsonFences } from "../../utils/stripJsonFences.js";
+import { withCreditDebit } from "../../utils/creditResponse.js";
 
 const router = Router();
 
@@ -49,7 +50,7 @@ Rules:
       uid: req.user?.uid,
     });
     const review = JSON.parse(stripJsonFences(text));
-    res.json(review);
+    res.json(await withCreditDebit(req, review));
   } catch (err) {
     next(err instanceof ApiError ? err : new ApiError("internal", err.message));
   }

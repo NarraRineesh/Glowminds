@@ -7,6 +7,23 @@ export { loadUserResumes }
 
 const CLOUD_SAVE_DEBOUNCE_MS = 1500
 const pendingCloudSaves = new Map()
+const FREE_TEMPLATE = 'onyx'
+
+function clampResumeTemplateForPlan(resume, isPro) {
+  if (isPro || !resume?.data?.metadata) return resume
+  const template = resume.data.metadata.template
+  if (!template || template === FREE_TEMPLATE) return resume
+  return {
+    ...resume,
+    data: {
+      ...resume.data,
+      metadata: {
+        ...resume.data.metadata,
+        template: FREE_TEMPLATE,
+      },
+    },
+  }
+}
 
 function parseUpdatedAt(value) {
   if (!value) return new Date().toISOString()
@@ -28,6 +45,10 @@ export async function loadEmbedResumes(uid) {
     hasPassword: !!row.hasPassword,
     updatedAt: parseUpdatedAt(row.updatedAt),
   }))
+}
+
+export function sanitizeLoadedEmbedResumes(resumes, isPro) {
+  return (resumes ?? []).map((resume) => clampResumeTemplateForPlan(resume, isPro))
 }
 
 async function writeEmbedResume(uid, resume) {
@@ -63,8 +84,9 @@ async function registerEmbedResumeIfNeeded(uid, resume, isPro) {
 export async function saveEmbedResumeImmediate(uid, resume, { isPro = false } = {}) {
   if (!uid || !resume?.id) return
 
-  await registerEmbedResumeIfNeeded(uid, resume, isPro)
-  await writeEmbedResume(uid, resume)
+  const sanitized = clampResumeTemplateForPlan(resume, isPro)
+  await registerEmbedResumeIfNeeded(uid, sanitized, isPro)
+  await writeEmbedResume(uid, sanitized)
 }
 
 export function scheduleEmbedResumeSave(uid, resume, { isPro = false } = {}) {

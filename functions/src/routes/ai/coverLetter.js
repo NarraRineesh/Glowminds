@@ -3,6 +3,7 @@ import { requireAuth } from "../../middleware/auth.js";
 import { requireCredits } from "../../middleware/requireCredits.js";
 import { ApiError } from "../../middleware/errors.js";
 import { completionTask } from "../../services/aiClient.js";
+import { withCreditDebit } from "../../utils/creditResponse.js";
 
 const router = Router();
 
@@ -43,7 +44,7 @@ INSTRUCTIONS:
     const { text } = await completionTask("cover-letter", prompt, {
       uid: req.user?.uid,
     });
-    res.json({ coverLetter: String(text).trim() });
+    res.json(await withCreditDebit(req, { coverLetter: String(text).trim() }));
   } catch (err) {
     next(err instanceof ApiError ? err : new ApiError("internal", err.message));
   }

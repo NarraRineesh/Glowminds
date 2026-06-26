@@ -163,7 +163,7 @@ function jobMatchesQueryTokens(token, jobSkills, jobTitleTokens) {
 //
 // Profile mode: a job qualifies if it hits at least one title token OR skill.
 // Explicit search: every query token must appear in the job title or skills.
-function rankJobs(rawJobs, { title = "", skills = [], exp = null, explicitSearch = false } = {}) {
+export function rankJobs(rawJobs, { title = "", skills = [], exp = null, explicitSearch = false } = {}) {
   const titleTokens = buildTitleTokens(title);
   const wantSkills = new Set(parseSkillsInput(skills));
   const userYears = exp === "" || exp == null ? null : Number(exp);
@@ -216,7 +216,7 @@ function rankJobs(rawJobs, { title = "", skills = [], exp = null, explicitSearch
   return out;
 }
 
-function scoreToMatch(score) {
+export function scoreToMatch(score) {
   if (!score) return 60;
   return Math.min(99, 55 + score * 8);
 }
@@ -322,7 +322,7 @@ function normalizeLocation(value) {
     .replace(/\bbanglore\b/g, "bangalore");
 }
 
-function jobMatchesLocation(job, location) {
+export function jobMatchesLocation(job, location) {
   if (!location) return true;
   const loc = normalizeLocation(location);
   // The ATS sync filters jobs to India already, so a generic "India" or
@@ -333,7 +333,7 @@ function jobMatchesLocation(job, location) {
   return jobLoc.includes(loc) || loc.includes(jobLoc);
 }
 
-function dedupeJobs(jobs) {
+export function dedupeJobs(jobs) {
   const seen = new Set();
   return jobs.filter((j) => {
     const key = (j.url || `${j.co}|${j.title}`).toLowerCase();
@@ -343,7 +343,7 @@ function dedupeJobs(jobs) {
   });
 }
 
-function applyJobFilters(jobs, filters = {}) {
+export function applyJobFilters(jobs, filters = {}) {
   let out = jobs;
   if (filters.type) {
     out = out.filter((j) => j.type === filters.type);
@@ -497,6 +497,12 @@ export async function getTopMatchedJobs({
   category,
   limit = DEFAULT_TOP_MATCH,
 }) {
+  const { isSupabaseEnabled } = await import("./supabaseClient.js");
+  if (isSupabaseEnabled()) {
+    const { getTopMatchedJobsSupabase } = await import("./supabaseJobs.js");
+    return getTopMatchedJobsSupabase({ profile, exp, location, category, limit });
+  }
+
   const db = getFirestore();
   const partialErrors = [];
   const params = buildSearchParams(profile, { useProfile: true });
@@ -572,6 +578,12 @@ export async function searchBoardJobs({
   cursor = null,
   filters = {},
 }) {
+  const { isSupabaseEnabled } = await import("./supabaseClient.js");
+  if (isSupabaseEnabled()) {
+    const { searchBoardJobsSupabase } = await import("./supabaseJobs.js");
+    return searchBoardJobsSupabase({ search, category, page, pageSize, cursor, filters });
+  }
+
   const db = getFirestore();
   const partialErrors = [];
   const boardCtx = buildBoardSearchParams({ search, category });
@@ -667,6 +679,12 @@ export async function searchAllJobs(params) {
 
 /** Board job count (same Firestore filter as searchBoardJobs). */
 export async function countMatchingJobs(params) {
+  const { isSupabaseEnabled } = await import("./supabaseClient.js");
+  if (isSupabaseEnabled()) {
+    const { countMatchingJobsSupabase } = await import("./supabaseJobs.js");
+    return countMatchingJobsSupabase(params);
+  }
+
   const db = getFirestore();
   const partialErrors = [];
   const boardCtx = buildBoardSearchParams({
@@ -685,6 +703,12 @@ export async function countMatchingJobs(params) {
 
 /** Fetch one ACTIVE job by Firestore doc id (supports encoded ids with %2F). */
 export async function getJobByDocId(docId, { profile } = {}) {
+  const { isSupabaseEnabled } = await import("./supabaseClient.js");
+  if (isSupabaseEnabled()) {
+    const { getJobByDocIdSupabase } = await import("./supabaseJobs.js");
+    return getJobByDocIdSupabase(docId, { profile });
+  }
+
   const id = String(docId || "").trim();
   if (!id) return null;
 

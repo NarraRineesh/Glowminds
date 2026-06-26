@@ -321,11 +321,11 @@ function BillingPanel({
               <p className="mt-1 text-sm text-muted-foreground">{includedSummary}</p>
               {typeof credits?.balance === 'number' && (
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Monthly AI credit allowance: <span className="font-semibold text-foreground">{credits.balance}</span>
-                  {isPro && credits.periodEnd
+                  AI credits remaining: <span className="font-semibold text-foreground">{credits.balance}</span>
+                  {credits.periodEnd
                     ? ` · resets ${new Date(credits.periodEnd).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
                     : !isPro
-                      ? ' included on Free'
+                      ? ' on Free'
                       : ''}
                 </p>
               )}

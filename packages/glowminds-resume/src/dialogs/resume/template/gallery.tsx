@@ -13,7 +13,7 @@ import { CometCard } from "@/components/animation/comet-card";
 import { useDialogStore } from "@/dialogs/store";
 import { isEmbedded } from "@/embed/runtime";
 import { useCurrentResume, useUpdateResumeData } from "@/features/resume/builder/draft";
-import { canUseTemplate, requestEmbedUpgrade } from "@/lib/plans";
+import { canUseTemplate } from "@/lib/plans";
 import { templates } from "./data";
 
 export function TemplateGalleryDialog(_: DialogProps<"resume.template.gallery">) {
@@ -23,10 +23,7 @@ export function TemplateGalleryDialog(_: DialogProps<"resume.template.gallery">)
 	const updateResumeData = useUpdateResumeData();
 
 	function onSelectTemplate(template: Template) {
-		if (!canUseTemplate(template)) {
-			requestEmbedUpgrade();
-			return;
-		}
+		if (!canUseTemplate(template)) return;
 
 		updateResumeData((draft) => {
 			draft.metadata.template = template;
@@ -84,12 +81,17 @@ function TemplateCard({ id, metadata, isActive, isLocked, onSelect }: TemplateCa
 	const previewButton = (
 		<button
 			type="button"
-			tabIndex={-1}
-			onClick={() => onSelect(id)}
+			tabIndex={isLocked ? -1 : 0}
+			disabled={isLocked}
+			aria-disabled={isLocked}
+			onClick={() => {
+				if (isLocked) return;
+				onSelect(id);
+			}}
 			className={cn(
-				"relative block aspect-page w-full cursor-pointer overflow-hidden rounded-md bg-popover outline-none",
+				"relative block aspect-page w-full overflow-hidden rounded-md bg-popover outline-none",
 				isActive && "ring-2 ring-ring ring-offset-2 ring-offset-background",
-				isLocked && "cursor-not-allowed",
+				isLocked ? "cursor-not-allowed pointer-events-none" : "cursor-pointer",
 			)}
 		>
 			<img

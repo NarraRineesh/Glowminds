@@ -120,10 +120,13 @@ export async function apiFetch(path, options = {}) {
       handleUnauthorized().catch(() => {})
     }
 
-    if (response.status === 403 && code === 'permission-denied' && /application|resume/i.test(message)) {
+    if (response.status === 403 && code === 'permission-denied') {
       try {
         useAppStore.getState().addToast?.('info', message)
       } catch { /* store may not be ready */ }
+      if (/credit/i.test(message)) {
+        invalidateEntitlementsCache()
+      }
     }
 
     throw new ApiError(message, { status: response.status, code, payload })

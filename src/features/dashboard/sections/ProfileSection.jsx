@@ -4,6 +4,7 @@ import useProfileStore from '@/store/profileStore'
 import { auth } from '@/services/firebase'
 import { apiFetch } from '@/services/apiClient'
 import Loader from '@/components/Loader'
+import SkillSuggestInput from '@/components/SkillSuggestInput'
 import useIsLg from '@/hooks/useIsLg'
 import AppIcon from '@/components/icons/AppIcon'
 import {
@@ -1208,11 +1209,14 @@ export default function ProfileSection() {
             ))}
           </div>
           <div className="flex gap-1.5">
-            <Input
-              placeholder="e.g. React, Python, AWS…"
+            <SkillSuggestInput
               value={skillInput}
-              onChange={e => setSkillInput(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter' && skillInput.trim()) { e.preventDefault(); const v = skillInput.trim(); setSkillsDraft((d) => ({ ...d, technical: d.technical.includes(v) ? d.technical : [...d.technical, v] })); setSkillInput('') } }}
+              onChange={setSkillInput}
+              onSelect={(v) => setSkillsDraft((d) => ({
+                ...d,
+                technical: d.technical.some((x) => x.toLowerCase() === v.toLowerCase()) ? d.technical : [...d.technical, v],
+              }))}
+              placeholder="e.g. React, Python, AWS…"
             />
             <Button size="sm" type="button" onClick={() => { if (skillInput.trim()) { const v = skillInput.trim(); setSkillsDraft((d) => ({ ...d, technical: d.technical.includes(v) ? d.technical : [...d.technical, v] })); setSkillInput('') } }}>Add</Button>
           </div>
@@ -1231,11 +1235,14 @@ export default function ProfileSection() {
             ))}
           </div>
           <div className="flex gap-1.5">
-            <Input
-              placeholder="e.g. Leadership, Communication…"
+            <SkillSuggestInput
               value={softSkillInput}
-              onChange={e => setSoftSkillInput(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter' && softSkillInput.trim()) { e.preventDefault(); const v = softSkillInput.trim(); setSkillsDraft((d) => ({ ...d, soft: d.soft.includes(v) ? d.soft : [...d.soft, v] })); setSoftSkillInput('') } }}
+              onChange={setSoftSkillInput}
+              onSelect={(v) => setSkillsDraft((d) => ({
+                ...d,
+                soft: d.soft.some((x) => x.toLowerCase() === v.toLowerCase()) ? d.soft : [...d.soft, v],
+              }))}
+              placeholder="e.g. Leadership, Communication…"
             />
             <Button size="sm" type="button" onClick={() => { if (softSkillInput.trim()) { const v = softSkillInput.trim(); setSkillsDraft((d) => ({ ...d, soft: d.soft.includes(v) ? d.soft : [...d.soft, v] })); setSoftSkillInput('') } }}>Add</Button>
           </div>

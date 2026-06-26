@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { immer } from "zustand/middleware/immer";
 import { create } from "zustand/react";
 import { getLocalResumeQueryKey, saveLocalResume } from "@/features/resume/builder/local-storage";
+import { clampTemplateDraftForPlan, clampTemplateForPlan } from "@/lib/plans";
 
 export type Resume = {
 	id: string;
@@ -67,6 +68,12 @@ function cloneResumeData(data: ResumeData): ResumeData {
 
 function cloneResume(resume: Resume): Resume {
 	return { ...resume, data: cloneResumeData(resume.data) };
+}
+
+function sanitizeResumePlanLimits(resume: Resume): Resume {
+	const data = clampTemplateForPlan(resume.data);
+	if (data === resume.data) return resume;
+	return { ...resume, data };
 }
 
 function setRuntimeBaseline(resume: Resume) {
@@ -196,12 +203,13 @@ export const useResumeStore = create<ResumeStore>()(
 		isReady: false,
 
 		initialize: (resume) => {
-			if (resume) setRuntimeBaseline(resume);
+			const nextResume = resume ? sanitizeResumePlanLimits(resume) : null;
+			if (nextResume) setRuntimeBaseline(nextResume);
 
 			set((state) => {
-				state.resume = resume;
-				state.resumeId = resume?.id;
-				state.isReady = resume !== null;
+				state.resume = nextResume;
+				state.resumeId = nextResume?.id;
+				state.isReady = nextResume !== null;
 			});
 		},
 
@@ -214,19 +222,21 @@ export const useResumeStore = create<ResumeStore>()(
 		},
 
 		replaceResumeDraft: (resume) => {
+			const nextResume = sanitizeResumePlanLimits(resume);
 			set((state) => {
-				state.resume = resume;
-				state.resumeId = resume.id;
+				state.resume = nextResume;
+				state.resumeId = nextResume.id;
 				state.isReady = true;
 			});
 		},
 
 		replaceResumeFromServer: (resume) => {
-			setRuntimeBaseline(resume);
+			const nextResume = sanitizeResumePlanLimits(resume);
+			setRuntimeBaseline(nextResume);
 
 			set((state) => {
-				state.resume = resume;
-				state.resumeId = resume.id;
+				state.resume = nextResume;
+				state.resumeId = nextResume.id;
 				state.isReady = true;
 			});
 		},
@@ -266,6 +276,7 @@ export const useResumeStore = create<ResumeStore>()(
 			set((state) => {
 				if (!state.resume) return;
 				fn(state.resume.data as WritableDraft<ResumeData>);
+				clampTemplateDraftForPlan(state.resume.data as WritableDraft<ResumeData>);
 			});
 
 			getRuntime(currentResume.id).hasPendingLocalChanges = true;

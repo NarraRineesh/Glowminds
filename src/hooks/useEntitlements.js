@@ -53,6 +53,8 @@ export default function useEntitlements({ enabled = true } = {}) {
     error,
     refresh,
     isPro: !!data?.isPro,
+    credits: data?.credits ?? null,
+    creditCosts: data?.creditCosts ?? null,
     freeLimits: data?.freeLimits ?? null,
   }
 }

@@ -4,6 +4,7 @@ import { requireCredits } from "../../middleware/requireCredits.js";
 import { ApiError } from "../../middleware/errors.js";
 import { completionTask } from "../../services/aiClient.js";
 import { stripJsonFences } from "../../utils/stripJsonFences.js";
+import { withCreditDebit } from "../../utils/creditResponse.js";
 
 const PARAPHRASE_TONES = [
   "professional",
@@ -54,7 +55,7 @@ router.post("/paraphrase", requireAuth, requireCredits("paraphrase"), async (req
     const variants = Array.isArray(parsed.variants)
       ? parsed.variants.slice(0, 3)
       : [];
-    res.json({ variants, tone });
+    res.json(await withCreditDebit(req, { variants, tone }));
   } catch (err) {
     next(err instanceof ApiError ? err : new ApiError("internal", err.message));
   }

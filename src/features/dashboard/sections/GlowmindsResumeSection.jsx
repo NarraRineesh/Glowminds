@@ -14,6 +14,7 @@ import {
 import {
   deleteEmbedResume,
   loadEmbedResumes,
+  sanitizeLoadedEmbedResumes,
   scheduleEmbedResumeSave,
 } from '@/services/resumeStore'
 
@@ -61,7 +62,7 @@ export default function GlowmindsResumeSection() {
     setLoadError(null)
     loadEmbedResumes(user.uid)
       .then((resumes) => {
-        if (!cancelled) setCloudResumes(resumes)
+        if (!cancelled) setCloudResumes(sanitizeLoadedEmbedResumes(resumes, isPro))
       })
       .catch((err) => {
         console.error('Failed to load resumes from Firestore', err)
@@ -71,7 +72,7 @@ export default function GlowmindsResumeSection() {
         }
       })
     return () => { cancelled = true }
-  }, [user?.uid])
+  }, [user?.uid, isPro])
 
   const onResumeSave = useCallback((resume) => {
     if (!user?.uid) return Promise.resolve()
@@ -99,7 +100,7 @@ export default function GlowmindsResumeSection() {
     seedFromProfile: false,
     isPro,
     allowLocalMigration: cloudResumes !== null && cloudResumes.length === 0 && !loadError,
-    onUpgrade: () => navigate('/pricing'),
+    onUpgrade: () => navigate('/dashboard/settings'),
     onResumeSave,
     onResumeDelete,
   }), [resolvedTheme, user, navigate, cloudResumes, loadError, isPro, onResumeSave, onResumeDelete])

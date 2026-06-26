@@ -5,6 +5,7 @@ import { ApiError } from "../../middleware/errors.js";
 import { completionTask } from "../../services/aiClient.js";
 import { trackAsync } from "../../services/usageTracker.js";
 import { stripJsonFences } from "../../utils/stripJsonFences.js";
+import { withCreditDebit } from "../../utils/creditResponse.js";
 
 const router = Router();
 
@@ -84,7 +85,7 @@ Rules:
     // Count each generated MCQ as one tool use so usage reflects session size.
     trackAsync(req.user?.uid, "ai.interview-questions", questions.length);
 
-    res.json({ questions });
+    res.json(await withCreditDebit(req, { questions }));
   } catch (err) {
     next(err instanceof ApiError ? err : new ApiError("internal", err.message));
   }

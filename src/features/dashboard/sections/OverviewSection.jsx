@@ -9,6 +9,7 @@ import { auth } from '@/services/firebase'
 import Loader from '@/components/Loader'
 import { APPLICATION_STATUS, APPLICATION_STATUS_LABEL } from '@/constants/schema'
 import JobMiniRow from '@/features/dashboard/components/JobMiniRow'
+import { getSkillTrends } from '@/services/skillsApi'
 import {
   AppIcon,
   Avatar,
@@ -102,15 +103,6 @@ const DAILY_TIPS = [
   { ico: 'lock', tip: 'Remove "References available upon request" — it wastes space; offer references only when asked.' },
 ]
 
-const TRENDING_SKILLS = [
-  { name: 'React', growth: '+28%' },
-  { name: 'TypeScript', growth: '+35%' },
-  { name: 'Python', growth: '+22%' },
-  { name: 'AWS', growth: '+18%' },
-  { name: 'Docker', growth: '+24%' },
-  { name: 'Next.js', growth: '+42%' },
-]
-
 function getGreeting() {
   const h = new Date().getHours()
   if (h < 12) return 'Good Morning'
@@ -189,6 +181,39 @@ export default function OverviewSection() {
     const dayIdx = Math.floor(Date.now() / 86400000) % DAILY_TIPS.length
     return DAILY_TIPS[dayIdx]
   })
+
+  const [skillTrends, setSkillTrends] = useState([])
+  const [skillTrendsLoading, setSkillTrendsLoading] = useState(true)
+  const [skillTrendsDomain, setSkillTrendsDomain] = useState(null)
+
+  const skillTrendsProfileKey = useMemo(() => {
+    const tech = profileData?.skills?.technical || []
+    const headline = profileData?.headline || ''
+    const roles = (profileData?.experience || []).map((e) => e.role || e.title || '').join('|')
+    return `${headline}|${tech.join(',')}|${roles}`
+  }, [profileData?.headline, profileData?.skills?.technical, profileData?.experience])
+
+  useEffect(() => {
+    let cancelled = false
+    setSkillTrendsLoading(true)
+    getSkillTrends({ limit: 6, mode: 'growth' })
+      .then(({ trends = [], domain = null }) => {
+        if (!cancelled) {
+          setSkillTrends(trends)
+          setSkillTrendsDomain(domain?.label || null)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSkillTrends([])
+          setSkillTrendsDomain(null)
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setSkillTrendsLoading(false)
+      })
+    return () => { cancelled = true }
+  }, [skillTrendsProfileKey])
 
   const recentApps = apps.slice(0, 4)
   const firstName = user?.firstName || user?.displayName?.split(' ')[0] || 'Student'
@@ -603,16 +628,29 @@ export default function OverviewSection() {
           )}
         </DashboardCard>
 
-        <DashboardCard className="h-full" titleIcon="fire" title="Trending skills" contentClassName="grid gap-2 sm:grid-cols-2">
-          {TRENDING_SKILLS.map((s) => (
-            <div key={s.name} className="flex items-center justify-between gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2">
-              <div className="flex min-w-0 items-center gap-2">
-                <span className={cn('size-2 shrink-0 rounded-full', SKILL_DOT[s.name] || 'bg-primary')} />
-                <span className="truncate text-sm font-medium">{s.name}</span>
+        <DashboardCard
+          className="h-full"
+          titleIcon="fire"
+          title={skillTrendsDomain ? `Trending in ${skillTrendsDomain}` : 'Trending skills'}
+          contentClassName="grid gap-2 sm:grid-cols-2"
+        >
+          {skillTrendsLoading ? (
+            Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-10 animate-pulse rounded-lg border border-border bg-muted/50" />
+            ))
+          ) : skillTrends.length === 0 ? (
+            <p className="col-span-full py-6 text-center text-sm text-muted-foreground">Trend data will appear as more jobs are indexed</p>
+          ) : (
+            skillTrends.map((s) => (
+              <div key={s.name} className="flex items-center justify-between gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className={cn('size-2 shrink-0 rounded-full', SKILL_DOT[s.name] || 'bg-primary')} />
+                  <span className="truncate text-sm font-medium">{s.name}</span>
+                </div>
+                <span className="shrink-0 text-xs font-semibold text-emerald-500">{s.growth || '+—'}</span>
               </div>
-              <span className="shrink-0 text-xs font-semibold text-emerald-500">{s.growth}</span>
-            </div>
-          ))}
+            ))
+          )}
         </DashboardCard>
       </div>
     </div>

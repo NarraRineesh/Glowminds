@@ -4,7 +4,7 @@ import { i18n } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import Cookies from "js-cookie";
 import { isRTL, localeSchema } from "@/lib/utils/locale";
-import enUSCatalog from "../../locales/en-US.js";
+import { messages as enUSMessages } from "../../locales/en-US.ts";
 
 export const getLocaleOptions = () => {
 	return Object.entries(localeMap).map(([value, label]) => ({
@@ -20,7 +20,7 @@ const storageKey = "locale";
 const defaultLocale: Locale = "en-US";
 
 const catalogs: Partial<Record<Locale, Messages>> = {
-	"en-US": enUSCatalog.messages,
+	"en-US": enUSMessages,
 };
 
 export const localeMap: Partial<Record<Locale, MessageDescriptor>> = {

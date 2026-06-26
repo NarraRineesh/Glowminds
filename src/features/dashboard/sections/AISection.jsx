@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import useAppStore from '@/store/authStore'
 import useAiChatStore from '@/store/aiChatStore'
-import UpgradeGate from '@/components/UpgradeGate'
+import AiCreditBar, { getCareerChatCost } from '@/components/AiCreditBar'
+import useEntitlements from '@/hooks/useEntitlements'
 import { AppIcon,
   Avatar,
   AvatarFallback,
@@ -118,18 +119,19 @@ function CodeBlock({ lang, content, streaming }) {
 function RichMessage({ text }) {
   const parts = parseChatContent(text)
   return (
-    <>
+    <div className="min-w-0 break-words [overflow-wrap:anywhere]">
       {parts.map((p, i) =>
         p.type === 'code' ? (
           <CodeBlock key={i} lang={p.lang} content={p.content} streaming={p.streaming} />
         ) : (
           <span
             key={i}
+            className="block"
             dangerouslySetInnerHTML={{ __html: formatInline(p.content) }}
           />
         ),
       )}
-    </>
+    </div>
   )
 }
 
@@ -184,6 +186,10 @@ function TypingIndicator() {
 
 export default function AISection() {
   const { user, addToast } = useAppStore()
+  const { credits, creditCosts, isPro, loading: entitlementsLoading, refresh: refreshEntitlements } = useEntitlements()
+  const chatCost = getCareerChatCost(creditCosts)
+  const creditBalance = credits?.balance
+  const canSend = creditBalance == null || creditBalance >= chatCost
   const chats = useAiChatStore((s) => s.chats)
   const currentChatId = useAiChatStore((s) => s.currentChatId)
   const currentMessages = useAiChatStore((s) => s.currentMessages)
@@ -193,11 +199,16 @@ export default function AISection() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [hydrated, setHydrated] = useState(false)
+  const scrollRef = useRef(null)
   const bottomRef = useRef(null)
   const inputRef = useRef(null)
 
   const scrollToBottom = useCallback(() => {
-    bottomRef.current?.scrollIntoView({ block: 'end' })
+    const el = scrollRef.current
+    if (!el) return
+    requestAnimationFrame(() => {
+      el.scrollTop = el.scrollHeight
+    })
   }, [])
   const [streamingIdx, setStreamingIdx] = useState(-1)
   const wantsStreamingRef = useRef(false)
@@ -223,7 +234,7 @@ export default function AISection() {
 
   useEffect(() => {
     scrollToBottom()
-  }, [currentMessages, loading, scrollToBottom])
+  }, [currentMessages, loading, currentChatId, scrollToBottom])
 
   useEffect(() => {
     if (!wantsStreamingRef.current) return
@@ -242,7 +253,7 @@ export default function AISection() {
   const messages = currentMessages.length > 0 ? currentMessages : [WELCOME_MSG]
 
   const send = useCallback(async (text) => {
-    if (!text?.trim() || loading) return
+    if (!text?.trim() || loading || !canSend) return
     const userMsg = text.trim()
     setInput('')
     setLoading(true)
@@ -266,23 +277,33 @@ export default function AISection() {
       }
       wantsStreamingRef.current = true
       await appendMessage({ role: 'assistant', text: String(reply).trim() })
+      if (typeof data?.credits?.balance === 'number') {
+        await refreshEntitlements({ force: true })
+      }
     } catch (err) {
       console.error('Chat error:', err)
-      const errMsg = err.message?.includes('unauthenticated')
-        ? 'Please log in to use AI chat.'
-        : err.message?.includes('internal')
-          ? 'AI service is temporarily unavailable. Please try again.'
-          : 'Something went wrong. Please try again.'
-      addToast('error', `${errMsg}`)
-      wantsStreamingRef.current = true
-      await appendMessage({
-        role: 'assistant',
-        text: `${errMsg}\n\n*Tip: If this persists, try refreshing the page.*`,
-      })
+      const errMsg = err.code === 'permission-denied' || err.message?.includes('credit')
+        ? (err.message || 'Not enough AI credits for this message.')
+        : err.message?.includes('unauthenticated')
+          ? 'Please log in to use AI chat.'
+          : err.message?.includes('internal')
+            ? 'AI service is temporarily unavailable. Please try again.'
+            : 'Something went wrong. Please try again.'
+      addToast('error', errMsg)
+      if (err.code === 'permission-denied') {
+        await refreshEntitlements({ force: true })
+      }
+      if (!err.message?.includes('credit') && err.code !== 'permission-denied') {
+        wantsStreamingRef.current = true
+        await appendMessage({
+          role: 'assistant',
+          text: `${errMsg}\n\n*Tip: If this persists, try refreshing the page.*`,
+        })
+      }
     }
     setLoading(false)
     inputRef.current?.focus()
-  }, [currentMessages, loading, appendMessage, addToast])
+  }, [currentMessages, loading, canSend, appendMessage, addToast, refreshEntitlements])
 
   const handleKey = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input) }
@@ -301,9 +322,8 @@ export default function AISection() {
   const userInitial = user?.firstName?.[0] || user?.displayName?.[0] || 'U'
 
   return (
-    <UpgradeGate>
-      <div className="flex min-h-0 w-full flex-1 flex-col">
-      <div className="mb-4 flex shrink-0 flex-wrap items-start justify-between gap-2">
+    <div className="flex h-[calc(100dvh-16rem)] min-h-[26rem] w-full flex-col md:h-[calc(100dvh-12rem)]">
+      <div className="mb-3 flex shrink-0 flex-wrap items-start justify-between gap-2">
         <PageTitle
           title="AI Career Assistant"
           subtitle="Glowminds AI — real-time career coaching"
@@ -325,9 +345,19 @@ export default function AISection() {
         </div>
       </div>
 
+      <AiCreditBar
+        className="mb-3 shrink-0"
+        balance={creditBalance}
+        cost={chatCost}
+        periodEnd={credits?.periodEnd}
+        isPro={isPro}
+        loading={entitlementsLoading}
+        onUpgradeSuccess={() => refreshEntitlements({ force: true })}
+      />
+
       <div className="mb-2.5 flex shrink-0 flex-wrap gap-1.5">
         {SUGGESTIONS.map((s) => (
-          <Button key={s.label} variant="outline" size="sm" onClick={() => send(s.text)} disabled={loading}>
+          <Button key={s.label} variant="outline" size="sm" onClick={() => send(s.text)} disabled={loading || !canSend}>
             <AppIcon name={s.icon} className="size-3.5" />
             {s.label}
           </Button>
@@ -335,7 +365,12 @@ export default function AISection() {
       </div>
 
       <Card className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden py-0">
-        <CardContent className="min-h-[min(280px,45svh)] flex-1 space-y-4 overflow-y-auto overscroll-contain p-4">
+        <CardContent className="flex min-h-0 flex-1 flex-col overflow-hidden p-0">
+          <div
+            ref={scrollRef}
+            className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain p-4"
+          >
+            <div className="flex flex-col gap-4">
             {messages.map((m, i) => {
               const isUser = m.role === 'user'
               const isAssistant = !isUser
@@ -343,9 +378,12 @@ export default function AISection() {
               return (
                 <div
                   key={i}
-                  className={cn('flex gap-2.5', isUser ? 'flex-row-reverse' : 'flex-row')}
+                  className={cn(
+                    'flex w-full items-start gap-2.5',
+                    isUser ? 'flex-row-reverse' : 'flex-row',
+                  )}
                 >
-                  <Avatar className="h-8 w-8 shrink-0">
+                  <Avatar className="mt-0.5 h-8 w-8 shrink-0">
                     <AvatarFallback className={cn(
                       'text-xs font-bold',
                       isUser ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground',
@@ -355,18 +393,16 @@ export default function AISection() {
                   </Avatar>
                   <div
                     className={cn(
-                      'max-w-[min(680px,85%)] rounded-xl px-3.5 py-2.5 text-[0.84rem] leading-relaxed',
+                      'min-w-0 max-w-[min(42rem,88%)] rounded-xl px-3.5 py-2.5 text-[0.84rem] leading-relaxed',
                       isUser
                         ? 'bg-primary text-primary-foreground'
                         : 'border border-border bg-muted/50 text-foreground',
                     )}
                   >
                     {!isAssistant ? (
-                      <span
-                        dangerouslySetInnerHTML={{
-                          __html: escapeHtml(m.text).replace(/\n/g, '<br/>'),
-                        }}
-                      />
+                      <p className="m-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+                        {m.text}
+                      </p>
                     ) : isStreaming ? (
                       <StreamingText
                         text={String(m.text || '')}
@@ -381,8 +417,8 @@ export default function AISection() {
               )
             })}
             {loading && (
-              <div className="flex gap-2.5">
-                <Avatar className="h-8 w-8 shrink-0">
+              <div className="flex w-full items-start gap-2.5">
+                <Avatar className="mt-0.5 h-8 w-8 shrink-0">
                   <AvatarFallback className="bg-muted text-xs"><AppIcon name="robot" className="size-4" /></AvatarFallback>
                 </Avatar>
                 <div className="rounded-xl border border-border bg-muted/50 px-3.5 py-2.5">
@@ -390,7 +426,9 @@ export default function AISection() {
                 </div>
               </div>
             )}
-            <div ref={bottomRef} aria-hidden className="h-px" />
+            <div ref={bottomRef} aria-hidden className="h-px shrink-0" />
+            </div>
+          </div>
         </CardContent>
 
         <CardFooter className="shrink-0 flex-col gap-2 border-t p-3">
@@ -398,31 +436,36 @@ export default function AISection() {
             <Textarea
               ref={inputRef}
               className="min-h-[44px] max-h-32 flex-1 resize-none text-[0.84rem]"
-              placeholder={loading ? 'AI is thinking…' : 'Ask me anything about your career…'}
+              placeholder={
+                !canSend
+                  ? 'No credits left — upgrade or wait for monthly reset'
+                  : loading
+                    ? 'AI is thinking…'
+                    : 'Ask me anything about your career…'
+              }
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKey}
               rows={1}
-              disabled={loading}
+              disabled={loading || !canSend}
             />
             <Button
               size="icon"
               className="shrink-0"
               onClick={() => send(input)}
-              disabled={loading || !input.trim()}
+              disabled={loading || !input.trim() || !canSend}
               aria-label="Send message"
             >
               {loading ? <AppIcon name="hourglass" className="size-4 animate-pulse" /> : <AppIcon name="send" className="size-4" />}
             </Button>
           </div>
-          {hasHistory && (
+          {hasHistory && canSend && (
             <p className="w-full text-right text-[0.66rem] text-muted-foreground">
               Chats are saved automatically — switch between them above.
             </p>
           )}
         </CardFooter>
       </Card>
-      </div>
-    </UpgradeGate>
+    </div>
   )
 }

@@ -62,6 +62,10 @@ export const env = {
   razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET || "",
   razorpayWebhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET || "",
 
+  /** Supabase — job board + skill intelligence (server-side only) */
+  supabaseUrl: (process.env.SUPABASE_URL || "").replace(/\/$/, ""),
+  supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
+
   /** 64-char hex or passphrase — enables AES-256-GCM for pricing at rest + public API wire format */
   pricingEncryptionKey: process.env.PRICING_ENCRYPTION_KEY || "",
 };

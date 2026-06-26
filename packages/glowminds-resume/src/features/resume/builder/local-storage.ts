@@ -3,7 +3,7 @@ import { defaultResumeData } from "@/lib/schema/resume/default";
 import { glowmindsSampleResumeData } from "@/lib/schema/resume/glowminds-sample";
 import { generateId, generateRandomName, slugify } from "@/lib/utils/string";
 import { isEmbedded, getEmbedConfig } from "@/embed/runtime";
-import { FREE_LIMITS, getEmbedIsPro } from "@/lib/plans";
+import { FREE_LIMITS, clampTemplateForPlan, getEmbedIsPro } from "@/lib/plans";
 import type { Resume } from "./draft";
 
 const STANDALONE_INDEX_KEY = "rr:local-resume-index";
@@ -83,10 +83,16 @@ export function getLocalResume(id: string): Resume | null {
 	try {
 		const raw = localStorage.getItem(resumeKey(id));
 		if (!raw) return null;
-		return deserialize(JSON.parse(raw) as StoredResume);
+		return sanitizeStoredResume(deserialize(JSON.parse(raw) as StoredResume));
 	} catch {
 		return null;
 	}
+}
+
+function sanitizeStoredResume(resume: Resume): Resume {
+	const data = clampTemplateForPlan(resume.data);
+	if (data === resume.data) return resume;
+	return { ...resume, data };
 }
 
 type SaveLocalResumeOptions = {
@@ -95,7 +101,8 @@ type SaveLocalResumeOptions = {
 
 export function saveLocalResume(resume: Resume, options: SaveLocalResumeOptions = {}): Resume {
 	const { syncHost = true } = options;
-	const stored = serialize({ ...resume, data: cloneResumeData(resume.data), updatedAt: new Date() });
+	const sanitized = sanitizeStoredResume(resume);
+	const stored = serialize({ ...sanitized, data: cloneResumeData(sanitized.data), updatedAt: new Date() });
 	localStorage.setItem(resumeKey(resume.id), JSON.stringify(stored));
 
 	const index = readIndex();

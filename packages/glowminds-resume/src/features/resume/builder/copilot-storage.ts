@@ -10,6 +10,7 @@ import {
 	saveLocalResume,
 } from "@/features/resume/builder/local-storage";
 import { isEmbedded } from "@/embed/runtime";
+import { clampTemplateForPlan } from "@/lib/plans";
 
 export const EMBED_RESUMES_READY_EVENT = "embed:resumes-ready";
 
@@ -40,7 +41,7 @@ function toResume(record: CopilotEmbedResume): Resume {
 		name: record.name,
 		slug: record.slug,
 		tags: record.tags ?? [],
-		data: parsed,
+		data: clampTemplateForPlan(parsed),
 		isLocked: record.isLocked ?? false,
 		isPublic: record.isPublic ?? false,
 		hasPassword: record.hasPassword ?? false,

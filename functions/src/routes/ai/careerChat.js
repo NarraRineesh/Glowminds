@@ -3,6 +3,7 @@ import { requireAuth } from "../../middleware/auth.js";
 import { requireCredits } from "../../middleware/requireCredits.js";
 import { ApiError } from "../../middleware/errors.js";
 import { chatTask } from "../../services/aiClient.js";
+import { withCreditDebit } from "../../utils/creditResponse.js";
 
 const CAREER_SYSTEM_PROMPT = `You are an expert AI Career Coach for students and fresh graduates in India.
 
@@ -42,7 +43,7 @@ router.post("/career-chat", requireAuth, requireCredits("careerChat"), async (re
     });
     if (!text) throw new ApiError("internal", "Empty response from AI");
 
-    res.json({ reply: text });
+    res.json(await withCreditDebit(req, { reply: text }));
   } catch (err) {
     next(err instanceof ApiError ? err : new ApiError("internal", err.message));
   }

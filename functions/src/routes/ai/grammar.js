@@ -4,6 +4,7 @@ import { requireCredits } from "../../middleware/requireCredits.js";
 import { ApiError } from "../../middleware/errors.js";
 import { completionTask } from "../../services/aiClient.js";
 import { stripJsonFences } from "../../utils/stripJsonFences.js";
+import { withCreditDebit } from "../../utils/creditResponse.js";
 
 const GRAMMAR_PROMPT = `You are an expert proofreader. Improve the grammar, clarity, and tone of the input text without changing its meaning.
 Return ONLY a JSON object with this EXACT shape, no markdown, no commentary:
@@ -46,13 +47,13 @@ router.post("/grammar", requireAuth, requireCredits("grammar"), async (req, res,
     );
     const parsed = JSON.parse(stripJsonFences(responseText));
 
-    res.json({
+    res.json(await withCreditDebit(req, {
       corrected: String(parsed.corrected || text),
       score: Number(parsed.score || 0),
       suggestions: Array.isArray(parsed.suggestions)
         ? parsed.suggestions.slice(0, 12)
         : [],
-    });
+    }));
   } catch (err) {
     next(err instanceof ApiError ? err : new ApiError("internal", err.message));
   }

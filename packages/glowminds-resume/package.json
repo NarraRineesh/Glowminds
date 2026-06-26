@@ -21,7 +21,7 @@
 		"build": "vite build",
 		"build:embed": "VITE_BASE_PATH=/resume-builder/ vite build",
 		"extract": "lingui extract",
-		"compile": "lingui compile",
+		"compile": "lingui compile --namespace es --typescript --config lingui.config.ts",
 		"preview": "vite preview",
 		"typecheck": "tsgo --noEmit"
 	},
