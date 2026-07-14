@@ -136,7 +136,13 @@ export async function geminiGenerate({
     console.warn(`[ai] primary empty response model=${model} reason=${reason}`);
     throw new Error("The AI service returned no answer. Please try again.");
   }
-  return { text, model };
+  const meta = data?.usageMetadata || {};
+  const usage = {
+    promptTokens: Number(meta.promptTokenCount) || 0,
+    completionTokens: Number(meta.candidatesTokenCount) || 0,
+    totalTokens: Number(meta.totalTokenCount) || 0,
+  };
+  return { text, model, usage };
 }
 
 // Convenience: single-turn prompt.

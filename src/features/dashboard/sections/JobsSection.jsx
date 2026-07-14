@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useJobStore from '@/store/jobStore'
+import useProfileStore from '@/store/profileStore'
 import ProUpgradeInline from '@/components/ProUpgradeInline'
 import { isProUpgradeRequired } from '@/utils/proErrors'
+import { profileReadyForJobMatches } from '@/utils/jobMatchProfile'
 import Loader from '@/components/Loader'
 import { JobGridSkeleton } from '@/features/dashboard/components/JobCardSkeleton'
 import { JobMetaItem, JobMetaRow } from '@/features/dashboard/components/JobMeta'
@@ -22,7 +24,7 @@ import {
 } from '@/components/ui'
 
 const JF = ['All', 'Best Match', 'Full-time', 'Contract', 'New Today']
-const PER_PAGE = 10
+const PER_PAGE = 12
 
 function buildFilters(activeF, typeFilter) {
   const filters = {}
@@ -43,18 +45,22 @@ function matchTone(match) {
 export default function JobsSection() {
   const navigate = useNavigate()
   const { jobs, pagination, loading, error, fetchJobs, saveJob, unsaveJob, isJobSaved, loadSavedJobs, queryUsed } = useJobStore()
+  const profile = useProfileStore((s) => s.profile)
+  const loadProfile = useProfileStore((s) => s.load)
   const [activeF, setActiveF] = useState('All')
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
   const [searchInput, setSearchInput] = useState('')
   const [page, setPage] = useState(1)
 
+  const readyForMatches = profileReadyForJobMatches(profile)
   const filters = useMemo(() => buildFilters(activeF, typeFilter), [activeF, typeFilter])
   const filterSig = useMemo(
     () => JSON.stringify({ search, filters }),
     [search, filters],
   )
   const prevFilterSig = useRef(filterSig)
+  const bestMatchNeedsProfile = activeF === 'Best Match' && !readyForMatches
 
   useEffect(() => {
     if (prevFilterSig.current === filterSig) return
@@ -68,11 +74,13 @@ export default function JobsSection() {
 
   useEffect(() => {
     loadSavedJobs()
-  }, [loadSavedJobs])
+    loadProfile({ force: false }).catch(() => {})
+  }, [loadSavedJobs, loadProfile])
 
   useEffect(() => {
+    if (bestMatchNeedsProfile) return
     fetchJobs({ search, page, pageSize: PER_PAGE, filters })
-  }, [fetchJobs, search, page, filters])
+  }, [fetchJobs, search, page, filters, bestMatchNeedsProfile])
 
   const handleSearch = (e) => {
     e?.preventDefault?.()
@@ -192,26 +200,36 @@ export default function JobsSection() {
 
           <div className={cn('transition-opacity duration-200', isRefreshing && 'pointer-events-none opacity-60')}>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-3">
-              {jobs.length === 0 && (
+              {(bestMatchNeedsProfile || jobs.length === 0) && (
                 <div className="col-span-full flex flex-col items-center rounded-2xl border border-dashed border-border bg-muted/30 px-6 py-12 text-center">
-                  <AppIcon name="search" className="mb-3 size-10 opacity-40" />
-                  <h3 className="text-lg font-bold text-foreground">No jobs found</h3>
+                  <AppIcon name={bestMatchNeedsProfile ? 'user' : 'search'} className="mb-3 size-10 opacity-40" />
+                  <h3 className="text-lg font-bold text-foreground">
+                    {bestMatchNeedsProfile ? 'Update your profile' : 'No jobs found'}
+                  </h3>
                   <p className="mt-2 max-w-md text-sm text-muted-foreground">
-                    {hasActiveSearch
-                      ? `Nothing matched "${search.trim()}". Try a shorter keyword like "${search.trim().split(/\s+/)[0]}" or remove filters.`
-                      : 'No jobs match your current filters. Try clearing filters or broadening your search.'}
+                    {bestMatchNeedsProfile
+                      ? 'Best matches appear after you update your profile with skills.'
+                      : hasActiveSearch
+                        ? `Nothing matched "${search.trim()}". Try a shorter keyword like "${search.trim().split(/\s+/)[0]}" or remove filters.`
+                        : 'No jobs match your current filters. Try clearing filters or broadening your search.'}
                   </p>
                   <div className="mt-4 flex flex-wrap justify-center gap-2">
-                    {hasActiveSearch && (
-                      <Button variant="outline" size="sm" onClick={clearSearch}>Clear search</Button>
-                    )}
-                    {(activeF !== 'All' || typeFilter) && (
-                      <Button variant="ghost" size="sm" onClick={() => { setActiveF('All'); setTypeFilter('') }}>Reset filters</Button>
+                    {bestMatchNeedsProfile ? (
+                      <Button size="sm" onClick={() => navigate('/dashboard/profile')}>Update profile</Button>
+                    ) : (
+                      <>
+                        {hasActiveSearch && (
+                          <Button variant="outline" size="sm" onClick={clearSearch}>Clear search</Button>
+                        )}
+                        {(activeF !== 'All' || typeFilter) && (
+                          <Button variant="ghost" size="sm" onClick={() => { setActiveF('All'); setTypeFilter('') }}>Reset filters</Button>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
               )}
-              {jobs.map(j => (
+              {!bestMatchNeedsProfile && jobs.map(j => (
                 <Card
                   key={j.id}
                   className={cn(
@@ -238,11 +256,15 @@ export default function JobsSection() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <AppIcon name="target" className="size-3.5" />
-                      Match: <strong className={matchTone(j.match)}>{j.match}%</strong>
-                    </div>
-                    <Progress value={j.match} className="gap-0 [&_[data-slot=progress-track]]:h-1.5" />
+                    {readyForMatches && typeof j.match === 'number' && j.match > 0 && (
+                      <>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <AppIcon name="target" className="size-3.5" />
+                          Match: <strong className={matchTone(j.match)}>{j.match}%</strong>
+                        </div>
+                        <Progress value={j.match} className="gap-0 [&_[data-slot=progress-track]]:h-1.5" />
+                      </>
+                    )}
 
                     <div className="flex flex-wrap gap-1.5">
                       {j.tags.slice(0, 3).map(t => (

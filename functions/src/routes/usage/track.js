@@ -8,6 +8,7 @@
 
 import { Router } from "express";
 import { requireAuth } from "../../middleware/auth.js";
+import { usageTrackRateLimit } from "../../middleware/apiRateLimit.js";
 import { ApiError } from "../../middleware/errors.js";
 import {
   ALLOWED_CLIENT_TOOLS,
@@ -19,7 +20,7 @@ const router = Router();
 // Record a tool-use event from the client. AI/jobs routes auto-track on the
 // server, so this endpoint is only used for UI-only tools (resume export,
 // LinkedIn audit completion, saved-jobs toggle).
-router.post("/track", requireAuth, (req, res, next) => {
+router.post("/track", requireAuth, usageTrackRateLimit, (req, res, next) => {
   try {
     const { tool, count } = req.body || {};
 

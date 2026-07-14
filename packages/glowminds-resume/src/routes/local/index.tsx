@@ -86,7 +86,7 @@ function RouteComponent() {
 
 	const handleResumeLimit = (err: unknown) => {
 		if (err instanceof ResumeLimitError) {
-			toast.error(t`Free plan allows up to 3 resumes. Upgrade to Pro for unlimited resumes.`);
+			toast.error(t`Free plan allows up to ${FREE_LIMITS.resumes} resume. Upgrade to Pro for unlimited resumes.`);
 			return true;
 		}
 		return false;

@@ -6,10 +6,13 @@
 // changes — only the entry point differs.
 
 import { onRequest } from "firebase-functions/v2/https";
+import { onSchedule } from "firebase-functions/v2/scheduler";
 import { setGlobalOptions } from "firebase-functions/v2";
 import { defineSecret } from "firebase-functions/params";
 
 import { createApp } from "./app.js";
+import { expireSubscriptions } from "./jobs/expireSubscriptions.js";
+import { sendJobAlertDigests } from "./jobs/sendJobAlertDigests.js";
 
 // Region pinned to asia-south1 (Mumbai) to match the previous Cloud Run
 // deployment and minimise latency for the India-only user base.
@@ -47,4 +50,35 @@ export const api = onRequest(
     ],
   },
   app,
+);
+
+/** Daily: mark Pro subscriptions past endDate as expired. */
+export const expireProSubscriptions = onSchedule(
+  {
+    schedule: "every day 01:30",
+    timeZone: "Asia/Kolkata",
+    region: "asia-south1",
+    memory: "256MiB",
+    timeoutSeconds: 120,
+  },
+  async () => {
+    const result = await expireSubscriptions();
+    console.log("[expireProSubscriptions]", result);
+  },
+);
+
+/** Daily job-alert digests for opted-in users (in-app notifications). */
+export const dailyJobAlertDigests = onSchedule(
+  {
+    schedule: "every day 08:00",
+    timeZone: "Asia/Kolkata",
+    region: "asia-south1",
+    memory: "512MiB",
+    timeoutSeconds: 300,
+    secrets: [SUPABASE_SERVICE_ROLE_KEY],
+  },
+  async () => {
+    const result = await sendJobAlertDigests();
+    console.log("[dailyJobAlertDigests]", result);
+  },
 );

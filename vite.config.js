@@ -67,5 +67,18 @@ export default defineConfig(({ mode }) => {
     define: {
       __APP_VERSION__: JSON.stringify('1.0.0'),
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (!id.includes('node_modules')) return undefined
+            if (id.includes('firebase')) return 'firebase'
+            if (id.includes('framer-motion')) return 'framer-motion'
+            if (id.includes('@phosphor-icons') || id.includes('phosphor')) return 'icons'
+            return undefined
+          },
+        },
+      },
+    },
   }
 })

@@ -132,6 +132,13 @@ export default function SidebarProfileMenu({ user, initials, iconCollapsed, onCl
           Settings
         </DropdownMenuItem>
 
+        {user?.isAdmin === true && (
+          <DropdownMenuItem onClick={() => go('/admin')}>
+            <AppIcon name="shield" className="me-2 size-4" />
+            Admin dashboard
+          </DropdownMenuItem>
+        )}
+
         <DropdownMenuItem onClick={toggleTheme}>
           <AppIcon name={theme === 'dark' ? 'sun' : 'moon'} className="me-2 size-4" />
           {theme === 'dark' ? 'Light mode' : 'Dark mode'}

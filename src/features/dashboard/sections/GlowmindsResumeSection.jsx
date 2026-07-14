@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import 'glowminds-resume/style.css'
 import Loader from '@/components/Loader'
 import useTheme from '@/hooks/useTheme'
 import useIsPro from '@/hooks/useIsPro'

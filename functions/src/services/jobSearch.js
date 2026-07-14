@@ -17,7 +17,7 @@ const CATEGORY_TO_ROLE = {
   mobile: "mobile",
 };
 
-const DEFAULT_PAGE_SIZE = 10;
+const DEFAULT_PAGE_SIZE = 12;
 /** Per-query pool size for profile top-match (skills + title run in parallel). */
 const TOP_MATCH_POOL = 50;
 const DEFAULT_TOP_MATCH = 10;
@@ -77,11 +77,11 @@ function extractRequirements(html) {
     : ["See full job description for details"];
 }
 
-function mapEmploymentType(empType) {
-  const t = String(empType || "").toLowerCase();
-  if (t.includes("intern")) return "Internship";
-  if (t.includes("contract")) return "Contract";
-  if (t.includes("part")) return "Part-time";
+function mapEmploymentType(empType, title = "") {
+  const t = `${empType || ""} ${title || ""}`.toLowerCase();
+  if (/\bintern(ship)?\b/.test(t)) return "Internship";
+  if (/\bcontract(or|ing)?\b|\bfreelance\b/.test(t)) return "Contract";
+  if (/\bpart[\s-]?time\b/.test(t)) return "Part-time";
   return "Full-time";
 }
 
@@ -107,7 +107,7 @@ function mapFirestoreJob(docId, data) {
   const postedAtIso = data.postedAt || tsToIso(data.indexedAt);
   const posted = timeAgo(postedAtIso);
   const loc = data.location || (data.remote ? "Remote" : "");
-  const type = mapEmploymentType(data.employmentType);
+  const type = mapEmploymentType(data.employmentType, data.title);
 
   return {
     id: docId,
@@ -216,9 +216,11 @@ export function rankJobs(rawJobs, { title = "", skills = [], exp = null, explici
   return out;
 }
 
+/** Convert rank score → % match. Returns null when there is nothing to score (no fake 60). */
 export function scoreToMatch(score) {
-  if (!score) return 60;
-  return Math.min(99, 55 + score * 8);
+  const n = Number(score);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return Math.min(99, 55 + n * 8);
 }
 
 function profileExperienceYears(profile) {
@@ -281,12 +283,22 @@ export function buildSearchParams(profile, overrides = {}) {
     const technical = (profile.skills?.technical || [])
       .map((s) => String(s).trim())
       .filter(Boolean);
+    const flatSkills = Array.isArray(profile.skills)
+      ? profile.skills.map((s) => String(s).trim()).filter(Boolean)
+      : [];
     if (!skillList.length && technical.length) skillList = technical;
+    else if (!skillList.length && flatSkills.length) skillList = flatSkills;
 
     if (!titleStr) {
-      titleStr = String(profile.headline || "").trim();
-      if (!titleStr && profile.isFresher) titleStr = "fresher internship";
-      else if (!titleStr) titleStr = "software engineer";
+      // Never invent a default role (e.g. "software engineer") — empty signals
+      // mean the caller should skip matching until the user updates their profile.
+      titleStr = String(
+        profile.headline ||
+          profile.personal?.title ||
+          profile.personal?.headline ||
+          profile.desiredRole ||
+          "",
+      ).trim();
     }
 
     if (userExp === undefined || userExp === null || userExp === "") {
@@ -341,6 +353,18 @@ export function dedupeJobs(jobs) {
     seen.add(key);
     return true;
   });
+}
+
+/** Top / Best Match require user-provided skills — no invented defaults. */
+export function profileReadyForJobMatches(profile) {
+  const technical = (profile?.skills?.technical || [])
+    .map((s) => String(s).trim())
+    .filter(Boolean);
+  if (technical.length > 0) return true;
+  if (Array.isArray(profile?.skills)) {
+    return profile.skills.map((s) => String(s).trim()).filter(Boolean).length > 0;
+  }
+  return false;
 }
 
 export function applyJobFilters(jobs, filters = {}) {
@@ -490,6 +514,17 @@ async function countBoardMatches(db, boardCtx, partialErrors) {
  * Profile top matches — parallel skills + title queries (50 each), merge, rank, top N.
  * Max ~100 doc reads per request.
  */
+function emptyTopMatches(partialErrors = []) {
+  return {
+    jobs: [],
+    queryUsed: "",
+    searchParams: { title: "", skills: [], exp: null, explicitSearch: false },
+    meta: { docsRead: 0, skipped: "profile-incomplete" },
+    sources: { firestore: 0, docsRead: 0 },
+    partialErrors,
+  };
+}
+
 export async function getTopMatchedJobs({
   profile,
   exp = null,
@@ -497,6 +532,10 @@ export async function getTopMatchedJobs({
   category,
   limit = DEFAULT_TOP_MATCH,
 }) {
+  if (!profileReadyForJobMatches(profile)) {
+    return emptyTopMatches();
+  }
+
   const { isSupabaseEnabled } = await import("./supabaseClient.js");
   if (isSupabaseEnabled()) {
     const { getTopMatchedJobsSupabase } = await import("./supabaseJobs.js");
@@ -510,6 +549,10 @@ export async function getTopMatchedJobs({
   const userSkills = parseSkillsInput(params.skills).slice(0, 10);
   const titleTokens = buildTitleTokens(params.title).slice(0, 10);
   const safeLimit = Math.min(Math.max(1, Math.trunc(limit) || DEFAULT_TOP_MATCH), 25);
+
+  if (!userSkills.length && !params.title) {
+    return emptyTopMatches(partialErrors);
+  }
 
   const queries = [];
   if (userSkills.length > 0) {
@@ -577,11 +620,38 @@ export async function searchBoardJobs({
   pageSize = DEFAULT_PAGE_SIZE,
   cursor = null,
   filters = {},
+  skipModeration = false,
+  profile = null,
 }) {
   const { isSupabaseEnabled } = await import("./supabaseClient.js");
+  const { getJobModeration, applyJobModeration } = await import("./jobModeration.js");
+  const moderation = skipModeration
+    ? { hiddenIds: [], boostedIds: [] }
+    : await getJobModeration().catch(() => ({ hiddenIds: [], boostedIds: [] }));
+
   if (isSupabaseEnabled()) {
     const { searchBoardJobsSupabase } = await import("./supabaseJobs.js");
-    return searchBoardJobsSupabase({ search, category, page, pageSize, cursor, filters });
+    const result = await searchBoardJobsSupabase({
+      search,
+      category,
+      page,
+      pageSize,
+      cursor,
+      filters,
+      profile,
+    });
+    return {
+      ...result,
+      jobs: skipModeration
+        ? (result.jobs || [])
+        : applyJobModeration(result.jobs || [], moderation),
+    };
+  }
+
+  if (process.env.NODE_ENV === "production" || process.env.FUNCTIONS_EMULATOR !== "true") {
+    console.warn(
+      "[jobSearch] Supabase disabled — falling back to Firestore board path (higher read cost).",
+    );
   }
 
   const db = getFirestore();
@@ -618,6 +688,7 @@ export async function searchBoardJobs({
 
   jobs = dedupeJobs(jobs);
   jobs = applyJobFilters(jobs, filters);
+  if (!skipModeration) jobs = applyJobModeration(jobs, moderation);
 
   const total = dbTotal ?? jobs.length;
   const totalPages = dbTotal != null ? Math.max(1, Math.ceil(dbTotal / size)) : null;

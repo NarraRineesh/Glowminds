@@ -13,7 +13,7 @@ import {
   searchBoardJobs,
 } from "../../services/jobSearch.js";
 
-const DEFAULT_PAGE_SIZE = 10;
+const DEFAULT_PAGE_SIZE = 12;
 
 const router = Router();
 
@@ -68,6 +68,7 @@ async function handleBoardSearch(req, res, next) {
       ...filtersFromRequest({ type, minMatch, newToday }),
     };
 
+    let profile = null;
     if (filters.minMatch != null && filters.minMatch > 0) {
       const sub = await readSubscription(req.user.uid);
       if (!hasProAccess(sub)) {
@@ -76,6 +77,7 @@ async function handleBoardSearch(req, res, next) {
           "Glowminds Pro is required for smart job matching filters.",
         );
       }
+      ({ profile } = await loadProfileContext(req.user.uid));
     }
 
     const { jobs, pagination, sources, partialErrors, meta } = await searchBoardJobs({
@@ -85,6 +87,7 @@ async function handleBoardSearch(req, res, next) {
       pageSize: safePageSize,
       cursor: cursor ? String(cursor) : null,
       filters,
+      profile,
     });
 
     const boardCtx = buildBoardSearchParams({ search, category });

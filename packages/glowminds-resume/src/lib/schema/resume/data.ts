@@ -608,6 +608,36 @@ export const metadataSchema = z.object({
 		.describe(
 			"Personal notes for the resume. Can be used to add any additional information or instructions for the resume. These notes are not displayed on the resume, they are only visible to the author of the resume when editing the resume. This should be a HTML-formatted string.",
 		),
+	analysis: z
+		.object({
+			overallScore: z.number().optional(),
+			scorecard: z
+				.array(
+					z.object({
+						dimension: z.string(),
+						score: z.number(),
+						rationale: z.string(),
+					}),
+				)
+				.optional(),
+			suggestions: z
+				.array(
+					z.object({
+						title: z.string(),
+						impact: z.string(),
+						why: z.string(),
+						exampleRewrite: z.string().nullable().optional(),
+						copyPrompt: z.string().optional(),
+					}),
+				)
+				.optional(),
+			strengths: z.array(z.string()).optional(),
+			updatedAt: z.string().optional(),
+		})
+		.nullable()
+		.optional()
+		.catch(null)
+		.describe("Cached ATS analysis from Glowminds AI resume review."),
 	styleRules: styleRulesSchema.describe(
 		"Structured style rules that target semantic resume sections and slots for React PDF rendering.",
 	),

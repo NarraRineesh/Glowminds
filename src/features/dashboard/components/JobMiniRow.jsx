@@ -46,7 +46,9 @@ export default function JobMiniRow({ job, onClick, className }) {
         </div>
       </div>
       <div className="shrink-0 text-right">
-        <div className="text-[0.68rem] font-extrabold text-emerald-500">{job.match}%</div>
+        {typeof job.match === 'number' && job.match > 0 && (
+          <div className="text-[0.68rem] font-extrabold text-emerald-500">{job.match}%</div>
+        )}
         <div className="flex items-center justify-end gap-0.5 text-[0.62rem] text-muted-foreground">
           <AppIcon name="clock" className="size-3 shrink-0" />
           {job.posted}

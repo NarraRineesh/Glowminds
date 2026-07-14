@@ -1,7 +1,10 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import useAppStore from '@/store/authStore'
 import useAiChatStore from '@/store/aiChatStore'
-import AiCreditBar, { getCareerChatCost } from '@/components/AiCreditBar'
+import useProfileStore from '@/store/profileStore'
+import { getCareerChatCost } from '@/components/AiCreditBar'
+import UpgradeGate from '@/components/UpgradeGate'
 import useEntitlements from '@/hooks/useEntitlements'
 import { AppIcon,
   Avatar,
@@ -186,6 +189,7 @@ function TypingIndicator() {
 
 export default function AISection() {
   const { user, addToast } = useAppStore()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { credits, creditCosts, isPro, loading: entitlementsLoading, refresh: refreshEntitlements } = useEntitlements()
   const chatCost = getCareerChatCost(creditCosts)
   const creditBalance = credits?.balance
@@ -196,12 +200,30 @@ export default function AISection() {
   const loadChats = useAiChatStore((s) => s.loadChats)
   const loadChat = useAiChatStore((s) => s.loadChat)
   const appendMessage = useAiChatStore((s) => s.appendMessage)
+  const loadProfile = useProfileStore((s) => s.load)
+  const profile = useProfileStore((s) => s.profile)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [hydrated, setHydrated] = useState(false)
+  const [jobContext, setJobContext] = useState(null)
   const scrollRef = useRef(null)
   const bottomRef = useRef(null)
   const inputRef = useRef(null)
+  const seededRef = useRef(false)
+
+  const coachContext = useMemo(() => {
+    const digest = {
+      headline: profile?.headline || '',
+      careerLevel: profile?.careerLevel || '',
+      skills: profile?.skills?.technical || [],
+      expectedCTC: profile?.preferences?.expectedCTC || '',
+      summary: profile?.summary || '',
+    }
+    return {
+      profileDigest: digest,
+      ...(jobContext || {}),
+    }
+  }, [profile, jobContext])
 
   const scrollToBottom = useCallback(() => {
     const el = scrollRef.current
@@ -218,6 +240,7 @@ export default function AISection() {
     let cancelled = false
     const load = async () => {
       try {
+        await loadProfile({ force: false }).catch(() => {})
         const list = await loadChats()
         if (cancelled) return
         if (list.length > 0) {
@@ -230,7 +253,30 @@ export default function AISection() {
     }
     load()
     return () => { cancelled = true }
-  }, [user?.uid, hydrated, loadChats, loadChat])
+  }, [user?.uid, hydrated, loadChats, loadChat, loadProfile])
+
+  useEffect(() => {
+    const jobId = searchParams.get('jobId')
+    const jobTitle = searchParams.get('jobTitle')
+    const company = searchParams.get('company')
+    const seed = searchParams.get('seed')
+    const topics = searchParams.get('topics')
+    if (jobId || jobTitle || company || topics) {
+      setJobContext({
+        jobId: jobId || '',
+        jobTitle: jobTitle || '',
+        company: company || '',
+        coachTopics: topics || '',
+      })
+    }
+    if (seed && !seededRef.current) {
+      seededRef.current = true
+      setInput(seed)
+      const next = new URLSearchParams(searchParams)
+      next.delete('seed')
+      setSearchParams(next, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
 
   useEffect(() => {
     scrollToBottom()
@@ -269,7 +315,7 @@ export default function AISection() {
       await appendMessage({ role: 'user', text: userMsg })
 
       const data = await apiFetch('/ai/career-chat', {
-        body: { message: userMsg, history: historyForModel },
+        body: { message: userMsg, history: historyForModel, context: coachContext },
       })
       const reply = data?.reply
       if (!reply || !String(reply).trim()) {
@@ -303,7 +349,7 @@ export default function AISection() {
     }
     setLoading(false)
     inputRef.current?.focus()
-  }, [currentMessages, loading, canSend, appendMessage, addToast, refreshEntitlements])
+  }, [currentMessages, loading, canSend, appendMessage, addToast, refreshEntitlements, coachContext])
 
   const handleKey = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input) }
@@ -322,11 +368,16 @@ export default function AISection() {
   const userInitial = user?.firstName?.[0] || user?.displayName?.[0] || 'U'
 
   return (
+    <UpgradeGate feature="AI Career Coach">
     <div className="flex h-[calc(100dvh-16rem)] min-h-[26rem] w-full flex-col md:h-[calc(100dvh-12rem)]">
       <div className="mb-3 flex shrink-0 flex-wrap items-start justify-between gap-2">
         <PageTitle
           title="AI Career Assistant"
-          subtitle="Glowminds AI — real-time career coaching"
+          subtitle={
+            jobContext?.jobTitle
+              ? `Coaching with context: ${jobContext.jobTitle}${jobContext.company ? ` @ ${jobContext.company}` : ''}`
+              : 'Glowminds AI — real-time career coaching grounded in your profile'
+          }
           className="mb-0"
         />
         <div className="flex items-center gap-2">
@@ -344,17 +395,6 @@ export default function AISection() {
           <Button variant="ghost" size="sm" onClick={startNewChat}>＋ New chat</Button>
         </div>
       </div>
-
-      <AiCreditBar
-        className="mb-3 shrink-0"
-        balance={creditBalance}
-        cost={chatCost}
-        periodEnd={credits?.periodEnd}
-        isPro={isPro}
-        loading={entitlementsLoading}
-        unitLabel="per message"
-        onUpgradeSuccess={() => refreshEntitlements({ force: true })}
-      />
 
       <div className="mb-2.5 flex shrink-0 flex-wrap gap-1.5">
         {SUGGESTIONS.map((s) => (
@@ -468,5 +508,6 @@ export default function AISection() {
         </CardFooter>
       </Card>
     </div>
+    </UpgradeGate>
   )
 }

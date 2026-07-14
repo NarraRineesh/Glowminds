@@ -8,5 +8,6 @@ export const BUILDER_RIGHT_SIDEBAR_SECTIONS = [
 	"styles",
 	"page",
 	"notes",
+	"analysis",
 	"export",
 ] as const satisfies readonly RightSidebarSection[];

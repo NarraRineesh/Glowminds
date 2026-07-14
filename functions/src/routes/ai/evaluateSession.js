@@ -1,11 +1,9 @@
 import { Router } from "express";
 import { requireAuth } from "../../middleware/auth.js";
-import { requireCredits } from "../../middleware/requireCredits.js";
 import { requirePro } from "../../middleware/requirePro.js";
 import { ApiError } from "../../middleware/errors.js";
 import { completionTask } from "../../services/aiClient.js";
 import { stripJsonFences } from "../../utils/stripJsonFences.js";
-import { withCreditDebit } from "../../utils/creditResponse.js";
 
 const MAX_ITEMS = 50;
 
@@ -23,7 +21,8 @@ const router = Router();
 //     role: "Software Engineer",
 //     items: [{ question, type, difficulty, options, correctIndex, selectedIndex }]
 //   }
-router.post("/evaluate-session", requireAuth, requirePro(), requireCredits("interviewSession"), async (req, res, next) => {
+// Evaluation is included with the paid question generate — no second debit.
+router.post("/evaluate-session", requireAuth, requirePro(), async (req, res, next) => {
   try {
     const { role = "Software Engineer", items = [] } = req.body || {};
 
@@ -107,7 +106,7 @@ Rules:
       correctIndex: it.correctIndex,
     }));
 
-    res.json(await withCreditDebit(req, {
+    res.json({
       evaluations,
       session: {
         score: correct,
@@ -115,7 +114,7 @@ Rules:
         percent,
         ...(session || {}),
       },
-    }));
+    });
   } catch (err) {
     next(err instanceof ApiError ? err : new ApiError("internal", err.message));
   }

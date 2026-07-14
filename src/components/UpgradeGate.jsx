@@ -7,8 +7,7 @@ import AppIcon from '@/components/icons/AppIcon'
 import { Button, Card, CardContent, cn } from '@/components/ui'
 
 /**
- * Gates Pro-only dashboard features. Credit-based free tools should NOT use this —
- * use AiCreditBar instead.
+ * Gates Pro-only dashboard features. Credit-based free tools should NOT use this.
  */
 export default function UpgradeGate({
   children,

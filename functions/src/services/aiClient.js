@@ -22,6 +22,7 @@
 import { geminiGenerate, GEMINI_MODELS } from "./gemini.js";
 import { generate as openrouterGenerate } from "./openrouter.js";
 import { trackAsync } from "./usageTracker.js";
+import { recordAiUsageAsync } from "./aiUsageLogger.js";
 import { env } from "../config/env.js";
 
 const PROVIDERS = {
@@ -81,6 +82,34 @@ const TASKS = {
     maxTokens: 2048,
     json: true,
   },
+  "resume-review": {
+    primary: PROVIDERS.GEMINI_FLASH,
+    fallback: PROVIDERS.OPENROUTER,
+    temperature: 0.35,
+    maxTokens: 4096,
+    json: true,
+  },
+  "linkedin-audit": {
+    primary: PROVIDERS.GEMINI_FLASH_LITE,
+    fallback: PROVIDERS.OPENROUTER,
+    temperature: 0.4,
+    maxTokens: 3072,
+    json: true,
+  },
+  "job-fit": {
+    primary: PROVIDERS.GEMINI_FLASH_LITE,
+    fallback: PROVIDERS.OPENROUTER,
+    temperature: 0.35,
+    maxTokens: 3072,
+    json: true,
+  },
+  "salary-negotiate": {
+    primary: PROVIDERS.GEMINI_FLASH_LITE,
+    fallback: PROVIDERS.OPENROUTER,
+    temperature: 0.5,
+    maxTokens: 2048,
+    json: true,
+  },
 };
 
 function taskConfig(task) {
@@ -111,18 +140,18 @@ function geminiModelFor(provider) {
 
 async function runOne({ provider, cfg, system, history, userMessage, prompt }) {
   if (provider === PROVIDERS.OPENROUTER) {
-    const { text, model } = await openrouterGenerate({
+    const { text, model, usage } = await openrouterGenerate({
       system,
       history,
       userMessage: userMessage ?? prompt,
       temperature: cfg.temperature,
       maxTokens: cfg.maxTokens,
     });
-    return { text, provider, model };
+    return { text, provider, model, usage };
   }
 
   const model = geminiModelFor(provider);
-  const { text } = await geminiGenerate({
+  const { text, usage } = await geminiGenerate({
     model,
     system,
     history: history || [],
@@ -133,7 +162,7 @@ async function runOne({ provider, cfg, system, history, userMessage, prompt }) {
     // Per-task override; defaults to 0 inside geminiGenerate (no thinking).
     thinkingBudget: cfg.thinkingBudget,
   });
-  return { text, provider, model };
+  return { text, provider, model, usage };
 }
 
 // Multi-turn chat (history of prior {role, text/content} messages).
@@ -163,6 +192,13 @@ export async function chatTask(
     try {
       const result = await runOne({ provider, cfg, system, history, userMessage });
       if (!skipAutoTrack) trackAsync(uid || null, `ai.${task}`);
+      recordAiUsageAsync({
+        userId: uid || null,
+        task,
+        provider: result.provider,
+        model: result.model,
+        usage: result.usage,
+      });
       return result;
     } catch (err) {
       lastErr = err;

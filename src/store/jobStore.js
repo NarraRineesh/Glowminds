@@ -23,7 +23,7 @@ function buildJobSnapshot(job) {
 }
 
 const FETCH_FRESHNESS_MS = 60_000
-const DEFAULT_PAGE_SIZE = 10
+const DEFAULT_PAGE_SIZE = 12
 
 const emptyPagination = () => ({
   page: 1,
@@ -46,6 +46,8 @@ function searchSessionKey({ search = '', category = '', filters = {} } = {}) {
 
 let inflightPromise = null
 let inflightKey = null
+let topMatchesInflight = null
+let topMatchesInflightKey = null
 
 const useJobStore = create((set, get) => ({
   jobs: [],
@@ -187,26 +189,37 @@ const useJobStore = create((set, get) => ({
       return { jobs: get().topMatches, fromCache: true }
     }
 
-    set({ topMatchesLoading: true, topMatchesError: null })
-    try {
-      const data = await getTopMatches({ limit, category })
-      set({
-        topMatches: data.jobs || [],
-        topMatchesQueryUsed: data.queryUsed || '',
-        topMatchesLoading: false,
-        topMatchesError: null,
-        topMatchesLastFetched: Date.now(),
-        topMatchesRequestKey: requestKey,
-      })
-      return data
-    } catch (err) {
-      console.error('Top matches fetch failed:', err)
-      set({
-        topMatchesLoading: false,
-        topMatchesError: err.message || 'Failed to load top matches',
-      })
-      throw err
+    if (!force && topMatchesInflight && topMatchesInflightKey === requestKey) {
+      return topMatchesInflight
     }
+
+    set({ topMatchesLoading: true, topMatchesError: null })
+    topMatchesInflightKey = requestKey
+    topMatchesInflight = (async () => {
+      try {
+        const data = await getTopMatches({ limit, category })
+        set({
+          topMatches: data.jobs || [],
+          topMatchesQueryUsed: data.queryUsed || '',
+          topMatchesLoading: false,
+          topMatchesError: null,
+          topMatchesLastFetched: Date.now(),
+          topMatchesRequestKey: requestKey,
+        })
+        return data
+      } catch (err) {
+        console.error('Top matches fetch failed:', err)
+        set({
+          topMatchesLoading: false,
+          topMatchesError: err.message || 'Failed to load top matches',
+        })
+        throw err
+      } finally {
+        topMatchesInflight = null
+        topMatchesInflightKey = null
+      }
+    })()
+    return topMatchesInflight
   },
 
   saveJob: async (job) => {

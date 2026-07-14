@@ -24,7 +24,8 @@ function parseEndDate(endDate) {
  * @returns {boolean}
  */
 export function isActiveProSubscription(sub) {
-  if (!sub || sub.status !== "active") return false;
+  // "cancelled" with a future endDate still has access until the period ends.
+  if (!sub || (sub.status !== "active" && sub.status !== "cancelled")) return false;
 
   if (sub.tier === PRO_TIER) {
     const end = parseEndDate(sub.endDate);

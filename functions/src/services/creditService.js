@@ -200,6 +200,24 @@ export async function resetProPeriodIfNeeded(uid, pricing) {
   });
 }
 
+/** Soft-cache application counts to avoid a Firestore count() on every entitlements hit. */
+const applicationCountCache = new Map();
+const APPLICATION_COUNT_TTL_MS = 60_000;
+
+async function getApplicationCountCached(uid) {
+  const hit = applicationCountCache.get(uid);
+  if (hit && hit.expiresAt > Date.now()) return hit.count;
+  const applicationCountSnap = await applicationsCol().where("userId", "==", uid).count().get();
+  const count = applicationCountSnap.data().count || 0;
+  applicationCountCache.set(uid, { count, expiresAt: Date.now() + APPLICATION_COUNT_TTL_MS });
+  return count;
+}
+
+export function invalidateApplicationCountCache(uid) {
+  if (uid) applicationCountCache.delete(uid);
+  else applicationCountCache.clear();
+}
+
 export async function getEntitlements(uid) {
   const pricing = await getPricingConfig();
   await grantFreeTierIfNeeded(uid, pricing);
@@ -220,8 +238,7 @@ export async function getEntitlements(uid) {
 
   const storedBalance = typeof credits.balance === "number" ? credits.balance : (isPro ? proMonthly : freeGrant);
 
-  const applicationCountSnap = await applicationsCol().where("userId", "==", uid).count().get();
-  const applicationCount = applicationCountSnap.data().count || 0;
+  const applicationCount = await getApplicationCountCached(uid);
 
   const creditPayload = {
     balance: Math.max(0, storedBalance),
@@ -331,6 +348,61 @@ export async function finalizeCreditCharge(req) {
   const charge = req?.creditCharge;
   if (!charge || charge.skipped || !charge.cost || !charge.uid) return null;
   return debitCredits(charge.uid, charge.cost, charge.featureKey);
+}
+
+/**
+ * Admin credit adjustment (positive = grant, negative = debit).
+ * Writes a creditLedger entry with featureKey "admin_adjust".
+ */
+export async function adminAdjustCredits(uid, amount, note = "") {
+  const delta = Math.trunc(Number(amount) || 0);
+  if (!delta) throw new ApiError("invalid-argument", "Amount must be a non-zero integer");
+
+  const pricing = await getPricingConfig();
+  await grantFreeTierIfNeeded(uid, pricing);
+  const ref = userCreditsRef(uid);
+
+  return getFirestore().runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) {
+      throw new ApiError("failed-precondition", "Credits not initialized");
+    }
+
+    const credits = snap.data() || {};
+    const balance = typeof credits.balance === "number" ? credits.balance : 0;
+    const balanceAfter = Math.max(0, balance + delta);
+    const lifetimeGranted =
+      delta > 0
+        ? (credits.lifetimeGranted ?? 0) + delta
+        : credits.lifetimeGranted ?? 0;
+    const lifetimeUsed =
+      delta < 0
+        ? (credits.lifetimeUsed ?? 0) + Math.abs(delta)
+        : credits.lifetimeUsed ?? 0;
+
+    tx.set(
+      ref,
+      {
+        userId: uid,
+        balance: balanceAfter,
+        lifetimeGranted,
+        lifetimeUsed,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+
+    tx.set(creditLedgerCol().doc(), {
+      userId: uid,
+      amount: delta,
+      featureKey: "admin_adjust",
+      note: String(note || "").slice(0, 200) || null,
+      balanceAfter,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    return { balanceAfter, delta };
+  });
 }
 
 /** Pro credit grant on subscription fulfillment. */

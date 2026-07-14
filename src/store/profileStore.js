@@ -1,7 +1,12 @@
 import { create } from 'zustand'
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
 import { db, auth } from '@/services/firebase'
-import { createDefaultProfile, normalizeProfile, normalizeSkills } from '@/constants/schema'
+import {
+  createDefaultProfile,
+  normalizeCoverLetterDrafts,
+  normalizeProfile,
+  normalizeSkills,
+} from '@/constants/schema'
 
 const PROTECTED_USER_DOC_FIELDS = new Set([
   'subscription',
@@ -52,6 +57,18 @@ const useProfileStore = create((set, get) => ({
       ...patch,
       links: { ...current.links, ...(patch.links || {}) },
       personal: { ...current.personal, ...(patch.personal || {}) },
+      preferences: {
+        ...current.preferences,
+        ...(patch.preferences || {}),
+        jobAlerts: {
+          ...(current.preferences?.jobAlerts || {}),
+          ...(patch.preferences?.jobAlerts || {}),
+        },
+        preferredLocations:
+          patch.preferences?.preferredLocations
+          ?? current.preferences?.preferredLocations
+          ?? [],
+      },
       skills: patch.skills
         ? normalizeSkills({
           technical: patch.skills.technical ?? current.skills?.technical,
@@ -61,6 +78,9 @@ const useProfileStore = create((set, get) => ({
       linkedinAudit: patch.linkedinAudit !== undefined
         ? patch.linkedinAudit
         : current.linkedinAudit,
+      coverLetterDrafts: patch.coverLetterDrafts !== undefined
+        ? normalizeCoverLetterDrafts(patch.coverLetterDrafts)
+        : normalizeCoverLetterDrafts(current.coverLetterDrafts),
     }
     set({ profile: next })
     try {

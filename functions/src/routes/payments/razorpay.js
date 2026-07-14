@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { Router } from "express";
 import Razorpay from "razorpay";
 import { requireAuth } from "../../middleware/auth.js";
+import { paymentRateLimit } from "../../middleware/apiRateLimit.js";
 import { ApiError } from "../../middleware/errors.js";
 import { env } from "../../config/env.js";
 import { fulfillOrder } from "../../services/fulfillOrder.js";
@@ -21,7 +22,7 @@ function getClient() {
 
 const router = Router();
 
-router.post("/create-order", requireAuth, async (req, res, next) => {
+router.post("/create-order", requireAuth, paymentRateLimit, async (req, res, next) => {
   try {
     const { plan } = req.body || {};
     const { billingPlansFromConfig, getPricingConfig } = await import(

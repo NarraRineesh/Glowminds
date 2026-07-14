@@ -1,6 +1,10 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import useAppStore from '@/store/authStore'
 import useInterviewStore from '@/store/interviewStore'
+import useProfileStore from '@/store/profileStore'
+import useEntitlements from '@/hooks/useEntitlements'
+import UpgradeGate from '@/components/UpgradeGate'
 import {
   AppIcon,
   Badge,
@@ -53,18 +57,35 @@ function QuestionBadge({ kind, value }) {
   )
 }
 
-export default function InterviewSection() {
+function InterviewSectionContent() {
+  const navigate = useNavigate()
   const { addToast } = useAppStore()
+  const { isPro, credits, creditCosts, loading: entLoading, refresh } = useEntitlements()
   const startStoredSession = useInterviewStore((s) => s.startSession)
   const saveStoredAnswer = useInterviewStore((s) => s.saveAnswer)
   const appendStoredQuestions = useInterviewStore((s) => s.appendQuestions)
   const completeStoredSession = useInterviewStore((s) => s.completeSession)
+  const loadHistory = useInterviewStore((s) => s.loadHistory)
+  const sessions = useInterviewStore((s) => s.sessions)
+  const historyLoading = useInterviewStore((s) => s.loading)
 
   const [phase, setPhase] = useState('setup')
   const [role, setRole] = useState('')
   const [type, setType] = useState('mixed')
   const [count, setCount] = useState(DEFAULT_COUNT)
   const [showTips, setShowTips] = useState(true)
+  const creditCost = creditCosts?.interviewSession ?? 10
+  const canAfford = typeof credits?.balance !== 'number' || credits.balance >= creditCost
+
+  useEffect(() => {
+    useProfileStore.getState().load().then(() => {
+      const p = useProfileStore.getState().profile
+      if (!role && (p?.headline || p?.experience?.[0]?.role)) {
+        setRole(p.headline || p.experience[0].role || '')
+      }
+    }).catch(() => {})
+    loadHistory().catch(() => {})
+  }, [loadHistory])
 
   const [sessionId, setSessionId] = useState(null)
   const [questions, setQuestions] = useState([])
@@ -278,9 +299,64 @@ export default function InterviewSection() {
               Show hints with each question
             </label>
 
-            <Button className="w-full" onClick={startSession} disabled={generating || !role.trim()}>
+            <Button className="w-full" onClick={startSession} disabled={generating || !role.trim() || !canAfford}>
               {generating ? `Generating ${count} questions…` : `Start Mock Interview (${count} Qs)`}
             </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle className="text-base">Recent sessions</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Scores from past mocks — reuse a role to start another round faster.
+            </p>
+          </CardHeader>
+          <CardContent>
+            {historyLoading && !sessions.length ? (
+              <p className="text-sm text-muted-foreground">Loading history…</p>
+            ) : !sessions.length ? (
+              <p className="text-sm text-muted-foreground">No past sessions yet. Finish a mock to see it here.</p>
+            ) : (
+              <ul className="space-y-2">
+                {sessions.slice(0, 8).map((s) => {
+                  const when = s.completedAt || s.createdAt
+                  const label = when?.toDate
+                    ? when.toDate().toLocaleDateString()
+                    : when instanceof Date
+                      ? when.toLocaleDateString()
+                      : typeof when === 'string'
+                        ? new Date(when).toLocaleDateString()
+                        : '—'
+                  const score = typeof s.totalScore === 'number' ? Math.round(s.totalScore) : null
+                  return (
+                    <li
+                      key={s.id}
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold">{s.role || 'Interview'}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {s.type || 'mixed'} · {label}
+                          {score != null ? ` · score ${score}` : ''}
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          if (s.role) setRole(s.role)
+                          if (s.type) setType(s.type)
+                          addToast('success', `Prefill: ${s.role || 'role'}`)
+                        }}
+                      >
+                        Reuse
+                      </Button>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
           </CardContent>
         </Card>
       </>
@@ -526,6 +602,23 @@ export default function InterviewSection() {
                     </ul>
                   </div>
                 )}
+                <Button
+                  size="sm"
+                  className="mt-4"
+                  onClick={() => {
+                    const topics = (sessionSummary.studyTopics || [])
+                      .map((t) => t.topic)
+                      .filter(Boolean)
+                      .join('; ')
+                    const q = new URLSearchParams({
+                      topics: topics || (sessionSummary.topImprovements || []).join('; '),
+                      seed: `Coach me on weak topics from my ${role} mock interview (${percent}%): ${topics || 'general improvements'}. Give a 1-week study plan.`,
+                    })
+                    navigate(`/dashboard/ai?${q.toString()}`)
+                  }}
+                >
+                  <AppIcon name="robot" className="size-4" /> Coach me on weak topics
+                </Button>
               </div>
             )}
 
@@ -603,4 +696,12 @@ export default function InterviewSection() {
   }
 
   return null
+}
+
+export default function InterviewSection() {
+  return (
+    <UpgradeGate feature="AI Mock Interviews">
+      <InterviewSectionContent />
+    </UpgradeGate>
+  )
 }

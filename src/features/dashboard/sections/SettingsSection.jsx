@@ -25,6 +25,7 @@ import { formatSubscriptionEndDate, isActiveProSubscription } from '@/constants/
 import { sendPasswordResetEmail } from 'firebase/auth'
 import { auth } from '@/services/firebase'
 import { loadUserUsage } from '@/utils/firestoreCollections'
+import { apiFetch } from '@/services/apiClient'
 import { Link, useNavigate } from 'react-router-dom'
 
 const SECTIONS = [
@@ -290,7 +291,8 @@ function BillingPanel({
   yearlyPriceLabel,
   billingBlurb,
   termsBillingText,
-  credits,
+  onCancelSubscription,
+  cancelling,
 }) {
   const planTitle = isPro ? 'Glowminds Pro' : 'Free'
 
@@ -319,16 +321,6 @@ function BillingPanel({
                 </p>
               )}
               <p className="mt-1 text-sm text-muted-foreground">{includedSummary}</p>
-              {typeof credits?.balance === 'number' && (
-                <p className="mt-2 text-sm text-muted-foreground">
-                  AI credits remaining: <span className="font-semibold text-foreground">{credits.balance}</span>
-                  {credits.periodEnd
-                    ? ` · resets ${new Date(credits.periodEnd).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
-                    : !isPro
-                      ? ' on Free'
-                      : ''}
-                </p>
-              )}
               {isPro && !proActive && (
                 <p className="mt-1 text-sm text-muted-foreground">Your subscription is not active. Upgrade to restore Pro features.</p>
               )}
@@ -408,9 +400,26 @@ function BillingPanel({
           <BillingDetail label="Started" value={startLabel} />
           <BillingDetail label={subscription?.status === 'active' ? 'Next renewal' : 'Access until'} value={renewalLabel} />
           <BillingDetail label="Payment reference" value={paymentRef} />
-          <p className="border-t border-border pt-3 text-sm text-muted-foreground">
-            To cancel, email support before your renewal date. You keep Pro access until the end of your billing period.
-          </p>
+          {subscription?.status === 'cancelled' || subscription?.cancelAtPeriodEnd ? (
+            <p className="border-t border-border pt-3 text-sm text-muted-foreground">
+              Cancellation scheduled. You keep Pro access until {renewalLabel || 'the end of your billing period'}.
+            </p>
+          ) : (
+            <div className="flex flex-col gap-2 border-t border-border pt-3">
+              <p className="text-sm text-muted-foreground">
+                Cancel anytime. You keep Pro access until the end of your billing period.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="self-start"
+                disabled={cancelling}
+                onClick={onCancelSubscription}
+              >
+                {cancelling ? 'Cancelling…' : 'Cancel subscription'}
+              </Button>
+            </div>
+          )}
         </DashboardCard>
       )}
 
@@ -432,17 +441,24 @@ export default function SettingsSection() {
     pricingComparison,
     marketing,
   } = usePricingConfig()
-  const { entitlements } = useEntitlements()
+  const { entitlements, refresh: refreshEntitlements } = useEntitlements()
   const userDoc = useProfileStore((s) => s.user)
+  const profile = useProfileStore((s) => s.profile)
   const profileLoaded = useProfileStore((s) => s.loaded)
   const patchUserDoc = useProfileStore((s) => s.patchUserDoc)
+  const updateProfile = useProfileStore((s) => s.updateProfile)
 
   const [active, setActive] = useState('account')
   const [resettingPassword, setResettingPassword] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [emailNotifs, setEmailNotifs] = useState(true)
   const [pushNotifs, setPushNotifs] = useState(false)
   const [reducedMotion, setReducedMotion] = useState(false)
   const [compact, setCompact] = useState(false)
+  const [jobAlertsEnabled, setJobAlertsEnabled] = useState(false)
+  const [jobAlertQuery, setJobAlertQuery] = useState('')
 
   useEffect(() => {
     if (!profileLoaded) return
@@ -451,7 +467,10 @@ export default function SettingsSection() {
     setPushNotifs(!!s.pushNotifications)
     setReducedMotion(!!s.reducedMotion)
     setCompact(!!s.compactDensity)
-  }, [profileLoaded, userDoc])
+    const alerts = profile?.preferences?.jobAlerts || {}
+    setJobAlertsEnabled(!!alerts.enabled)
+    setJobAlertQuery(alerts.query || profile?.preferences?.jobType || profile?.headline || '')
+  }, [profileLoaded, userDoc, profile])
 
   useEffect(() => {
     document.documentElement.style.setProperty('--prefers-reduced-motion', reducedMotion ? 'reduce' : 'no-preference')
@@ -493,6 +512,62 @@ export default function SettingsSection() {
       addToast('error', err?.message || 'Could not send reset email')
     } finally {
       setResettingPassword(false)
+    }
+  }
+
+  const cancelSubscription = async () => {
+    if (!window.confirm('Cancel Pro at the end of your billing period? You’ll keep access until then.')) return
+    setCancelling(true)
+    try {
+      const res = await apiFetch('/billing/cancel', { method: 'POST', body: {} })
+      addToast('success', res.message || 'Subscription cancelled')
+      await refreshEntitlements({ force: true })
+    } catch (err) {
+      addToast('error', err?.message || 'Could not cancel subscription')
+    } finally {
+      setCancelling(false)
+    }
+  }
+
+  const exportData = async () => {
+    setExporting(true)
+    try {
+      const data = await apiFetch('/account/export', { method: 'POST', body: {} })
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `glowminds-export-${new Date().toISOString().slice(0, 10)}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+      addToast('success', 'Data export downloaded')
+    } catch (err) {
+      addToast('error', err?.message || 'Export failed')
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const deleteAccount = async () => {
+    const ok = window.confirm(
+      'Permanently delete your account and data? This cannot be undone. Type DELETE in the next prompt.',
+    )
+    if (!ok) return
+    const confirm = window.prompt('Type DELETE to confirm account deletion')
+    if (confirm !== 'DELETE') {
+      addToast('info', 'Deletion cancelled')
+      return
+    }
+    setDeleting(true)
+    try {
+      await apiFetch('/account/delete', { method: 'POST', body: { confirm: 'DELETE' } })
+      addToast('success', 'Account deleted')
+      await doLogout()
+      navigate('/')
+    } catch (err) {
+      addToast('error', err?.message || 'Could not delete account')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -580,7 +655,8 @@ export default function SettingsSection() {
               yearlyPriceLabel={yearlyPriceLabel}
               billingBlurb={marketing?.billingBlurb}
               termsBillingText={marketing?.termsBillingText}
-              credits={entitlements?.credits}
+              onCancelSubscription={cancelSubscription}
+              cancelling={cancelling}
             />
           </SettingsTabPanel>
         </TabsContent>
@@ -646,6 +722,49 @@ export default function SettingsSection() {
                 hint="Toasts inside Glowminds for product updates, job matches, and reminders while you’re active."
               />
             </DashboardCard>
+            <DashboardCard titleIcon="jobs" title="Job alert digest" contentClassName="flex flex-col gap-3">
+              <Toggle
+                checked={jobAlertsEnabled}
+                onChange={(v) => {
+                  setJobAlertsEnabled(v)
+                  const prefs = useProfileStore.getState().profile?.preferences || {}
+                  updateProfile({
+                    preferences: {
+                      ...prefs,
+                      jobAlerts: {
+                        ...(prefs.jobAlerts || {}),
+                        enabled: v,
+                        frequency: 'daily',
+                        query: jobAlertQuery,
+                      },
+                    },
+                  }).catch((err) => console.error(err))
+                }}
+                label="Daily in-app job digest"
+                hint="When enabled, we post a short list of fresh matches to your notification bell each morning (Asia/Kolkata)."
+              />
+              <FormField label="Alert query">
+                <Input
+                  value={jobAlertQuery}
+                  onChange={(e) => setJobAlertQuery(e.target.value)}
+                  onBlur={() => {
+                    const prefs = useProfileStore.getState().profile?.preferences || {}
+                    updateProfile({
+                      preferences: {
+                        ...prefs,
+                        jobAlerts: {
+                          ...(prefs.jobAlerts || {}),
+                          enabled: jobAlertsEnabled,
+                          frequency: 'daily',
+                          query: jobAlertQuery.trim(),
+                        },
+                      },
+                    }).catch((err) => console.error(err))
+                  }}
+                  placeholder="e.g. Frontend Engineer React"
+                />
+              </FormField>
+            </DashboardCard>
           </SettingsTabPanel>
         </TabsContent>
 
@@ -660,28 +779,19 @@ export default function SettingsSection() {
             </SettingsInfoBox>
             <DashboardCard titleIcon="download" title="Export my data" contentClassName="flex flex-col gap-3">
               <p className="text-sm text-muted-foreground">
-                Includes your profile, saved jobs, applications, resume metadata, and account settings.
-                We’ll prepare a download link by email — typically within a few business days.
+                Download a JSON copy of your profile, saved jobs, applications, resume metadata, and settings.
               </p>
-              <Button variant="outline" size="sm" className="self-start" onClick={() => addToast('info', 'Export request queued — we’ll email you when ready')}>
-                Request data export
-              </Button>
-            </DashboardCard>
-            <DashboardCard titleIcon="eye" title="Profile visibility" contentClassName="flex flex-col gap-3">
-              <p className="text-sm text-muted-foreground">
-                Control whether optional profile fields appear on shared resume links. Full visibility controls are rolling out soon.
-              </p>
-              <Button variant="outline" size="sm" className="self-start" onClick={() => addToast('info', 'Profile visibility settings coming soon')}>
-                Manage visibility
+              <Button variant="outline" size="sm" className="self-start" disabled={exporting} onClick={exportData}>
+                {exporting ? 'Preparing…' : 'Download data export'}
               </Button>
             </DashboardCard>
             <DashboardCard titleIcon="trash" title="Delete account" contentClassName="flex flex-col gap-3">
               <p className="text-sm text-muted-foreground">
-                Permanently removes your account, profile, and application history after email confirmation.
-                Active Pro subscriptions should be cancelled first; billing records may be retained as required by law.
+                Permanently removes your account, profile, and application history.
+                Billing records may be retained as required by law.
               </p>
-              <Button variant="destructive" size="sm" className="self-start" onClick={() => addToast('error', 'Account deletion requires email confirmation — contact support')}>
-                Delete account
+              <Button variant="destructive" size="sm" className="self-start" disabled={deleting} onClick={deleteAccount}>
+                {deleting ? 'Deleting…' : 'Delete account'}
               </Button>
             </DashboardCard>
           </SettingsTabPanel>

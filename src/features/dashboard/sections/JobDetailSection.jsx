@@ -4,6 +4,7 @@ import useAppStore from '@/store/authStore'
 import useJobStore from '@/store/jobStore'
 import useTrackerStore from '@/store/trackerStore'
 import useProfileStore from '@/store/profileStore'
+import useEntitlements from '@/hooks/useEntitlements'
 import { apiFetch } from '@/services/apiClient'
 import { getJobById } from '@/services/jobSearch'
 import { buildJobMatchAnalysis } from '@/utils/jobMatchAnalysis'
@@ -31,15 +32,43 @@ function scoreTone(score) {
   return 'text-destructive'
 }
 
+function buildProfilePayload(userDoc, p) {
+  const expSummary = (Array.isArray(p.experience) ? p.experience : [])
+    .filter((e) => e && (e.company || e.role))
+    .map((e) => {
+      const dates = formatDateRange(e.startDate, e.endDate, e.duration || '')
+      const bits = [e.description, e.bullets].filter(Boolean).join(' — ')
+      return `${e.role || ''} at ${e.company || ''}${dates ? ` (${dates})` : ''}${bits ? ` — ${bits}` : ''}`
+    })
+    .join('; ') || (p.isFresher ? 'Fresher' : '')
+  const projects = (Array.isArray(p.projects) ? p.projects : [])
+    .map((proj) => `${proj.name || proj.title || ''}: ${proj.description || ''}`.trim())
+    .filter(Boolean)
+    .slice(0, 4)
+    .join('; ')
+  return {
+    name: userDoc.firstName
+      ? `${userDoc.firstName} ${userDoc.lastName || ''}`.trim()
+      : (userDoc.displayName || ''),
+    title: p.headline || '',
+    headline: p.headline || '',
+    skills: p.skills?.technical || [],
+    education: formatPrimaryEducationSummary(p),
+    experience: expSummary,
+    projects,
+  }
+}
+
 export default function JobDetailSection() {
   const { jobId: rawJobId } = useParams()
   const jobId = rawJobId ? decodeURIComponent(rawJobId) : ''
   const navigate = useNavigate()
-  const { addToast } = useAppStore()
-  const { jobs, isJobSaved, saveJob, unsaveJob, loadSavedJobs } = useJobStore()
+  const { addToast, user } = useAppStore()
+  const { isJobSaved, saveJob, unsaveJob, loadSavedJobs } = useJobStore()
   const loadProfile = useProfileStore((s) => s.load)
   const profile = useProfileStore((s) => s.profile)
   const { addApp, loadApps, apps } = useTrackerStore()
+  const { isPro, credits, creditCosts, loading: entLoading, refresh } = useEntitlements()
 
   const [job, setJob] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -53,6 +82,13 @@ export default function JobDetailSection() {
   const [coverLetter, setCoverLetter] = useState('')
   const [clLoading, setClLoading] = useState(false)
   const [clCopied, setClCopied] = useState(false)
+  const [aiFit, setAiFit] = useState(null)
+  const [fitLoading, setFitLoading] = useState(false)
+  const [kitBusy, setKitBusy] = useState(false)
+
+  const jobFitCost = creditCosts?.jobFit ?? 3
+  const coverCost = creditCosts?.coverLetter ?? 5
+  const canFit = typeof credits?.balance !== 'number' || credits.balance >= jobFitCost
 
   useEffect(() => {
     loadProfile({ force: false })
@@ -66,8 +102,9 @@ export default function JobDetailSection() {
       setLoading(true)
       setError(null)
       setCoverLetter('')
+      setAiFit(null)
 
-      const cached = jobs.find((j) => j.id === jobId)
+      const cached = useJobStore.getState().jobs.find((j) => j.id === jobId)
       if (cached) {
         if (!cancelled) {
           setJob(cached)
@@ -80,7 +117,6 @@ export default function JobDetailSection() {
       }
 
       try {
-        await loadProfile({ force: false })
         const data = await getJobById(jobId)
         if (cancelled) return
         if (!data?.job) {
@@ -100,20 +136,25 @@ export default function JobDetailSection() {
     loadSavedJobs()
     loadApps()
     return () => { cancelled = true }
-  }, [jobId, jobs, loadProfile, loadSavedJobs, loadApps])
+  }, [jobId, loadSavedJobs, loadApps])
 
-  const handleApply = async (j) => {
+  const handleApply = async (j, notesExtra = '') => {
     if (applying || applied) return
     setApplying(true)
     try {
       const company = j.company || j.co || ''
+      const notes = [
+        'Applied via Glowminds',
+        notesExtra,
+        aiFit?.talkTrack ? `Pitch: ${aiFit.talkTrack.slice(0, 280)}` : '',
+      ].filter(Boolean).join('\n')
       const application = await addApp({
         company,
         role: j.title,
         status: APPLICATION_STATUS.APPLIED,
         appliedDate: new Date().toISOString().split('T')[0],
         salary: j.salary || j.sal || '',
-        notes: 'Applied via Glowminds',
+        notes,
         logo: j.logo,
         source: j.source || 'ats',
         jobUrl: j.url,
@@ -145,43 +186,116 @@ export default function JobDetailSection() {
     [job, profile],
   )
 
+  const runJobFit = async () => {
+    if (!job || fitLoading) return null
+    if (!isPro) {
+      addToast('error', 'Glowminds Pro is required for AI Job Fit')
+      return null
+    }
+    if (!canFit) {
+      addToast('error', 'Not enough AI credits for job fit')
+      return null
+    }
+    setFitLoading(true)
+    try {
+      await loadProfile({ force: false })
+      const userDoc = useProfileStore.getState().user || user || {}
+      const p = useProfileStore.getState().profile || {}
+      const data = await apiFetch('/ai/job-fit', {
+        body: {
+          job: {
+            title: job.title,
+            company: job.company || job.co,
+            description: (job.description || job.desc || '').slice(0, 5000),
+          },
+          profile: buildProfilePayload(userDoc, p),
+        },
+      })
+      setAiFit(data)
+      if (!data.cached) await refresh({ force: true })
+      addToast('success', data.cached ? 'Job fit (cached)' : 'AI job fit ready')
+      return data
+    } catch (err) {
+      addToast('error', err?.message || 'Job fit failed')
+      return null
+    } finally {
+      setFitLoading(false)
+    }
+  }
+
   const generateCoverLetter = async () => {
-    if (!job || clLoading) return
+    if (!job || clLoading) return null
     setClLoading(true)
     try {
       await loadProfile({ force: false })
-      const userDoc = useProfileStore.getState().user || {}
+      const userDoc = useProfileStore.getState().user || user || {}
       const p = useProfileStore.getState().profile || {}
-      const expSummary = (Array.isArray(p.experience) ? p.experience : [])
-        .filter((e) => e && (e.company || e.role))
-        .map((e) => {
-          const dates = formatDateRange(e.startDate, e.endDate, e.duration || '')
-          const bits = [e.description, e.bullets].filter(Boolean).join(' — ')
-          return `${e.role || ''} at ${e.company || ''}${dates ? ` (${dates})` : ''}${bits ? ` — ${bits}` : ''}`
-        })
-        .join('; ') || (p.isFresher ? 'Fresher' : '')
-      const profilePayload = {
-        name: userDoc.firstName ? `${userDoc.firstName} ${userDoc.lastName || ''}`.trim() : (userDoc.displayName || ''),
-        title: p.headline || '',
-        skills: p.skills?.technical || [],
-        education: formatPrimaryEducationSummary(p),
-        experience: expSummary,
-      }
       const company = job.company || job.co
       const data = await apiFetch('/ai/cover-letter', {
         body: {
-          profile: profilePayload,
+          profile: buildProfilePayload(userDoc, p),
           jobTitle: job.title,
           company,
-          jobDescription: (job.description || job.desc || '').slice(0, 1500),
+          jobDescription: (job.description || job.desc || '').slice(0, 3500),
+          template: 'concise',
         },
       })
       setCoverLetter(data.coverLetter)
+      await refresh({ force: true })
+      return data.coverLetter
     } catch (err) {
       console.error('Cover letter error:', err)
       addToast('error', err?.message || 'Failed to generate cover letter')
+      return null
+    } finally {
+      setClLoading(false)
     }
-    setClLoading(false)
+  }
+
+  const runApplyKit = async () => {
+    if (!job || kitBusy) return
+    setKitBusy(true)
+    try {
+      let fit = aiFit
+      if (!fit) fit = await runJobFit()
+      let letter = coverLetter
+      if (!letter) letter = await generateCoverLetter()
+      if (fit || letter) {
+        addToast('success', 'Apply Kit ready — copy bullets, open resume, or track apply')
+      }
+    } finally {
+      setKitBusy(false)
+    }
+  }
+
+  const copyBullets = async () => {
+    const text = (aiFit?.tailoredBullets || []).join('\n• ')
+    if (!text) return
+    try {
+      await navigator.clipboard.writeText(`• ${text}`)
+      addToast('success', 'Tailored bullets copied')
+    } catch {
+      addToast('error', 'Could not copy')
+    }
+  }
+
+  const openResumeWithJob = () => {
+    const q = new URLSearchParams({
+      targetJobId: job.id,
+      targetTitle: job.title || '',
+      targetCompany: job.company || job.co || '',
+    })
+    navigate(`/dashboard/resume?${q.toString()}`)
+  }
+
+  const discussInCoach = () => {
+    const q = new URLSearchParams({
+      jobId: job.id,
+      jobTitle: job.title || '',
+      company: job.company || job.co || '',
+      seed: `Help me prepare to apply for ${job.title} at ${job.company || job.co}. Gaps: ${(aiFit?.gaps || []).slice(0, 3).join('; ') || 'analyze my fit'}.`,
+    })
+    navigate(`/dashboard/ai?${q.toString()}`)
   }
 
   if (loading) {
@@ -205,7 +319,9 @@ export default function JobDetailSection() {
     )
   }
 
-  const matchScore = job.match || 0
+  const displayScore = aiFit?.score ?? (typeof job.match === 'number' && job.match > 0 ? job.match : null)
+    ?? (typeof matchAnalysis?.score === 'number' && matchAnalysis.score > 0 ? matchAnalysis.score : null)
+  const hasMatchScore = typeof displayScore === 'number' && displayScore > 0
 
   return (
     <div className="w-full min-w-0">
@@ -236,23 +352,31 @@ export default function JobDetailSection() {
               </JobMetaItem>
             </JobMetaRow>
           </div>
-          <div className="shrink-0 text-center">
-            <div className={cn('text-2xl font-black tabular-nums', scoreTone(matchScore))}>{matchScore}%</div>
-            <div className="flex items-center justify-center gap-1 text-[0.68rem] text-muted-foreground">
-              <AppIcon name="target" className="size-3" />
-              profile match
+          {hasMatchScore && (
+            <div className="shrink-0 text-center">
+              <div className={cn('text-2xl font-black tabular-nums', scoreTone(displayScore))}>{displayScore}%</div>
+              <div className="flex items-center justify-center gap-1 text-[0.68rem] text-muted-foreground">
+                <AppIcon name="target" className="size-3" />
+                {aiFit ? 'AI fit' : 'profile match'}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
-        <Progress value={matchScore} className="h-1.5" />
+        {hasMatchScore && <Progress value={displayScore} className="h-1.5" />}
 
         <div className="flex flex-wrap gap-1.5">
-          {job.tags.map((t) => <StatusBadge key={t} tone="default">{t}</StatusBadge>)}
+          {(job.tags || []).map((t) => <StatusBadge key={t} tone="default">{t}</StatusBadge>)}
           {job.type && <StatusBadge tone="success">{job.type}</StatusBadge>}
         </div>
 
         <div className="flex flex-wrap gap-2">
+          <Button disabled={kitBusy || fitLoading || !isPro} onClick={() => void runApplyKit()}>
+            {kitBusy ? 'Building kit…' : <><AppIcon name="sparkle" className="size-4" /> Apply Kit</>}
+          </Button>
+          <Button variant="outline" disabled={fitLoading || !isPro || !canFit} onClick={() => void runJobFit()}>
+            {fitLoading ? 'Analyzing…' : <><AppIcon name="target" className="size-4" /> AI Fit ({jobFitCost})</>}
+          </Button>
           <Button variant="outline" onClick={() => toggleSave(job)}>
             {isJobSaved(job.id) ? (
               <><AppIcon name="heart" className="size-4" weight="fill" /> Saved</>
@@ -260,12 +384,11 @@ export default function JobDetailSection() {
               <><AppIcon name="bookmark" className="size-4" /> Save</>
             )}
           </Button>
-          <Button
-            variant="outline"
-            disabled={clLoading}
-            onClick={generateCoverLetter}
-          >
-            {clLoading ? 'Generating…' : <><AppIcon name="cover-letters" className="size-4" /> Cover Letter</>}
+          <Button variant="outline" disabled={clLoading} onClick={() => void generateCoverLetter()}>
+            {clLoading ? 'Generating…' : <><AppIcon name="cover-letters" className="size-4" /> Cover ({coverCost})</>}
+          </Button>
+          <Button variant="outline" onClick={discussInCoach}>
+            <AppIcon name="robot" className="size-4" /> Discuss in Coach
           </Button>
           {applied ? (
             <Button variant="secondary" onClick={() => navigate('/dashboard/applications')}>
@@ -273,7 +396,7 @@ export default function JobDetailSection() {
             </Button>
           ) : (
             <Button disabled={applying} onClick={() => handleApply(job)}>
-              {applying ? 'Applying…' : 'Apply'}
+              {applying ? 'Applying…' : 'Apply & track'}
             </Button>
           )}
         </div>
@@ -292,59 +415,72 @@ export default function JobDetailSection() {
           </section>
         )}
 
-        {matchAnalysis && (
+        {aiFit && (
+          <section className="space-y-3 border-t border-border pt-4">
+            <h2 className="flex items-center gap-1.5 text-sm font-bold text-foreground">
+              <AppIcon name="sparkle" className="size-4" />
+              AI Job Fit · {aiFit.verdict}
+            </h2>
+            <p className="text-sm text-muted-foreground">{aiFit.summary}</p>
+            {aiFit.gaps?.length > 0 && (
+              <div>
+                <p className="mb-1 text-[0.72rem] font-bold uppercase tracking-wide text-amber-500">Gaps</p>
+                <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                  {aiFit.gaps.map((g) => <li key={g}>{g}</li>)}
+                </ul>
+              </div>
+            )}
+            {aiFit.tailoredBullets?.length > 0 && (
+              <div>
+                <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-[0.72rem] font-bold uppercase tracking-wide text-primary">Tailored bullets</p>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="sm" onClick={() => void copyBullets()}>Copy</Button>
+                    <Button variant="outline" size="sm" onClick={openResumeWithJob}>Open resume</Button>
+                  </div>
+                </div>
+                <ul className="list-disc space-y-1 pl-5 text-sm text-foreground">
+                  {aiFit.tailoredBullets.map((b) => <li key={b}>{b}</li>)}
+                </ul>
+              </div>
+            )}
+            {aiFit.talkTrack && (
+              <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm whitespace-pre-wrap">
+                <p className="mb-1 text-[0.72rem] font-bold uppercase tracking-wide text-muted-foreground">Talk track</p>
+                {aiFit.talkTrack}
+              </div>
+            )}
+          </section>
+        )}
+
+        {!aiFit && matchAnalysis && (
           <section className="space-y-3 border-t border-border pt-4">
             <h2 className="flex items-center gap-1.5 text-sm font-bold text-foreground">
               <AppIcon name="target" className="size-4" />
-              Match Analysis
+              Quick match (profile heuristic)
             </h2>
-            <div className="space-y-4">
-              <div className="flex items-start gap-4">
-                <div className={cn('text-3xl font-black tabular-nums', scoreTone(matchAnalysis.score))}>
-                  {matchAnalysis.score}%
-                </div>
+            <p className="text-sm text-muted-foreground">
+              {matchAnalysis.summary} Run <span className="font-semibold text-foreground">AI Fit</span> for tailored bullets and a talk track.
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {matchAnalysis.matchedSkills?.length > 0 && (
                 <div>
-                  <div className="font-bold text-foreground">{matchAnalysis.verdict}</div>
-                  <p className="mt-1 text-sm text-muted-foreground">{matchAnalysis.summary}</p>
+                  <div className="mb-1.5 text-[0.72rem] font-bold uppercase tracking-wide text-emerald-500">Matched</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {matchAnalysis.matchedSkills.map((s) => (
+                      <Badge key={s} variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-500">{s}</Badge>
+                    ))}
+                  </div>
                 </div>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {matchAnalysis.matchedSkills?.length > 0 && (
-                  <div>
-                    <div className="mb-1.5 flex items-center gap-1 text-[0.72rem] font-bold uppercase tracking-wide text-emerald-500">
-                      <AppIcon name="check-circle" className="size-3.5" />
-                      Matched Skills
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {matchAnalysis.matchedSkills.map((s) => (
-                        <Badge key={s} variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-500">{s}</Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {matchAnalysis.missingSkills?.length > 0 && (
-                  <div>
-                    <div className="mb-1.5 flex items-center gap-1 text-[0.72rem] font-bold uppercase tracking-wide text-amber-500">
-                      <AppIcon name="lightning" className="size-3.5" />
-                      Skills to Learn
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {matchAnalysis.missingSkills.map((s) => (
-                        <Badge key={s} variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-500">{s}</Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-              {matchAnalysis.recommendations?.length > 0 && (
+              )}
+              {matchAnalysis.missingSkills?.length > 0 && (
                 <div>
-                  <div className="mb-1.5 flex items-center gap-1 text-[0.72rem] font-bold uppercase tracking-wide text-primary">
-                    <AppIcon name="lightbulb" className="size-3.5" />
-                    Recommendations
+                  <div className="mb-1.5 text-[0.72rem] font-bold uppercase tracking-wide text-amber-500">To learn</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {matchAnalysis.missingSkills.map((s) => (
+                      <Badge key={s} variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-500">{s}</Badge>
+                    ))}
                   </div>
-                  <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-                    {matchAnalysis.recommendations.map((r, i) => <li key={i}>{r}</li>)}
-                  </ul>
                 </div>
               )}
             </div>

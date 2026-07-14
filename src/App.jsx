@@ -7,20 +7,22 @@ import { TooltipProvider } from '@/components/ui'
 import Toast from '@/components/Toast'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import PublicOnlyRoute from '@/components/PublicOnlyRoute'
+import AdminRoute from '@/components/AdminRoute'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import { PageLoader } from '@/components/Loader'
-import LandingPage from '@/features/public/LandingPage'
-import AboutPage from '@/features/public/AboutPage'
-import FeaturesPage from '@/features/public/FeaturesPage'
-import ContactPage from '@/features/public/ContactPage'
-import PricingPage from '@/features/public/PricingPage'
-import PrivacyPage from '@/features/public/PrivacyPage'
-import TermsPage from '@/features/public/TermsPage'
-import RefundPage from '@/features/public/RefundPage'
-import LoginPage from '@/features/auth/LoginPage'
-import SignupPage from '@/features/auth/SignupPage'
-import NotFoundPage from '@/features/public/NotFoundPage'
 import PublicLayout from '@/features/public/PublicLayout'
+
+const LandingPage = lazy(() => import('@/features/public/LandingPage'))
+const AboutPage = lazy(() => import('@/features/public/AboutPage'))
+const FeaturesPage = lazy(() => import('@/features/public/FeaturesPage'))
+const ContactPage = lazy(() => import('@/features/public/ContactPage'))
+const PricingPage = lazy(() => import('@/features/public/PricingPage'))
+const PrivacyPage = lazy(() => import('@/features/public/PrivacyPage'))
+const TermsPage = lazy(() => import('@/features/public/TermsPage'))
+const RefundPage = lazy(() => import('@/features/public/RefundPage'))
+const LoginPage = lazy(() => import('@/features/auth/LoginPage'))
+const SignupPage = lazy(() => import('@/features/auth/SignupPage'))
+const NotFoundPage = lazy(() => import('@/features/public/NotFoundPage'))
 
 const DashboardShell = lazy(() => import('@/features/dashboard/DashboardShell'))
 const OverviewSection = lazy(() => import('@/features/dashboard/sections/OverviewSection'))
@@ -37,6 +39,15 @@ const SalaryInsightsSection = lazy(() => import('@/features/dashboard/sections/S
 const SettingsSection = lazy(() => import('@/features/dashboard/sections/SettingsSection'))
 const GrammarCheckSection = lazy(() => import('@/features/dashboard/sections/GrammarCheckSection'))
 const ParaphrasingSection = lazy(() => import('@/features/dashboard/sections/ParaphrasingSection'))
+const AdminShell = lazy(() => import('@/features/admin/AdminShell'))
+const AdminOverview = lazy(() => import('@/features/admin/AdminOverview'))
+const AdminUsers = lazy(() => import('@/features/admin/AdminUsers'))
+const AdminUserDetail = lazy(() => import('@/features/admin/AdminUserDetail'))
+const AdminTokenUsage = lazy(() => import('@/features/admin/AdminTokenUsage'))
+const AdminCreditUsage = lazy(() => import('@/features/admin/AdminCreditUsage'))
+const AdminMessages = lazy(() => import('@/features/admin/AdminMessages'))
+const AdminPricing = lazy(() => import('@/features/admin/AdminPricing'))
+const AdminJobs = lazy(() => import('@/features/admin/AdminJobs'))
 
 
 function AnimatedRoutes() {
@@ -48,19 +59,19 @@ function AnimatedRoutes() {
   
   return (
     <Routes location={location}>
-      {/* Public marketing pages */}
+      {/* Public marketing pages (lazy — keep marketing CSS/JS out of first paint) */}
       <Route element={<PublicOnlyRoute><PublicLayout /></PublicOnlyRoute>}>
-        <Route index element={<LandingPage />} />
-        <Route path="about" element={<AboutPage />} />
-        <Route path="features" element={<FeaturesPage />} />
-        <Route path="contact" element={<ContactPage />} />
-        <Route path="pricing" element={<PricingPage />} />
-        <Route path="privacy" element={<PrivacyPage />} />
-        <Route path="terms" element={<TermsPage />} />
-        <Route path="refund" element={<RefundPage />} />
+        <Route index element={<Suspense fallback={<PageLoader />}><LandingPage /></Suspense>} />
+        <Route path="about" element={<Suspense fallback={<PageLoader />}><AboutPage /></Suspense>} />
+        <Route path="features" element={<Suspense fallback={<PageLoader />}><FeaturesPage /></Suspense>} />
+        <Route path="contact" element={<Suspense fallback={<PageLoader />}><ContactPage /></Suspense>} />
+        <Route path="pricing" element={<Suspense fallback={<PageLoader />}><PricingPage /></Suspense>} />
+        <Route path="privacy" element={<Suspense fallback={<PageLoader />}><PrivacyPage /></Suspense>} />
+        <Route path="terms" element={<Suspense fallback={<PageLoader />}><TermsPage /></Suspense>} />
+        <Route path="refund" element={<Suspense fallback={<PageLoader />}><RefundPage /></Suspense>} />
       </Route>
-      <Route path="/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
-      <Route path="/signup" element={<PublicOnlyRoute><SignupPage /></PublicOnlyRoute>} />
+      <Route path="/login" element={<Suspense fallback={<PageLoader />}><PublicOnlyRoute><LoginPage /></PublicOnlyRoute></Suspense>} />
+      <Route path="/signup" element={<Suspense fallback={<PageLoader />}><PublicOnlyRoute><SignupPage /></PublicOnlyRoute></Suspense>} />
       {/* Dashboard (protected) */}
       <Route path="/dashboard" element={
         <Suspense fallback={<PageLoader />}>
@@ -139,8 +150,23 @@ function AnimatedRoutes() {
           </Suspense>
         } />
       </Route>
+      <Route path="/admin" element={
+        <Suspense fallback={<PageLoader />}>
+          <AdminRoute><AdminShell /></AdminRoute>
+        </Suspense>
+      }>
+        <Route index element={<Suspense fallback={<PageLoader />}><AdminOverview /></Suspense>} />
+        <Route path="users" element={<Suspense fallback={<PageLoader />}><AdminUsers /></Suspense>} />
+        <Route path="users/:uid" element={<Suspense fallback={<PageLoader />}><AdminUserDetail /></Suspense>} />
+        <Route path="subscriptions" element={<Navigate to="/admin/users?filter=pro" replace />} />
+        <Route path="usage/tokens" element={<Suspense fallback={<PageLoader />}><AdminTokenUsage /></Suspense>} />
+        <Route path="usage/credits" element={<Suspense fallback={<PageLoader />}><AdminCreditUsage /></Suspense>} />
+        <Route path="messages" element={<Suspense fallback={<PageLoader />}><AdminMessages /></Suspense>} />
+        <Route path="pricing" element={<Suspense fallback={<PageLoader />}><AdminPricing /></Suspense>} />
+        <Route path="jobs" element={<Suspense fallback={<PageLoader />}><AdminJobs /></Suspense>} />
+      </Route>
       <Route element={<PublicLayout />}>
-        <Route path="*" element={<NotFoundPage />} />
+        <Route path="*" element={<Suspense fallback={<PageLoader />}><NotFoundPage /></Suspense>} />
       </Route>
     </Routes>
   )

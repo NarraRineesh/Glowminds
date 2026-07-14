@@ -1,16 +1,47 @@
 // Job board queries against Supabase `jobs` table.
 
 import { buildTitleTokens } from "../utils/tokens.js";
-import { buildBoardSearchParams, buildSearchParams, rankJobs, scoreToMatch, dedupeJobs, applyJobFilters, jobMatchesLocation } from "./jobSearch.js";
+import {
+  buildBoardSearchParams,
+  buildSearchParams,
+  rankJobs,
+  scoreToMatch,
+  dedupeJobs,
+  applyJobFilters,
+  jobMatchesLocation,
+  profileReadyForJobMatches,
+} from "./jobSearch.js";
 import { supabaseRest, supabaseCount } from "./supabaseClient.js";
 
-const JOB_SELECT = "id,title,company,location,apply_url,skills,min_experience,max_experience,employment_type,remote_type,updated_at,first_published,ats";
+const JOB_SELECT =
+  "id,title,company,location,apply_url,skills,min_experience,max_experience,employment_type,remote_type,updated_at,first_published,last_seen_at,created_at,ats";
 
-/** Cached enriched-job total — exact COUNT on 300k+ rows takes ~5s. */
+/** Prefer real post date over sync/enrichment stamps (updated_at is often a bulk wave). */
+function jobPostedAt(row) {
+  return row?.first_published || row?.updated_at || row?.created_at || row?.last_seen_at || null;
+}
+
+/** Cached enriched-job total — exact COUNT on 300k+ rows takes several seconds. */
 const enrichedCountCache = { value: null, at: 0, inflight: null };
 const ENRICHED_COUNT_TTL_MS = 15 * 60 * 1000;
 
+/** Title patterns for category when Supabase has no `role` column. */
+const ROLE_TITLE_PATTERNS = {
+  engineering: ["*engineer*", "*developer*", "*software*"],
+  data: ["*data*", "*analyst*", "*ml *", "*machine learning*"],
+  design: ["*design*", "*ux*", "*ui *", "*product designer*"],
+  product: ["*product manager*", "*product owner*", "*product lead*"],
+  devops: ["*devops*", "*sre*", "*platform engineer*", "*infrastructure*"],
+  qa: ["*qa*", "*quality assurance*", "*test engineer*", "*sdet*"],
+  frontend: ["*frontend*", "*front-end*", "*front end*", "*react*", "*ui engineer*"],
+  backend: ["*backend*", "*back-end*", "*back end*", "*api engineer*"],
+  mobile: ["*mobile*", "*android*", "*ios*", "*flutter*", "*react native*"],
+};
+
 async function fetchEnrichedJobCount() {
+  // Prefer timestamp filter — bare `jobs?select=id` HEAD can 500 on this table.
+  const count = await supabaseCount("jobs?select=id&enriched_at=gt.1970-01-01");
+  if (count != null) return count;
   return supabaseCount("jobs?select=id&enriched_at=not.is.null");
 }
 
@@ -36,13 +67,31 @@ function scheduleEnrichedCountRefresh() {
     });
 }
 
-async function resolveBoardTotal(boardCtx) {
-  if (boardCtx.mode === "browse") {
+async function resolveBoardTotal(boardCtx, filters, { softType = false } = {}) {
+  // Soft type / newToday shrink the page after fetch — exact DB count is misleading.
+  if (filters?.newToday || softType) return null;
+
+  if (boardCtx.mode === "browse" && !boardCtx.roleKey && !filters?.type) {
     scheduleEnrichedCountRefresh();
-    return getCachedEnrichedCount();
+    const cached = getCachedEnrichedCount();
+    if (cached != null) return cached;
+    // Await once on cold cache so browse pagination is correct.
+    try {
+      const count = await fetchEnrichedJobCount();
+      if (Number.isFinite(count) && count >= 0) {
+        enrichedCountCache.value = count;
+        enrichedCountCache.at = Date.now();
+        return count;
+      }
+    } catch {
+      return null;
+    }
+    return null;
   }
+
   try {
-    return await supabaseCount(buildCountQuery(boardCtx));
+    const { pathname } = buildCountQuery(boardCtx, filters);
+    return await supabaseCount(pathname);
   } catch {
     return null;
   }
@@ -61,27 +110,37 @@ function timeAgo(dateStr) {
   const d = new Date(dateStr);
   if (Number.isNaN(d.getTime())) return "";
   const diff = Date.now() - d.getTime();
+  if (diff < 0) return "Just now";
   const mins = Math.floor(diff / 60000);
   const hrs = Math.floor(diff / 3600000);
   const days = Math.floor(diff / 86400000);
   if (mins < 60) return mins <= 1 ? "Just now" : `${mins}min ago`;
   if (hrs < 24) return `${hrs}h ago`;
   if (days < 7) return `${days}d ago`;
-  return `${Math.floor(days / 30)}mo ago`;
+  if (days < 30) return `${Math.floor(days / 7)}w ago`;
+  if (days < 365) return `${Math.floor(days / 30)}mo ago`;
+  return `${Math.floor(days / 365)}y ago`;
 }
 
-function mapEmploymentType(empType) {
-  const t = String(empType || "").toLowerCase();
-  if (t.includes("intern")) return "Internship";
-  if (t.includes("contract")) return "Contract";
-  if (t.includes("part")) return "Part-time";
+function isPostedToday(dateStr) {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return false;
+  return Date.now() - d.getTime() < 24 * 60 * 60 * 1000;
+}
+
+function inferEmploymentType(empType, title = "") {
+  const t = `${empType || ""} ${title || ""}`.toLowerCase();
+  if (/\bintern(ship)?\b/.test(t)) return "Internship";
+  if (/\bcontract(or|ing)?\b|\bfreelance\b/.test(t)) return "Contract";
+  if (/\bpart[\s-]?time\b/.test(t)) return "Part-time";
   return "Full-time";
 }
 
 export function mapSupabaseJob(row, { match = 0, searchScore = 0, skillHits = 0, titleHits = 0 } = {}) {
   const tags = Array.isArray(row.skills) ? row.skills.slice(0, 6) : [];
   const remote = row.remote_type === "remote" || /remote/i.test(row.location || "");
-  const postedAtIso = row.updated_at || row.first_published || null;
+  const postedAtIso = jobPostedAt(row);
   const posted = timeAgo(postedAtIso);
   return {
     id: row.id,
@@ -92,13 +151,13 @@ export function mapSupabaseJob(row, { match = 0, searchScore = 0, skillHits = 0,
     location: row.location || "",
     loc: row.location || "",
     remote,
-    type: mapEmploymentType(row.employment_type),
+    type: inferEmploymentType(row.employment_type, row.title),
     salary: "",
     sal: "",
     tags,
     posted,
     publishedAt: postedAtIso,
-    isNew: posted.includes("h ago") || posted.includes("min ago") || posted === "Just now",
+    isNew: isPostedToday(row.first_published || postedAtIso),
     description: "",
     desc: "",
     descHtml: "",
@@ -107,7 +166,7 @@ export function mapSupabaseJob(row, { match = 0, searchScore = 0, skillHits = 0,
     category: "",
     seniority: "",
     experience: row.min_experience ? `${row.min_experience}+ yrs` : "",
-    match: match || scoreToMatch(searchScore),
+    match: match != null ? match : scoreToMatch(searchScore),
     searchScore,
     skillHits,
     titleHits,
@@ -124,8 +183,8 @@ function rowToRaw(row) {
     skills: Array.isArray(row.skills) ? row.skills : [],
     minExperience: row.min_experience || 0,
     maxExperience: row.max_experience || 0,
-    postedAt: row.updated_at || row.first_published || "",
-    updatedAt: row.updated_at || "",
+    postedAt: jobPostedAt(row) || "",
+    updatedAt: row.updated_at || row.last_seen_at || "",
   };
 }
 
@@ -143,28 +202,112 @@ function encodeOffsetCursor(offset) {
   return Buffer.from(JSON.stringify({ offset }), "utf8").toString("base64url");
 }
 
-function buildJobsQuery(boardCtx, { offset, limit }) {
-  const parts = [`select=${JOB_SELECT}`, "enriched_at=not.is.null", "order=updated_at.desc.nullslast", `limit=${limit}`, `offset=${offset}`];
-
-  if (boardCtx.mode === "skills" && boardCtx.userSkills.length) {
-    const skill = boardCtx.userSkills[0];
-    parts.push(`skills=cs.${encodeURIComponent(JSON.stringify([skill.toLowerCase()]))}`);
-  } else if (boardCtx.mode === "title" && boardCtx.searchStr) {
-    parts.push(`title=ilike.${encodeURIComponent(`*${boardCtx.searchStr}*`)}`);
-  }
-
-  return `jobs?${parts.join("&")}`;
+function appendRoleFilter(parts, roleKey) {
+  if (!roleKey) return;
+  const patterns = ROLE_TITLE_PATTERNS[roleKey];
+  if (!patterns?.length) return;
+  const or = patterns.map((p) => `title.ilike.${p}`).join(",");
+  parts.push(`or=(${or})`);
 }
 
-function buildCountQuery(boardCtx) {
-  const parts = ["select=id", "enriched_at=not.is.null"];
+function appendTypeFilter(parts, type) {
+  if (!type) return;
+  const t = String(type).toLowerCase();
+  if (t === "contract") {
+    parts.push("or=(employment_type.ilike.*contract*,title.ilike.*contract*,title.ilike.*freelance*)");
+    // Avoid false positives like "Subcontracts".
+    parts.push("title=not.ilike.*subcontract*");
+  } else if (t === "internship") {
+    parts.push("or=(employment_type.ilike.*intern*,title.ilike.*intern*)");
+  } else if (t === "part-time") {
+    parts.push("or=(employment_type.ilike.*part*,title.ilike.*part-time*,title.ilike.*part time*)");
+  } else if (t === "full-time") {
+    // Exclude obvious non-full-time titles when column is null for everyone.
+    parts.push("title=not.ilike.*contract*");
+    parts.push("title=not.ilike.*intern*");
+    parts.push("title=not.ilike.*freelance*");
+  }
+}
+
+function skillsContainFilter(skills) {
+  const variants = [];
+  for (const skill of skills.slice(0, 5)) {
+    const s = String(skill || "").trim();
+    if (!s) continue;
+    variants.push(s.toLowerCase());
+    if (s !== s.toLowerCase()) variants.push(s);
+  }
+  const unique = [...new Set(variants)];
+  if (!unique.length) return null;
+  if (unique.length === 1) {
+    return `skills=cs.${encodeURIComponent(JSON.stringify([unique[0]]))}`;
+  }
+  const or = unique
+    .map((s) => `skills.cs.${encodeURIComponent(JSON.stringify([s]))}`)
+    .join(",");
+  return `or=(${or})`;
+}
+
+function queryUsesOr(parts) {
+  return parts.some((p) => p.startsWith("or="));
+}
+
+/**
+ * Build list/count query. PostgREST allows one `or=` — when skills/role already
+ * consume it, type is applied in-memory (softType) by the caller.
+ */
+function buildQueryParts(boardCtx, filters = {}, { forCount = false, offset = 0, limit = 10 } = {}) {
+  const parts = forCount
+    ? ["select=id", "enriched_at=not.is.null"]
+    : [
+        `select=${JOB_SELECT}`,
+        "enriched_at=not.is.null",
+        // Must use updated_at — matches jobs_enriched_updated_at_idx. Ordering by
+        // first_published (no index) times out on 350k+ rows.
+        "order=updated_at.desc.nullslast",
+        `limit=${limit}`,
+        `offset=${offset}`,
+      ];
+
   if (boardCtx.mode === "skills" && boardCtx.userSkills.length) {
-    const skill = boardCtx.userSkills[0];
-    parts.push(`skills=cs.${encodeURIComponent(JSON.stringify([skill.toLowerCase()]))}`);
+    const skillFilter = skillsContainFilter(boardCtx.userSkills);
+    if (skillFilter) parts.push(skillFilter);
   } else if (boardCtx.mode === "title" && boardCtx.searchStr) {
     parts.push(`title=ilike.${encodeURIComponent(`*${boardCtx.searchStr}*`)}`);
   }
-  return `jobs?${parts.join("&")}`;
+
+  appendRoleFilter(parts, boardCtx.roleKey);
+
+  let softType = false;
+  if (filters.type) {
+    if (queryUsesOr(parts) && String(filters.type).toLowerCase() !== "full-time") {
+      // Full-time uses `not.ilike` (AND), which doesn't need `or=`.
+      softType = true;
+    } else {
+      appendTypeFilter(parts, filters.type);
+    }
+  }
+
+  return { parts, softType };
+}
+
+function buildJobsQuery(boardCtx, { offset, limit, filters = {} }) {
+  const { parts, softType } = buildQueryParts(boardCtx, filters, { offset, limit });
+  return { pathname: `jobs?${parts.join("&")}`, softType };
+}
+
+function buildCountQuery(boardCtx, filters = {}) {
+  const { parts, softType } = buildQueryParts(boardCtx, filters, { forCount: true });
+  return { pathname: `jobs?${parts.join("&")}`, softType };
+}
+
+/** Resolve pagination total — never prefer a failed-count 0 over a row-based estimate. */
+function resolvePaginationTotal(dbTotal, { offset, size, hasMore, jobCount }) {
+  const estimate = hasMore ? offset + size + 1 : offset + jobCount;
+  if (dbTotal == null || !Number.isFinite(dbTotal)) return estimate;
+  // Suspicious: DB said 0 but we clearly have rows / more pages.
+  if (dbTotal === 0 && (jobCount > 0 || hasMore)) return estimate;
+  return dbTotal;
 }
 
 export async function searchBoardJobsSupabase({
@@ -174,37 +317,85 @@ export async function searchBoardJobsSupabase({
   pageSize = 10,
   cursor = null,
   filters = {},
+  profile = null,
 }) {
+  // Best Match: profile-ranked pool (requires skills — no invented defaults).
+  if (filters.minMatch != null && Number(filters.minMatch) > 0) {
+    if (!profileReadyForJobMatches(profile)) {
+      const size = Math.max(1, Math.trunc(pageSize) || 12);
+      const safePage = Math.max(1, Math.trunc(page) || 1);
+      return {
+        jobs: [],
+        pagination: {
+          page: safePage,
+          pageSize: size,
+          total: 0,
+          totalPages: 1,
+          hasMore: false,
+          nextCursor: null,
+          from: 0,
+          to: 0,
+        },
+        meta: { dbTotal: 0, docsRead: 0, source: "supabase-best-match", skipped: "profile-incomplete" },
+        sources: { supabase: 0, docsRead: 0 },
+        partialErrors: [],
+      };
+    }
+    return searchBestMatchBoardSupabase({
+      profile,
+      category,
+      page,
+      pageSize,
+      cursor,
+      filters,
+    });
+  }
+
   const partialErrors = [];
   const boardCtx = buildBoardSearchParams({ search, category });
   const safePage = Math.max(1, Math.trunc(page) || 1);
-  const size = Math.max(1, Math.trunc(pageSize) || 10);
+  const size = Math.max(1, Math.trunc(pageSize) || 12);
   const offset = cursor ? decodeOffsetCursor(cursor) : (safePage - 1) * size;
+
+  const fetchLimit =
+    filters.type || filters.newToday ? Math.min(50, size * 3 + 1) : size + 1;
+  const { pathname, softType } = buildJobsQuery(boardCtx, {
+    offset,
+    limit: fetchLimit,
+    filters,
+  });
 
   let rows = [];
   let dbTotal = null;
   try {
-    [rows, dbTotal] = await Promise.all([
-      supabaseRest(buildJobsQuery(boardCtx, { offset, limit: size + 1 })),
-      resolveBoardTotal(boardCtx),
-    ]);
+    // Filtered boards: count first (Prefer:count can flake when raced with large GETs).
+    // Browse: run in parallel; enriched total is cached after the first hit.
+    if (filters.type || filters.newToday || softType) {
+      dbTotal = await resolveBoardTotal(boardCtx, filters, { softType });
+      rows = await supabaseRest(pathname);
+    } else {
+      [rows, dbTotal] = await Promise.all([
+        supabaseRest(pathname),
+        resolveBoardTotal(boardCtx, filters, { softType }),
+      ]);
+    }
   } catch (err) {
     partialErrors.push(`board:browse: ${err.message}`);
-    rows = [];
+    if (!Array.isArray(rows)) rows = [];
   }
 
-  const hasMore = rows.length > size;
-  const pageRows = rows.slice(0, size);
+  const pageRows = Array.isArray(rows) ? rows : [];
+  const fetchedMore = pageRows.length >= fetchLimit;
 
   const rankTitle = boardCtx.mode === "title" ? boardCtx.searchStr : "";
   const rankSkills = boardCtx.mode === "skills" ? boardCtx.userSkills : boardCtx.titleTokens;
 
   const ranked = pageRows.length
     ? rankJobs(pageRows.map(rowToRaw), {
-      title: rankTitle,
-      skills: rankSkills,
-      explicitSearch: boardCtx.explicitSearch,
-    })
+        title: rankTitle,
+        skills: rankSkills,
+        explicitSearch: boardCtx.explicitSearch,
+      })
     : [];
 
   let jobs = ranked.map(({ raw, score, skillHits, titleHits }) => {
@@ -213,10 +404,23 @@ export async function searchBoardJobsSupabase({
   });
 
   jobs = dedupeJobs(jobs);
-  jobs = applyJobFilters(jobs, filters);
 
-  const total = dbTotal ?? (hasMore ? offset + size + 1 : offset + jobs.length);
-  const totalPages = dbTotal != null ? Math.max(1, Math.ceil(dbTotal / size)) : null;
+  // Always re-apply type after title-based inference (DB `ilike` is looser than
+  // word-boundary matching). softType/newToday also need in-memory filters.
+  const postFilters = { ...filters };
+  delete postFilters.minMatch;
+  jobs = applyJobFilters(jobs, postFilters);
+
+  const hasMore = jobs.length > size || fetchedMore;
+  jobs = jobs.slice(0, size);
+
+  const total = resolvePaginationTotal(dbTotal, {
+    offset,
+    size,
+    hasMore,
+    jobCount: jobs.length,
+  });
+  const totalPages = Number.isFinite(total) ? Math.max(1, Math.ceil(total / size)) : null;
   const from = jobs.length ? offset + 1 : 0;
   const to = jobs.length ? offset + jobs.length : 0;
   const nextCursor = hasMore ? encodeOffsetCursor(offset + size) : null;
@@ -239,19 +443,77 @@ export async function searchBoardJobsSupabase({
   };
 }
 
+async function searchBestMatchBoardSupabase({
+  profile,
+  category,
+  page = 1,
+  pageSize = 10,
+  cursor = null,
+  filters = {},
+}) {
+  const partialErrors = [];
+  const safePage = Math.max(1, Math.trunc(page) || 1);
+  const size = Math.max(1, Math.trunc(pageSize) || 12);
+  const offset = cursor ? decodeOffsetCursor(cursor) : (safePage - 1) * size;
+  const poolLimit = Math.min(80, Math.max(offset + size + 10, 40));
+
+  const top = await getTopMatchedJobsSupabase({
+    profile,
+    category,
+    limit: poolLimit,
+  });
+  if (top.partialErrors?.length) partialErrors.push(...top.partialErrors);
+
+  // minMatch is a signal to use profile ranking, not a hard cutoff.
+  // Title-only scores often land ~70–75; skills data is sparse in Supabase.
+  const softFilters = { ...filters };
+  delete softFilters.minMatch;
+  let jobs = applyJobFilters(top.jobs || [], softFilters);
+  const total = jobs.length;
+  const pageJobs = jobs.slice(offset, offset + size);
+  const hasMore = offset + size < total;
+  const nextCursor = hasMore ? encodeOffsetCursor(offset + size) : null;
+
+  return {
+    jobs: pageJobs,
+    pagination: {
+      page: safePage,
+      pageSize: size,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / size) || 1),
+      hasMore: Boolean(nextCursor),
+      nextCursor,
+      from: pageJobs.length ? offset + 1 : 0,
+      to: pageJobs.length ? offset + pageJobs.length : 0,
+    },
+    meta: {
+      dbTotal: total,
+      docsRead: top.meta?.docsRead ?? 0,
+      source: "supabase-best-match",
+    },
+    sources: { supabase: total, docsRead: top.meta?.docsRead ?? 0 },
+    partialErrors,
+  };
+}
+
 export async function countMatchingJobsSupabase(params) {
   const partialErrors = [];
   const boardCtx = buildBoardSearchParams({
     search: params.search ?? params.title ?? "",
     category: params.category,
   });
-  let dbTotal = 0;
+  const filters = params.filters || {};
+  let dbTotal = null;
   try {
-    dbTotal = await supabaseCount(buildCountQuery(boardCtx));
+    const { pathname, softType } = buildCountQuery(boardCtx, filters);
+    dbTotal = await resolveBoardTotal(boardCtx, filters, { softType });
+    if (dbTotal == null && !softType && !filters?.newToday) {
+      dbTotal = await supabaseCount(pathname);
+    }
   } catch (err) {
     partialErrors.push(`count: ${err.message}`);
   }
-  return { count: dbTotal, dbTotal, truncated: false, partialErrors };
+  return { count: dbTotal ?? 0, dbTotal, truncated: false, partialErrors };
 }
 
 export async function getJobByDocIdSupabase(docId, { profile } = {}) {
@@ -291,18 +553,71 @@ export async function getTopMatchedJobsSupabase({
   limit = 10,
 }) {
   const partialErrors = [];
+  if (!profileReadyForJobMatches(profile)) {
+    return {
+      jobs: [],
+      queryUsed: "",
+      searchParams: { title: "", skills: [], exp: null, explicitSearch: false },
+      meta: { docsRead: 0, source: "supabase", skipped: "profile-incomplete" },
+      sources: { supabase: 0, docsRead: 0 },
+      partialErrors,
+    };
+  }
+
   const params = buildSearchParams(profile, { useProfile: true });
-  const safeLimit = Math.min(Math.max(1, Math.trunc(limit) || 10), 25);
-  const poolSize = 80;
+  const boardCtx = buildBoardSearchParams({ category });
+  const safeLimit = Math.min(Math.max(1, Math.trunc(limit) || 10), 80);
+  const poolSize = Math.min(120, Math.max(80, safeLimit * 3));
+
+  if (!params.skills?.length && !params.title) {
+    return {
+      jobs: [],
+      queryUsed: "",
+      searchParams: params,
+      meta: { docsRead: 0, source: "supabase", skipped: "profile-incomplete" },
+      sources: { supabase: 0, docsRead: 0 },
+      partialErrors,
+    };
+  }
 
   let rows = [];
   try {
-    rows = await supabaseRest(`jobs?select=${JOB_SELECT}&enriched_at=not.is.null&order=updated_at.desc.nullslast&limit=${poolSize}`);
+    const parts = [
+      `select=${JOB_SELECT}`,
+      "enriched_at=not.is.null",
+      "order=updated_at.desc.nullslast",
+      `limit=${poolSize}`,
+    ];
+    // Prefer skill-containing pool when profile has skills.
+    if (params.skills?.length) {
+      const skillFilter = skillsContainFilter(params.skills);
+      if (skillFilter) parts.push(skillFilter);
+    } else if (params.title) {
+      parts.push(`title=ilike.${encodeURIComponent(`*${params.title}*`)}`);
+    }
+    if (!queryUsesOr(parts)) appendRoleFilter(parts, boardCtx.roleKey);
+    rows = await supabaseRest(`jobs?${parts.join("&")}`);
   } catch (err) {
-    partialErrors.push(`top: ${err.message}`);
+    // Skills/cs may miss most rows (sparse skills) — fall back to recent jobs.
+    try {
+      const parts = [
+        `select=${JOB_SELECT}`,
+        "enriched_at=not.is.null",
+        "order=updated_at.desc.nullslast",
+        `limit=${poolSize}`,
+      ];
+      if (params.title) {
+        parts.push(`title=ilike.${encodeURIComponent(`*${params.title}*`)}`);
+      }
+      if (!queryUsesOr(parts)) appendRoleFilter(parts, boardCtx.roleKey);
+      rows = await supabaseRest(`jobs?${parts.join("&")}`);
+      partialErrors.push(`top:skills-fallback: ${err.message}`);
+    } catch (err2) {
+      partialErrors.push(`top: ${err2.message}`);
+    }
   }
 
-  const ranked = rankJobs(rows.map(rowToRaw), {
+  const ranked = rankJobs((rows || []).map(rowToRaw), {
     title: params.title,
     skills: params.skills,
     exp: exp ?? params.exp,
@@ -321,8 +636,8 @@ export async function getTopMatchedJobsSupabase({
     jobs,
     queryUsed: [params.title, ...(params.skills || []).slice(0, 6)].filter(Boolean).join(" · "),
     searchParams: params,
-    meta: { docsRead: rows.length, source: "supabase" },
-    sources: { supabase: jobs.length, docsRead: rows.length },
+    meta: { docsRead: (rows || []).length, source: "supabase" },
+    sources: { supabase: jobs.length, docsRead: (rows || []).length },
     partialErrors,
   };
 }

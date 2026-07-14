@@ -32,3 +32,16 @@ export async function improveText({ text, tone = 'professional' } = {}) {
   })
   return Array.isArray(data?.variants) ? data.variants.slice(0, 3) : []
 }
+
+/**
+ * Run ATS / resume analysis (Pro, 5 credits).
+ * @param {{ resume: object, jobDescription?: string }} params
+ */
+export async function reviewResume({ resume, jobDescription = '' } = {}) {
+  if (!resume || typeof resume !== 'object') {
+    throw new Error('Resume data is required.')
+  }
+  return apiFetch('/ai/resume-review', {
+    body: { resume, jobDescription: String(jobDescription || '').trim() },
+  })
+}

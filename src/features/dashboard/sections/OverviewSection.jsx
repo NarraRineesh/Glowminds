@@ -1,12 +1,14 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useAppStore from '@/store/authStore'
 import useJobStore from '@/store/jobStore'
 import useTrackerStore from '@/store/trackerStore'
+import useEntitlements from '@/hooks/useEntitlements'
 import useProfileStore from '@/store/profileStore'
 import ProUpgradeInline from '@/components/ProUpgradeInline'
 import { isProUpgradeRequired } from '@/utils/proErrors'
 import { profileHasEducation } from '@/utils/educationEntries'
+import { profileReadyForJobMatches } from '@/utils/jobMatchProfile'
 import { auth } from '@/services/firebase'
 import Loader from '@/components/Loader'
 import { APPLICATION_STATUS, APPLICATION_STATUS_LABEL } from '@/constants/schema'
@@ -121,40 +123,42 @@ export default function OverviewSection() {
     topMatchesError,
     fetchTopMatches,
   } = useJobStore()
-  const loadProfileForJobs = useProfileStore((s) => s.load)
   const { apps, loadApps } = useTrackerStore()
   const profileData = useProfileStore((s) => s.profile)
+  const profileLoaded = useProfileStore((s) => s.loaded)
   const loadProfileStore = useProfileStore((s) => s.load)
   const savedJobs = useJobStore((s) => s.savedJobs)
   const loadSavedJobs = useJobStore((s) => s.loadSavedJobs)
-
-  const loadProfileData = useCallback(async () => {
-    if (!auth.currentUser?.uid) return
-    try {
-      await loadProfileStore({ force: false })
-    } catch (e) { console.error('Load profile for overview:', e) }
-  }, [loadProfileStore])
+  const { isPro, credits } = useEntitlements()
+  const readyForMatches = profileReadyForJobMatches(profileData)
 
   useEffect(() => {
-    // `jobs.length` is intentionally NOT in the deps array — it's only read
-    // as a gate, not consumed. Re-including it caused the whole bootstrap
-    // bundle to re-fire every time the jobs cache flipped from 0 → N.
-    //
-    // Every load below is cache-aware (see profileStore.loaded,
-    // trackerStore.loaded, jobStore.savedJobsLoaded / lastFetched), so
-    // revisiting the Overview tab stays light on Firestore reads.
-    // Top matches for overview cards; job board loads on /dashboard/jobs only.
+    // Every load below is cache-aware (profileStore.loaded, trackerStore.loaded,
+    // jobStore.savedJobsLoaded / lastFetched). Single profile load — no double-fetch.
     const id = requestAnimationFrame(() => {
-      loadProfileData()
-      loadProfileForJobs({ force: false }).catch(() => {})
-      if (useJobStore.getState().topMatches.length === 0) {
-        fetchTopMatches({ limit: 5 }).catch(() => {})
+      if (auth.currentUser?.uid) {
+        loadProfileStore({ force: false }).catch((e) => console.error('Load profile for overview:', e))
       }
       loadApps()
       loadSavedJobs()
     })
     return () => cancelAnimationFrame(id)
-  }, [fetchTopMatches, loadApps, loadProfileData, loadProfileForJobs, loadSavedJobs])
+  }, [loadApps, loadProfileStore, loadSavedJobs])
+
+  useEffect(() => {
+    if (!profileLoaded) return
+    if (!readyForMatches) {
+      useJobStore.setState({
+        topMatches: [],
+        topMatchesLoading: false,
+        topMatchesError: null,
+        topMatchesQueryUsed: '',
+        topMatchesRequestKey: null,
+      })
+      return
+    }
+    fetchTopMatches({ limit: 6 }).catch(() => {})
+  }, [profileLoaded, readyForMatches, fetchTopMatches])
 
   const inReview = apps.filter(a => a.status === APPLICATION_STATUS.IN_REVIEW).length
   const interviews = apps.filter(a => a.status === APPLICATION_STATUS.INTERVIEW).length
@@ -291,6 +295,10 @@ export default function OverviewSection() {
   // Single highest-leverage next action, derived from the current user state.
   // The order matters: earlier branches win, so list them most-blocking first.
   const nextBestAction = useMemo(() => {
+    const creditBal = typeof credits?.balance === 'number' ? credits.balance : null
+    const linkedinDone = (profileData?.linkedinAudit?.completedIds || []).length
+    const linkedinTotal = profileData?.linkedinAudit?.ai?.checklist?.length || 6
+
     if (interviews > 0) {
       return {
         icon: 'target',
@@ -311,11 +319,43 @@ export default function OverviewSection() {
         tone: 'blu',
       }
     }
+    if (!profileData?.aiReview?.overallScore) {
+      return {
+        icon: 'sparkle',
+        label: 'Run an AI profile review',
+        body: 'Get a scored review with summary draft and skill gaps — 1 credit, sharpens every match.',
+        cta: 'Open Profile',
+        href: '/dashboard/profile',
+        tone: 'prp',
+      }
+    }
+    if (linkedinDone < Math.min(3, linkedinTotal)) {
+      return {
+        icon: 'linkedin',
+        label: 'Audit your LinkedIn with AI',
+        body: 'Paste About + Experience for a scored audit and ready-to-apply rewrites.',
+        cta: 'LinkedIn Optimizer',
+        href: '/dashboard/linkedin',
+        tone: 'blu',
+      }
+    }
+    if (creditBal != null && creditBal < 3) {
+      return {
+        icon: 'lightning',
+        label: 'Low on AI credits',
+        body: isPro
+          ? `You have ${creditBal} credits left this period — prioritize Job Fit or cover letters on your shortlist.`
+          : `You have ${creditBal} credits left. Upgrade to Pro for 100/month and Apply Kit on every job.`,
+        cta: isPro ? 'Browse jobs' : 'View pricing',
+        href: isPro ? '/dashboard/jobs' : '/pricing',
+        tone: 'gold',
+      }
+    }
     if (apps.length === 0) {
       return {
         icon: 'rocket',
         label: 'Apply to your first 3 roles',
-        body: 'We pulled live matches based on your skills. Bookmark, apply, and we’ll track everything for you.',
+        body: 'Open a match and hit Apply Kit — AI fit, cover letter, and tracker note in one flow.',
         cta: 'Browse Job Board',
         href: '/dashboard/jobs',
         tone: 'grn',
@@ -362,7 +402,17 @@ export default function OverviewSection() {
       href: '/dashboard/interview',
       tone: 'blu',
     }
-  }, [apps.length, savedJobs.length, interviews, profileScore, responseRate])
+  }, [
+    apps.length,
+    savedJobs.length,
+    interviews,
+    profileScore,
+    responseRate,
+    credits?.balance,
+    profileData?.aiReview?.overallScore,
+    profileData?.linkedinAudit,
+    isPro,
+  ])
 
   return (
     <div className="space-y-6">
@@ -403,15 +453,25 @@ export default function OverviewSection() {
             ) : (
             <div className="py-8 text-center text-sm">
               <p className="text-destructive">{topMatchesError}</p>
-              <Button variant="outline" size="sm" className="mt-3" onClick={() => fetchTopMatches({ limit: 5, force: true })}>
+              <Button variant="outline" size="sm" className="mt-3" onClick={() => fetchTopMatches({ limit: 6, force: true })}>
                 Retry
               </Button>
             </div>
             )
+          ) : !readyForMatches ? (
+            <div className="flex flex-col items-center gap-3 px-4 py-10 text-center">
+              <AppIcon name="user" className="size-9 opacity-40" />
+              <p className="max-w-sm text-sm text-muted-foreground">
+                Best matches appear after you update your profile with skills.
+              </p>
+              <Button size="sm" onClick={() => navigate('/dashboard/profile')}>
+                Update profile
+              </Button>
+            </div>
           ) : topMatches.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">No jobs yet. Check back soon!</p>
           ) : (
-            topMatches.slice(0, 5).map((j) => (
+            topMatches.slice(0, 6).map((j) => (
               <JobMiniRow key={j.id} job={j} onClick={() => navigate(`/dashboard/jobs/${encodeURIComponent(j.id)}`)} />
             ))
           )}

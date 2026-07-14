@@ -84,10 +84,36 @@ export function createDefaultProfile() {
       preferredLocations: [],
       expectedCTC: '',
       noticePeriod: '',
+      jobAlerts: {
+        enabled: false,
+        query: '',
+        frequency: 'daily',
+        lastSentAt: null,
+      },
     },
     aiReview: null,
     linkedinAudit: null,
+    /** Recent cover letter drafts saved from the Cover Letters tool (max kept client-side). */
+    coverLetterDrafts: [],
   }
+}
+
+const MAX_COVER_LETTER_DRAFTS = 8
+
+export function normalizeCoverLetterDrafts(raw) {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .filter((d) => d && typeof d === 'object' && typeof d.body === 'string' && d.body.trim())
+    .slice(0, MAX_COVER_LETTER_DRAFTS)
+    .map((d) => ({
+      id: typeof d.id === 'string' ? d.id : `draft_${Date.now()}`,
+      role: String(d.role || '').slice(0, 120),
+      company: String(d.company || '').slice(0, 120),
+      template: String(d.template || 'concise').slice(0, 40),
+      body: String(d.body).slice(0, 8000),
+      savedAt: d.savedAt || new Date().toISOString(),
+      source: d.source === 'ai' ? 'ai' : 'template',
+    }))
 }
 
 export function createDefaultLinkedInAudit() {
@@ -103,9 +129,12 @@ function normalizeLinkedInAi(raw) {
   if (!raw || typeof raw !== 'object') return null
   return {
     parsedAt: raw.parsedAt || null,
-    auditedAt: raw.auditedAt || null,
+    auditedAt: raw.auditedAt || raw.lastReviewedAt || null,
     snapshot: raw.snapshot && typeof raw.snapshot === 'object' ? raw.snapshot : null,
     audit: raw.audit && typeof raw.audit === 'object' ? raw.audit : null,
+    checklist: Array.isArray(raw.checklist) ? raw.checklist : null,
+    rewrites: Array.isArray(raw.rewrites) ? raw.rewrites : null,
+    summary: typeof raw.summary === 'string' ? raw.summary : null,
     sourceFileName:
       typeof raw.sourceFileName === 'string' ? raw.sourceFileName.slice(0, 120) : '',
   }
@@ -230,6 +259,19 @@ export function normalizeProfile(profilePartial) {
   }
   if (profile.linkedinAudit) {
     profile.linkedinAudit = normalizeLinkedInAudit(profile.linkedinAudit)
+  }
+  profile.coverLetterDrafts = normalizeCoverLetterDrafts(profile.coverLetterDrafts)
+  const defaultPrefs = createDefaultProfile().preferences
+  profile.preferences = {
+    ...defaultPrefs,
+    ...(profile.preferences || {}),
+    jobAlerts: {
+      ...defaultPrefs.jobAlerts,
+      ...(profile.preferences?.jobAlerts || {}),
+    },
+    preferredLocations: Array.isArray(profile.preferences?.preferredLocations)
+      ? profile.preferences.preferredLocations
+      : [],
   }
   return profile
 }

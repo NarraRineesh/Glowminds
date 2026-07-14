@@ -98,7 +98,7 @@ async function fetchWithTimeout(url, options, timeoutMs) {
  * @param {number} [opts.temperature]  Default 0.7.
  * @param {number} [opts.maxTokens]    Clamped to [64, 16384]. Default 2048.
  * @param {string} [opts.model]        Skip the fallback list and use this model only.
- * @returns {Promise<{ text: string, model: string }>}
+ * @returns {Promise<{ text: string, model: string, usage: { promptTokens: number, completionTokens: number, totalTokens: number } }>}
  */
 export async function generate(opts = {}) {
   const messages = buildMessages(opts);
@@ -159,7 +159,13 @@ export async function generate(opts = {}) {
         continue;
       }
 
-      return { text: content, model: modelId };
+      const u = data?.usage || {};
+      const usage = {
+        promptTokens: Number(u.prompt_tokens) || 0,
+        completionTokens: Number(u.completion_tokens) || 0,
+        totalTokens: Number(u.total_tokens) || 0,
+      };
+      return { text: content, model: modelId, usage };
     } catch (err) {
       // err.message is already sanitized when it comes from fetchWithTimeout
       // (or from the `friendlyError`-driven branches above). Any unexpected

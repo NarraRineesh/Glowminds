@@ -1,121 +1,82 @@
 # Glowminds — AI-Powered Career Platform
 
-All-in-one career assistant for students and fresh graduates. Build ATS-optimized resumes, discover AI-matched jobs, ace interviews with AI coaching, and track every application — powered by Gemini.
+All-in-one career assistant for students and early-career professionals in India. Build ATS resumes, discover matched jobs, run AI Apply Kit flows, practice interviews, and track applications — on Firebase + optional Supabase job data.
 
 ## Features
 
-| # | Feature | Description |
-|---|---------|-------------|
-| 1 | **Firebase Auth** | Email/Password + Google Sign-In, protected routes, Firestore user profiles |
-| 2 | **Job Board** | Live ATS-sourced jobs (Greenhouse/Lever/Ashby/BambooHR/Workday) with skill-based match scoring, save/unsave jobs |
-| 3 | **Application Tracker** | Firestore-backed Kanban board with status management and notes |
-| 4 | **Resume Builder** | 3 templates (Classic/Modern/Minimal), ATS score, multi-page PDF export |
-| 5 | **AI Career Coach** | Multi-turn Gemini chat with history persistence, suggestion chips |
-| 6 | **Mock Interview** | AI-generated role-specific questions, STAR-method evaluation, score ring |
-| 7 | **Job Matching AI** | Gemini analyzes skills vs job description, match score + recommendations |
-| 8 | **Profile Review AI** | AI-powered profile enhancement with strengths, weaknesses, tips |
-| 9 | **Notifications** | Real-time Firestore listener, navbar dropdown, welcome notifications on signup |
-| 10 | **Analytics Dashboard** | Application timeline, response rate, activity heatmap, status breakdown |
+| Area | What ships |
+|------|------------|
+| **Auth** | Firebase Auth (email + Google), custom admin claims |
+| **Jobs** | Board search (Supabase preferred, Firestore fallback), Top Matches (Pro), Apply Kit (AI fit + cover letter), admin hide/boost |
+| **Resume** | Embedded Glowminds Resume builder (package), ATS review (Pro), paraphrase enhance |
+| **AI tools** | Career coach (grounded in profile/job), interview MCQs, cover letters + cold email, grammar, paraphrase, profile review, LinkedIn audit, salary negotiate |
+| **Billing** | Razorpay Pro, monthly AI credits, entitlements API |
+| **Alerts** | Daily in-app job digest for opted-in users (`preferences.jobAlerts`) |
+| **Admin** | Users/Pro/credits, token & cost telemetry, job moderation, pricing |
 
 ## Tech Stack
 
-- **Frontend**: React 19 + Vite 8
-- **Styling**: TailwindCSS v4 + custom CSS variables (dark theme)
-- **Routing**: React Router v7
-- **State**: Zustand 5
-- **Auth & DB**: Firebase Auth + Cloud Firestore
-- **API**: Firebase Cloud Functions Gen 2 (Express adapter, single `api` HTTPS function)
-- **AI**: Google Gemini (primary) + OpenRouter (fallback)
-- **PDF**: html2canvas-pro + jsPDF (code-split)
-- **Resume Parsing**: pdfjs-dist (PDF) + mammoth (DOCX)
-- **Job ingestion**: Local CLI in sibling folder `../job-pipeline/` (Ollama → Firestore)
+- **Frontend**: React 19 + Vite 8 + Tailwind CSS v4
+- **Routing**: React Router v7 (lazy public + dashboard routes)
+- **State**: Zustand
+- **Auth / user data**: Firebase Auth + Cloud Firestore
+- **Jobs data**: Supabase (when configured) with Firestore fallback
+- **API**: Firebase Cloud Functions Gen 2 — Express `api` + scheduled jobs
+- **AI**: Gemini + OpenRouter failover (`functions/src/services/aiClient.js`)
+- **Payments**: Razorpay
 
 ## Quick Start
 
 ```bash
-# 1. Install frontend + functions dependencies
-npm install
-npm --prefix functions install
+pnpm install
+pnpm --prefix functions install
 
-# 2. Copy env and add your Firebase config
 cp .env.example .env
-# Edit .env with your Firebase project values
-
-# 3. Functions config (non-secrets)
 cp functions/.env.example functions/.env
-# For local emulator, also add API keys to functions/.env:
-#   GEMINI_API_KEY, OPENROUTER_API_KEY, RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET
+# Add Firebase web config + GEMINI/OPENROUTER/RAZORPAY as needed
 
-# 4. Start dev (Vite + Functions emulator)
-npm run dev
+pnpm dev   # Vite :5173 + Functions emulator :5001
 ```
 
-Vite proxies `/api/*` to the Functions emulator on port 5001.
+Vite proxies `/api/*` to the Functions emulator.
 
 ## Firebase Setup
 
-1. Go to [Firebase Console](https://console.firebase.google.com) → create project
-2. Enable **Authentication** → Email/Password + Google providers
-3. Create **Cloud Firestore** database
-4. Create a **Web app** → copy config values into `.env`
-5. Upgrade to **Blaze** plan (required for outbound HTTP to Gemini/OpenRouter/Razorpay)
-6. Set function secrets:
+1. Create project → Auth (Email/Password + Google) → Firestore
+2. Blaze plan (outbound AI + Razorpay)
+3. Secrets:
    ```bash
    firebase functions:secrets:set GEMINI_API_KEY
    firebase functions:secrets:set OPENROUTER_API_KEY
    firebase functions:secrets:set RAZORPAY_KEY_ID
    firebase functions:secrets:set RAZORPAY_KEY_SECRET
+   firebase functions:secrets:set SUPABASE_SERVICE_ROLE_KEY   # optional but recommended
    ```
-7. Deploy: `npm run deploy`
+4. Grant admin: `pnpm admin:set -- --email you@example.com` then re-login
+5. Deploy: `pnpm deploy` (or `firebase deploy --only functions,hosting,firestore`)
 
 ## Project Structure
 
 ```
-src/                    # React SPA
-functions/src/          # Express API (single Cloud Function `api`)
-../job-pipeline/        # Local job scraper + Ollama enricher → Firestore (outside repo)
+src/                         # React SPA (dashboard, admin, public)
+packages/glowminds-resume/   # Embedded resume builder
+functions/src/               # Express API + scheduled functions
 ```
 
-## Environment Variables
+Scheduled functions:
 
-**Frontend** (`.env`):
-```
-VITE_FIREBASE_API_KEY=
-VITE_FIREBASE_AUTH_DOMAIN=
-VITE_FIREBASE_PROJECT_ID=
-VITE_FIREBASE_STORAGE_BUCKET=
-VITE_FIREBASE_MESSAGING_SENDER_ID=
-VITE_FIREBASE_APP_ID=
-VITE_API_BASE_URL=/api
-```
+- `expireProSubscriptions` — daily Pro expiry
+- `dailyJobAlertDigests` — morning job digests for opted-in users
 
-**Functions** (`functions/.env` — non-secrets; secrets via `firebase functions:secrets:set`):
-```
-CORS_ORIGINS=http://localhost:5173,http://localhost:4173
-OPENROUTER_SITE_URL=https://ai-jobcopilot.web.app
-OPENROUTER_APP_NAME=Glowminds AI Job Copilot
-```
+## Environment
 
-## Job pipeline (local)
+**Frontend** (`.env`): Firebase `VITE_*` keys, `VITE_API_BASE_URL=/api`
 
-Job ingestion runs outside this repo:
+**Functions** (`functions/.env`): `CORS_ORIGINS`, Supabase URL/anon if used; secrets via Firebase secrets (not committed).
 
-```bash
-cd ../job-pipeline
-npm install
-cp .env.example .env   # FIREBASE_SA_PATH, Ollama URL, etc.
-npm run enrich
-npm run push
-```
+## AI credits (defaults)
 
-## Deployment
-
-```bash
-npm run build
-firebase deploy --only functions,hosting,firestore
-```
-
-Or: `npm run deploy`
+Free 10 / Pro 100 per month. Costs include career chat 1, LinkedIn audit 2, job fit 3, salary negotiate 2, cover letter / resume review 5, interview generate 10 (evaluation included).
 
 ## License
 

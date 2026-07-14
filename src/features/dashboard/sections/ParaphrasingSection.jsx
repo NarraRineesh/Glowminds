@@ -5,7 +5,6 @@ import AppIcon from '@/components/icons/AppIcon'
 import { Button, ButtonGroup, DashboardCard, Textarea } from '@/components/ui'
 import useAppStore from '@/store/authStore'
 import useEntitlements from '@/hooks/useEntitlements'
-import AiCreditBar from '@/components/AiCreditBar'
 import { DEFAULT_PRICING_CONFIG } from '@/constants/pricingDefaults'
 import { apiFetch } from '@/services/apiClient'
 
@@ -68,9 +67,12 @@ export default function ParaphrasingSection() {
       ) : (
         variants.map((v, i) => (
           <div key={i} className="rounded-xl border border-border bg-muted/30 p-3">
-            <div className="mb-2 flex items-center justify-between">
+            <div className="mb-2 flex items-center justify-between gap-1">
               <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Variant {i + 1}</span>
-              <Button variant="ghost" size="sm" onClick={() => copy(v)}>Copy</Button>
+              <div className="flex gap-1">
+                <Button variant="ghost" size="sm" onClick={() => copy(v)}>Copy</Button>
+                <Button variant="outline" size="sm" onClick={() => { setText(v); addToast('success', 'Applied to editor') }}>Apply</Button>
+              </div>
             </div>
             <p className="whitespace-pre-wrap text-sm leading-relaxed">{v}</p>
           </div>
@@ -87,17 +89,6 @@ export default function ParaphrasingSection() {
           title="Three rewrites, one click"
           accent="three rewrites"
           subtitle="Pick a tone and we'll generate three distinct ways to say the same thing — perfect for resume bullets, cover letters, and outreach."
-        />
-
-        <AiCreditBar
-          className="mb-4"
-          balance={creditBalance}
-          cost={paraphraseCost}
-          periodEnd={credits?.periodEnd}
-          isPro={isPro}
-          loading={entitlementsLoading}
-          unitLabel="per rewrite"
-          onUpgradeSuccess={() => refreshEntitlements({ force: true })}
         />
 
         <ToolSidebarLayout sidebar={sidebar} sidebarRight>

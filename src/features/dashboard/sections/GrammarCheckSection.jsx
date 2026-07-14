@@ -4,7 +4,6 @@ import { ToolPage, ToolSidebarLayout } from '@/features/dashboard/components/too
 import { Badge, Button, DashboardCard, Progress, Textarea, cn } from '@/components/ui'
 import useAppStore from '@/store/authStore'
 import useEntitlements from '@/hooks/useEntitlements'
-import AiCreditBar from '@/components/AiCreditBar'
 import { DEFAULT_PRICING_CONFIG } from '@/constants/pricingDefaults'
 import { apiFetch } from '@/services/apiClient'
 
@@ -76,6 +75,30 @@ export default function GrammarCheckSection() {
     }
   }
 
+  const applyCorrected = () => {
+    if (!result?.corrected) return
+    setText(result.corrected)
+    addToast('success', 'Applied corrected text to editor')
+  }
+
+  const applySuggestion = (s) => {
+    const original = s.original?.trim()
+    const replacement = s.replacement?.trim()
+    if (!original || !replacement) {
+      if (replacement) {
+        setText((prev) => (prev.includes(replacement) ? prev : `${prev.trim()}\n${replacement}`.trim()))
+        addToast('success', 'Appended suggested phrasing')
+      }
+      return
+    }
+    if (!text.includes(original)) {
+      addToast('error', 'Original phrase not found in editor — paste corrected text instead')
+      return
+    }
+    setText((prev) => prev.replace(original, replacement))
+    addToast('success', 'Applied edit')
+  }
+
   const sidebar = (
     <DashboardCard titleIcon="target" title="Result">
       {!result ? (
@@ -98,9 +121,12 @@ export default function GrammarCheckSection() {
             )}
           />
           <div>
-            <div className="mb-2 flex items-center justify-between">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
               <span className="text-xs font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">Corrected</span>
-              <Button variant="ghost" size="sm" onClick={() => copy(result.corrected)}>Copy</Button>
+              <div className="flex gap-1">
+                <Button variant="ghost" size="sm" onClick={() => copy(result.corrected)}>Copy</Button>
+                <Button variant="outline" size="sm" onClick={applyCorrected}>Apply to editor</Button>
+              </div>
             </div>
             <div className="rounded-xl border border-border bg-muted/30 p-3 text-sm leading-relaxed whitespace-pre-wrap">
               {result.corrected}
@@ -122,17 +148,6 @@ export default function GrammarCheckSection() {
           title="Polish every sentence"
           accent="every sentence"
           subtitle="Paste any text — bios, emails, application answers — and we'll fix grammar, score it, and call out specific edits."
-        />
-
-        <AiCreditBar
-          className="mb-4"
-          balance={creditBalance}
-          cost={grammarCost}
-          periodEnd={credits?.periodEnd}
-          isPro={isPro}
-          loading={entitlementsLoading}
-          unitLabel="per check"
-          onUpgradeSuccess={() => refreshEntitlements({ force: true })}
         />
 
         <ToolSidebarLayout sidebar={sidebar} sidebarRight>
@@ -174,9 +189,14 @@ export default function GrammarCheckSection() {
                         <Badge variant="outline" className={cn('text-[0.65rem] font-bold uppercase', sev.className)}>
                           {sev.label} priority
                         </Badge>
-                        {s.replacement?.trim() && (
-                          <Button variant="ghost" size="sm" onClick={() => copy(s.replacement)}>Copy fix</Button>
-                        )}
+                        <div className="flex gap-1">
+                          {s.replacement?.trim() && (
+                            <Button variant="ghost" size="sm" onClick={() => copy(s.replacement)}>Copy</Button>
+                          )}
+                          {(s.original?.trim() || s.replacement?.trim()) && (
+                            <Button variant="outline" size="sm" onClick={() => applySuggestion(s)}>Apply</Button>
+                          )}
+                        </div>
                       </div>
                       {hasDiff ? (
                         <div className="space-y-2">

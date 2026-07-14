@@ -46,6 +46,9 @@ export const DEFAULT_PRICING_CONFIG = {
     resumeReview: 5,
     grammar: 1,
     paraphrase: 1,
+    linkedinAudit: 2,
+    jobFit: 3,
+    salaryNegotiate: 2,
   },
 
   pricing: {
@@ -264,7 +267,7 @@ export const DEFAULT_PRICING_CONFIG = {
     },
     {
       q: "How do AI credits work?",
-      a: "Career Chat, Grammar Check, Paraphrasing and Profile Reviews cost 1 credit. Resume Reviews and Cover Letters cost 5 credits. Mock Interview Sessions cost 10 credits.",
+      a: "Career Chat, Grammar, Paraphrase, Profile Review cost 1 credit. LinkedIn Audit costs 2. Job Fit and Salary Negotiate cost 3 and 2. Resume Review and Cover Letters cost 5. Starting a Mock Interview costs 10 credits (grading included — no second charge).",
     },
     {
       q: "Can I cancel anytime?",

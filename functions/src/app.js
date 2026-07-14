@@ -13,6 +13,9 @@ import applicationsRoutes from "./routes/applications/index.js";
 import resumesRoutes from "./routes/resumes/index.js";
 import skillsRoutes from "./routes/skills/index.js";
 import salaryRoutes from "./routes/salary/index.js";
+import adminRoutes from "./routes/admin/index.js";
+import billingRoutes from "./routes/billing/index.js";
+import accountRoutes from "./routes/account/index.js";
 
 export function createApp() {
   const app = express();
@@ -58,6 +61,9 @@ export function createApp() {
   app.use("/api/resumes", resumesRoutes);
   app.use("/api/skills", skillsRoutes);
   app.use("/api/salary", salaryRoutes);
+  app.use("/api/admin", adminRoutes);
+  app.use("/api/billing", billingRoutes);
+  app.use("/api/account", accountRoutes);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

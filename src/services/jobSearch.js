@@ -1,11 +1,11 @@
 import { apiFetch } from '@/services/apiClient'
 
-/** Job board — browse/search; ~10 doc reads + count per page. No profile merge. */
+/** Job board — browse/search; pageSize docs + count per page. No profile merge. */
 export async function searchBoardJobs({
   search = '',
   category = '',
   page = 1,
-  pageSize = 10,
+  pageSize = 12,
   cursor = null,
   filters = {},
 } = {}) {

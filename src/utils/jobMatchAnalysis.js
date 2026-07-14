@@ -77,7 +77,22 @@ function buildRecommendations(missingSkills, score) {
 export function buildJobMatchAnalysis(job, profile) {
   const tags = Array.isArray(job?.tags) ? job.tags.map((t) => String(t).trim()).filter(Boolean) : []
   const userSkills = parseUserSkills(profile)
-  const score = Math.round(Number(job?.match) || 0)
+  const rawMatch = Number(job?.match)
+  const hasBackendMatch = Number.isFinite(rawMatch) && rawMatch > 0
+
+  // No skills and no scored match → don't invent a profile fit.
+  if (!userSkills.length && !hasBackendMatch) {
+    return {
+      score: null,
+      verdict: null,
+      summary: 'Add skills to your profile to see a match score for this role.',
+      matchedSkills: [],
+      missingSkills: [],
+      recommendations: ['Update your Glowminds profile with technical skills to unlock match scoring.'],
+    }
+  }
+
+  const score = hasBackendMatch ? Math.round(rawMatch) : 0
 
   const matchedSkills = []
   const missingSkills = []

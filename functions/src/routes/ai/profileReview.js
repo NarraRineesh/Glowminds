@@ -1,10 +1,12 @@
 import { Router } from "express";
+import { createHash } from "crypto";
 import { requireAuth } from "../../middleware/auth.js";
 import { requireCredits } from "../../middleware/requireCredits.js";
 import { ApiError } from "../../middleware/errors.js";
 import { completionTask } from "../../services/aiClient.js";
 import { stripJsonFences } from "../../utils/stripJsonFences.js";
 import { withCreditDebit } from "../../utils/creditResponse.js";
+import { getCachedAiJson, setCachedAiJson } from "../../services/aiResponseCache.js";
 
 const router = Router();
 
@@ -13,6 +15,14 @@ router.post("/profile-review", requireAuth, requireCredits("profileReview"), asy
     const { profile = {} } = req.body || {};
     if (!profile || Object.keys(profile).length === 0) {
       throw new ApiError("invalid-argument", "Profile data is required");
+    }
+
+    const cacheKey = createHash("sha256")
+      .update(JSON.stringify(profile).slice(0, 8000))
+      .digest("hex");
+    const cached = getCachedAiJson("profile-review", cacheKey);
+    if (cached) {
+      return res.json({ ...cached, cached: true });
     }
 
     const prompt = `You are an expert career coach and recruiter in the Indian tech market. Analyze this candidate's profile and provide detailed enhancement advice.
@@ -50,6 +60,7 @@ Rules:
       uid: req.user?.uid,
     });
     const review = JSON.parse(stripJsonFences(text));
+    setCachedAiJson("profile-review", cacheKey, review, 30 * 60 * 1000);
     res.json(await withCreditDebit(req, review));
   } catch (err) {
     next(err instanceof ApiError ? err : new ApiError("internal", err.message));

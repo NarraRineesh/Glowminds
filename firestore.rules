@@ -120,5 +120,14 @@ service cloud.firestore {
         && request.resource.data.createdAt is timestamp;
       allow read, update, delete: if false;
     }
+
+    // Admin / server-only telemetry (Admin SDK bypasses rules)
+    match /aiUsageLogs/{logId} {
+      allow read, write: if false;
+    }
+
+    match /adminDailyStats/{dayId} {
+      allow read, write: if false;
+    }
   }
 }

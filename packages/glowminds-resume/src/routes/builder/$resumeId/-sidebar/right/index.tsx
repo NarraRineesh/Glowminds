@@ -12,6 +12,7 @@ import { DesignSectionBuilder } from "./sections/design";
 import { ExportSectionBuilder } from "./sections/export";
 import { LayoutSectionBuilder } from "./sections/layout";
 import { NotesSectionBuilder } from "./sections/notes";
+import { AnalysisSectionBuilder } from "./sections/analysis";
 import { PageSectionBuilder } from "./sections/page";
 import { TemplateSectionBuilder } from "./sections/template";
 import { TypographySectionBuilder } from "./sections/typography";
@@ -27,6 +28,7 @@ function getSectionComponent(type: BuilderRightSidebarSection) {
 		.with("styles", () => <CustomStylesSectionBuilder />)
 		.with("page", () => <PageSectionBuilder />)
 		.with("notes", () => <NotesSectionBuilder />)
+		.with("analysis", () => <AnalysisSectionBuilder />)
 		.with("export", () => <ExportSectionBuilder />)
 		.exhaustive();
 }

@@ -5,7 +5,6 @@ import { auth } from '@/services/firebase'
 import { apiFetch } from '@/services/apiClient'
 import Loader from '@/components/Loader'
 import SkillSuggestInput from '@/components/SkillSuggestInput'
-import AiCreditBar from '@/components/AiCreditBar'
 import useEntitlements from '@/hooks/useEntitlements'
 import { DEFAULT_PRICING_CONFIG } from '@/constants/pricingDefaults'
 import useIsLg from '@/hooks/useIsLg'
@@ -1047,16 +1046,6 @@ export default function ProfileSection() {
           </Button>
         )}
       >
-          <AiCreditBar
-            className="mb-4"
-            balance={creditBalance}
-            cost={reviewCost}
-            periodEnd={credits?.periodEnd}
-            isPro={isPro}
-            loading={entitlementsLoading}
-            unitLabel="per review"
-            onUpgradeSuccess={() => refreshEntitlements({ force: true })}
-          />
           {!aiReview && !reviewLoading && (
             <div className="flex flex-col items-center gap-2 py-6 text-center">
               <AppIcon name="robot" className="size-10 text-muted-foreground/60" />

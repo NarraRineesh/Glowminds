@@ -40,6 +40,9 @@ export const DEFAULT_PRICING_CONFIG = {
     resumeReview: 5,
     grammar: 1,
     paraphrase: 1,
+    linkedinAudit: 2,
+    jobFit: 3,
+    salaryNegotiate: 2,
   },
   pricing: {
     free: {
@@ -127,7 +130,7 @@ export const DEFAULT_PRICING_CONFIG = {
     { q: 'Is Glowminds free?', a: 'Yes. You can create a resume, search jobs, track applications, and receive 10 AI credits every month for free. No credit card required.' },
     { q: 'Why is Glowminds Pro so affordable?', a: "We're currently offering a founding member launch price of ₹599/year (regular ₹999/year) for students and early-career professionals." },
     { q: 'Do AI features have usage limits?', a: 'Yes. Free users receive 10 AI credits per month. Pro users receive 100 AI credits per month.' },
-    { q: 'How do AI credits work?', a: 'Career Chat, Grammar Check, Paraphrasing and Profile Reviews cost 1 credit. Resume Reviews and Cover Letters cost 5 credits. Mock Interview Sessions cost 10 credits.' },
+    { q: 'How do AI credits work?', a: 'Career Chat, Grammar, Paraphrase, Profile Review cost 1 credit. LinkedIn Audit costs 2. Job Fit and Salary Negotiate cost 3 and 2. Resume Review and Cover Letters cost 5. Starting a Mock Interview costs 10 credits (grading included — no second charge).' },
     { q: 'Can I cancel anytime?', a: "Yes. Cancel from your dashboard anytime. You'll retain Pro access until the end of your billing cycle." },
     { q: 'Is my resume data secure?', a: 'Yes. Your resumes and profile data are stored securely. Payments are processed through Razorpay and we never store payment details.' },
     { q: 'Do I need a credit card for the free plan?', a: 'No. The free plan requires no payment information.' },

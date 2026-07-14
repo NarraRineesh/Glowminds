@@ -18,6 +18,14 @@ export default function useAuthListener() {
       // A new auth state means whatever stale 401 we logged out of is over.
       resetUnauthorizedGuard()
       if (firebaseUser) {
+        let isAdmin = false
+        try {
+          const token = await firebaseUser.getIdTokenResult()
+          isAdmin = token?.claims?.isAdmin === true
+        } catch {
+          isAdmin = false
+        }
+
         const baseUser = {
           uid: firebaseUser.uid,
           email: firebaseUser.email,
@@ -25,6 +33,7 @@ export default function useAuthListener() {
           photoURL: firebaseUser.photoURL,
           firstName: firebaseUser.displayName?.split(' ')[0] || '',
           lastName: firebaseUser.displayName?.split(' ').slice(1).join(' ') || '',
+          isAdmin,
         }
 
         // Single users/{uid} read — load it through profileStore so the rest
