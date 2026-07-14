@@ -48,17 +48,36 @@ export function getFeatureCreditCost(pricing, featureKey) {
   return Number.isFinite(cost) && cost > 0 ? Math.trunc(cost) : 0;
 }
 
+function isFreeCreditsInflated(credits, freeGrant) {
+  // Only balance/granted over free cap — period fields are normal for monthly resets.
+  const granted = credits.lifetimeGranted ?? freeGrant;
+  return (
+    granted > freeGrant ||
+    (typeof credits.balance === "number" && credits.balance > freeGrant)
+  );
+}
+
 /** Initialize free-tier credits on first access; cap client-seeded inflation. */
 export async function grantFreeTierIfNeeded(uid, pricing) {
   const freeGrant = pricing.freeLimits?.aiCredits ?? 10;
   const ref = userCreditsRef(uid);
-  const sub = await readSubscription(uid);
+  const [sub, existingCredits, existingEnt] = await Promise.all([
+    readSubscription(uid),
+    readCredits(uid),
+    readEntitlements(uid),
+  ]);
+  const trustedPro = isTrustedProSubscription(sub);
+
+  // Hot path: already provisioned and not inflated — skip Firestore transaction.
+  if (existingCredits && existingEnt) {
+    if (trustedPro) return;
+    if (!isFreeCreditsInflated(existingCredits, freeGrant)) return;
+  }
 
   await getFirestore().runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     const entRef = userEntitlementsRef(uid);
     const entSnap = await tx.get(entRef);
-    const trustedPro = isTrustedProSubscription(sub);
 
     if (!snap.exists) {
       const now = new Date();
@@ -91,13 +110,7 @@ export async function grantFreeTierIfNeeded(uid, pricing) {
     const credits = snap.data() || {};
     const used = credits.lifetimeUsed ?? 0;
     const granted = credits.lifetimeGranted ?? freeGrant;
-    const inflated =
-      granted > freeGrant ||
-      (typeof credits.balance === "number" && credits.balance > freeGrant) ||
-      credits.periodStart != null ||
-      credits.periodEnd != null;
-
-    if (!inflated) return;
+    if (!isFreeCreditsInflated(credits, freeGrant)) return;
 
     const cappedGranted = Math.min(granted, freeGrant);
     tx.set(
@@ -204,6 +217,10 @@ export async function resetProPeriodIfNeeded(uid, pricing) {
 const applicationCountCache = new Map();
 const APPLICATION_COUNT_TTL_MS = 60_000;
 
+/** Short response cache — dashboard hits entitlements + board together. */
+const entitlementsResponseCache = new Map();
+const ENTITLEMENTS_RESPONSE_TTL_MS = 20_000;
+
 async function getApplicationCountCached(uid) {
   const hit = applicationCountCache.get(uid);
   if (hit && hit.expiresAt > Date.now()) return hit.count;
@@ -218,27 +235,39 @@ export function invalidateApplicationCountCache(uid) {
   else applicationCountCache.clear();
 }
 
+export function invalidateEntitlementsCache(uid) {
+  if (uid) entitlementsResponseCache.delete(uid);
+  else entitlementsResponseCache.clear();
+}
+
 export async function getEntitlements(uid) {
+  const cached = entitlementsResponseCache.get(uid);
+  if (cached && cached.expiresAt > Date.now()) return cached.data;
+
   const pricing = await getPricingConfig();
   await grantFreeTierIfNeeded(uid, pricing);
 
-  const sub = await readSubscription(uid);
+  const [sub, creditsBefore] = await Promise.all([readSubscription(uid), readCredits(uid)]);
   const isPro = hasProAccess(sub);
+  const now = new Date();
+  const periodEnd = parseIso(creditsBefore?.periodEnd);
+  const needsPeriodReset = !periodEnd || periodEnd <= now;
 
-  if (isPro) {
-    await resetProPeriodIfNeeded(uid, pricing);
-  } else {
-    await resetFreePeriodIfNeeded(uid, pricing);
+  if (needsPeriodReset) {
+    if (isPro) await resetProPeriodIfNeeded(uid, pricing);
+    else await resetFreePeriodIfNeeded(uid, pricing);
   }
 
   const freeGrant = pricing.freeLimits?.aiCredits ?? 10;
   const proMonthly = pricing.proLimits?.aiCreditsPerMonth ?? 100;
-  const credits = (await readCredits(uid)) || defaultCredits(freeGrant, { withPeriod: !isPro });
-  const entitlements = (await readEntitlements(uid)) || defaultEntitlements();
 
+  const [creditsRaw, entitlements, applicationCount] = await Promise.all([
+    needsPeriodReset ? readCredits(uid) : Promise.resolve(creditsBefore),
+    readEntitlements(uid),
+    getApplicationCountCached(uid),
+  ]);
+  const credits = creditsRaw || defaultCredits(freeGrant, { withPeriod: !isPro });
   const storedBalance = typeof credits.balance === "number" ? credits.balance : (isPro ? proMonthly : freeGrant);
-
-  const applicationCount = await getApplicationCountCached(uid);
 
   const creditPayload = {
     balance: Math.max(0, storedBalance),
@@ -248,18 +277,23 @@ export async function getEntitlements(uid) {
     lifetimeUsed: credits.lifetimeUsed ?? 0,
   };
 
-  return {
+  const data = {
     isPro,
     credits: creditPayload,
     creditCosts: pricing.creditCosts || {},
     freeLimits: pricing.freeLimits,
     proLimits: pricing.proLimits,
     entitlements: {
-      resumeCount: entitlements.resumeCount ?? 0,
+      resumeCount: entitlements?.resumeCount ?? 0,
       applicationCount,
     },
     subscription: sub,
   };
+  entitlementsResponseCache.set(uid, {
+    data,
+    expiresAt: Date.now() + ENTITLEMENTS_RESPONSE_TTL_MS,
+  });
+  return data;
 }
 
 export async function ensureCreditsForFeature(uid, featureKey, pricing) {
@@ -340,6 +374,7 @@ export async function debitCredits(uid, amount, featureKey = "unknown") {
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
+    invalidateEntitlementsCache(uid);
     return { debited: cost, balanceAfter };
   });
 }

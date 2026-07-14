@@ -11,7 +11,7 @@ import {
   jobMatchesLocation,
   profileReadyForJobMatches,
 } from "./jobSearch.js";
-import { supabaseRest, supabaseCount } from "./supabaseClient.js";
+import { isSupabaseEnabled, supabaseRest, supabaseCount } from "./supabaseClient.js";
 
 const JOB_SELECT =
   "id,title,company,location,apply_url,skills,min_experience,max_experience,employment_type,remote_type,updated_at,first_published,last_seen_at,created_at,ats";
@@ -24,6 +24,10 @@ function jobPostedAt(row) {
 /** Cached enriched-job total — exact COUNT on 300k+ rows takes several seconds. */
 const enrichedCountCache = { value: null, at: 0, inflight: null };
 const ENRICHED_COUNT_TTL_MS = 15 * 60 * 1000;
+
+/** Filtered-board totals — exact COUNT is 5–15s; serve cache or page estimates instead. */
+const boardCountCache = new Map();
+const BOARD_COUNT_TTL_MS = 10 * 60 * 1000;
 
 /** Title patterns for category when Supabase has no `role` column. */
 const ROLE_TITLE_PATTERNS = {
@@ -67,34 +71,64 @@ function scheduleEnrichedCountRefresh() {
     });
 }
 
+function boardCountCacheKey(boardCtx, filters = {}) {
+  return [
+    boardCtx.mode || "browse",
+    boardCtx.searchStr || "",
+    boardCtx.roleKey || "",
+    filters.type || "",
+    filters.newToday ? "1" : "0",
+  ].join("|");
+}
+
+function getCachedBoardCount(key) {
+  const hit = boardCountCache.get(key);
+  if (!hit) return null;
+  if (Date.now() - hit.at > BOARD_COUNT_TTL_MS) {
+    boardCountCache.delete(key);
+    return null;
+  }
+  return hit.value;
+}
+
+function scheduleBoardCountRefresh(key, pathname) {
+  const inflightKey = `${key}:inflight`;
+  if (boardCountCache.has(inflightKey)) return;
+  boardCountCache.set(inflightKey, true);
+  supabaseCount(pathname)
+    .then((count) => {
+      if (Number.isFinite(count) && count >= 0) {
+        boardCountCache.set(key, { value: count, at: Date.now() });
+      }
+    })
+    .catch(() => {})
+    .finally(() => {
+      boardCountCache.delete(inflightKey);
+    });
+}
+
 async function resolveBoardTotal(boardCtx, filters, { softType = false } = {}) {
   // Soft type / newToday shrink the page after fetch — exact DB count is misleading.
   if (filters?.newToday || softType) return null;
 
   if (boardCtx.mode === "browse" && !boardCtx.roleKey && !filters?.type) {
     scheduleEnrichedCountRefresh();
-    const cached = getCachedEnrichedCount();
-    if (cached != null) return cached;
-    // Await once on cold cache so browse pagination is correct.
-    try {
-      const count = await fetchEnrichedJobCount();
-      if (Number.isFinite(count) && count >= 0) {
-        enrichedCountCache.value = count;
-        enrichedCountCache.at = Date.now();
-        return count;
-      }
-    } catch {
-      return null;
-    }
-    return null;
+    // Never block the response on a cold exact COUNT (often 6–30s).
+    return getCachedEnrichedCount();
   }
 
+  // Title/skills/role/type filters: ilike COUNT is slower than the row fetch.
+  // Return a warm cache hit; otherwise warm in background and use page estimates.
+  const key = boardCountCacheKey(boardCtx, filters);
+  const cached = getCachedBoardCount(key);
+  if (cached != null) return cached;
   try {
     const { pathname } = buildCountQuery(boardCtx, filters);
-    return await supabaseCount(pathname);
+    scheduleBoardCountRefresh(key, pathname);
   } catch {
-    return null;
+    // ignore
   }
+  return null;
 }
 
 function companyEmoji(name) {
@@ -252,19 +286,38 @@ function queryUsesOr(parts) {
   return parts.some((p) => p.startsWith("or="));
 }
 
+function titleSearchFilter(boardCtx) {
+  const tokens = (boardCtx.titleTokens || []).filter(Boolean);
+  if (tokens.length > 1) {
+    // Phrase ilike misses "Lead Developer … React"; AND-of-tokens matches both words.
+    const andParts = tokens.map((t) => `title.ilike.${encodeURIComponent(`*${t}*`)}`);
+    return `and=(${andParts.join(",")})`;
+  }
+  if (tokens.length === 1) {
+    return `title=ilike.${encodeURIComponent(`*${tokens[0]}*`)}`;
+  }
+  if (boardCtx.searchStr) {
+    return `title=ilike.${encodeURIComponent(`*${boardCtx.searchStr}*`)}`;
+  }
+  return null;
+}
+
 /**
  * Build list/count query. PostgREST allows one `or=` — when skills/role already
  * consume it, type is applied in-memory (softType) by the caller.
  */
 function buildQueryParts(boardCtx, filters = {}, { forCount = false, offset = 0, limit = 10 } = {}) {
+  // Title/skills ilike + order=updated_at times out on this table (PostgREST 57014).
+  // Browse can use the enriched_updated_at index; filtered search sorts in-memory.
+  const useRecencyOrder =
+    boardCtx.mode === "browse" && !boardCtx.roleKey && !filters?.type;
+
   const parts = forCount
     ? ["select=id", "enriched_at=not.is.null"]
     : [
         `select=${JOB_SELECT}`,
         "enriched_at=not.is.null",
-        // Must use updated_at — matches jobs_enriched_updated_at_idx. Ordering by
-        // first_published (no index) times out on 350k+ rows.
-        "order=updated_at.desc.nullslast",
+        ...(useRecencyOrder ? ["order=updated_at.desc.nullslast"] : []),
         `limit=${limit}`,
         `offset=${offset}`,
       ];
@@ -273,7 +326,8 @@ function buildQueryParts(boardCtx, filters = {}, { forCount = false, offset = 0,
     const skillFilter = skillsContainFilter(boardCtx.userSkills);
     if (skillFilter) parts.push(skillFilter);
   } else if (boardCtx.mode === "title" && boardCtx.searchStr) {
-    parts.push(`title=ilike.${encodeURIComponent(`*${boardCtx.searchStr}*`)}`);
+    const titleFilter = titleSearchFilter(boardCtx);
+    if (titleFilter) parts.push(titleFilter);
   }
 
   appendRoleFilter(parts, boardCtx.roleKey);
@@ -368,17 +422,9 @@ export async function searchBoardJobsSupabase({
   let rows = [];
   let dbTotal = null;
   try {
-    // Filtered boards: count first (Prefer:count can flake when raced with large GETs).
-    // Browse: run in parallel; enriched total is cached after the first hit.
-    if (filters.type || filters.newToday || softType) {
-      dbTotal = await resolveBoardTotal(boardCtx, filters, { softType });
-      rows = await supabaseRest(pathname);
-    } else {
-      [rows, dbTotal] = await Promise.all([
-        supabaseRest(pathname),
-        resolveBoardTotal(boardCtx, filters, { softType }),
-      ]);
-    }
+    // Counts are cache-only / background — never serialize behind exact COUNT.
+    dbTotal = await resolveBoardTotal(boardCtx, filters, { softType });
+    rows = await supabaseRest(pathname);
   } catch (err) {
     partialErrors.push(`board:browse: ${err.message}`);
     if (!Array.isArray(rows)) rows = [];
@@ -431,11 +477,12 @@ export async function searchBoardJobsSupabase({
       page: safePage,
       pageSize: size,
       total,
-      totalPages,
+      totalPages: dbTotal != null ? totalPages : null,
       hasMore: Boolean(nextCursor),
       nextCursor,
       from,
       to,
+      totalExact: dbTotal != null,
     },
     meta: { dbTotal, docsRead: pageRows.length, source: "supabase" },
     sources: { supabase: total, docsRead: pageRows.length },
@@ -709,4 +756,9 @@ export async function deleteAdminJob(jobId) {
   if (!id) throw new Error("jobId is required");
   await supabaseRest(`jobs?id=eq.${encodeURIComponent(id)}`, { method: "DELETE" });
   return { ok: true, id };
+}
+
+// Warm browse total in the background so first request is not a cold COUNT.
+if (isSupabaseEnabled()) {
+  scheduleEnrichedCountRefresh();
 }

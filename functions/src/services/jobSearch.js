@@ -199,9 +199,21 @@ export function rankJobs(rawJobs, { title = "", skills = [], exp = null, explici
 
     let titleHits = 0;
     for (const t of jobTitleTokens) if (titleTokens.includes(t)) titleHits += 1;
+    // Fuzzy title hits: "react" should score against token "reactjs".
+    if (titleHits === 0 && titleTokens.length) {
+      for (const qt of titleTokens) {
+        if (jobTitleTokens.some((t) => t.includes(qt) || qt.includes(t))) titleHits += 1;
+      }
+    }
 
     const score = skillHits * 2 + titleHits;
-    if (hasInput && score === 0) continue;
+    if (hasInput && score === 0) {
+      // Explicit ALL-token match above can pass while exact hit counters stay 0
+      // (e.g. query "react" vs title token "reactjs"). Keep those results.
+      if (!(explicitSearch && queryTokens.length > 0)) continue;
+      out.push({ raw: j, score: 1, skillHits, titleHits });
+      continue;
+    }
 
     out.push({ raw: j, score, skillHits, titleHits });
   }
@@ -370,7 +382,8 @@ export function profileReadyForJobMatches(profile) {
 export function applyJobFilters(jobs, filters = {}) {
   let out = jobs;
   if (filters.type) {
-    out = out.filter((j) => j.type === filters.type);
+    const want = String(filters.type).toLowerCase();
+    out = out.filter((j) => String(j.type || "").toLowerCase() === want);
   }
   if (filters.minMatch != null && Number.isFinite(Number(filters.minMatch))) {
     const min = Number(filters.minMatch);

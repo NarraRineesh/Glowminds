@@ -97,6 +97,13 @@ export default function JobsSection() {
   const isInitialLoad = loading && jobs.length === 0
   const isRefreshing = loading && jobs.length > 0
   const totalResults = pagination.total ?? jobs.length
+  const totalExact = pagination.totalExact !== false && pagination.total != null
+  const totalLabel =
+    totalExact
+      ? `${totalResults} jobs`
+      : pagination.hasMore
+        ? `${Math.max(jobs.length, pagination.to || 0)}+ jobs`
+        : `${jobs.length} jobs`
   const canGoNext = pagination.hasMore && !loading
   const hasActiveSearch = Boolean(search.trim())
   const subtitleQuery = hasActiveSearch ? search.trim() : queryUsed
@@ -130,7 +137,11 @@ export default function JobsSection() {
             )}
             {!isInitialLoad && (
               <>
-                {totalResults} {totalResults === 1 ? 'result' : 'results'}
+                {totalExact
+                  ? `${totalResults} ${totalResults === 1 ? 'result' : 'results'}`
+                  : pagination.hasMore
+                    ? `${Math.max(jobs.length, pagination.to || 0)}+ results`
+                    : `${jobs.length} ${jobs.length === 1 ? 'result' : 'results'}`}
                 {pagination.from ? ` · showing ${pagination.from}–${pagination.to}` : ''}
               </>
             )}
@@ -299,7 +310,7 @@ export default function JobsSection() {
               <Button variant="ghost" size="sm" disabled={!canGoNext} onClick={() => setPage(p => p + 1)}>Next →</Button>
 
               <span className="w-full text-center text-xs text-muted-foreground sm:w-auto">
-                Page {page}{pagination.totalPages ? ` of ${pagination.totalPages}` : ''} · {totalResults} jobs
+                Page {page}{pagination.totalPages ? ` of ${pagination.totalPages}` : ''} · {totalLabel}
                 {pagination.from ? ` · showing ${pagination.from}–${pagination.to}` : ''}
               </span>
             </div>
