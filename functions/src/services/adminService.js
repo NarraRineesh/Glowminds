@@ -70,14 +70,24 @@ export async function getAdminOverview() {
   let cost30d = 0;
   let calls30d = 0;
   const dayCosts = [];
+  const dailySeries = [];
 
   if (stats30?.docs) {
-    for (const doc of stats30.docs) {
+    const sorted = [...stats30.docs].sort((a, b) =>
+      String(a.id).localeCompare(String(b.id)),
+    );
+    for (const doc of sorted) {
       const d = doc.data() || {};
       tokens30d += d.totalTokens || 0;
       cost30d += d.estimatedCostUsd || 0;
       calls30d += d.calls || 0;
       dayCosts.push(Number(d.estimatedCostUsd) || 0);
+      dailySeries.push({
+        date: doc.id,
+        calls: d.calls || 0,
+        totalTokens: d.totalTokens || 0,
+        estimatedCostUsd: Number(d.estimatedCostUsd) || 0,
+      });
     }
   }
 
@@ -144,6 +154,7 @@ export async function getAdminOverview() {
       estimatedCostUsd: Math.round(cost30d * 1_000_000) / 1_000_000,
       avgDailyCostUsd,
     },
+    dailySeries,
     costSpike,
   };
 }
@@ -212,7 +223,22 @@ export async function listAdminUsers({ q = "", filter = "all", limit = 40, curso
       source: sub?.source || null,
       totalPaidPaise: sub?.totalPaidPaise ?? null,
       cancelAtPeriodEnd: !!sub?.cancelAtPeriodEnd,
+      disabled: false,
     });
+  }
+
+  // Enrich with Auth disabled flags (batched).
+  if (users.length) {
+    try {
+      const got = await getAuth().getUsers(users.map((u) => ({ uid: u.uid })));
+      const byUid = new Map(got.users.map((a) => [a.uid, a]));
+      for (const u of users) {
+        const authUser = byUid.get(u.uid);
+        if (authUser) u.disabled = !!authUser.disabled;
+      }
+    } catch {
+      // leave disabled=false if Auth lookup fails
+    }
   }
 
   return {
@@ -326,6 +352,38 @@ export async function adminRevokePro(uid) {
   );
 
   return getAdminUserDetail(uid);
+}
+
+export async function adminSetUserDisabled(uid, disabled) {
+  if (!uid) throw new ApiError("invalid-argument", "uid required");
+  await getAuth().updateUser(uid, { disabled: Boolean(disabled) });
+  return getAdminUserDetail(uid);
+}
+
+export async function adminDeleteUser(uid, { actorUid } = {}) {
+  if (!uid) throw new ApiError("invalid-argument", "uid required");
+  if (actorUid && uid === actorUid) {
+    throw new ApiError("failed-precondition", "You cannot delete your own admin account");
+  }
+
+  const auth = getAuth();
+  const target = await auth.getUser(uid).catch(() => null);
+  if (target?.customClaims?.isAdmin === true) {
+    throw new ApiError("failed-precondition", "Cannot delete another admin user");
+  }
+
+  await auth.deleteUser(uid).catch((err) => {
+    if (err?.code !== "auth/user-not-found") throw err;
+  });
+
+  const db = getFirestore();
+  const batch = db.batch();
+  batch.delete(userDocRef(uid));
+  batch.delete(subscriptionRef(uid));
+  batch.delete(userCreditsRef(uid));
+  await batch.commit().catch(() => {});
+
+  return { ok: true, uid };
 }
 
 export { adminAdjustCredits };

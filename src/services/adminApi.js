@@ -45,6 +45,15 @@ export const adminApi = {
       body: { amount, note },
     }),
 
+  setUserDisabled: (uid, disabled) =>
+    apiFetch(`/admin/users/${encodeURIComponent(uid)}/disable`, {
+      method: 'POST',
+      body: { disabled: Boolean(disabled) },
+    }),
+
+  deleteUser: (uid) =>
+    apiFetch(`/admin/users/${encodeURIComponent(uid)}`, { method: 'DELETE' }),
+
   subscriptions: (limit = 40) =>
     apiFetch(`/admin/subscriptions?limit=${limit}`, { method: 'GET' }),
 
@@ -71,13 +80,26 @@ export const adminApi = {
   updatePricing: (pricing) =>
     apiFetch('/admin/config/pricing', { method: 'PUT', body: { pricing } }),
 
+  jobStats: () =>
+    dedupeAsync('admin-job-stats', () =>
+      apiFetch('/admin/jobs/stats', { method: 'GET' }),
+    ),
+
   jobs: (params = {}) => {
     const q = new URLSearchParams()
     if (params.q) q.set('q', params.q)
     if (params.limit) q.set('limit', String(params.limit))
+    if (params.page) q.set('page', String(params.page))
+    if (params.cursor) q.set('cursor', params.cursor)
     const qs = q.toString()
     return apiFetch(`/admin/jobs${qs ? `?${qs}` : ''}`, { method: 'GET' })
   },
+
+  createJob: (body) =>
+    apiFetch('/admin/jobs', { method: 'POST', body }),
+
+  deleteJob: (id) =>
+    apiFetch(`/admin/jobs/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 
   moderateJob: (body) =>
     apiFetch('/admin/jobs/moderation', { method: 'POST', body }),

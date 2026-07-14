@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { adminApi } from '@/services/adminApi'
 import { Button, Input } from '@/components/ui'
 import useAppStore from '@/store/authStore'
+import { AdminChartCard, AdminDonut } from './AdminCharts'
 
 const PAGE_SIZE = 25
 
@@ -21,6 +22,8 @@ export default function AdminUsers() {
   const [page, setPage] = useState(1)
   const [hasNext, setHasNext] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [busyUid, setBusyUid] = useState(null)
+  const [overview, setOverview] = useState(null)
   const reqId = useRef(0)
 
   const loadPage = useCallback(async (pageNum, pageCursor, searchQ = q) => {
@@ -51,13 +54,15 @@ export default function AdminUsers() {
     }
   }, [addToast, filter, q])
 
-  // Single effect — filter from URL is the source of truth (avoids double fetch).
   useEffect(() => {
     setPageCursors([null])
     loadPage(1, null, q)
-    // Intentionally omit `q` so typing doesn't refetch until Search.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter])
+
+  useEffect(() => {
+    adminApi.overview().then(setOverview).catch(() => {})
+  }, [])
 
   const onFilterChange = (value) => {
     const next = normalizeFilter(value)
@@ -65,23 +70,61 @@ export default function AdminUsers() {
     else setSearchParams({ filter: next }, { replace: true })
   }
 
-  const goNext = () => {
-    if (!hasNext || !pageCursors[page]) return
-    loadPage(page + 1, pageCursors[page])
+  const runAction = async (uid, fn, successMsg) => {
+    setBusyUid(uid)
+    try {
+      await fn()
+      addToast('success', successMsg)
+      await loadPage(page, pageCursors[page - 1] ?? null)
+      const ov = await adminApi.overview().catch(() => null)
+      if (ov) setOverview(ov)
+    } catch (err) {
+      addToast('error', err.message || 'Action failed')
+    }
+    setBusyUid(null)
   }
 
-  const goPrev = () => {
-    if (page <= 1) return
-    loadPage(page - 1, pageCursors[page - 2] ?? null)
-  }
+  const planChart = useMemo(() => {
+    const pro = overview?.activePro ?? users.filter((u) => u.isPro).length
+    const total = overview?.users ?? Math.max(users.length, pro)
+    const free = Math.max(0, (total || 0) - (pro || 0))
+    return [
+      { label: 'Pro', value: pro || 0, color: '#0f766e' },
+      { label: 'Free', value: free || 0, color: '#64748b' },
+    ]
+  }, [overview, users])
 
   return (
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-semibold">Users</h1>
         <p className="text-sm text-muted-foreground">
-          All users with Free/Pro status, billing fields, and credits — one table with pagination.
+          Paginated table with disable, delete, make Pro, and downgrade actions.
         </p>
+      </div>
+
+      <div className="grid gap-3 lg:grid-cols-[1fr_280px]">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="rounded-lg border border-border/70 bg-background p-4">
+            <p className="text-xs uppercase text-muted-foreground">Total users</p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums">
+              {(overview?.users ?? '—').toLocaleString?.('en-IN') ?? overview?.users ?? '—'}
+            </p>
+          </div>
+          <div className="rounded-lg border border-border/70 bg-background p-4">
+            <p className="text-xs uppercase text-muted-foreground">Active Pro</p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums">{overview?.activePro ?? '—'}</p>
+          </div>
+          <div className="rounded-lg border border-border/70 bg-background p-4">
+            <p className="text-xs uppercase text-muted-foreground">Conversion</p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums">
+              {overview?.proConversionRate != null ? `${overview.proConversionRate}%` : '—'}
+            </p>
+          </div>
+        </div>
+        <AdminChartCard title="Plan mix" subtitle="Pro vs Free">
+          <AdminDonut segments={planChart} size={100} />
+        </AdminChartCard>
       </div>
 
       <form
@@ -116,22 +159,21 @@ export default function AdminUsers() {
       </form>
 
       <div className="overflow-x-auto rounded-lg border border-border/70 bg-background">
-        <table className="w-full min-w-[900px] text-left text-sm">
+        <table className="w-full min-w-[1100px] text-left text-sm">
           <thead className="border-b border-border/60 text-xs uppercase text-muted-foreground">
             <tr>
               <th className="px-3 py-2 font-medium">User</th>
               <th className="px-3 py-2 font-medium">Plan</th>
               <th className="px-3 py-2 font-medium">Status</th>
-              <th className="px-3 py-2 font-medium">Source</th>
               <th className="px-3 py-2 font-medium">Credits</th>
-              <th className="px-3 py-2 font-medium">Ends</th>
-              <th className="px-3 py-2 font-medium">Paid</th>
+              <th className="px-3 py-2 font-medium">Account</th>
+              <th className="px-3 py-2 font-medium text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading && users.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-3 py-8 text-center text-muted-foreground">
+                <td colSpan={6} className="px-3 py-8 text-center text-muted-foreground">
                   Loading…
                 </td>
               </tr>
@@ -155,25 +197,69 @@ export default function AdminUsers() {
                 </td>
                 <td className="px-3 py-2 text-xs">
                   {u.subscriptionStatus || '—'}
-                  {u.cancelAtPeriodEnd ? (
-                    <span className="ml-1 text-amber-600 dark:text-amber-400">(ending)</span>
-                  ) : null}
                 </td>
-                <td className="px-3 py-2 text-xs text-muted-foreground">{u.source || '—'}</td>
                 <td className="px-3 py-2 tabular-nums">{u.creditsBalance ?? '—'}</td>
-                <td className="px-3 py-2 text-xs text-muted-foreground">
-                  {u.endDate ? new Date(u.endDate).toLocaleDateString('en-IN') : '—'}
+                <td className="px-3 py-2">
+                  {u.disabled ? (
+                    <span className="rounded bg-destructive/10 px-1.5 py-0.5 text-xs text-destructive">Disabled</span>
+                  ) : (
+                    <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-xs text-emerald-700">Active</span>
+                  )}
                 </td>
-                <td className="px-3 py-2 tabular-nums text-xs">
-                  {u.totalPaidPaise != null
-                    ? `₹${(u.totalPaidPaise / 100).toLocaleString('en-IN')}`
-                    : '—'}
+                <td className="px-3 py-2">
+                  <div className="flex flex-wrap justify-end gap-1">
+                    {!u.isPro ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={busyUid === u.uid}
+                        onClick={() => void runAction(u.uid, () => adminApi.grantPro(u.uid, { plan: 'yearly' }), 'Granted Pro')}
+                      >
+                        Make Pro
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={busyUid === u.uid}
+                        onClick={() => {
+                          if (!window.confirm(`Downgrade ${u.email || u.uid} from Pro?`)) return
+                          void runAction(u.uid, () => adminApi.revokePro(u.uid), 'Downgraded to Free')
+                        }}
+                      >
+                        Downgrade
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={busyUid === u.uid}
+                      onClick={() => void runAction(
+                        u.uid,
+                        () => adminApi.setUserDisabled(u.uid, !u.disabled),
+                        u.disabled ? 'User enabled' : 'User disabled',
+                      )}
+                    >
+                      {u.disabled ? 'Enable' : 'Disable'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={busyUid === u.uid}
+                      onClick={() => {
+                        if (!window.confirm(`Permanently delete ${u.email || u.uid}? This cannot be undone.`)) return
+                        void runAction(u.uid, () => adminApi.deleteUser(u.uid), 'User deleted')
+                      }}
+                    >
+                      Delete
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ))}
             {!loading && users.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-3 py-8 text-center text-muted-foreground">
+                <td colSpan={6} className="px-3 py-8 text-center text-muted-foreground">
                   No users found.
                 </td>
               </tr>
@@ -189,10 +275,10 @@ export default function AdminUsers() {
           {loading ? ' · refreshing…' : ''}
         </p>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" disabled={loading || page <= 1} onClick={goPrev}>
+          <Button size="sm" variant="outline" disabled={loading || page <= 1} onClick={() => loadPage(page - 1, pageCursors[page - 2] ?? null)}>
             Previous
           </Button>
-          <Button size="sm" variant="outline" disabled={loading || !hasNext} onClick={goNext}>
+          <Button size="sm" variant="outline" disabled={loading || !hasNext} onClick={() => loadPage(page + 1, pageCursors[page])}>
             Next
           </Button>
         </div>

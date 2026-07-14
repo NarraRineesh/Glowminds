@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { adminApi } from '@/services/adminApi'
 import { Button } from '@/components/ui'
 import useAppStore from '@/store/authStore'
+import { AdminBarChart, AdminChartCard } from './AdminCharts'
 
 export default function AdminPricing() {
   const addToast = useAppStore((s) => s.addToast)
@@ -45,6 +46,16 @@ export default function AdminPricing() {
     }
   }
 
+  const creditBars = useMemo(() => {
+    try {
+      const parsed = JSON.parse(json || '{}')
+      const costs = parsed.creditCosts || {}
+      return Object.entries(costs).map(([label, value]) => ({ label, value: Number(value) || 0 }))
+    } catch {
+      return []
+    }
+  }, [json])
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -59,6 +70,10 @@ export default function AdminPricing() {
           <Button size="sm" onClick={save} disabled={loading || saving}>Save</Button>
         </div>
       </div>
+
+      <AdminChartCard title="Credit costs" subtitle="From current pricing JSON">
+        <AdminBarChart data={creditBars} color="#0f766e" />
+      </AdminChartCard>
 
       <textarea
         className="min-h-[480px] w-full rounded-lg border border-border/70 bg-background p-3 font-mono text-xs leading-relaxed"

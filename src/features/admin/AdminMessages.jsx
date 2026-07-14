@@ -2,6 +2,14 @@ import { useEffect, useState } from 'react'
 import { adminApi } from '@/services/adminApi'
 import { Button } from '@/components/ui'
 import useAppStore from '@/store/authStore'
+import { AdminBarChart, AdminChartCard } from './AdminCharts'
+
+function messageDay(m) {
+  if (m.createdAt?.toDate) return m.createdAt.toDate().toISOString().slice(0, 10)
+  if (m.createdAt?._seconds) return new Date(m.createdAt._seconds * 1000).toISOString().slice(0, 10)
+  if (typeof m.createdAt === 'string') return m.createdAt.slice(0, 10)
+  return 'unknown'
+}
 
 export default function AdminMessages() {
   const addToast = useAppStore((s) => s.addToast)
@@ -33,6 +41,20 @@ export default function AdminMessages() {
         </div>
         <Button size="sm" variant="outline" onClick={load} disabled={loading}>Refresh</Button>
       </div>
+
+      <AdminChartCard title="Messages by day" subtitle="Inbox volume from loaded set">
+        <AdminBarChart
+          data={Object.entries(
+            messages.reduce((acc, m) => {
+              const d = messageDay(m)
+              acc[d] = (acc[d] || 0) + 1
+              return acc
+            }, {}),
+          )
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([label, value]) => ({ label, value }))}
+        />
+      </AdminChartCard>
 
       <div className="space-y-3">
         {messages.map((m) => (

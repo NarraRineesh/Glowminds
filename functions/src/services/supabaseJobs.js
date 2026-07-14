@@ -641,3 +641,72 @@ export async function getTopMatchedJobsSupabase({
     partialErrors,
   };
 }
+
+/** Admin: total enriched jobs. */
+export async function getAdminJobStats() {
+  scheduleEnrichedCountRefresh();
+  const cached = getCachedEnrichedCount();
+  if (cached != null) return { total: cached };
+  try {
+    const count = await fetchEnrichedJobCount();
+    if (Number.isFinite(count) && count >= 0) {
+      enrichedCountCache.value = count;
+      enrichedCountCache.at = Date.now();
+      return { total: count };
+    }
+  } catch {
+    // fall through
+  }
+  return { total: 0 };
+}
+
+/** Admin: create a manual listing in Supabase. */
+export async function createAdminJob({
+  title,
+  company = "",
+  location = "",
+  applyUrl = "",
+  employmentType = "",
+  remote = false,
+} = {}) {
+  const cleanTitle = String(title || "").trim();
+  if (!cleanTitle) throw new Error("title is required");
+
+  const now = new Date().toISOString();
+  const externalId = `manual-${Date.now()}`;
+  const id = `manual:glowminds:${externalId}`;
+  const row = {
+    id,
+    ats: "manual",
+    company_slug: "glowminds",
+    external_id: externalId,
+    title: cleanTitle,
+    company: String(company || "").trim() || "Glowminds",
+    location: String(location || "").trim() || "",
+    apply_url: String(applyUrl || "").trim() || "",
+    skills: [],
+    employment_type: String(employmentType || "").trim() || null,
+    remote_type: remote ? "remote" : null,
+    enriched_at: now,
+    updated_at: now,
+    first_published: now,
+    last_seen_at: now,
+    synced_at: now,
+    created_at: now,
+  };
+
+  await supabaseRest("jobs", {
+    method: "POST",
+    body: row,
+    prefer: "return=representation",
+  });
+  return mapSupabaseJob(row);
+}
+
+/** Admin: hard-delete a job from Supabase. */
+export async function deleteAdminJob(jobId) {
+  const id = String(jobId || "").trim();
+  if (!id) throw new Error("jobId is required");
+  await supabaseRest(`jobs?id=eq.${encodeURIComponent(id)}`, { method: "DELETE" });
+  return { ok: true, id };
+}

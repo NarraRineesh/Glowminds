@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { adminApi } from '@/services/adminApi'
 import { Button } from '@/components/ui'
 import useAppStore from '@/store/authStore'
+import { AdminBarChart, AdminChartCard } from './AdminCharts'
 
 export default function AdminCreditUsage() {
   const addToast = useAppStore((s) => s.addToast)
@@ -23,6 +24,11 @@ export default function AdminCreditUsage() {
     load()
   }, [])
 
+  const burnChart = useMemo(
+    () => (data?.byFeature || []).map((f) => ({ label: f.featureKey, value: Math.abs(f.debits || 0) })),
+    [data],
+  )
+
   return (
     <div className="space-y-4">
       <div className="flex items-end justify-between gap-3">
@@ -32,6 +38,10 @@ export default function AdminCreditUsage() {
         </div>
         <Button size="sm" variant="outline" onClick={load} disabled={loading}>Refresh</Button>
       </div>
+
+      <AdminChartCard title="Credits debited by feature" subtitle="Absolute debit volume">
+        <AdminBarChart data={burnChart} color="#dc2626" />
+      </AdminChartCard>
 
       <div className="overflow-x-auto rounded-lg border border-border/70 bg-background">
         <table className="w-full text-left text-sm">

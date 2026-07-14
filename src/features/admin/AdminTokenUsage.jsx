@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { adminApi } from '@/services/adminApi'
 import { Button } from '@/components/ui'
 import useAppStore from '@/store/authStore'
+import { AdminBarChart, AdminChartCard } from './AdminCharts'
 
 export default function AdminTokenUsage() {
   const addToast = useAppStore((s) => s.addToast)
@@ -65,6 +66,21 @@ export default function AdminTokenUsage() {
           <p className="text-xs uppercase text-muted-foreground">Est. cost</p>
           <p className="text-2xl font-semibold tabular-nums">${Number(totals.estimatedCostUsd || 0).toFixed(4)}</p>
         </div>
+      </div>
+
+      <div className="grid gap-3 lg:grid-cols-2">
+        <AdminChartCard title="Daily cost" subtitle="Estimated USD">
+          <AdminBarChart
+            data={list.map((row) => ({ label: row.date, value: Number(row.estimatedCostUsd) || 0 }))}
+            color="#d97706"
+          />
+        </AdminChartCard>
+        <AdminChartCard title="Daily tokens" subtitle="Token volume">
+          <AdminBarChart
+            data={list.map((row) => ({ label: row.date, value: Number(row.totalTokens) || 0 }))}
+            color="#6366f1"
+          />
+        </AdminChartCard>
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-border/70 bg-background">

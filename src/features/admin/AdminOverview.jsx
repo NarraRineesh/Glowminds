@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { adminApi } from '@/services/adminApi'
 import { Button } from '@/components/ui'
 import useAppStore from '@/store/authStore'
+import { AdminBarChart, AdminChartCard, AdminDonut } from './AdminCharts'
 
 function Kpi({ label, value, hint }) {
   return (
@@ -112,40 +113,76 @@ export default function AdminOverview() {
         <Kpi label="Lifetime paid" value={formatInr(d.totalPaidPaise)} />
       </div>
 
-      <div className="rounded-lg border border-border/70 bg-background p-4">
-        <h2 className="text-sm font-semibold">AI by feature (today)</h2>
-        {(d.today?.byTask || []).length === 0 ? (
-          <p className="mt-2 text-sm text-muted-foreground">No AI calls logged today yet.</p>
-        ) : (
-          <ul className="mt-3 divide-y divide-border/60 text-sm">
-            {d.today.byTask.map((row) => (
-              <li key={row.task} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                <span className="font-medium">{row.task}</span>
-                <span className="tabular-nums text-muted-foreground">
-                  {row.calls} calls · ${(row.estimatedCostUsd || 0).toFixed(4)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
+      <div className="grid gap-3 lg:grid-cols-2">
+        <AdminChartCard title="AI cost (30d)" subtitle="Estimated USD by day">
+          <AdminBarChart
+            data={(d.dailySeries || []).map((row) => ({
+              label: row.date,
+              value: Number(row.estimatedCostUsd) || 0,
+            }))}
+            color="#d97706"
+          />
+        </AdminChartCard>
+        <AdminChartCard title="Plan mix" subtitle="Active Pro vs Free">
+          <AdminDonut
+            segments={[
+              { label: 'Pro', value: d.activePro || 0, color: '#0f766e' },
+              { label: 'Free', value: Math.max(0, (d.users || 0) - (d.activePro || 0)), color: '#64748b' },
+            ]}
+          />
+        </AdminChartCard>
       </div>
 
-      <div className="rounded-lg border border-border/70 bg-background p-4">
-        <h2 className="text-sm font-semibold">Last 30 days</h2>
-        <dl className="mt-3 grid gap-2 sm:grid-cols-3 text-sm">
-          <div>
-            <dt className="text-muted-foreground">Calls</dt>
-            <dd className="font-medium tabular-nums">{(d.last30Days?.calls ?? 0).toLocaleString('en-IN')}</dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">Tokens</dt>
-            <dd className="font-medium tabular-nums">{(d.last30Days?.totalTokens ?? 0).toLocaleString('en-IN')}</dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">Est. cost (USD)</dt>
-            <dd className="font-medium tabular-nums">${(d.last30Days?.estimatedCostUsd ?? 0).toFixed(4)}</dd>
-          </div>
-        </dl>
+      <div className="grid gap-3 lg:grid-cols-2">
+        <AdminChartCard title="AI by feature (today)" subtitle="Calls per task">
+          {(d.today?.byTask || []).length === 0 ? (
+            <p className="text-sm text-muted-foreground">No AI calls logged today yet.</p>
+          ) : (
+            <>
+              <AdminBarChart
+                data={d.today.byTask.map((row) => ({
+                  label: row.task,
+                  value: row.calls || 0,
+                }))}
+              />
+              <ul className="mt-3 divide-y divide-border/60 text-sm">
+                {d.today.byTask.map((row) => (
+                  <li key={row.task} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                    <span className="font-medium">{row.task}</span>
+                    <span className="tabular-nums text-muted-foreground">
+                      {row.calls} calls · ${(row.estimatedCostUsd || 0).toFixed(4)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </AdminChartCard>
+
+        <AdminChartCard title="Last 30 days" subtitle="Aggregate usage">
+          <dl className="grid gap-2 sm:grid-cols-3 text-sm">
+            <div>
+              <dt className="text-muted-foreground">Calls</dt>
+              <dd className="font-medium tabular-nums">{(d.last30Days?.calls ?? 0).toLocaleString('en-IN')}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Tokens</dt>
+              <dd className="font-medium tabular-nums">{(d.last30Days?.totalTokens ?? 0).toLocaleString('en-IN')}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Est. cost (USD)</dt>
+              <dd className="font-medium tabular-nums">${(d.last30Days?.estimatedCostUsd ?? 0).toFixed(4)}</dd>
+            </div>
+          </dl>
+          <AdminBarChart
+            className="mt-4"
+            data={(d.dailySeries || []).map((row) => ({
+              label: row.date,
+              value: row.calls || 0,
+            }))}
+            color="#6366f1"
+          />
+        </AdminChartCard>
       </div>
     </div>
   )

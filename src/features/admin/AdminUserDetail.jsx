@@ -128,7 +128,54 @@ export default function AdminUserDetail() {
             Grant monthly
           </Button>
           <Button size="sm" variant="outline" disabled={busy || !user.isPro} onClick={revokePro}>
-            Revoke Pro
+            Revoke Pro / Downgrade
+          </Button>
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-border/70 bg-background p-4 space-y-3">
+        <h2 className="text-sm font-semibold">Account</h2>
+        <p className="text-xs text-muted-foreground">
+          Auth status: {user.auth?.disabled ? 'Disabled' : 'Active'}
+          {user.isAdmin ? ' · Admin' : ''}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={busy || user.isAdmin}
+            onClick={async () => {
+              setBusy(true)
+              try {
+                setUser(await adminApi.setUserDisabled(uid, !user.auth?.disabled))
+                addToast?.('success', user.auth?.disabled ? 'User enabled' : 'User disabled')
+              } catch (err) {
+                addToast?.('error', err.message)
+              } finally {
+                setBusy(false)
+              }
+            }}
+          >
+            {user.auth?.disabled ? 'Enable login' : 'Disable login'}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={busy || user.isAdmin}
+            onClick={async () => {
+              if (!window.confirm('Permanently delete this user?')) return
+              setBusy(true)
+              try {
+                await adminApi.deleteUser(uid)
+                addToast?.('success', 'User deleted')
+                window.location.href = '/admin/users'
+              } catch (err) {
+                addToast?.('error', err.message)
+                setBusy(false)
+              }
+            }}
+          >
+            Delete user
           </Button>
         </div>
       </div>
