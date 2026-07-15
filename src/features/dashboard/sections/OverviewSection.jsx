@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import useAppStore from '@/store/authStore'
 import useJobStore from '@/store/jobStore'
 import useTrackerStore from '@/store/trackerStore'
@@ -327,6 +327,16 @@ export default function OverviewSection() {
         cta: 'Open Profile',
         href: '/dashboard/profile',
         tone: 'prp',
+      }
+    }
+    if ((profileData?.skills?.technical || []).length >= 2) {
+      return {
+        icon: 'graduation',
+        label: 'Close skill gaps for your target role',
+        body: 'Free gap analysis vs role demand, then a credit-powered weekly learning path you can track.',
+        cta: 'Open Upskilling',
+        href: '/dashboard/upskilling',
+        tone: 'grn',
       }
     }
     if (linkedinDone < Math.min(3, linkedinTotal)) {
@@ -698,6 +708,11 @@ export default function OverviewSection() {
           className="h-full"
           titleIcon="fire"
           title={skillTrendsDomain ? `Trending in ${skillTrendsDomain}` : 'Trending skills'}
+          action={
+            <Link to="/dashboard/upskilling" className="text-xs font-medium text-primary hover:underline">
+              Upskill →
+            </Link>
+          }
           contentClassName="grid gap-2 sm:grid-cols-2"
         >
           {skillTrendsLoading ? (

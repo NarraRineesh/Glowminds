@@ -41,6 +41,10 @@ export function creditLedgerCol() {
   return getFirestore().collection("creditLedger");
 }
 
+export function learningPathRef(uid) {
+  return getFirestore().collection("learningPaths").doc(uid);
+}
+
 export async function readSubscription(uid) {
   const subSnap = await subscriptionRef(uid).get();
   return subSnap.exists ? subSnap.data() : null;

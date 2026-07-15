@@ -156,7 +156,7 @@ const TOOLS = [
   { ico: 'linkedin', title: 'LinkedIn Optimizer', desc: 'Optimize your headline, summary & skills for maximum recruiter visibility.', bg: 'rgba(56,139,253,.08)' },
   { ico: 'cover-letters', title: 'Cold Email Drafter', desc: 'Craft professional outreach emails to recruiters and hiring managers.', bg: 'rgba(244,114,182,.08)' },
   { ico: 'pencil', title: 'Essay & SOP Writer', desc: 'Generate structured essays, SOPs, and personal statements for admissions.', bg: 'rgba(168,85,247,.08)' },
-  { ico: 'calendar', title: 'Study Planner', desc: 'AI builds personalized study schedules based on your skill gaps and goals.', bg: 'rgba(34,197,94,.08)' },
+  { ico: 'calendar', title: 'Skill Gap & Learning Path', desc: 'See missing skills for your target role, then get a weekly AI study plan you can track.', bg: 'rgba(34,197,94,.08)' },
   { ico: 'code', title: 'Code Reviewer', desc: 'Get AI feedback on code quality, bugs, performance, and best practices.', bg: 'rgba(251,146,60,.08)' },
 ]
 

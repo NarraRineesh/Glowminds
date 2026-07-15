@@ -43,6 +43,7 @@ export const DEFAULT_PRICING_CONFIG = {
     linkedinAudit: 2,
     jobFit: 3,
     salaryNegotiate: 2,
+    learningPath: 3,
   },
   pricing: {
     free: {

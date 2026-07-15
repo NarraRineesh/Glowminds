@@ -14,6 +14,7 @@ export const FREE_CREDIT_FEATURES = new Set([
   "paraphrase",
   "profileReview",
   "linkedinAudit",
+  "learningPath",
 ]);
 
 export const PRO_FEATURE_LABELS = {
@@ -25,4 +26,5 @@ export const PRO_FEATURE_LABELS = {
   salaryNegotiate: "Salary Negotiation Script",
   topMatches: "Smart Job Matching",
   salaryInsights: "Salary Insights",
+  learningPath: "AI Learning Path",
 };

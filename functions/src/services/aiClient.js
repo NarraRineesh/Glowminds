@@ -110,6 +110,13 @@ const TASKS = {
     maxTokens: 2048,
     json: true,
   },
+  "learning-path": {
+    primary: PROVIDERS.GEMINI_FLASH_LITE,
+    fallback: PROVIDERS.OPENROUTER,
+    temperature: 0.45,
+    maxTokens: 4096,
+    json: true,
+  },
 };
 
 function taskConfig(task) {

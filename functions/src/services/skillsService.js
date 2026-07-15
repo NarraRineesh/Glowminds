@@ -455,6 +455,112 @@ function formatGrowth(value) {
   return `${sign}${Math.round(n)}%`;
 }
 
+function userHasSkill(userSkillSet, candidateName) {
+  const key = normalizeSkillToken(candidateName);
+  if (!key) return false;
+  if (userSkillSet.has(key)) return true;
+  for (const owned of userSkillSet) {
+    if (owned.includes(key) || key.includes(owned)) return true;
+  }
+  return false;
+}
+
+function resolveCategoriesFromRole(targetRole = "") {
+  const counts = inferCategoryCountsFromText(targetRole);
+  const ranked = [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([category]) => category);
+  if (ranked.length) return ranked.slice(0, 3);
+  if (/\b(sde|software|engineer|developer|fresher|intern)\b/i.test(targetRole)) {
+    return DEFAULT_ENGINEERING_CATEGORIES.slice(0, 2);
+  }
+  return DEFAULT_ENGINEERING_CATEGORIES.slice(0, 2);
+}
+
+/**
+ * Free skill-gap analysis: profile skills vs what the target role typically needs.
+ * Uses the in-memory skill dictionary + seed lists — no AI, no heavy DB scan.
+ */
+export async function getSkillGap({ profile = {}, targetRole = "" } = {}) {
+  const role = String(targetRole || profile.headline || "").trim() || "Software Engineer";
+  const categories = resolveCategoriesFromRole(role);
+  const userSkills = [
+    ...(profile.skills?.technical || []),
+    ...(profile.skills?.soft || []),
+  ]
+    .map(normalizeSkillToken)
+    .filter(Boolean);
+  const userSkillSet = new Set(userSkills);
+
+  const seedNames = new Set(buildDomainSeeds({}, categories));
+  const dict = await getSkillDictionary();
+
+  // Prefer dictionary rows in the role's categories (with demand data).
+  const byName = new Map();
+  for (const row of dict.skills || []) {
+    const name = normalizeSkillToken(row.name);
+    if (!name || isNoiseSkill(name)) continue;
+    const inCategory = categories.includes(row.category);
+    const inSeeds = seedNames.has(name);
+    if (!inCategory && !inSeeds) continue;
+    const prev = byName.get(name);
+    if (!prev || (row.job_count || 0) > (prev.job_count || 0)) {
+      byName.set(name, row);
+    }
+  }
+  // Ensure every seed appears even if the dictionary missed it.
+  for (const seed of seedNames) {
+    if (!byName.has(seed)) {
+      byName.set(seed, {
+        name: seed,
+        category: categories[0] || "Other",
+        job_count: 0,
+        trend_score: 0,
+        importance_score: 50,
+      });
+    }
+  }
+
+  const ranked = [...byName.values()]
+    .sort(
+      (a, b) =>
+        (b.job_count || 0) - (a.job_count || 0) ||
+        (b.importance_score || 0) - (a.importance_score || 0),
+    )
+    .slice(0, 30);
+
+  const haveSkills = [];
+  const missingSkills = [];
+  for (const row of ranked) {
+    const entry = {
+      name: formatSkillLabel(row.name),
+      category: row.category || "Other",
+      jobCount: row.job_count || 0,
+      growth: formatGrowth(row.trend_score),
+      importanceScore: row.importance_score || 50,
+    };
+    if (userHasSkill(userSkillSet, row.name)) haveSkills.push(entry);
+    else missingSkills.push(entry);
+  }
+
+  const coverage =
+    ranked.length === 0
+      ? 0
+      : Math.round((haveSkills.length / ranked.length) * 100);
+
+  return {
+    targetRole: role,
+    domain: {
+      categories,
+      label: formatDomainLabel(categories),
+    },
+    coverage,
+    haveSkills: haveSkills.slice(0, 16),
+    missingSkills: missingSkills.slice(0, 16),
+    profileSkillCount: userSkills.length,
+  };
+}
+
 // Warm the skill dictionary at cold start so the first autocomplete is instant.
 if (isSupabaseEnabled()) {
   refreshSkillDictionary();

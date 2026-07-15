@@ -39,6 +39,7 @@ const SalaryInsightsSection = lazy(() => import('@/features/dashboard/sections/S
 const SettingsSection = lazy(() => import('@/features/dashboard/sections/SettingsSection'))
 const GrammarCheckSection = lazy(() => import('@/features/dashboard/sections/GrammarCheckSection'))
 const ParaphrasingSection = lazy(() => import('@/features/dashboard/sections/ParaphrasingSection'))
+const UpskillingSection = lazy(() => import('@/features/dashboard/sections/UpskillingSection'))
 const AdminShell = lazy(() => import('@/features/admin/AdminShell'))
 const AdminOverview = lazy(() => import('@/features/admin/AdminOverview'))
 const AdminUsers = lazy(() => import('@/features/admin/AdminUsers'))
@@ -147,6 +148,11 @@ function AnimatedRoutes() {
         <Route path="paraphrase" element={
           <Suspense fallback={<PageLoader />}>
             <ParaphrasingSection />
+          </Suspense>
+        } />
+        <Route path="upskilling" element={
+          <Suspense fallback={<PageLoader />}>
+            <UpskillingSection />
           </Suspense>
         } />
       </Route>

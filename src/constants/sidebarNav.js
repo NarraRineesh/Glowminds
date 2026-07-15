@@ -27,6 +27,7 @@ export const SIDEBAR_GROUPS = [
     defaultOpen: true,
     items: [
       { path: '/dashboard/interview', icon: 'interview', label: 'Interview Prep' },
+      { path: '/dashboard/upskilling', icon: 'graduation', label: 'Upskilling' },
     ],
   },
   {
