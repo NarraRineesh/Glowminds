@@ -45,6 +45,14 @@ export function learningPathRef(uid) {
   return getFirestore().collection("learningPaths").doc(uid);
 }
 
+export function learningPathsCol(uid) {
+  return learningPathRef(uid).collection("paths");
+}
+
+export function learningPathVersionRef(uid, pathId) {
+  return learningPathsCol(uid).doc(pathId);
+}
+
 export async function readSubscription(uid) {
   const subSnap = await subscriptionRef(uid).get();
   return subSnap.exists ? subSnap.data() : null;

@@ -114,6 +114,11 @@ function getGreeting() {
   return 'Good Evening'
 }
 
+// Trends change daily at best — survive remounts instead of refetching on
+// every visit to Overview.
+const SKILL_TRENDS_TTL_MS = 5 * 60 * 1000
+const skillTrendsModuleCache = { key: null, trends: [], domain: null, expiresAt: 0 }
+
 export default function OverviewSection() {
   const navigate = useNavigate()
   const { user } = useAppStore()
@@ -200,10 +205,25 @@ export default function OverviewSection() {
   }, [profileData?.headline, profileData?.skills?.technical, profileData?.experience])
 
   useEffect(() => {
+    // Wait for the profile so the key doesn't flip empty→loaded and double-fire.
+    if (!profileLoaded) return undefined
+
+    const cached = skillTrendsModuleCache
+    if (cached.key === skillTrendsProfileKey && cached.expiresAt > Date.now()) {
+      setSkillTrends(cached.trends)
+      setSkillTrendsDomain(cached.domain)
+      setSkillTrendsLoading(false)
+      return undefined
+    }
+
     let cancelled = false
     setSkillTrendsLoading(true)
     getSkillTrends({ limit: 6, mode: 'growth' })
       .then(({ trends = [], domain = null }) => {
+        skillTrendsModuleCache.key = skillTrendsProfileKey
+        skillTrendsModuleCache.trends = trends
+        skillTrendsModuleCache.domain = domain?.label || null
+        skillTrendsModuleCache.expiresAt = Date.now() + SKILL_TRENDS_TTL_MS
         if (!cancelled) {
           setSkillTrends(trends)
           setSkillTrendsDomain(domain?.label || null)
@@ -219,7 +239,7 @@ export default function OverviewSection() {
         if (!cancelled) setSkillTrendsLoading(false)
       })
     return () => { cancelled = true }
-  }, [skillTrendsProfileKey])
+  }, [profileLoaded, skillTrendsProfileKey])
 
   const recentApps = apps.slice(0, 4)
   const firstName = user?.firstName || user?.displayName?.split(' ')[0] || 'Student'

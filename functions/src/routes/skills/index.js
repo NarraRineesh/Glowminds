@@ -4,8 +4,12 @@ import { requireCredits } from "../../middleware/requireCredits.js";
 import { ApiError } from "../../middleware/errors.js";
 import { getPersonalizedSkillTrends, getSkillGap, searchSkills } from "../../services/skillsService.js";
 import {
+  activateLearningPath,
+  deleteLearningPath,
   generateLearningPath,
   getLearningPath,
+  getLearningPathById,
+  listLearningPathHistory,
   updateLearningPathProgress,
 } from "../../services/learningPathService.js";
 import { loadProfileContext } from "../../services/jobSearch.js";
@@ -96,6 +100,41 @@ router.patch("/learning-path/progress", requireAuth, async (req, res, next) => {
     const { itemId, done } = req.body || {};
     const result = await updateLearningPathProgress(req.user.uid, { itemId, done });
     res.json(result);
+  } catch (err) {
+    next(err instanceof ApiError ? err : new ApiError("internal", err.message));
+  }
+});
+
+router.get("/learning-path/history", requireAuth, async (req, res, next) => {
+  try {
+    const paths = await listLearningPathHistory(req.user.uid, { limit: req.query.limit });
+    res.json({ paths });
+  } catch (err) {
+    next(err instanceof ApiError ? err : new ApiError("internal", err.message));
+  }
+});
+
+router.get("/learning-path/:pathId", requireAuth, async (req, res, next) => {
+  try {
+    const path = await getLearningPathById(req.user.uid, req.params.pathId);
+    res.json({ path });
+  } catch (err) {
+    next(err instanceof ApiError ? err : new ApiError("internal", err.message));
+  }
+});
+
+router.post("/learning-path/:pathId/resume", requireAuth, async (req, res, next) => {
+  try {
+    const path = await activateLearningPath(req.user.uid, req.params.pathId);
+    res.json({ path });
+  } catch (err) {
+    next(err instanceof ApiError ? err : new ApiError("internal", err.message));
+  }
+});
+
+router.delete("/learning-path/:pathId", requireAuth, async (req, res, next) => {
+  try {
+    res.json(await deleteLearningPath(req.user.uid, req.params.pathId));
   } catch (err) {
     next(err instanceof ApiError ? err : new ApiError("internal", err.message));
   }

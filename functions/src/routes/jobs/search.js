@@ -70,14 +70,17 @@ async function handleBoardSearch(req, res, next) {
 
     let profile = null;
     if (filters.minMatch != null && filters.minMatch > 0) {
-      const sub = await readSubscription(req.user.uid);
+      const [sub, profileCtx] = await Promise.all([
+        readSubscription(req.user.uid),
+        loadProfileContext(req.user.uid),
+      ]);
       if (!hasProAccess(sub)) {
         throw new ApiError(
           "permission-denied",
           "Glowminds Pro is required for smart job matching filters.",
         );
       }
-      ({ profile } = await loadProfileContext(req.user.uid));
+      profile = profileCtx.profile;
     }
 
     const { jobs, pagination, sources, partialErrors, meta } = await searchBoardJobs({

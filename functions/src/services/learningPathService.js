@@ -4,10 +4,114 @@ import { admin } from "../config/firebase.js";
 import { ApiError } from "../middleware/errors.js";
 import { completionTask } from "./aiClient.js";
 import { stripJsonFences } from "../utils/stripJsonFences.js";
-import { learningPathRef } from "./userCollections.js";
+import {
+  learningPathRef,
+  learningPathsCol,
+  learningPathVersionRef,
+} from "./userCollections.js";
 
 const MAX_FOCUS_SKILLS = 6;
 const LEVELS = new Set(["beginner", "intermediate", "advanced"]);
+const MAX_HISTORY = 50;
+const PATH_ID_RE = /^[A-Za-z0-9_-]{1,128}$/;
+
+function assertPathId(pathId) {
+  const id = String(pathId || "").trim();
+  if (!PATH_ID_RE.test(id)) {
+    throw new ApiError("invalid-argument", "A valid learning path ID is required");
+  }
+  return id;
+}
+
+function isoDate(value) {
+  return value?.toDate?.()?.toISOString?.() || value || null;
+}
+
+function calculateProgress(weeks = []) {
+  const items = weeks.flatMap((week) => week.items || []);
+  const total = items.length;
+  const completed = items.filter((item) => item.done).length;
+  return {
+    completed,
+    total,
+    percent: total ? Math.round((completed / total) * 100) : 0,
+  };
+}
+
+function serializePath(data = {}) {
+  return {
+    ...data,
+    pathId: data.pathId || data.id || null,
+    progress: data.progress || calculateProgress(data.weeks || []),
+    createdAt: isoDate(data.createdAt),
+    updatedAt: isoDate(data.updatedAt),
+    activatedAt: isoDate(data.activatedAt),
+    archivedAt: isoDate(data.archivedAt),
+  };
+}
+
+function pathSummary(data = {}) {
+  const path = serializePath(data);
+  return {
+    pathId: path.pathId,
+    targetRole: path.targetRole || "",
+    focusSkills: path.focusSkills || [],
+    hoursPerWeek: path.hoursPerWeek || 8,
+    level: path.level || "beginner",
+    status: path.status || "archived",
+    progress: path.progress,
+    createdAt: path.createdAt,
+    updatedAt: path.updatedAt,
+    activatedAt: path.activatedAt,
+  };
+}
+
+// Migrated users hit only the cheap read; the transaction runs once per
+// legacy (pre-history) document and never again.
+const migratedUids = new Set();
+
+async function migrateLegacyActivePath(uid) {
+  const activeRef = learningPathRef(uid);
+
+  if (migratedUids.has(uid)) {
+    const snap = await activeRef.get();
+    return snap.exists ? snap.data() || {} : null;
+  }
+
+  const snap = await activeRef.get();
+  if (!snap.exists) return null;
+  const current = snap.data() || {};
+  if (current.pathId) {
+    migratedUids.add(uid);
+    return current;
+  }
+
+  const migrated = await activeRef.firestore.runTransaction(async (transaction) => {
+    const txSnap = await transaction.get(activeRef);
+    if (!txSnap.exists) return null;
+    const data = txSnap.data() || {};
+    if (data.pathId) return data;
+
+    const versionRef = learningPathsCol(uid).doc();
+    const now = admin.firestore.FieldValue.serverTimestamp();
+    const next = {
+      ...data,
+      userId: uid,
+      pathId: versionRef.id,
+      status: "active",
+      schemaVersion: 2,
+      progress: calculateProgress(data.weeks || []),
+      updatedAt: now,
+      activatedAt: now,
+    };
+    transaction.set(versionRef, next, { merge: false });
+    transaction.set(activeRef, next, { merge: false });
+    const nowIso = new Date().toISOString();
+    return { ...next, updatedAt: nowIso, activatedAt: nowIso };
+  });
+  migratedUids.add(uid);
+  return migrated;
+}
 
 function clampHours(value) {
   const n = Number(value);
@@ -165,79 +269,186 @@ Rules:
     throw new ApiError("internal", "AI returned an empty learning path. Please try again.");
   }
 
-  const now = new Date().toISOString();
+  const nowIso = new Date().toISOString();
+  const versionRef = learningPathsCol(uid).doc();
   const doc = {
     userId: uid,
+    pathId: versionRef.id,
+    status: "active",
+    schemaVersion: 2,
     ...plan,
-    createdAt: now,
-    updatedAt: now,
+    progress: calculateProgress(plan.weeks),
+    createdAt: nowIso,
+    updatedAt: nowIso,
+    activatedAt: nowIso,
   };
 
-  await learningPathRef(uid).set(
-    {
+  const activeRef = learningPathRef(uid);
+  await activeRef.firestore.runTransaction(async (transaction) => {
+    const currentSnap = await transaction.get(activeRef);
+    const timestamp = admin.firestore.FieldValue.serverTimestamp();
+
+    if (currentSnap.exists) {
+      const current = currentSnap.data() || {};
+      const oldRef = current.pathId
+        ? learningPathVersionRef(uid, current.pathId)
+        : learningPathsCol(uid).doc();
+      transaction.set(oldRef, {
+        ...current,
+        userId: uid,
+        pathId: oldRef.id,
+        status: "archived",
+        schemaVersion: 2,
+        progress: calculateProgress(current.weeks || []),
+        archivedAt: timestamp,
+      }, { merge: false });
+    }
+
+    const stored = {
       ...doc,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    },
-    { merge: false },
-  );
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      activatedAt: timestamp,
+    };
+    transaction.set(versionRef, stored, { merge: false });
+    transaction.set(activeRef, stored, { merge: false });
+  });
 
   return doc;
 }
 
 export async function getLearningPath(uid) {
-  const snap = await learningPathRef(uid).get();
-  if (!snap.exists) return null;
-  const data = snap.data() || {};
-  return {
-    ...data,
-    createdAt: data.createdAt?.toDate?.()?.toISOString?.() || data.createdAt || null,
-    updatedAt: data.updatedAt?.toDate?.()?.toISOString?.() || data.updatedAt || null,
-  };
+  const data = await migrateLegacyActivePath(uid);
+  if (!data) return null;
+  return serializePath(data);
 }
 
 export async function updateLearningPathProgress(uid, { itemId, done } = {}) {
   const id = String(itemId || "").trim();
   if (!id) throw new ApiError("invalid-argument", "itemId is required");
+  if (typeof done !== "boolean") {
+    throw new ApiError("invalid-argument", "done must be a boolean");
+  }
 
   const ref = learningPathRef(uid);
-  const snap = await ref.get();
-  if (!snap.exists) throw new ApiError("not-found", "No learning path found. Generate one first.");
+  return ref.firestore.runTransaction(async (transaction) => {
+    const snap = await transaction.get(ref);
+    if (!snap.exists) {
+      throw new ApiError("not-found", "No learning path found. Generate one first.");
+    }
 
-  const data = snap.data() || {};
-  const weeks = Array.isArray(data.weeks) ? data.weeks : [];
-  let found = false;
-  const nextWeeks = weeks.map((week) => ({
-    ...week,
-    items: (week.items || []).map((item) => {
-      if (item.id !== id) return item;
-      found = true;
-      return { ...item, done: Boolean(done) };
-    }),
-  }));
+    const data = snap.data() || {};
+    const weeks = Array.isArray(data.weeks) ? data.weeks : [];
+    let found = false;
+    const nextWeeks = weeks.map((week) => ({
+      ...week,
+      items: (week.items || []).map((item) => {
+        if (item.id !== id) return item;
+        found = true;
+        return { ...item, done };
+      }),
+    }));
+    if (!found) throw new ApiError("not-found", "Learning path item not found");
 
-  if (!found) throw new ApiError("not-found", "Learning path item not found");
-
-  await ref.set(
-    {
+    const progress = calculateProgress(nextWeeks);
+    const update = {
       weeks: nextWeeks,
+      progress,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    },
-    { merge: true },
-  );
+    };
+    transaction.set(ref, update, { merge: true });
+    if (data.pathId) {
+      transaction.set(learningPathVersionRef(uid, data.pathId), update, { merge: true });
+    }
+    return { weeks: nextWeeks, progress };
+  });
+}
 
-  const total = nextWeeks.reduce((n, w) => n + (w.items || []).length, 0);
-  const completed = nextWeeks.reduce(
-    (n, w) => n + (w.items || []).filter((i) => i.done).length,
-    0,
-  );
+export async function listLearningPathHistory(uid, { limit = 20 } = {}) {
+  await migrateLegacyActivePath(uid);
+  const safeLimit = Math.min(MAX_HISTORY, Math.max(1, Number(limit) || 20));
+  const snap = await learningPathsCol(uid)
+    .orderBy("createdAt", "desc")
+    .limit(safeLimit)
+    .get();
+  return snap.docs.map((doc) => pathSummary({ pathId: doc.id, ...doc.data() }));
+}
 
-  return {
-    weeks: nextWeeks,
-    progress: {
-      completed,
-      total,
-      percent: total ? Math.round((completed / total) * 100) : 0,
-    },
-  };
+export async function getLearningPathById(uid, pathId) {
+  const id = assertPathId(pathId);
+  await migrateLegacyActivePath(uid);
+  const snap = await learningPathVersionRef(uid, id).get();
+  if (!snap.exists) throw new ApiError("not-found", "Learning path not found");
+  return serializePath({ pathId: snap.id, ...snap.data() });
+}
+
+export async function activateLearningPath(uid, pathId) {
+  const id = assertPathId(pathId);
+  await migrateLegacyActivePath(uid);
+  const activeRef = learningPathRef(uid);
+  const selectedRef = learningPathVersionRef(uid, id);
+
+  return activeRef.firestore.runTransaction(async (transaction) => {
+    const [activeSnap, selectedSnap] = await Promise.all([
+      transaction.get(activeRef),
+      transaction.get(selectedRef),
+    ]);
+    if (!selectedSnap.exists) throw new ApiError("not-found", "Learning path not found");
+
+    const selected = selectedSnap.data() || {};
+    const selectedWithoutArchive = { ...selected };
+    delete selectedWithoutArchive.archivedAt;
+    const timestamp = admin.firestore.FieldValue.serverTimestamp();
+    const current = activeSnap.exists ? activeSnap.data() || {} : null;
+    if (current?.pathId && current.pathId !== id) {
+      transaction.set(learningPathVersionRef(uid, current.pathId), {
+        status: "archived",
+        archivedAt: timestamp,
+      }, { merge: true });
+    }
+
+    const activated = {
+      ...selectedWithoutArchive,
+      userId: uid,
+      pathId: id,
+      status: "active",
+      schemaVersion: 2,
+      updatedAt: timestamp,
+      activatedAt: timestamp,
+    };
+    transaction.set(selectedRef, {
+      ...activated,
+      archivedAt: admin.firestore.FieldValue.delete(),
+    }, { merge: true });
+    transaction.set(activeRef, activated, { merge: false });
+
+    return serializePath({
+      ...selected,
+      pathId: id,
+      status: "active",
+      updatedAt: new Date().toISOString(),
+      activatedAt: new Date().toISOString(),
+      archivedAt: null,
+    });
+  });
+}
+
+export async function deleteLearningPath(uid, pathId) {
+  const id = assertPathId(pathId);
+  await migrateLegacyActivePath(uid);
+  const activeRef = learningPathRef(uid);
+  const selectedRef = learningPathVersionRef(uid, id);
+
+  await activeRef.firestore.runTransaction(async (transaction) => {
+    const [activeSnap, selectedSnap] = await Promise.all([
+      transaction.get(activeRef),
+      transaction.get(selectedRef),
+    ]);
+    if (!selectedSnap.exists) throw new ApiError("not-found", "Learning path not found");
+    if (activeSnap.exists && activeSnap.data()?.pathId === id) {
+      transaction.delete(activeRef);
+    }
+    transaction.delete(selectedRef);
+  });
+  return { ok: true, id };
 }

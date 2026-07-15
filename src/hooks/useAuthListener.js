@@ -18,13 +18,21 @@ export default function useAuthListener() {
       // A new auth state means whatever stale 401 we logged out of is over.
       resetUnauthorizedGuard()
       if (firebaseUser) {
-        let isAdmin = false
-        try {
-          const token = await firebaseUser.getIdTokenResult()
-          isAdmin = token?.claims?.isAdmin === true
-        } catch {
-          isAdmin = false
-        }
+        // Token claims and the users/{uid} doc are independent — fetching them
+        // sequentially doubled the auth-boot time that gates first dashboard render.
+        const [isAdmin, userDoc] = await Promise.all([
+          firebaseUser
+            .getIdTokenResult()
+            .then((token) => token?.claims?.isAdmin === true)
+            .catch(() => false),
+          useProfileStore
+            .getState()
+            .load({ force: true })
+            .catch((e) => {
+              console.warn('useAuthListener: failed to load user doc', e)
+              return null
+            }),
+        ])
 
         const baseUser = {
           uid: firebaseUser.uid,
@@ -34,16 +42,6 @@ export default function useAuthListener() {
           firstName: firebaseUser.displayName?.split(' ')[0] || '',
           lastName: firebaseUser.displayName?.split(' ').slice(1).join(' ') || '',
           isAdmin,
-        }
-
-        // Single users/{uid} read — load it through profileStore so the rest
-        // of the app shares the same cached snapshot. Previously we also did
-        // a direct getDoc here, doubling the read cost of every login/refresh.
-        let userDoc = null
-        try {
-          userDoc = await useProfileStore.getState().load({ force: true })
-        } catch (e) {
-          console.warn('useAuthListener: failed to load user doc', e)
         }
 
         if (userDoc) {

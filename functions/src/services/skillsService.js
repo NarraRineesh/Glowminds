@@ -203,6 +203,28 @@ function mapTrendRow(row) {
   };
 }
 
+/**
+ * Per-seed cache of job skills arrays. Co-occurrence needs up to 4 Supabase
+ * queries per /skills/trends hit; the underlying data changes slowly, so
+ * caching per seed skill removes almost all of them while user-specific
+ * filtering still happens in memory below.
+ */
+const seedRowsCache = new Map();
+const SEED_ROWS_TTL_MS = 10 * 60 * 1000;
+const SEED_ROWS_MAX_ENTRIES = 500;
+
+async function fetchSeedSkillRows(skill) {
+  const hit = seedRowsCache.get(skill);
+  if (hit && hit.expiresAt > Date.now()) return hit.rows;
+
+  const rows = await supabaseRest(
+    `jobs?select=skills&enriched_at=not.is.null&skills=cs.${encodeURIComponent(JSON.stringify([skill]))}&limit=60`,
+  );
+  if (seedRowsCache.size >= SEED_ROWS_MAX_ENTRIES) seedRowsCache.clear();
+  seedRowsCache.set(skill, { rows: rows || [], expiresAt: Date.now() + SEED_ROWS_TTL_MS });
+  return rows || [];
+}
+
 async function getCooccurringSkillTrends(seedSkills, { exclude = new Set(), limit = 8 } = {}) {
   const freq = new Map();
   const seeds = seedSkills.map(normalizeSkillToken).filter(Boolean).slice(0, 4);
@@ -210,10 +232,8 @@ async function getCooccurringSkillTrends(seedSkills, { exclude = new Set(), limi
 
   await Promise.all(seeds.map(async (skill) => {
     try {
-      const rows = await supabaseRest(
-        `jobs?select=skills&enriched_at=not.is.null&skills=cs.${encodeURIComponent(JSON.stringify([skill]))}&limit=60`,
-      );
-      for (const row of rows || []) {
+      const rows = await fetchSeedSkillRows(skill);
+      for (const row of rows) {
         for (const raw of row.skills || []) {
           const name = normalizeSkillToken(raw);
           if (!name || exclude.has(name) || seeds.includes(name) || isNoiseSkill(name)) continue;

@@ -57,21 +57,28 @@ function isFreeCreditsInflated(credits, freeGrant) {
   );
 }
 
-/** Initialize free-tier credits on first access; cap client-seeded inflation. */
-export async function grantFreeTierIfNeeded(uid, pricing) {
+/**
+ * Initialize free-tier credits on first access; cap client-seeded inflation.
+ * Pass `preloaded` ({ sub, credits, entitlements }) when the caller already
+ * read those docs, so the hot path costs zero extra round trips.
+ * Returns true when the provisioning transaction actually ran.
+ */
+export async function grantFreeTierIfNeeded(uid, pricing, preloaded = null) {
   const freeGrant = pricing.freeLimits?.aiCredits ?? 10;
   const ref = userCreditsRef(uid);
-  const [sub, existingCredits, existingEnt] = await Promise.all([
-    readSubscription(uid),
-    readCredits(uid),
-    readEntitlements(uid),
-  ]);
+  const [sub, existingCredits, existingEnt] = preloaded
+    ? [preloaded.sub, preloaded.credits, preloaded.entitlements]
+    : await Promise.all([
+        readSubscription(uid),
+        readCredits(uid),
+        readEntitlements(uid),
+      ]);
   const trustedPro = isTrustedProSubscription(sub);
 
   // Hot path: already provisioned and not inflated — skip Firestore transaction.
   if (existingCredits && existingEnt) {
-    if (trustedPro) return;
-    if (!isFreeCreditsInflated(existingCredits, freeGrant)) return;
+    if (trustedPro) return false;
+    if (!isFreeCreditsInflated(existingCredits, freeGrant)) return false;
   }
 
   await getFirestore().runTransaction(async (tx) => {
@@ -127,14 +134,18 @@ export async function grantFreeTierIfNeeded(uid, pricing) {
       { merge: true },
     );
   });
+  return true;
 }
 
-/** Lazy monthly reset for free-tier credits. */
-export async function resetFreePeriodIfNeeded(uid, pricing) {
+/**
+ * Lazy monthly reset for free-tier credits.
+ * Pass `preloaded.sub` to skip the subscription read when already fetched.
+ */
+export async function resetFreePeriodIfNeeded(uid, pricing, preloaded = null) {
   const freeGrant = pricing.freeLimits?.aiCredits ?? 10;
   const ref = userCreditsRef(uid);
   const now = new Date();
-  const sub = await readSubscription(uid);
+  const sub = preloaded?.sub !== undefined ? preloaded.sub : await readSubscription(uid);
   if (isTrustedProSubscription(sub) || hasProAccess(sub)) return;
 
   await getFirestore().runTransaction(async (tx) => {
@@ -179,8 +190,11 @@ export async function resetFreePeriodIfNeeded(uid, pricing) {
   });
 }
 
-/** Lazy monthly reset for active Pro subscribers. */
-export async function resetProPeriodIfNeeded(uid, pricing) {
+/**
+ * Lazy monthly reset for active Pro subscribers.
+ * Pass `preloaded.sub` to skip the subscription read when already fetched.
+ */
+export async function resetProPeriodIfNeeded(uid, pricing, preloaded = null) {
   const proMonthly = pricing.proLimits?.aiCreditsPerMonth ?? 100;
   const ref = userCreditsRef(uid);
   const now = new Date();
@@ -189,7 +203,9 @@ export async function resetProPeriodIfNeeded(uid, pricing) {
     const snap = await tx.get(ref);
     if (!snap.exists) return;
 
-    const sub = await readSubscription(uid);
+    const sub = preloaded?.sub !== undefined
+      ? preloaded.sub
+      : await readSubscription(uid);
     if (!isTrustedProSubscription(sub)) return;
 
     const credits = snap.data() || {};
@@ -245,26 +261,36 @@ export async function getEntitlements(uid) {
   if (cached && cached.expiresAt > Date.now()) return cached.data;
 
   const pricing = await getPricingConfig();
-  await grantFreeTierIfNeeded(uid, pricing);
 
-  const [sub, creditsBefore] = await Promise.all([readSubscription(uid), readCredits(uid)]);
+  const [sub, creditsBefore, entitlementsBefore, applicationCount] = await Promise.all([
+    readSubscription(uid),
+    readCredits(uid),
+    readEntitlements(uid),
+    getApplicationCountCached(uid),
+  ]);
+  const provisioned = await grantFreeTierIfNeeded(uid, pricing, {
+    sub,
+    credits: creditsBefore,
+    entitlements: entitlementsBefore,
+  });
+
   const isPro = hasProAccess(sub);
   const now = new Date();
   const periodEnd = parseIso(creditsBefore?.periodEnd);
   const needsPeriodReset = !periodEnd || periodEnd <= now;
 
-  if (needsPeriodReset) {
-    if (isPro) await resetProPeriodIfNeeded(uid, pricing);
-    else await resetFreePeriodIfNeeded(uid, pricing);
+  if (needsPeriodReset && creditsBefore) {
+    if (isPro) await resetProPeriodIfNeeded(uid, pricing, { sub });
+    else await resetFreePeriodIfNeeded(uid, pricing, { sub });
   }
 
   const freeGrant = pricing.freeLimits?.aiCredits ?? 10;
   const proMonthly = pricing.proLimits?.aiCreditsPerMonth ?? 100;
 
-  const [creditsRaw, entitlements, applicationCount] = await Promise.all([
-    needsPeriodReset ? readCredits(uid) : Promise.resolve(creditsBefore),
-    readEntitlements(uid),
-    getApplicationCountCached(uid),
+  const mutated = provisioned || (needsPeriodReset && Boolean(creditsBefore));
+  const [creditsRaw, entitlements] = await Promise.all([
+    mutated ? readCredits(uid) : Promise.resolve(creditsBefore),
+    provisioned ? readEntitlements(uid) : Promise.resolve(entitlementsBefore),
   ]);
   const credits = creditsRaw || defaultCredits(freeGrant, { withPeriod: !isPro });
   const storedBalance = typeof credits.balance === "number" ? credits.balance : (isPro ? proMonthly : freeGrant);
@@ -298,17 +324,34 @@ export async function getEntitlements(uid) {
 
 export async function ensureCreditsForFeature(uid, featureKey, pricing) {
   const config = pricing || (await getPricingConfig());
-  await grantFreeTierIfNeeded(uid, config);
 
-  const sub = await readSubscription(uid);
+  const [sub, creditsBefore, entitlementsBefore] = await Promise.all([
+    readSubscription(uid),
+    readCredits(uid),
+    readEntitlements(uid),
+  ]);
+  const provisioned = await grantFreeTierIfNeeded(uid, config, {
+    sub,
+    credits: creditsBefore,
+    entitlements: entitlementsBefore,
+  });
+
+  // Period resets are rare (monthly); only pay for the transaction when due.
   const isPro = hasProAccess(sub);
-  if (isPro) await resetProPeriodIfNeeded(uid, config);
-  else await resetFreePeriodIfNeeded(uid, config);
+  const periodEnd = parseIso(creditsBefore?.periodEnd);
+  const needsPeriodReset = Boolean(creditsBefore) && (!periodEnd || periodEnd <= new Date());
+  if (needsPeriodReset) {
+    if (isPro) await resetProPeriodIfNeeded(uid, config, { sub });
+    else await resetFreePeriodIfNeeded(uid, config, { sub });
+  }
 
   const cost = getFeatureCreditCost(config, featureKey);
   if (cost <= 0) return { allowed: true, cost: 0, balance: null };
 
-  const credits = (await readCredits(uid)) || defaultCredits(config.freeLimits?.aiCredits ?? 10);
+  const mutated = provisioned || needsPeriodReset;
+  const credits =
+    (mutated ? await readCredits(uid) : creditsBefore) ||
+    defaultCredits(config.freeLimits?.aiCredits ?? 10);
   const balance = typeof credits.balance === "number" ? credits.balance : 0;
 
   if (balance < cost) {
@@ -328,15 +371,27 @@ export async function ensureCreditsForFeature(uid, featureKey, pricing) {
   return { allowed: true, cost, balance };
 }
 
-export async function debitCredits(uid, amount, featureKey = "unknown") {
+export async function debitCredits(uid, amount, featureKey = "unknown", { skipProvision = false } = {}) {
   const cost = Math.max(0, Math.trunc(Number(amount) || 0));
   if (cost === 0) return { debited: 0, balanceAfter: null, skipped: true };
 
-  const pricing = await getPricingConfig();
-  await grantFreeTierIfNeeded(uid, pricing);
-  const sub = await readSubscription(uid);
-  if (hasProAccess(sub)) await resetProPeriodIfNeeded(uid, pricing);
-  else await resetFreePeriodIfNeeded(uid, pricing);
+  // finalizeCreditCharge runs right after requireCredits already provisioned
+  // and reset this user in the same request — repeating it here doubled the
+  // Firestore round trips of every paid AI call.
+  if (!skipProvision) {
+    const pricing = await getPricingConfig();
+    const [sub, credits, entitlements] = await Promise.all([
+      readSubscription(uid),
+      readCredits(uid),
+      readEntitlements(uid),
+    ]);
+    await grantFreeTierIfNeeded(uid, pricing, { sub, credits, entitlements });
+    const periodEnd = parseIso(credits?.periodEnd);
+    if (credits && (!periodEnd || periodEnd <= new Date())) {
+      if (hasProAccess(sub)) await resetProPeriodIfNeeded(uid, pricing, { sub });
+      else await resetFreePeriodIfNeeded(uid, pricing, { sub });
+    }
+  }
 
   const ref = userCreditsRef(uid);
 
@@ -382,7 +437,8 @@ export async function debitCredits(uid, amount, featureKey = "unknown") {
 export async function finalizeCreditCharge(req) {
   const charge = req?.creditCharge;
   if (!charge || charge.skipped || !charge.cost || !charge.uid) return null;
-  return debitCredits(charge.uid, charge.cost, charge.featureKey);
+  // requireCredits middleware already provisioned/reset this user this request.
+  return debitCredits(charge.uid, charge.cost, charge.featureKey, { skipProvision: true });
 }
 
 /**

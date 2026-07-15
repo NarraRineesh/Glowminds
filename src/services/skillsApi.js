@@ -28,6 +28,12 @@ export async function getLearningPath() {
   return apiFetch('/skills/learning-path', { method: 'GET' })
 }
 
+export async function getLearningPathHistory({ limit = 20 } = {}) {
+  const params = new URLSearchParams()
+  if (limit) params.set('limit', String(limit))
+  return apiFetch(`/skills/learning-path/history?${params.toString()}`, { method: 'GET' })
+}
+
 export async function generateLearningPath({
   targetRole,
   focusSkills,
@@ -44,5 +50,17 @@ export async function updateLearningPathProgress({ itemId, done }) {
   return apiFetch('/skills/learning-path/progress', {
     method: 'PATCH',
     body: { itemId, done },
+  })
+}
+
+export async function resumeLearningPath(pathId) {
+  return apiFetch(`/skills/learning-path/${encodeURIComponent(pathId)}/resume`, {
+    method: 'POST',
+  })
+}
+
+export async function deleteLearningPath(pathId) {
+  return apiFetch(`/skills/learning-path/${encodeURIComponent(pathId)}`, {
+    method: 'DELETE',
   })
 }
