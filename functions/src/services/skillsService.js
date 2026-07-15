@@ -1,6 +1,59 @@
 // Skill search and trends from Supabase skill intelligence tables.
 
-import { supabaseRest } from "./supabaseClient.js";
+import { isSupabaseEnabled, supabaseRest } from "./supabaseClient.js";
+
+// The skills/skill_aliases tables are tiny (~2.5k rows) and effectively static
+// reference data, but the shared instance gets starved by the 450MB jobs table.
+// Load the whole dictionary once and serve search/trends in-memory so
+// per-keystroke autocomplete never re-hits the contended DB.
+const SKILL_DICT_TTL_MS = 15 * 60 * 1000;
+const skillDictCache = { skills: null, aliases: null, at: 0, inflight: null };
+
+async function fetchSkillDictionary() {
+  const [skills, aliases] = await Promise.all([
+    supabaseRest(
+      `skills?select=id,name,category,subcategory,job_count,trend_score,importance_score&limit=5000`,
+      { timeoutMs: 30000 },
+    ),
+    supabaseRest(
+      `skill_aliases?select=alias,skill_id,skills(id,name,category,subcategory,job_count,importance_score)&limit=5000`,
+      { timeoutMs: 30000 },
+    ).catch(() => []),
+  ]);
+  return { skills: skills || [], aliases: aliases || [] };
+}
+
+function refreshSkillDictionary() {
+  if (skillDictCache.inflight) return skillDictCache.inflight;
+  skillDictCache.inflight = fetchSkillDictionary()
+    .then((d) => {
+      skillDictCache.skills = d.skills;
+      skillDictCache.aliases = d.aliases;
+      skillDictCache.at = Date.now();
+      return d;
+    })
+    .catch((err) => {
+      console.warn("skill dictionary load:", err.message);
+      return null;
+    })
+    .finally(() => {
+      skillDictCache.inflight = null;
+    });
+  return skillDictCache.inflight;
+}
+
+/** Returns the cached skill dictionary; serves stale immediately and refreshes in bg. */
+async function getSkillDictionary() {
+  const fresh = skillDictCache.skills && Date.now() - skillDictCache.at < SKILL_DICT_TTL_MS;
+  if (fresh) return skillDictCache;
+  if (skillDictCache.skills) {
+    // Stale-while-revalidate: return old data now, refresh for next time.
+    refreshSkillDictionary();
+    return skillDictCache;
+  }
+  await refreshSkillDictionary();
+  return skillDictCache;
+}
 
 const DEFAULT_ENGINEERING_CATEGORIES = ["Programming Languages", "Frontend", "Backend"];
 
@@ -27,12 +80,6 @@ function bump(map, key, amount = 1) {
   map.set(key, (map.get(key) || 0) + amount);
 }
 
-function buildInFilter(values) {
-  const list = [...new Set(values.map((v) => String(v).trim()).filter(Boolean))];
-  if (!list.length) return "";
-  return encodeURIComponent(`(${list.map((v) => `"${v.replace(/"/g, "")}"`).join(",")})`);
-}
-
 function inferCategoryCountsFromText(...texts) {
   const counts = new Map();
   const combined = texts.filter(Boolean).join(" ");
@@ -46,28 +93,24 @@ function inferCategoryCountsFromText(...texts) {
 }
 
 async function lookupSkillCategoryCounts(skillNames) {
-  const names = [...new Set(skillNames.map((s) => String(s).trim().toLowerCase()).filter(Boolean))].slice(0, 20);
+  const names = new Set(
+    skillNames.map((s) => String(s).trim().toLowerCase()).filter(Boolean).slice(0, 20),
+  );
   const counts = new Map();
-  if (!names.length) return counts;
+  if (!names.size) return counts;
 
-  const inFilter = buildInFilter(names);
-  try {
-    const rows = await supabaseRest(`skills?select=name,category&name=in.${inFilter}&limit=30`);
-    for (const row of rows || []) {
-      if (row.category) bump(counts, row.category, 3);
+  const dict = await getSkillDictionary();
+  for (const row of dict.skills || []) {
+    if (row.category && names.has(String(row.name).toLowerCase())) {
+      bump(counts, row.category, 3);
     }
-  } catch (err) {
-    console.warn("skill category lookup:", err.message);
   }
 
   if ([...counts.values()].reduce((a, b) => a + b, 0) < 2) {
-    try {
-      const aliasRows = await supabaseRest(`skill_aliases?select=alias,skills(category)&alias=in.${inFilter}&limit=30`);
-      for (const row of aliasRows || []) {
-        if (row.skills?.category) bump(counts, row.skills.category, 2);
+    for (const row of dict.aliases || []) {
+      if (row.skills?.category && names.has(String(row.alias).toLowerCase())) {
+        bump(counts, row.skills.category, 2);
       }
-    } catch (err) {
-      console.warn("skill alias category lookup:", err.message);
     }
   }
 
@@ -185,15 +228,12 @@ async function getCooccurringSkillTrends(seedSkills, { exclude = new Set(), limi
   const ranked = [...freq.entries()].sort((a, b) => b[1] - a[1]).slice(0, limit * 2);
   if (!ranked.length) return [];
 
-  const inFilter = buildInFilter(ranked.map(([name]) => name));
+  const wanted = new Set(ranked.map(([name]) => name));
+  const dict = await getSkillDictionary();
   const metaByName = new Map();
-  try {
-    const rows = await supabaseRest(
-      `skills?select=name,category,job_count,trend_score&name=in.${inFilter}&order=job_count.desc&limit=${limit * 2}`,
-    );
-    for (const row of rows || []) metaByName.set(row.name, row);
-  } catch {
-    // use co-occurrence counts only
+  for (const row of dict.skills || []) {
+    const key = String(row.name).toLowerCase();
+    if (wanted.has(key)) metaByName.set(key, row);
   }
 
   return ranked
@@ -213,21 +253,26 @@ async function getCooccurringSkillTrends(seedSkills, { exclude = new Set(), limi
 }
 
 async function getDemandSkillTrendsBySeeds(seedSkills, { exclude = new Set(), limit = 8 } = {}) {
-  const names = seedSkills
-    .map(normalizeSkillToken)
-    .filter((n) => n && !exclude.has(n) && !isNoiseSkill(n))
-    .slice(0, 20);
-  if (!names.length) return [];
+  const names = new Set(
+    seedSkills
+      .map(normalizeSkillToken)
+      .filter((n) => n && !exclude.has(n) && !isNoiseSkill(n))
+      .slice(0, 20),
+  );
+  if (!names.size) return [];
 
-  const inFilter = buildInFilter(names);
   try {
-    const rows = await supabaseRest(
-      `skills?select=name,category,job_count,trend_score&name=in.${inFilter}&order=job_count.desc&limit=${limit * 2}`,
-    );
-    return (rows || [])
-      .filter((row) => (row.job_count || 0) > 0 && !exclude.has(row.name))
-      .map(mapTrendRow)
-      .slice(0, limit);
+    const dict = await getSkillDictionary();
+    return (dict.skills || [])
+      .filter(
+        (row) =>
+          names.has(String(row.name).toLowerCase()) &&
+          (row.job_count || 0) > 0 &&
+          !exclude.has(row.name),
+      )
+      .sort((a, b) => (b.job_count || 0) - (a.job_count || 0))
+      .slice(0, limit)
+      .map(mapTrendRow);
   } catch (err) {
     console.warn("skill trends by seed:", err.message);
     return [];
@@ -296,48 +341,39 @@ export async function searchSkills(query, limit = 10) {
   if (!q || q.length < 2) return [];
 
   const safeLimit = Math.min(Math.max(1, limit), 25);
+  const dict = await getSkillDictionary();
   const seen = new Map();
 
-  try {
-    const byName = await supabaseRest(
-      `skills?select=id,name,category,subcategory,job_count,importance_score&name=ilike.${encodeURIComponent(`*${q}*`)}&order=job_count.desc&limit=${safeLimit}`,
-    );
-    for (const row of byName || []) {
-      seen.set(row.name, {
-        id: row.id,
-        name: row.name,
-        category: row.category || "Other",
-        subcategory: row.subcategory || "",
-        jobCount: row.job_count || 0,
-        importanceScore: row.importance_score || 50,
-        source: "canonical",
-      });
-    }
-  } catch (err) {
-    console.warn("skills search by name:", err.message);
+  for (const row of dict.skills || []) {
+    if (!row?.name) continue;
+    if (!String(row.name).toLowerCase().includes(q)) continue;
+    seen.set(row.name, {
+      id: row.id,
+      name: row.name,
+      category: row.category || "Other",
+      subcategory: row.subcategory || "",
+      jobCount: row.job_count || 0,
+      importanceScore: row.importance_score || 50,
+      source: "canonical",
+    });
   }
 
   if (seen.size < safeLimit) {
-    try {
-      const aliasRows = await supabaseRest(
-        `skill_aliases?select=alias,skill_id,skills(id,name,category,subcategory,job_count,importance_score)&alias=ilike.${encodeURIComponent(`*${q}*`)}&limit=${safeLimit}`,
-      );
-      for (const row of aliasRows || []) {
-        const skill = row.skills;
-        if (!skill?.name || seen.has(skill.name)) continue;
-        seen.set(skill.name, {
-          id: skill.id,
-          name: skill.name,
-          category: skill.category || "Other",
-          subcategory: skill.subcategory || "",
-          jobCount: skill.job_count || 0,
-          importanceScore: skill.importance_score || 50,
-          source: "alias",
-          matchedAlias: row.alias,
-        });
-      }
-    } catch (err) {
-      console.warn("skills search by alias:", err.message);
+    for (const row of dict.aliases || []) {
+      if (seen.size >= safeLimit * 3) break;
+      const skill = row.skills;
+      if (!skill?.name || seen.has(skill.name)) continue;
+      if (!String(row.alias || "").toLowerCase().includes(q)) continue;
+      seen.set(skill.name, {
+        id: skill.id,
+        name: skill.name,
+        category: skill.category || "Other",
+        subcategory: skill.subcategory || "",
+        jobCount: skill.job_count || 0,
+        importanceScore: skill.importance_score || 50,
+        source: "alias",
+        matchedAlias: row.alias,
+      });
     }
   }
 
@@ -350,34 +386,51 @@ export async function getSkillTrends(limit = 8) {
   const safeLimit = Math.min(Math.max(1, limit), 20);
 
   try {
-    const rows = await supabaseRest(
-      `skills?select=name,category,job_count,trend_score,importance_score&order=job_count.desc&limit=${safeLimit * 4}`,
-    );
-    return (rows || [])
+    const dict = await getSkillDictionary();
+    return (dict.skills || [])
       .filter((row) => !isNoiseSkill(row.name) && (row.job_count || 0) >= 3)
-      .map(mapTrendRow)
-      .slice(0, safeLimit);
+      .sort((a, b) => (b.job_count || 0) - (a.job_count || 0))
+      .slice(0, safeLimit)
+      .map(mapTrendRow);
   } catch (err) {
     console.warn("skill trends:", err.message);
     return [];
   }
 }
 
+const topGrowingCache = { rows: null, at: 0, month: null };
+const TOP_GROWING_TTL_MS = 15 * 60 * 1000;
+
 export async function getTopGrowingSkills(limit = 6) {
   const safeLimit = Math.min(Math.max(1, limit), 20);
   const month = new Date().toISOString().slice(0, 7) + "-01";
 
+  if (
+    topGrowingCache.rows &&
+    topGrowingCache.month === month &&
+    Date.now() - topGrowingCache.at < TOP_GROWING_TTL_MS
+  ) {
+    return topGrowingCache.rows.slice(0, safeLimit);
+  }
+
   try {
     const rows = await supabaseRest(
-      `skill_trends?select=job_count,growth_percentage,skills(name,category)&month=eq.${month}&order=growth_percentage.desc&limit=${safeLimit}`,
+      `skill_trends?select=job_count,growth_percentage,skills(name,category)&month=eq.${month}&order=growth_percentage.desc&limit=20`,
+      { timeoutMs: 8000 },
     );
     if (rows?.length) {
-      return rows.map((row) => ({
-        name: formatSkillLabel(row.skills?.name || ""),
-        category: row.skills?.category || "Other",
-        jobCount: row.job_count || 0,
-        growth: formatGrowth(row.growth_percentage),
-      })).filter((r) => r.name);
+      const mapped = rows
+        .map((row) => ({
+          name: formatSkillLabel(row.skills?.name || ""),
+          category: row.skills?.category || "Other",
+          jobCount: row.job_count || 0,
+          growth: formatGrowth(row.growth_percentage),
+        }))
+        .filter((r) => r.name);
+      topGrowingCache.rows = mapped;
+      topGrowingCache.at = Date.now();
+      topGrowingCache.month = month;
+      return mapped.slice(0, safeLimit);
     }
   } catch {
     // fall through to job_count sort
@@ -400,4 +453,9 @@ function formatGrowth(value) {
   if (!Number.isFinite(n) || n === 0) return "+—";
   const sign = n > 0 ? "+" : "";
   return `${sign}${Math.round(n)}%`;
+}
+
+// Warm the skill dictionary at cold start so the first autocomplete is instant.
+if (isSupabaseEnabled()) {
+  refreshSkillDictionary();
 }

@@ -22,19 +22,30 @@ function parseContentRangeTotal(contentRange) {
   return Number.isFinite(n) ? n : null;
 }
 
-export async function supabaseRest(pathname, { method = "GET", body, prefer, range } = {}) {
+export async function supabaseRest(pathname, { method = "GET", body, prefer, range, timeoutMs } = {}) {
   if (!isSupabaseEnabled()) {
     throw new Error("Supabase is not configured");
   }
   const url = `${env.supabaseUrl}/rest/v1/${pathname}`;
-  const res = await fetch(url, {
-    method,
-    headers: {
-      ...headers(prefer),
-      ...(range ? { Range: range } : {}),
-    },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
+  const signal =
+    Number.isFinite(timeoutMs) && timeoutMs > 0 ? AbortSignal.timeout(timeoutMs) : undefined;
+  let res;
+  try {
+    res = await fetch(url, {
+      method,
+      headers: {
+        ...headers(prefer),
+        ...(range ? { Range: range } : {}),
+      },
+      body: body === undefined ? undefined : JSON.stringify(body),
+      ...(signal ? { signal } : {}),
+    });
+  } catch (err) {
+    if (err?.name === "TimeoutError" || err?.name === "AbortError") {
+      throw new Error(`Supabase ${method} ${pathname} -> timeout after ${timeoutMs}ms`);
+    }
+    throw err;
+  }
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw new Error(`Supabase ${method} ${pathname} -> ${res.status}: ${text.slice(0, 300)}`);

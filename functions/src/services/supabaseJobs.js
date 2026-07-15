@@ -629,10 +629,11 @@ export async function getTopMatchedJobsSupabase({
 
   let rows = [];
   try {
+    // No DB order: skills=cs/title ilike + order=updated_at times out (57014).
+    // rankJobs re-scores the pool in-memory, so physical order is fine here.
     const parts = [
       `select=${JOB_SELECT}`,
       "enriched_at=not.is.null",
-      "order=updated_at.desc.nullslast",
       `limit=${poolSize}`,
     ];
     // Prefer skill-containing pool when profile has skills.
@@ -647,13 +648,15 @@ export async function getTopMatchedJobsSupabase({
   } catch (err) {
     // Skills/cs may miss most rows (sparse skills) — fall back to recent jobs.
     try {
+      const hasTitle = Boolean(params.title);
       const parts = [
         `select=${JOB_SELECT}`,
         "enriched_at=not.is.null",
-        "order=updated_at.desc.nullslast",
+        // Unfiltered fallback can use the recency index; title-filtered can't.
+        ...(hasTitle ? [] : ["order=updated_at.desc.nullslast"]),
         `limit=${poolSize}`,
       ];
-      if (params.title) {
+      if (hasTitle) {
         parts.push(`title=ilike.${encodeURIComponent(`*${params.title}*`)}`);
       }
       if (!queryUsesOr(parts)) appendRoleFilter(parts, boardCtx.roleKey);
