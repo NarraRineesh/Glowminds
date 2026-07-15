@@ -7,8 +7,9 @@
 export const AI_COST_RATES_USD_PER_M = {
   "gemini-2.5-flash-lite": { input: 0.1, output: 0.4 },
   "gemini-2.5-flash": { input: 0.3, output: 2.5 },
-  "owl-alpha": { input: 0, output: 0 },
-  "deepseek/deepseek-v4-flash:free": { input: 0, output: 0 },
+  "nvidia/nemotron-3-super-120b-a12b:free": { input: 0, output: 0 },
+  "tencent/hy3:free": { input: 0, output: 0 },
+  "openrouter/free": { input: 0, output: 0 },
 };
 
 const DEFAULT_RATE = { input: 0.15, output: 0.6 };

@@ -11,9 +11,12 @@ import { env } from "../config/env.js";
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 // Tried in order; first one that returns a usable response wins.
+// Keep this list fresh: entries silently 404 when OpenRouter drops them
+// (that takes the whole fallback chain down whenever Gemini is busy).
 const FREE_MODELS = [
-  "owl-alpha",
-  "deepseek/deepseek-v4-flash:free",
+  "nvidia/nemotron-3-super-120b-a12b:free",
+  "tencent/hy3:free",
+  "openrouter/free",
 ];
 
 const MODEL_TIMEOUT_MS = 45_000;   // per-model network timeout
