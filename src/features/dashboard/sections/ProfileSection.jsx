@@ -1026,8 +1026,16 @@ export default function ProfileSection() {
             }
             setReviewLoading(true)
             try {
+              // Strip derived/tool data — sending the previous aiReview makes the
+              // model repeat stale findings, and drafts inflate the payload.
+              const {
+                aiReview: _aiReview,
+                linkedinAudit: _linkedinAudit,
+                coverLetterDrafts: _drafts,
+                ...reviewPayload
+              } = normalizeProfile(profileRef.current)
               const data = await apiFetch('/ai/profile-review', {
-                body: { profile: profileRef.current },
+                body: { profile: reviewPayload },
               })
               const stamped = stampAiReview(data)
               const updated = { ...normalizeProfile(profileRef.current), aiReview: stamped }

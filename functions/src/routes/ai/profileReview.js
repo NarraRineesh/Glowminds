@@ -10,6 +10,26 @@ import { getCachedAiJson, setCachedAiJson } from "../../services/aiResponseCache
 
 const router = Router();
 
+// Derived/tool data must never reach the model: a previous aiReview embedded
+// in the payload makes the AI repeat stale findings (e.g. "summary is empty"
+// after the user added one), and drafts/audits just bloat tokens.
+const EXCLUDED_PROFILE_KEYS = new Set([
+  "aiReview",
+  "linkedinAudit",
+  "coverLetterDrafts",
+  "settings",
+  "flags",
+]);
+
+function sanitizeProfileForReview(profile) {
+  const out = {};
+  for (const [key, value] of Object.entries(profile)) {
+    if (EXCLUDED_PROFILE_KEYS.has(key)) continue;
+    out[key] = value;
+  }
+  return out;
+}
+
 router.post("/profile-review", requireAuth, requireCredits("profileReview"), async (req, res, next) => {
   try {
     const { profile = {} } = req.body || {};
@@ -17,9 +37,12 @@ router.post("/profile-review", requireAuth, requireCredits("profileReview"), asy
       throw new ApiError("invalid-argument", "Profile data is required");
     }
 
-    const cacheKey = createHash("sha256")
-      .update(JSON.stringify(profile).slice(0, 8000))
-      .digest("hex");
+    const reviewProfile = sanitizeProfileForReview(profile);
+    const profileJson = JSON.stringify(reviewProfile, null, 2).slice(0, 20_000);
+
+    // Hash the full sanitized payload — slicing before hashing returned stale
+    // cached reviews when edits landed past the cutoff.
+    const cacheKey = createHash("sha256").update(profileJson).digest("hex");
     const cached = getCachedAiJson("profile-review", cacheKey);
     if (cached) {
       return res.json({ ...cached, cached: true });
@@ -28,7 +51,7 @@ router.post("/profile-review", requireAuth, requireCredits("profileReview"), asy
     const prompt = `You are an expert career coach and recruiter in the Indian tech market. Analyze this candidate's profile and provide detailed enhancement advice.
 
 **Candidate Profile:**
-${JSON.stringify(profile, null, 2)}
+${profileJson}
 
 Return ONLY valid JSON:
 {
