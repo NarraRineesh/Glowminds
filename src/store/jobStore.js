@@ -3,12 +3,24 @@ import { searchBoardJobs, getTopMatches } from '@/services/jobSearch'
 import { setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
 import { auth } from '@/services/firebase'
 import { savedJobRef, loadSavedJobs } from '@/utils/firestoreCollections'
+import { formatCompanyDisplayName } from '@/utils/companyName'
+
+function normalizeJob(job) {
+  if (!job) return job
+  const company = formatCompanyDisplayName(job.company || job.co || '')
+  return {
+    ...job,
+    company,
+    co: company,
+  }
+}
 
 function buildJobSnapshot(job) {
+  const company = formatCompanyDisplayName(job.company || job.co || '')
   return {
     id: job.id,
     title: job.title || '',
-    company: job.company || job.co || '',
+    company,
     logo: job.logo || 'jobs',
     location: job.location || job.loc || '',
     remote: !!job.remote,
@@ -152,7 +164,7 @@ const useJobStore = create((set, get) => ({
         }
 
         set({
-          jobs: data.jobs || [],
+          jobs: (data.jobs || []).map(normalizeJob),
           pagination,
           pageCursors: nextCursors,
           searchSessionKey: sessionKey,
@@ -199,7 +211,7 @@ const useJobStore = create((set, get) => ({
       try {
         const data = await getTopMatches({ limit, category })
         set({
-          topMatches: data.jobs || [],
+          topMatches: (data.jobs || []).map(normalizeJob),
           topMatchesQueryUsed: data.queryUsed || '',
           topMatchesLoading: false,
           topMatchesError: null,
@@ -260,7 +272,7 @@ const useJobStore = create((set, get) => ({
     if (!force && get().savedJobsLoaded) return
     try {
       const saved = await loadSavedJobs(uid)
-      set({ savedJobs: saved, savedJobsLoaded: true })
+      set({ savedJobs: (saved || []).map(normalizeJob), savedJobsLoaded: true })
     } catch (err) {
       console.error('Load saved jobs failed:', err)
     }

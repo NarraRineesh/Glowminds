@@ -1,6 +1,7 @@
 import { getFirestore } from "../config/firebase.js";
 import { normalizeDescriptionHtml, stripHtml } from "../utils/html.js";
 import { buildTitleTokens } from "../utils/tokens.js";
+import { formatCompanyDisplayName } from "../utils/companyName.js";
 
 // Maps frontend category slugs to the canonical `role` bucket the
 // Python extractor stamps on every synced job document.
@@ -109,12 +110,13 @@ function mapFirestoreJob(docId, data) {
   const loc = data.location || (data.remote ? "Remote" : "");
   const type = mapEmploymentType(data.employmentType, data.title);
 
+  const company = formatCompanyDisplayName(data.company);
   return {
     id: docId,
     title: data.title || "",
-    company: data.company || "",
-    co: data.company || "",
-    logo: companyEmoji(data.company),
+    company,
+    co: company,
+    logo: companyEmoji(company || data.company),
     location: loc,
     loc,
     remote: !!data.remote,
@@ -379,6 +381,52 @@ export function profileReadyForJobMatches(profile) {
   return false;
 }
 
+const COUNTRY_MATCHERS = {
+  india: ["india", "bangalore", "bengaluru", "mumbai", "hyderabad", "delhi", "chennai", "pune", "gurgaon", "gurugram", "noida", "kolkata"],
+  us: ["united states", "usa", "u.s.", "u.s.a", "new york", "san francisco", "california", "seattle", "austin", "chicago", "boston"],
+  uk: ["united kingdom", "uk", "u.k.", "london", "manchester", "birmingham", "edinburgh"],
+  canada: ["canada", "toronto", "vancouver", "montreal", "ottawa"],
+  germany: ["germany", "berlin", "munich", "hamburg", "frankfurt"],
+  singapore: ["singapore"],
+  australia: ["australia", "sydney", "melbourne", "brisbane"],
+  remote: ["remote"],
+};
+
+function normalizeCountryKey(value) {
+  const raw = String(value || "").trim().toLowerCase();
+  if (!raw) return "";
+  if (raw === "remote") return "remote";
+  if (raw === "india" || raw === "in") return "india";
+  if (raw === "us" || raw === "usa" || raw === "united states" || raw === "u.s." || raw === "u.s.a") return "us";
+  if (raw === "uk" || raw === "united kingdom" || raw === "u.k.") return "uk";
+  if (raw === "canada" || raw === "ca") return "canada";
+  if (raw === "germany" || raw === "de") return "germany";
+  if (raw === "singapore" || raw === "sg") return "singapore";
+  if (raw === "australia" || raw === "au") return "australia";
+  return raw;
+}
+
+export function jobMatchesCountry(job, country) {
+  const key = normalizeCountryKey(country);
+  if (!key) return true;
+  if (key === "remote") {
+    return Boolean(job.remote) || /remote/i.test(String(job.location || job.loc || ""));
+  }
+  const patterns = COUNTRY_MATCHERS[key] || [key];
+  const loc = String(job.location || job.loc || "").toLowerCase();
+  // Avoid "india" matching "Indiana".
+  if (key === "india" && loc.includes("indiana") && !patterns.some((p) => p !== "india" && loc.includes(p))) {
+    return false;
+  }
+  if (key === "india") {
+    return patterns.some((p) => {
+      if (p === "india") return /(?:^|[^a-z])india(?:[^a-z]|$)/i.test(loc);
+      return loc.includes(p);
+    });
+  }
+  return patterns.some((p) => loc.includes(p));
+}
+
 export function applyJobFilters(jobs, filters = {}) {
   let out = jobs;
   if (filters.type) {
@@ -392,7 +440,28 @@ export function applyJobFilters(jobs, filters = {}) {
   if (filters.newToday) {
     out = out.filter((j) => j.isNew);
   }
+  if (filters.company) {
+    const q = String(filters.company).trim().toLowerCase();
+    if (q) {
+      out = out.filter((j) => String(j.company || j.co || "").toLowerCase().includes(q));
+    }
+  }
+  if (filters.country) {
+    out = out.filter((j) => jobMatchesCountry(j, filters.country));
+  }
   return out;
+}
+
+export function sortJobsByPublished(jobs, sort = "") {
+  const mode = String(sort || "").trim();
+  if (mode !== "publishedAsc" && mode !== "publishedDesc") return jobs;
+  const dir = mode === "publishedAsc" ? 1 : -1;
+  return [...jobs].sort((a, b) => {
+    const da = Date.parse(a.publishedAt || a.postedAt || a.updatedAt || 0) || 0;
+    const db = Date.parse(b.publishedAt || b.postedAt || b.updatedAt || 0) || 0;
+    if (da === db) return 0;
+    return da < db ? -dir : dir;
+  });
 }
 
 function encodeCursor(docSnap) {

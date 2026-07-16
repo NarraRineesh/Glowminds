@@ -14,7 +14,6 @@ import {
   ButtonGroup,
   Card,
   CardContent,
-  FilterBar,
   Input,
   PageTitle,
   Progress,
@@ -26,13 +25,34 @@ import {
 const JF = ['All', 'Best Match', 'Full-time', 'Contract', 'New Today']
 const PER_PAGE = 12
 
-function buildFilters(activeF, typeFilter) {
+const COUNTRY_OPTIONS = [
+  { value: '', label: 'All countries' },
+  { value: 'india', label: 'India' },
+  { value: 'us', label: 'United States' },
+  { value: 'uk', label: 'United Kingdom' },
+  { value: 'canada', label: 'Canada' },
+  { value: 'germany', label: 'Germany' },
+  { value: 'singapore', label: 'Singapore' },
+  { value: 'australia', label: 'Australia' },
+  { value: 'remote', label: 'Remote' },
+]
+
+const SORT_OPTIONS = [
+  { value: '', label: 'Relevance' },
+  { value: 'publishedDesc', label: 'Newest first' },
+  { value: 'publishedAsc', label: 'Oldest first' },
+]
+
+function buildFilters(activeF, typeFilter, { company = '', country = '', sort = '' } = {}) {
   const filters = {}
   if (activeF === 'Best Match') filters.minMatch = 80
   else if (activeF === 'Full-time') filters.type = 'Full-time'
   else if (activeF === 'Contract') filters.type = 'Contract'
   else if (activeF === 'New Today') filters.newToday = true
   if (typeFilter) filters.type = typeFilter
+  if (company.trim()) filters.company = company.trim()
+  if (country) filters.country = country
+  if (sort === 'publishedAsc' || sort === 'publishedDesc') filters.sort = sort
   return filters
 }
 
@@ -50,11 +70,18 @@ export default function JobsSection() {
   const [activeF, setActiveF] = useState('All')
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
+  const [companyInput, setCompanyInput] = useState('')
+  const [company, setCompany] = useState('')
+  const [country, setCountry] = useState('')
+  const [sort, setSort] = useState('')
   const [searchInput, setSearchInput] = useState('')
   const [page, setPage] = useState(1)
 
   const readyForMatches = profileReadyForJobMatches(profile)
-  const filters = useMemo(() => buildFilters(activeF, typeFilter), [activeF, typeFilter])
+  const filters = useMemo(
+    () => buildFilters(activeF, typeFilter, { company, country, sort }),
+    [activeF, typeFilter, company, country, sort],
+  )
   const filterSig = useMemo(
     () => JSON.stringify({ search, filters }),
     [search, filters],
@@ -94,6 +121,22 @@ export default function JobsSection() {
     setPage(1)
   }
 
+  const applyCompanyFilter = (e) => {
+    e?.preventDefault?.()
+    setCompany(companyInput.trim())
+    setPage(1)
+  }
+
+  const resetExtraFilters = () => {
+    setActiveF('All')
+    setTypeFilter('')
+    setCompanyInput('')
+    setCompany('')
+    setCountry('')
+    setSort('')
+    setPage(1)
+  }
+
   const isInitialLoad = loading && jobs.length === 0
   const isRefreshing = loading && jobs.length > 0
   const totalResults = pagination.total ?? jobs.length
@@ -106,6 +149,7 @@ export default function JobsSection() {
         : `${jobs.length} jobs`
   const canGoNext = pagination.hasMore && !loading
   const hasActiveSearch = Boolean(search.trim())
+  const hasExtraFilters = Boolean(company || country || sort || typeFilter || activeF !== 'All')
   const subtitleQuery = hasActiveSearch ? search.trim() : queryUsed
 
   const selectFilter = (f) => setActiveF(f)
@@ -149,15 +193,15 @@ export default function JobsSection() {
         }
       />
 
-      <FilterBar>
-        <form onSubmit={handleSearch} className="flex min-w-0 flex-[1_1_260px] items-center gap-2">
+      <div className="mb-4 space-y-3 rounded-xl bg-card p-3 ring-1 ring-foreground/10">
+        <form onSubmit={handleSearch} className="flex min-w-0 items-center gap-2">
           <div className="relative min-w-0 flex-1">
             <AppIcon name="search" className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 opacity-50" />
             <Input
               className={cn('h-9 pl-8 text-sm', searchInput && 'pr-9')}
               placeholder="Search jobs, skills, companies…"
               value={searchInput}
-              onChange={e => setSearchInput(e.target.value)}
+              onChange={(e) => setSearchInput(e.target.value)}
               aria-label="Search jobs"
             />
             {searchInput && (
@@ -171,20 +215,95 @@ export default function JobsSection() {
           </Button>
         </form>
 
-        <div className="hidden h-6 w-px shrink-0 bg-border sm:block" />
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <Select
+            className="h-9 w-full text-sm"
+            value={typeFilter}
+            disabled={loading}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            aria-label="Job type"
+          >
+            <option value="">All types</option>
+            <option>Full-time</option>
+            <option>Contract</option>
+            <option>Part-time</option>
+          </Select>
 
-        <Select className="h-9 min-w-[120px] text-sm" value={typeFilter} disabled={loading} onChange={e => setTypeFilter(e.target.value)}>
-          <option value="">All Types</option><option>Full-time</option><option>Contract</option><option>Part-time</option>
-        </Select>
+          <Select
+            className="h-9 w-full text-sm"
+            value={country}
+            disabled={loading}
+            onChange={(e) => { setCountry(e.target.value); setPage(1) }}
+            aria-label="Filter by country"
+          >
+            {COUNTRY_OPTIONS.map((opt) => (
+              <option key={opt.value || 'all'} value={opt.value}>{opt.label}</option>
+            ))}
+          </Select>
 
-        <ButtonGroup className="flex-wrap">
-          {JF.map(f => (
-            <Button key={f} type="button" variant={f === activeF ? 'default' : 'outline'} size="sm" disabled={loading} onClick={() => selectFilter(f)}>
-              {f}
+          <form onSubmit={applyCompanyFilter} className="relative col-span-2 min-w-0 sm:col-span-1">
+            <Input
+              className="h-9 w-full pr-9 text-sm"
+              placeholder="Company…"
+              value={companyInput}
+              disabled={loading}
+              onChange={(e) => setCompanyInput(e.target.value)}
+              onBlur={() => {
+                const next = companyInput.trim()
+                if (next !== company) {
+                  setCompany(next)
+                  setPage(1)
+                }
+              }}
+              aria-label="Filter by company"
+            />
+            <Button
+              type="submit"
+              variant="ghost"
+              size="icon-sm"
+              disabled={loading}
+              className="absolute right-1 top-1/2 -translate-y-1/2"
+              aria-label="Apply company filter"
+            >
+              <AppIcon name="search" className="size-3.5 opacity-60" />
             </Button>
-          ))}
-        </ButtonGroup>
-      </FilterBar>
+          </form>
+
+          <Select
+            className="h-9 w-full text-sm col-span-2 sm:col-span-1"
+            value={sort}
+            disabled={loading}
+            onChange={(e) => { setSort(e.target.value); setPage(1) }}
+            aria-label="Sort jobs"
+          >
+            {SORT_OPTIONS.map((opt) => (
+              <option key={opt.value || 'relevance'} value={opt.value}>{opt.label}</option>
+            ))}
+          </Select>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <ButtonGroup className="flex-wrap">
+            {JF.map((f) => (
+              <Button
+                key={f}
+                type="button"
+                variant={f === activeF ? 'default' : 'outline'}
+                size="sm"
+                disabled={loading}
+                onClick={() => selectFilter(f)}
+              >
+                {f}
+              </Button>
+            ))}
+          </ButtonGroup>
+          {hasExtraFilters && (
+            <Button type="button" variant="ghost" size="sm" disabled={loading} onClick={resetExtraFilters} className="ml-auto">
+              Clear
+            </Button>
+          )}
+        </div>
+      </div>
 
       {isInitialLoad && <JobGridSkeleton count={PER_PAGE} />}
 
@@ -232,8 +351,8 @@ export default function JobsSection() {
                         {hasActiveSearch && (
                           <Button variant="outline" size="sm" onClick={clearSearch}>Clear search</Button>
                         )}
-                        {(activeF !== 'All' || typeFilter) && (
-                          <Button variant="ghost" size="sm" onClick={() => { setActiveF('All'); setTypeFilter('') }}>Reset filters</Button>
+                        {hasExtraFilters && (
+                          <Button variant="ghost" size="sm" onClick={resetExtraFilters}>Reset filters</Button>
                         )}
                       </>
                     )}

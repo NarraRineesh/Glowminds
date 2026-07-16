@@ -4,12 +4,13 @@ import { auth } from '@/services/firebase'
 import { apiFetch } from '@/services/apiClient'
 import { APPLICATION_STATUS, normalizeApplicationStatus } from '@/constants/schema'
 import { applicationDocRef, loadApplications } from '@/utils/firestoreCollections'
+import { formatCompanyDisplayName } from '@/utils/companyName'
 
 function normalizeApp(raw) {
   if (!raw) return raw
   return {
     id: raw.id,
-    company: raw.company || raw.co || '',
+    company: formatCompanyDisplayName(raw.company || raw.co || ''),
     role: raw.role || raw.rl || '',
     status: normalizeApplicationStatus(raw.status || raw.st),
     appliedDate: raw.appliedDate || raw.date || raw.dt || '',

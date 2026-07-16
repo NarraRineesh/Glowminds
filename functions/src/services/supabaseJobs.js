@@ -1,6 +1,7 @@
 // Job board queries against Supabase `jobs` table.
 
 import { buildTitleTokens } from "../utils/tokens.js";
+import { formatCompanyDisplayName } from "../utils/companyName.js";
 import {
   buildBoardSearchParams,
   buildSearchParams,
@@ -10,6 +11,7 @@ import {
   applyJobFilters,
   jobMatchesLocation,
   profileReadyForJobMatches,
+  sortJobsByPublished,
 } from "./jobSearch.js";
 import { isSupabaseEnabled, supabaseRest, supabaseCount } from "./supabaseClient.js";
 
@@ -78,7 +80,71 @@ function boardCountCacheKey(boardCtx, filters = {}) {
     boardCtx.roleKey || "",
     filters.type || "",
     filters.newToday ? "1" : "0",
+    String(filters.company || "").trim().toLowerCase(),
+    String(filters.country || "").trim().toLowerCase(),
   ].join("|");
+}
+
+const COUNTRY_LOCATION_PATTERNS = {
+  india: ["india", "bangalore", "bengaluru", "mumbai", "hyderabad", "delhi", "chennai", "pune", "gurgaon", "gurugram", "noida"],
+  us: ["united states", "usa", "u.s.", "new york", "san francisco", "california", "seattle", "austin"],
+  uk: ["united kingdom", "uk", "london", "manchester", "birmingham"],
+  canada: ["canada", "toronto", "vancouver", "montreal"],
+  germany: ["germany", "berlin", "munich", "hamburg", "frankfurt"],
+  singapore: ["singapore"],
+  australia: ["australia", "sydney", "melbourne", "brisbane"],
+};
+
+function normalizeCountryFilter(value) {
+  const raw = String(value || "").trim().toLowerCase();
+  if (!raw) return "";
+  if (raw === "remote") return "remote";
+  if (["india", "in"].includes(raw)) return "india";
+  if (["us", "usa", "united states", "u.s.", "u.s.a"].includes(raw)) return "us";
+  if (["uk", "united kingdom", "u.k."].includes(raw)) return "uk";
+  if (["canada", "ca"].includes(raw)) return "canada";
+  if (["germany", "de"].includes(raw)) return "germany";
+  if (["singapore", "sg"].includes(raw)) return "singapore";
+  if (["australia", "au"].includes(raw)) return "australia";
+  return raw;
+}
+
+function normalizeSort(value) {
+  const sort = String(value || "").trim();
+  if (sort === "publishedAsc" || sort === "publishedDesc") return sort;
+  return "";
+}
+
+function appendCountryFilter(parts, country) {
+  const key = normalizeCountryFilter(country);
+  if (!key) return false;
+  // Prefer a single AND filter so we don't consume the sole PostgREST `or=` slot.
+  // Broader city aliases are still applied in-memory via applyJobFilters.
+  if (key === "remote") {
+    parts.push(`location=ilike.${encodeURIComponent("*remote*")}`);
+    return false;
+  }
+  const primary = (COUNTRY_LOCATION_PATTERNS[key] || [key])[0];
+  parts.push(`location=ilike.${encodeURIComponent(`*${primary}*`)}`);
+  // "india" also matches "Indiana" — exclude that common false positive.
+  if (key === "india") {
+    parts.push("location=not.ilike.*indiana*");
+  }
+  return false;
+}
+
+function canUseDbOrder(boardCtx, filters = {}) {
+  // Heavy text filters / multi-OR + ORDER BY time out on this table (PostgREST 57014).
+  // Keep DB order only for plain browse (or type=full-time AND-only exclusions).
+  if (boardCtx.mode === "title" || boardCtx.mode === "skills") return false;
+  if (boardCtx.roleKey) return false;
+  if (String(filters.company || "").trim()) return false;
+  if (normalizeCountryFilter(filters.country)) return false;
+  // Full-table ASC scans time out; newest-first uses the existing updated_at index.
+  if (normalizeSort(filters.sort) === "publishedAsc") return false;
+  const t = String(filters.type || "").toLowerCase();
+  if (t === "contract" || t === "internship" || t === "part-time") return false;
+  return true;
 }
 
 function getCachedBoardCount(key) {
@@ -108,10 +174,12 @@ function scheduleBoardCountRefresh(key, pathname) {
 }
 
 async function resolveBoardTotal(boardCtx, filters, { softType = false } = {}) {
-  // Soft type / newToday shrink the page after fetch — exact DB count is misleading.
+  // Soft type / newToday / soft country shrink the page after fetch — exact DB count is misleading.
   if (filters?.newToday || softType) return null;
 
-  if (boardCtx.mode === "browse" && !boardCtx.roleKey && !filters?.type) {
+  const hasCompany = Boolean(String(filters?.company || "").trim());
+  const hasCountry = Boolean(normalizeCountryFilter(filters?.country));
+  if (boardCtx.mode === "browse" && !boardCtx.roleKey && !filters?.type && !hasCompany && !hasCountry) {
     scheduleEnrichedCountRefresh();
     // Never block the response on a cold exact COUNT (often 6–30s).
     return getCachedEnrichedCount();
@@ -176,12 +244,13 @@ export function mapSupabaseJob(row, { match = 0, searchScore = 0, skillHits = 0,
   const remote = row.remote_type === "remote" || /remote/i.test(row.location || "");
   const postedAtIso = jobPostedAt(row);
   const posted = timeAgo(postedAtIso);
+  const company = formatCompanyDisplayName(row.company);
   return {
     id: row.id,
     title: row.title || "",
-    company: row.company || "",
-    co: row.company || "",
-    logo: companyEmoji(row.company),
+    company,
+    co: company,
+    logo: companyEmoji(company || row.company),
     location: row.location || "",
     loc: row.location || "",
     remote,
@@ -307,17 +376,24 @@ function titleSearchFilter(boardCtx) {
  * consume it, type is applied in-memory (softType) by the caller.
  */
 function buildQueryParts(boardCtx, filters = {}, { forCount = false, offset = 0, limit = 10 } = {}) {
-  // Title/skills ilike + order=updated_at times out on this table (PostgREST 57014).
-  // Browse can use the enriched_updated_at index; filtered search sorts in-memory.
-  const useRecencyOrder =
-    boardCtx.mode === "browse" && !boardCtx.roleKey && !filters?.type;
+  // Title/skills/company/country + ORDER BY times out without matching indexes.
+  // Plain browse uses the enriched_updated_at index; published sort is applied in-memory.
+  const sort = normalizeSort(filters.sort);
+  const useDbOrder = !forCount && canUseDbOrder(boardCtx, filters);
+  let orderClause = null;
+  if (useDbOrder) {
+    // Prefer indexed updated_at for DB order. true first_published sort happens in-memory.
+    orderClause = sort === "publishedAsc"
+      ? "order=updated_at.asc.nullslast"
+      : "order=updated_at.desc.nullslast";
+  }
 
   const parts = forCount
     ? ["select=id", "enriched_at=not.is.null"]
     : [
         `select=${JOB_SELECT}`,
         "enriched_at=not.is.null",
-        ...(useRecencyOrder ? ["order=updated_at.desc.nullslast"] : []),
+        ...(orderClause ? [orderClause] : []),
         `limit=${limit}`,
         `offset=${offset}`,
       ];
@@ -332,7 +408,24 @@ function buildQueryParts(boardCtx, filters = {}, { forCount = false, offset = 0,
 
   appendRoleFilter(parts, boardCtx.roleKey);
 
+  // Company leading-wildcard scans are unreliable on this table (often 57014).
+  // Keep company as a soft in-memory filter over a recent ordered pool instead.
+  const company = String(filters.company || "").trim();
+  const softCompany = Boolean(company);
+
   let softType = false;
+  let softCountry = false;
+
+  if (filters.country && !softCompany) {
+    if (queryUsesOr(parts)) {
+      softCountry = true;
+    } else {
+      appendCountryFilter(parts, filters.country);
+    }
+  } else if (filters.country && softCompany) {
+    softCountry = true;
+  }
+
   if (filters.type) {
     if (queryUsesOr(parts) && String(filters.type).toLowerCase() !== "full-time") {
       // Full-time uses `not.ilike` (AND), which doesn't need `or=`.
@@ -342,17 +435,30 @@ function buildQueryParts(boardCtx, filters = {}, { forCount = false, offset = 0,
     }
   }
 
-  return { parts, softType };
+  return { parts, softType, softCountry, softCompany, sort, usedDbOrder: useDbOrder };
 }
 
 function buildJobsQuery(boardCtx, { offset, limit, filters = {} }) {
-  const { parts, softType } = buildQueryParts(boardCtx, filters, { offset, limit });
-  return { pathname: `jobs?${parts.join("&")}`, softType };
+  const { parts, softType, softCountry, softCompany, sort, usedDbOrder } = buildQueryParts(
+    boardCtx,
+    filters,
+    { offset, limit },
+  );
+  return {
+    pathname: `jobs?${parts.join("&")}`,
+    softType,
+    softCountry,
+    softCompany,
+    sort,
+    usedDbOrder,
+  };
 }
 
 function buildCountQuery(boardCtx, filters = {}) {
-  const { parts, softType } = buildQueryParts(boardCtx, filters, { forCount: true });
-  return { pathname: `jobs?${parts.join("&")}`, softType };
+  const { parts, softType, softCountry, softCompany } = buildQueryParts(boardCtx, filters, {
+    forCount: true,
+  });
+  return { pathname: `jobs?${parts.join("&")}`, softType, softCountry, softCompany };
 }
 
 /** Resolve pagination total — never prefer a failed-count 0 over a row-based estimate. */
@@ -411,27 +517,60 @@ export async function searchBoardJobsSupabase({
   const size = Math.max(1, Math.trunc(pageSize) || 12);
   const offset = cursor ? decodeOffsetCursor(cursor) : (safePage - 1) * size;
 
-  const fetchLimit =
-    filters.type || filters.newToday ? Math.min(50, size * 3 + 1) : size + 1;
-  const { pathname, softType } = buildJobsQuery(boardCtx, {
-    offset,
+  const typeKey = String(filters.type || "").toLowerCase();
+  const typeMayNeedSoft =
+    typeKey === "contract" || typeKey === "internship" || typeKey === "part-time";
+  const companyQ = String(filters.company || "").trim();
+  const softCompany = Boolean(companyQ);
+
+  // Company filter uses a recent ordered pool + in-memory match (DB ilike times out).
+  // Country/type/newToday also over-fetch when they shrink after the SQL query.
+  const poolMode = softCompany && boardCtx.mode === "browse" && !boardCtx.roleKey;
+  const fetchLimit = poolMode
+    ? Math.min(150, Math.max(80, size * 10))
+    : filters.newToday || typeMayNeedSoft || normalizeCountryFilter(filters.country)
+      ? Math.min(50, size * 3 + 1)
+      : size + 1;
+
+  const queryOffset = poolMode ? 0 : offset;
+  const { pathname, softType, softCountry, sort } = buildJobsQuery(boardCtx, {
+    offset: queryOffset,
     limit: fetchLimit,
-    filters,
+    filters: poolMode ? { ...filters, company: "" } : filters,
   });
 
   let rows = [];
   let dbTotal = null;
   try {
     // Counts are cache-only / background — never serialize behind exact COUNT.
-    dbTotal = await resolveBoardTotal(boardCtx, filters, { softType });
-    rows = await supabaseRest(pathname);
+    dbTotal = await resolveBoardTotal(boardCtx, filters, {
+      softType: softType || softCountry || softCompany,
+    });
+    // For company pool mode, force the indexed browse query.
+    const path = poolMode
+      ? `jobs?select=${JOB_SELECT}&enriched_at=not.is.null&order=updated_at.desc.nullslast&limit=${fetchLimit}&offset=0`
+      : pathname;
+    rows = await supabaseRest(path);
   } catch (err) {
-    partialErrors.push(`board:browse: ${err.message}`);
-    if (!Array.isArray(rows)) rows = [];
+    // Country leading-wildcard can still 57014 under load — fall back to recent pool.
+    if (normalizeCountryFilter(filters.country) && !boardCtx.searchStr && !boardCtx.roleKey) {
+      try {
+        const fallbackPath = `jobs?select=${JOB_SELECT}&enriched_at=not.is.null&order=updated_at.desc.nullslast&limit=${Math.min(150, fetchLimit)}&offset=0`;
+        rows = await supabaseRest(fallbackPath);
+        partialErrors.push("board:filters:soft-fallback");
+      } catch (fallbackErr) {
+        partialErrors.push(`board:browse: ${err.message}`);
+        partialErrors.push(`board:fallback: ${fallbackErr.message}`);
+        if (!Array.isArray(rows)) rows = [];
+      }
+    } else {
+      partialErrors.push(`board:browse: ${err.message}`);
+      if (!Array.isArray(rows)) rows = [];
+    }
   }
 
   const pageRows = Array.isArray(rows) ? rows : [];
-  const fetchedMore = pageRows.length >= fetchLimit;
+  const fetchedMore = !poolMode && pageRows.length >= fetchLimit;
 
   const rankTitle = boardCtx.mode === "title" ? boardCtx.searchStr : "";
   const rankSkills = boardCtx.mode === "skills" ? boardCtx.userSkills : boardCtx.titleTokens;
@@ -452,13 +591,27 @@ export async function searchBoardJobsSupabase({
   jobs = dedupeJobs(jobs);
 
   // Always re-apply type after title-based inference (DB `ilike` is looser than
-  // word-boundary matching). softType/newToday also need in-memory filters.
+  // word-boundary matching). softType/newToday/softCountry/softCompany need in-memory filters.
   const postFilters = { ...filters };
   delete postFilters.minMatch;
+  delete postFilters.sort;
   jobs = applyJobFilters(jobs, postFilters);
 
-  const hasMore = jobs.length > size || fetchedMore;
-  jobs = jobs.slice(0, size);
+  // Published-date sort is always in-memory (first_published order times out at scale).
+  if (sort) {
+    jobs = sortJobsByPublished(jobs, sort);
+  }
+
+  let hasMore;
+  if (poolMode) {
+    const totalPool = jobs.length;
+    jobs = jobs.slice(offset, offset + size);
+    hasMore = offset + size < totalPool;
+    dbTotal = totalPool;
+  } else {
+    hasMore = jobs.length > size || fetchedMore;
+    jobs = jobs.slice(0, size);
+  }
 
   const total = resolvePaginationTotal(dbTotal, {
     offset,
@@ -484,7 +637,11 @@ export async function searchBoardJobsSupabase({
       to,
       totalExact: dbTotal != null,
     },
-    meta: { dbTotal, docsRead: pageRows.length, source: "supabase" },
+    meta: {
+      dbTotal,
+      docsRead: pageRows.length,
+      source: poolMode ? "supabase-soft-company" : "supabase",
+    },
     sources: { supabase: total, docsRead: pageRows.length },
     partialErrors,
   };
@@ -515,7 +672,10 @@ async function searchBestMatchBoardSupabase({
   // Title-only scores often land ~70–75; skills data is sparse in Supabase.
   const softFilters = { ...filters };
   delete softFilters.minMatch;
+  const sort = normalizeSort(softFilters.sort);
+  delete softFilters.sort;
   let jobs = applyJobFilters(top.jobs || [], softFilters);
+  if (sort) jobs = sortJobsByPublished(jobs, sort);
   const total = jobs.length;
   const pageJobs = jobs.slice(offset, offset + size);
   const hasMore = offset + size < total;
@@ -552,9 +712,11 @@ export async function countMatchingJobsSupabase(params) {
   const filters = params.filters || {};
   let dbTotal = null;
   try {
-    const { pathname, softType } = buildCountQuery(boardCtx, filters);
-    dbTotal = await resolveBoardTotal(boardCtx, filters, { softType });
-    if (dbTotal == null && !softType && !filters?.newToday) {
+    const { pathname, softType, softCountry } = buildCountQuery(boardCtx, filters);
+    dbTotal = await resolveBoardTotal(boardCtx, filters, {
+      softType: softType || softCountry,
+    });
+    if (dbTotal == null && !softType && !softCountry && !filters?.newToday) {
       dbTotal = await supabaseCount(pathname);
     }
   } catch (err) {
