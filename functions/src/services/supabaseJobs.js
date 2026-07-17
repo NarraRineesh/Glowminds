@@ -14,9 +14,13 @@ import {
   sortJobsByPublished,
 } from "./jobSearch.js";
 import { isSupabaseEnabled, supabaseRest, supabaseCount } from "./supabaseClient.js";
+import { enrichJobWithDescription } from "./jobDetailFetch.js";
 
 const JOB_SELECT =
   "id,title,company,location,apply_url,skills,min_experience,max_experience,employment_type,remote_type,updated_at,first_published,last_seen_at,created_at,ats";
+
+const JOB_DETAIL_SELECT =
+  `${JOB_SELECT},detail_api_url,external_id`;
 
 /** Prefer real post date over sync/enrichment stamps (updated_at is often a bulk wave). */
 function jobPostedAt(row) {
@@ -730,7 +734,7 @@ export async function getJobByDocIdSupabase(docId, { profile } = {}) {
   if (!id) return null;
   let rows;
   try {
-    rows = await supabaseRest(`jobs?id=eq.${encodeURIComponent(id)}&select=${JOB_SELECT}&limit=1`);
+    rows = await supabaseRest(`jobs?id=eq.${encodeURIComponent(id)}&select=${JOB_DETAIL_SELECT}&limit=1`);
   } catch {
     return null;
   }
@@ -738,6 +742,7 @@ export async function getJobByDocIdSupabase(docId, { profile } = {}) {
   if (!row) return null;
 
   let job = mapSupabaseJob(row);
+  job = await enrichJobWithDescription(row, job);
   if (profile) {
     const params = buildSearchParams(profile, { useProfile: true });
     const ranked = rankJobs([rowToRaw(row)], params);

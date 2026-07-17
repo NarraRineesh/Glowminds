@@ -72,6 +72,7 @@ export default function JobDetailSection() {
 
   const [job, setJob] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [descLoading, setDescLoading] = useState(false)
   const [error, setError] = useState(null)
   const [applying, setApplying] = useState(false)
 
@@ -100,35 +101,35 @@ export default function JobDetailSection() {
 
     async function load() {
       setLoading(true)
+      setDescLoading(true)
       setError(null)
       setCoverLetter('')
       setAiFit(null)
 
       const cached = useJobStore.getState().jobs.find((j) => j.id === jobId)
-      if (cached) {
-        if (!cancelled) {
-          setJob(cached)
-          setLoading(false)
-        }
-        getJobById(jobId).then((data) => {
-          if (!cancelled && data?.job) setJob(data.job)
-        }).catch(() => {})
-        return
+      if (cached && !cancelled) {
+        setJob(cached)
+        setLoading(false)
       }
 
       try {
         const data = await getJobById(jobId)
         if (cancelled) return
         if (!data?.job) {
-          setError('Job not found')
-          setJob(null)
+          if (!cached) {
+            setError('Job not found')
+            setJob(null)
+          }
         } else {
           setJob(data.job)
         }
       } catch (err) {
-        if (!cancelled) setError(err.message || 'Failed to load job')
+        if (!cancelled && !cached) setError(err.message || 'Failed to load job')
       } finally {
-        if (!cancelled) setLoading(false)
+        if (!cancelled) {
+          setLoading(false)
+          setDescLoading(false)
+        }
       }
     }
 
@@ -403,7 +404,11 @@ export default function JobDetailSection() {
 
         <section className="space-y-2 border-t border-border pt-4">
           <h2 className="text-sm font-bold text-foreground">Job Description</h2>
-          <JobDescriptionHtml html={job.descHtml} plain={job.description || job.desc} />
+          {descLoading && !(job.descHtml || job.description || job.desc) ? (
+            <p className="text-sm text-muted-foreground">Loading description…</p>
+          ) : (
+            <JobDescriptionHtml html={job.descHtml} plain={job.description || job.desc} />
+          )}
         </section>
 
         {job.req && job.req[0] !== 'See full job description for details' && (
