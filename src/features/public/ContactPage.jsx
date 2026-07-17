@@ -8,6 +8,7 @@ import {
   PAGE_SEO,
   breadcrumbSchema,
   contactPageSchema,
+  faqPageSchema,
   normalizeStructuredData,
   organizationSchema,
 } from '@/config/seo'
@@ -102,6 +103,7 @@ export default function ContactPage() {
         structuredData={normalizeStructuredData([
           organizationSchema(),
           contactPageSchema(),
+          faqPageSchema(FAQS),
           breadcrumbSchema([
             { label: 'Home', path: '/' },
             { label: 'Contact', path: '/contact' },

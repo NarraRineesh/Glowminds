@@ -72,7 +72,7 @@ const HERO = {
   headline: 'Get Hired Faster with One AI Career Platform',
   highlight: 'Get Hired Faster',
   subheadline:
-    'Build an ATS-ready resume, discover matched jobs, apply with tailored cover letters, practice interviews, and track every application — all in one place.',
+    'Build an ATS-ready resume, discover matched jobs, close skill gaps with AI upskilling paths, apply with tailored cover letters, practice interviews, and track every application — all in one place.',
   primaryCta: 'Build Your Resume',
   secondaryCta: 'Explore Tools',
   liveBadge: 'LIVE',
@@ -170,8 +170,9 @@ const TRUST_LOGOS = ['IIT Delhi', 'IIT Bombay', 'BITS Pilani', 'NIT Trichy', 'VI
 
 const FAQS = [
   { q: 'Is Glowminds free to use?', a: 'Yes! Glowminds offers a generous free tier with job search, 1 ATS resume, 10 application tracks, and 10 AI credits/month. Pro is available for ₹599/year (founding offer).' },
-  { q: 'How does the AI job matching work?', a: 'Our AI scans 50+ job portals daily and compares requirements with your skills, education, and preferences to generate a personalized match score from 0-100%.' },
+  { q: 'How does the AI job matching work?', a: 'Our AI compares job requirements with your skills, education, and preferences to generate a personalized match score from 0-100%, then helps you filter and prioritize the best-fit roles.' },
   { q: 'What makes the resume builder ATS-optimized?', a: 'We follow industry-standard ATS formatting rules — clean structure, keyword optimization, proper headings, machine-readable layouts, and we check against 200+ ATS systems.' },
+  { q: 'How does upskilling / skill-gap analysis work?', a: 'Pick a target role, and Glowminds compares your profile skills against what the role typically needs. You get a clear skill gap plus an AI learning path you can save, resume, and update over time.' },
   { q: 'Can I use this if I\'m not a student?', a: 'Absolutely! While optimized for students and fresh graduates, anyone early in their career or looking to switch can benefit from our tools.' },
   { q: 'How does the Grammar Checker work?', a: 'Paste any text — resume bullets, cover letter paragraphs, emails — and our Gemini-powered AI checks grammar, spelling, tone, and clarity. You can choose formal, confident, or friendly tone and accept fixes with one click.' },
   { q: 'Can I generate cover letters for any job?', a: 'Yes! Just paste the job description and our AI matches your resume data to the role requirements, generating a personalized cover letter in seconds. You can adjust the tone and export as PDF.' },

@@ -5,13 +5,13 @@ export const SEO_LOCALE = 'en_IN'
 export const SEO_TWITTER = '@Glowminds'
 export const SEO_OG_IMAGE = '/og-image.png'
 export const SEO_OG_IMAGE_ALT =
-  'Glowminds — AI resume builder, job matching, and interview prep for students in India'
+  'Glowminds — AI resume builder, job matching, upskilling, and interview prep for students in India'
 
 export const SEO_DEFAULT_KEYWORDS =
-  'AI resume builder, ATS resume, job search India, student jobs, fresher jobs, AI interview prep, cover letter generator, job application tracker, career platform India, Glowminds'
+  'AI resume builder India, ATS resume for freshers, job search India, fresher jobs, skill gap analysis, AI upskilling, learning path, AI interview prep, cover letter generator, job application tracker, career platform India, Glowminds'
 
 export const SEO_DEFAULT_DESCRIPTION =
-  'Build ATS-ready resumes, get AI job matches, practice mock interviews, and track applications. Free to start — built for students and early-career professionals in India.'
+  'Build ATS-ready resumes, match to jobs, close skill gaps with AI upskilling paths, practice interviews, and track applications. Free to start — built for students and freshers in India.'
 
 export const SEO_ORGANIZATION = {
   name: 'Glowminds',
@@ -26,25 +26,25 @@ export const SEO_ORGANIZATION = {
 
 export const PAGE_SEO = {
   home: {
-    title: 'AI Resume Builder & Job Matching for Students',
+    title: 'AI Resume Builder, Job Matching & Upskilling for Freshers',
     description:
-      'Get hired faster with ATS-ready resumes, AI job matching, mock interviews, and application tracking. Free tier available — built for students and fresh graduates in India.',
+      'Get hired faster with ATS resumes, AI job matching, skill-gap upskilling paths, mock interviews, and application tracking. Free tier for students and freshers in India.',
     path: '/',
     keywords:
-      'AI career platform, student resume builder, job matching India, AI mock interview, fresher job search, application tracker',
+      'AI resume builder for freshers, job matching India, skill gap analysis, AI learning path, AI mock interview, fresher job search, application tracker',
   },
   features: {
-    title: 'Features — Resume, Jobs, Interviews & Tracking',
+    title: 'Features — Resume, Jobs, Upskilling, Interviews & Tracking',
     description:
-      'Explore Glowminds features: ATS resume builder, smart job matching, AI mock interviews, cover letters, grammar check, and Kanban application tracking in one platform.',
+      'Explore Glowminds: ATS resume builder, smart job matching, skill-gap upskilling, AI mock interviews, cover letters, and Kanban application tracking in one career platform.',
     path: '/features',
     keywords:
-      'resume builder features, AI job matching, mock interview app, cover letter AI, application tracker, career tools India',
+      'resume builder features, AI job matching, skill gap analysis, upskilling platform, mock interview app, cover letter AI, application tracker India',
   },
   pricing: {
     title: 'Pricing — Free Plan & Pro from ₹599/year',
     description:
-      'Start free with job search, 1 ATS resume, 10 application tracks, and 10 AI credits/month. Glowminds Pro founding offer: ₹599/year.',
+      'Start free with job search, 1 ATS resume, 10 application tracks, and 10 AI credits/month. Glowminds Pro founding offer: ₹599/year for AI career tools.',
     path: '/pricing',
     keywords:
       'Glowminds pricing, student career tools price, affordable resume builder India, AI interview prep cost, Pro plan India',
@@ -52,10 +52,10 @@ export const PAGE_SEO = {
   about: {
     title: 'About — AI Career Platform for Indian Students',
     description:
-      'Glowminds helps students and fresh graduates land jobs with AI-powered resumes, job matching, and interview prep — affordable tools that level the playing field.',
+      'Glowminds helps students and fresh graduates land jobs with AI resumes, job matching, upskilling paths, and interview prep — affordable tools that level the playing field.',
     path: '/about',
     keywords:
-      'about Glowminds, student career platform India, AI career tools mission, fresher job help',
+      'about Glowminds, student career platform India, AI career tools mission, fresher job help, skill gap India',
   },
   contact: {
     title: 'Contact Us — Support & Partnerships',
@@ -169,6 +169,10 @@ export function webSiteSchema() {
     description: SEO_DEFAULT_DESCRIPTION,
     publisher: { '@id': `${SITE_URL}/#organization` },
     inLanguage: 'en-IN',
+    about: {
+      '@type': 'Thing',
+      name: 'AI career tools for students and freshers in India',
+    },
   }
 }
 
@@ -222,9 +226,18 @@ export function softwareApplicationSchema() {
     '@type': 'SoftwareApplication',
     name: SEO_SITE_NAME,
     applicationCategory: 'BusinessApplication',
+    applicationSubCategory: 'Career Development',
     operatingSystem: 'Web',
     url: SITE_URL,
     description: SEO_DEFAULT_DESCRIPTION,
+    featureList: [
+      'ATS resume builder',
+      'AI job matching',
+      'Skill gap analysis and upskilling paths',
+      'AI mock interviews',
+      'Cover letter generator',
+      'Application tracker',
+    ],
     offers: {
       '@type': 'Offer',
       price: '0',
@@ -232,6 +245,10 @@ export function softwareApplicationSchema() {
       description: 'Free tier with optional Pro upgrade',
     },
     provider: { '@id': `${SITE_URL}/#organization` },
+    areaServed: {
+      '@type': 'Country',
+      name: 'India',
+    },
   }
 }
 

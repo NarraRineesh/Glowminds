@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <!-- Primary SEO (fallback before React hydrates) -->
-    <title>Glowminds — AI Resume Builder & Job Matching for Students</title>
-    <meta name="description" content="Build ATS-ready resumes, get AI job matches, practice mock interviews, and track applications. Free to start — built for students and fresh graduates in India." />
-    <meta name="keywords" content="AI resume builder, ATS resume, job search India, student jobs, fresher jobs, AI interview prep, cover letter generator, job application tracker, career platform India, Glowminds" />
+    <title>Glowminds — AI Resume Builder, Job Matching & Upskilling for Freshers</title>
+    <meta name="description" content="Build ATS-ready resumes, match to jobs, close skill gaps with AI upskilling paths, practice interviews, and track applications. Free to start for students and freshers in India." />
+    <meta name="keywords" content="AI resume builder India, ATS resume for freshers, job search India, skill gap analysis, AI upskilling, learning path, AI interview prep, cover letter generator, application tracker, Glowminds" />
     <meta name="author" content="Glowminds" />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <link rel="canonical" href="%SITE_URL%/" />
@@ -35,8 +35,8 @@
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="%SITE_URL%/" />
-    <meta property="og:title" content="Glowminds — AI Resume Builder & Job Matching for Students" />
-    <meta property="og:description" content="Build ATS-ready resumes, get AI job matches, practice mock interviews, and track applications. Free to start for students in India." />
+    <meta property="og:title" content="Glowminds — AI Resume Builder, Job Matching & Upskilling for Freshers" />
+    <meta property="og:description" content="ATS resumes, AI job matching, skill-gap upskilling, mock interviews, and application tracking — free to start for students in India." />
     <meta property="og:image" content="%SITE_URL%/og-image.png" />
     <meta property="og:image:alt" content="Glowminds — AI career platform for students and job seekers in India" />
     <meta property="og:site_name" content="Glowminds" />
@@ -45,8 +45,8 @@
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:url" content="%SITE_URL%/" />
-    <meta name="twitter:title" content="Glowminds — AI Resume Builder & Job Matching" />
-    <meta name="twitter:description" content="ATS resumes, AI job matching, mock interviews, and application tracking — free to start for students in India." />
+    <meta name="twitter:title" content="Glowminds — AI Resume, Jobs & Upskilling" />
+    <meta name="twitter:description" content="ATS resumes, AI job matching, skill-gap upskilling, mock interviews, and application tracking — free to start for students in India." />
     <meta name="twitter:image" content="%SITE_URL%/og-image.png" />
     <meta name="twitter:image:alt" content="Glowminds — AI career platform for students and job seekers in India" />
 
@@ -83,7 +83,16 @@
             "price": "0",
             "priceCurrency": "INR"
           },
-          "provider": { "@id": "%SITE_URL%/#organization" }
+          "featureList": [
+            "ATS resume builder",
+            "AI job matching",
+            "Skill gap analysis and upskilling paths",
+            "AI mock interviews",
+            "Cover letter generator",
+            "Application tracker"
+          ],
+          "provider": { "@id": "%SITE_URL%/#organization" },
+          "areaServed": { "@type": "Country", "name": "India" }
         }
       ]
     }
@@ -98,7 +107,24 @@
     />
   </head>
   <body>
-    <noscript>You need to enable JavaScript to use Glowminds.</noscript>
+    <noscript>
+      <main>
+        <h1>Glowminds — AI Resume Builder, Job Matching &amp; Upskilling for Freshers in India</h1>
+        <p>
+          Build ATS-ready resumes, discover matched jobs, close skill gaps with AI learning paths,
+          practice interviews, generate cover letters, and track applications — free to start.
+        </p>
+        <nav>
+          <ul>
+            <li><a href="/features">Features</a></li>
+            <li><a href="/pricing">Pricing</a></li>
+            <li><a href="/about">About</a></li>
+            <li><a href="/contact">Contact</a></li>
+            <li><a href="/signup">Sign up free</a></li>
+          </ul>
+        </nav>
+      </main>
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

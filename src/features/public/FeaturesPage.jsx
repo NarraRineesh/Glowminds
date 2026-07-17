@@ -60,7 +60,7 @@ const FEATURE_CATEGORIES = [
   },
   {
     title: 'Career Growth',
-    items: ['Skill Gap Analysis', 'Career Analytics', 'Cover Letter AI'],
+    items: ['Skill Gap Analysis', 'AI Upskilling Paths', 'Cover Letter AI'],
   },
 ]
 
@@ -94,7 +94,7 @@ const STEPS = [
   { n: '01', t: 'Create Profile', d: 'Sign up in 30 seconds. Add skills, education, and preferences.', color: 'text-primary' },
   { n: '02', t: 'Build Resume', d: 'AI generates an ATS-optimized resume with live preview.', color: 'text-emerald-500' },
   { n: '03', t: 'Get Matched', d: 'Jobs ranked by your skills and preferences — apply faster.', color: 'text-amber-500' },
-  { n: '04', t: 'Land Offers', d: 'Practice interviews, track applications, and close the offer.', color: 'text-violet-500' },
+  { n: '04', t: 'Upskill & Interview', d: 'Close skill gaps with AI learning paths, then practice interviews and track offers.', color: 'text-violet-500' },
 ]
 
 function SectionHead({ badge, badgeClass, title, highlight, description }) {
@@ -200,6 +200,7 @@ function PipelineVisualization() {
 const FEATURE_SEO_NAMES = [
   'ATS Resume Builder',
   'Smart Job Matching',
+  'Skill Gap Analysis & Upskilling',
   'AI Mock Interviews',
   'Application Tracker',
   'AI Cover Letters',

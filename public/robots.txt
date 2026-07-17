@@ -4,6 +4,18 @@ Disallow: /dashboard
 Disallow: /dashboard/
 Disallow: /login
 Disallow: /signup
+Disallow: /admin
+Disallow: /admin/
+Disallow: /api
+
+User-agent: Googlebot
+Allow: /
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /login
+Disallow: /signup
+Disallow: /admin
+Disallow: /admin/
 Disallow: /api
 
 Sitemap: https://glowminds.in/sitemap.xml
