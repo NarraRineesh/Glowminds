@@ -5,8 +5,8 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 const FLOW_SCENES = [
   {
     id: 'resume',
-    src: '/hero/resume-builder.png',
-    alt: 'Resume builder',
+    src: '/hero/resume-builder.webp',
+    alt: 'Glowminds ATS resume builder with live score and section editor',
     duration: 4.5,
     scrollY: [0, 0],
     cursor: {
@@ -18,8 +18,8 @@ const FLOW_SCENES = [
   },
   {
     id: 'overview',
-    src: '/hero/overview-light.png',
-    alt: 'Dashboard overview',
+    src: '/hero/overview-light.webp',
+    alt: 'Glowminds career dashboard overview with match scores and next actions',
     duration: 5,
     scrollY: [0, 0],
     cursor: {
@@ -31,8 +31,8 @@ const FLOW_SCENES = [
   },
   {
     id: 'jobs',
-    src: '/hero/job-board.png',
-    alt: 'Job board',
+    src: '/hero/job-board.webp',
+    alt: 'Glowminds job board showing matched roles for freshers in India',
     duration: 5,
     scrollY: [0, '-6%'],
     scrollTimes: [0.4, 0.65],
@@ -45,8 +45,8 @@ const FLOW_SCENES = [
   },
   {
     id: 'interview',
-    src: '/hero/interview-prep.png',
-    alt: 'Interview prep',
+    src: '/hero/interview-prep.webp',
+    alt: 'Glowminds AI mock interview practice screen with feedback prompts',
     duration: 4.5,
     scrollY: [0, 0],
     cursor: {
@@ -58,8 +58,8 @@ const FLOW_SCENES = [
   },
   {
     id: 'coach',
-    src: '/hero/ai-coach.png',
-    alt: 'AI career coach',
+    src: '/hero/ai-coach.webp',
+    alt: 'Glowminds AI career coach chat guiding skill-gap upskilling',
     duration: 5,
     scrollY: [0, '-4%'],
     scrollTimes: [0.5, 0.75],
@@ -72,8 +72,8 @@ const FLOW_SCENES = [
   },
   {
     id: 'profile',
-    src: '/hero/profile.png',
-    alt: 'Profile',
+    src: '/hero/profile.webp',
+    alt: 'Glowminds student profile with skills, experience, and portfolio highlights',
     duration: 4.5,
     scrollY: [0, '-10%'],
     scrollTimes: [0.35, 0.7],
@@ -140,6 +140,8 @@ function SceneLayer({ scene, clicking, reducedMotion }) {
         <img
           src={scene.src}
           alt={scene.alt}
+          width={1024}
+          height={550}
           draggable={false}
           className="block h-auto min-h-[118%] w-full min-w-full object-cover object-left-top"
         />
@@ -210,6 +212,8 @@ export default function LandingHeroUserFlow({ initialSceneId = 'resume' } = {}) 
       <img
         src={staticScene.src}
         alt={staticScene.alt}
+        width={1024}
+        height={550}
         className="block size-full min-h-[inherit] object-cover object-left-top"
         draggable={false}
       />

@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import SEO from '@/components/SEO'
 import {
@@ -211,8 +211,6 @@ const FEATURE_SEO_NAMES = [
 ]
 
 export default function FeaturesPage() {
-  const navigate = useNavigate()
-
   return (
     <div>
       <SEO
@@ -265,8 +263,8 @@ export default function FeaturesPage() {
             transition={{ duration: 0.6, ease: motionEase, delay: 0.3 }}
             className="mb-6 flex flex-wrap justify-center gap-3"
           >
-            <Button onClick={() => navigate('/signup')}>Get Started Free</Button>
-            <Button variant="outline" onClick={() => navigate('/pricing')}>View Pricing</Button>
+            <Button render={<Link to="/signup" />}>Get Started Free</Button>
+            <Button variant="outline" render={<Link to="/pricing" />}>View Pricing</Button>
           </motion.div>
 
           <AtsScoreHeroVisual />
@@ -654,7 +652,7 @@ export default function FeaturesPage() {
                 <p className="mx-auto mb-6 max-w-lg text-muted-foreground">
                   Build your resume, discover jobs, and practice interviews — all for free.
                 </p>
-                <Button size="lg" onClick={() => navigate('/signup')}>Start Free</Button>
+                <Button size="lg" render={<Link to="/signup" />}>Start Free</Button>
                 <p className="mt-3 text-xs text-muted-foreground">No credit card required · Free tier forever</p>
               </CardContent>
             </Card>

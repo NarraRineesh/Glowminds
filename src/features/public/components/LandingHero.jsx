@@ -1,5 +1,5 @@
 import { motion, useReducedMotion } from 'framer-motion'
-import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import AppIcon from '@/components/icons/AppIcon'
 import LandingHeroVideo from '@/features/public/components/LandingHeroVideo'
 import LandingHeroMetrics from '@/features/public/components/LandingHeroMetrics'
@@ -11,8 +11,7 @@ import {
 } from '@/features/public/motionVariants'
 import { Badge, Button } from '@/components/ui'
 
-export default function LandingHero({ hero, heroMetrics, trustBadges, stats, onSignup }) {
-  const navigate = useNavigate()
+export default function LandingHero({ hero, heroMetrics, trustBadges, stats }) {
   const reducedMotion = useReducedMotion()
 
   const headline = hero?.headline || 'Get Hired Faster with One AI Career Platform'
@@ -84,13 +83,13 @@ export default function LandingHero({ hero, heroMetrics, trustBadges, stats, onS
             className="flex flex-wrap items-center gap-2"
           >
             <motion.div whileHover={reducedMotion ? {} : { y: -2, scale: 1.01 }} whileTap={reducedMotion ? {} : { y: 1 }}>
-              <Button size="lg" onClick={onSignup} className="gap-2">
+              <Button size="lg" render={<Link to="/signup" />} className="gap-2">
                 {hero?.primaryCta || 'Build Your Resume'}
                 <AppIcon name="send" className="size-4" />
               </Button>
             </motion.div>
             <motion.div whileHover={reducedMotion ? {} : { y: -2, scale: 1.01 }} whileTap={reducedMotion ? {} : { y: 1 }}>
-              <Button size="lg" variant="outline" onClick={() => navigate('/features')} className="gap-2">
+              <Button size="lg" variant="outline" render={<Link to="/features" />} className="gap-2">
                 <AppIcon name="sparkle" className="size-4" />
                 {hero?.secondaryCta || 'Explore Tools'}
               </Button>

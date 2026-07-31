@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import AppIcon from '@/components/icons/AppIcon'
 import SEO from '@/components/SEO'
 import {
@@ -59,14 +59,11 @@ const {
 const HOME_FEATURES = getHomeFeatures(features)
 
 export default function LandingPage() {
-  const navigate = useNavigate()
   const { config: landingConfig } = useLandingConfig()
   const { pricing: configPricing } = usePricingConfig()
   const resolvedHeroMetrics = landingConfig.heroMetrics || heroMetrics
   const resolvedStats = landingConfig.stats || stats
   const pricing = configPricing
-
-  const goSignup = () => navigate('/signup')
 
   return (
     <div className="bg-background">
@@ -86,7 +83,6 @@ export default function LandingPage() {
         heroMetrics={resolvedHeroMetrics}
         trustBadges={trustBadges}
         stats={resolvedStats}
-        onSignup={goSignup}
       />
 
       {/* Feature story */}
@@ -113,10 +109,10 @@ export default function LandingPage() {
                   {feature.key === 'resume-builder' ? (
                     <div className="space-y-4">
                       <LandingAtsPreview className="max-w-sm" />
-                      <Button onClick={goSignup}>{feature.cta || 'Try resume builder free'}</Button>
+                      <Button render={<Link to="/signup" />}>{feature.cta || 'Try resume builder free'}</Button>
                     </div>
                   ) : feature.cta ? (
-                    <Button variant={index === 0 ? 'default' : 'outline'} onClick={goSignup}>
+                    <Button variant={index === 0 ? 'default' : 'outline'} render={<Link to="/signup" />}>
                       {feature.cta}
                     </Button>
                   ) : null}
@@ -159,11 +155,11 @@ export default function LandingPage() {
 
       <LandingSection className="pt-0">
         <LandingReveal className="text-center">
-          <Button variant="outline" onClick={() => navigate('/features')}>See all features</Button>
+          <Button variant="outline" render={<Link to="/features" />}>See all features</Button>
         </LandingReveal>
       </LandingSection>
 
-      <LandingPricingCards pricing={pricing} onSignup={goSignup} />
+      <LandingPricingCards pricing={pricing} />
 
       {/* Testimonials */}
       <LandingSection>
@@ -227,7 +223,7 @@ export default function LandingPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button size="lg" className="min-w-[160px]" onClick={goSignup}>
+              <Button size="lg" className="min-w-[160px]" render={<Link to="/signup" />}>
                 {exitCta?.button || 'Start Free'}
               </Button>
             </CardContent>

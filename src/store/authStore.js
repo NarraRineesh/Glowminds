@@ -1,8 +1,14 @@
 import { create } from 'zustand'
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, signOut, updateProfile } from 'firebase/auth'
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
-import { auth, googleProvider, db } from '@/services/firebase'
 import { createDefaultUserDoc } from '@/constants/schema'
+
+async function firebaseAuth() {
+  const [{ auth, googleProvider, db }, authMod, fsMod] = await Promise.all([
+    import('@/services/firebase'),
+    import('firebase/auth'),
+    import('firebase/firestore'),
+  ])
+  return { auth, googleProvider, db, ...authMod, ...fsMod }
+}
 
 const useAppStore = create((set) => ({
   authLoading: true,
@@ -21,11 +27,14 @@ const useAppStore = create((set) => ({
   },
 
   doLogin: async (email, password) => {
+    const { auth, signInWithEmailAndPassword } = await firebaseAuth()
     const cred = await signInWithEmailAndPassword(auth, email, password)
     return cred.user
   },
 
   doSignup: async (email, password, firstName, lastName) => {
+    const { auth, db, createUserWithEmailAndPassword, updateProfile, doc, setDoc, serverTimestamp } =
+      await firebaseAuth()
     const cred = await createUserWithEmailAndPassword(auth, email, password)
     const displayName = `${firstName} ${lastName}`.trim()
     await updateProfile(cred.user, { displayName })
@@ -47,29 +56,42 @@ const useAppStore = create((set) => ({
   },
 
   doGoogleLogin: async () => {
+    const { auth, googleProvider, db, signInWithPopup, doc, setDoc, getDoc, serverTimestamp } =
+      await firebaseAuth()
     const cred = await signInWithPopup(auth, googleProvider)
     const userRef = doc(db, 'users', cred.user.uid)
     const existing = await getDoc(userRef)
     const gName = cred.user.displayName || ''
-    const userDoc = createDefaultUserDoc({
-      uid: cred.user.uid,
-      email: cred.user.email,
-      firstName: gName.split(' ')[0] || '',
-      lastName: gName.split(' ').slice(1).join(' ') || '',
-      displayName: gName,
-      photoURL: cred.user.photoURL,
-    })
+    const firstName = gName.split(' ')[0] || ''
+    const lastName = gName.split(' ').slice(1).join(' ') || ''
 
     if (!existing.exists()) {
+      // New users only — never write createDefaultUserDoc over an existing account.
+      // Firestore merge:true still overwrites nested leaves, so merging defaults
+      // would wipe experience, skills, summary, settings, etc. on every Google login.
+      const userDoc = createDefaultUserDoc({
+        uid: cred.user.uid,
+        email: cred.user.email,
+        firstName,
+        lastName,
+        displayName: gName,
+        photoURL: cred.user.photoURL,
+      })
       await setDoc(userRef, {
         ...userDoc,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       })
     } else {
-      // Merge safe profile fields only — billing/credits live in top-level collections.
+      // Returning users: refresh identity fields only. Prefer Google values when
+      // the stored field is empty so we don't clobber user-edited names.
+      const prev = existing.data() || {}
       await setDoc(userRef, {
-        ...userDoc,
+        email: cred.user.email || prev.email || '',
+        displayName: prev.displayName || gName || '',
+        firstName: prev.firstName || firstName,
+        lastName: prev.lastName || lastName,
+        photoURL: prev.photoURL || cred.user.photoURL || null,
         updatedAt: serverTimestamp(),
       }, { merge: true })
     }
@@ -77,6 +99,7 @@ const useAppStore = create((set) => ({
   },
 
   updatePhotoURL: async (file) => {
+    const { auth, db, doc, setDoc } = await firebaseAuth()
     const user = auth.currentUser
     if (!user || !file) return
     // Compress & convert to base64 data URL (avoids Storage CORS issues)
@@ -100,11 +123,12 @@ const useAppStore = create((set) => ({
     })
     // Store in Firestore only (Firebase Auth rejects data URIs for photoURL)
     await setDoc(doc(db, 'users', user.uid), { photoURL }, { merge: true })
-    set(s => ({ user: { ...s.user, photoURL } }))
+    set((s) => ({ user: { ...s.user, photoURL } }))
     return photoURL
   },
 
   removePhotoURL: async () => {
+    const { auth, db, doc, setDoc, updateProfile } = await firebaseAuth()
     const user = auth.currentUser
     if (!user) return
     // Clear in Firestore (UI key) and on the Firebase Auth user so
@@ -117,20 +141,22 @@ const useAppStore = create((set) => ({
       // Firestore is the source of truth so we don't block on it.
       console.warn('removePhotoURL auth profile clear:', err?.message || err)
     }
-    set(s => ({ user: { ...s.user, photoURL: null } }))
+    set((s) => ({ user: { ...s.user, photoURL: null } }))
   },
 
   updateDisplayName: async (firstName, lastName) => {
+    const { auth, db, doc, setDoc, updateProfile } = await firebaseAuth()
     const user = auth.currentUser
     if (!user) return
     const displayName = `${firstName} ${lastName}`.trim()
     await updateProfile(user, { displayName })
     await setDoc(doc(db, 'users', user.uid), { displayName, firstName, lastName: lastName || '' }, { merge: true })
-    set(s => ({ user: { ...s.user, displayName, firstName, lastName: lastName || '' } }))
+    set((s) => ({ user: { ...s.user, displayName, firstName, lastName: lastName || '' } }))
   },
 
   /** Single display-name field (Settings) — splits into first/last for Firestore. */
   updateDisplayNameString: async (rawName) => {
+    const { auth, db, doc, setDoc, updateProfile } = await firebaseAuth()
     const user = auth.currentUser
     if (!user) return
     const displayName = String(rawName || '').trim()
@@ -150,6 +176,7 @@ const useAppStore = create((set) => ({
   },
 
   doLogout: async () => {
+    const { auth, signOut } = await firebaseAuth()
     await signOut(auth)
     set({ loggedIn: false, user: null })
   },
@@ -158,7 +185,7 @@ const useAppStore = create((set) => ({
     const id = Date.now()
     set((s) => ({ toasts: [...s.toasts, { id, type, msg }] }))
     setTimeout(() => {
-      set((s) => ({ toasts: s.toasts.filter(t => t.id !== id) }))
+      set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) }))
     }, 3500)
   },
 }))

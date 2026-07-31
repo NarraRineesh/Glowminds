@@ -47,6 +47,7 @@ export type CopilotInitPayload = {
 	onResumeCreate?: () => Promise<void>;
 	onResumeSave?: (resume: CopilotEmbedResume) => Promise<void>;
 	onResumeDelete?: (resumeId: string) => Promise<void>;
+	onStorePdf?: (args: { blob: Blob; name: string; resumeId: string }) => Promise<void> | void;
 	allowLocalMigration?: boolean;
 };
 

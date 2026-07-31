@@ -52,6 +52,27 @@ export const api = onRequest(
   app,
 );
 
+/**
+ * Missing /assets/* must NOT fall through to the SPA index.html rewrite.
+ * That previously returned HTML as "JS" with an immutable cache header and
+ * broke tabs left open across deploys.
+ */
+export const assetNotFound = onRequest(
+  {
+    region: "asia-south1",
+    memory: "128MiB",
+    timeoutSeconds: 10,
+    maxInstances: 10,
+    concurrency: 80,
+    invoker: "public",
+    cors: false,
+  },
+  (_req, res) => {
+    res.set("Cache-Control", "no-store, max-age=0");
+    res.status(404).type("text/plain").send("Not found");
+  },
+);
+
 /** Daily: mark Pro subscriptions past endDate as expired. */
 export const expireProSubscriptions = onSchedule(
   {

@@ -141,6 +141,10 @@ export default function JobDetailSection() {
 
   const handleApply = async (j, notesExtra = '') => {
     if (applying || applied) return
+    // Open the apply page synchronously (inside the click gesture) so the
+    // browser doesn't block the popup — tracking happens after, async.
+    const applyUrl = j.url || j.applyUrl || j.jobUrl || ''
+    if (applyUrl) window.open(applyUrl, '_blank', 'noopener,noreferrer')
     setApplying(true)
     try {
       const company = j.company || j.co || ''
@@ -163,7 +167,11 @@ export default function JobDetailSection() {
       })
       if (application) {
         addToast('success', `Applied to ${j.title} at ${company}! Added to your tracker.`)
-        if (j.url) window.open(j.url, '_blank', 'noopener,noreferrer')
+        const uid = user?.uid
+        if (uid) {
+          const { awardXp } = await import('@/services/gamification')
+          await awardXp(uid, 'apply')
+        }
       }
     } catch {
       addToast('error', 'Could not track application. Please try again.')
@@ -323,12 +331,49 @@ export default function JobDetailSection() {
   const displayScore = aiFit?.score ?? (typeof job.match === 'number' && job.match > 0 ? job.match : null)
     ?? (typeof matchAnalysis?.score === 'number' && matchAnalysis.score > 0 ? matchAnalysis.score : null)
   const hasMatchScore = typeof displayScore === 'number' && displayScore > 0
+  const hits = matchAnalysis?.matches || matchAnalysis?.strengths || aiFit?.strengths || []
+  const misses = matchAnalysis?.gaps || aiFit?.gaps || []
 
   return (
-    <div className="w-full min-w-0">
-      <Button variant="ghost" size="sm" className="mb-3 -ml-2" onClick={() => navigate(-1)}>
-        ← Back
-      </Button>
+    <div className="w-full min-w-0 space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Button variant="ghost" size="sm" className="-ml-2" onClick={() => navigate(-1)}>
+          ← Jobs
+        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => toggleSave(job)}
+          >
+            {isJobSaved(jobId) ? 'Saved' : 'Save'}
+          </Button>
+          <Button type="button" size="sm" disabled={applying || applied} onClick={() => handleApply(job)}>
+            {applied ? 'Tracked' : applying ? 'Adding…' : 'Apply & track'}
+          </Button>
+        </div>
+      </div>
+
+      {hasMatchScore && (
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-card px-4 py-3.5">
+          <div>
+            <div className="mb-2 flex flex-wrap gap-1.5">
+              <Badge variant="secondary" className="text-success">{displayScore}% match</Badge>
+              {(job.remote || job.location) && <Badge variant="outline">{job.remote ? 'Remote' : job.location}</Badge>}
+              {misses.length > 0 && <Badge variant="outline" className="text-warning">{misses.length} skill gap{misses.length > 1 ? 's' : ''}</Badge>}
+            </div>
+            <p className="m-0 max-w-xl text-sm text-muted-foreground">
+              {(job.description || job.desc || '').replace(/<[^>]+>/g, ' ').slice(0, 160) || 'Review fit and use Apply Kit before tracking.'}
+              …
+            </p>
+          </div>
+          <div className="flex flex-col items-center gap-1">
+            <div className={cn('font-mono text-3xl font-bold', scoreTone(displayScore))}>{displayScore}</div>
+            <span className="text-[11px] text-muted-foreground">Fit score</span>
+          </div>
+        </div>
+      )}
 
       <DashboardCard contentClassName="space-y-5 p-5">
         <div className="flex flex-wrap items-start gap-4">
@@ -365,6 +410,35 @@ export default function JobDetailSection() {
         </div>
 
         {hasMatchScore && <Progress value={displayScore} className="h-1.5" />}
+
+        {(hits.length > 0 || misses.length > 0) && (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Why you match</h3>
+              <ul className="space-y-1.5 text-sm">
+                {(hits.length ? hits : ['Profile signals align with this role']).slice(0, 4).map((h) => (
+                  <li key={String(h)} className="flex gap-2">
+                    <AppIcon name="check" className="mt-0.5 size-3.5 shrink-0 text-success" />
+                    <span>{typeof h === 'string' ? h : h.text || h.label}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            {misses.length > 0 && (
+              <div>
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Gaps</h3>
+                <ul className="space-y-1.5 text-sm">
+                  {misses.slice(0, 4).map((g) => (
+                    <li key={String(g)} className="flex gap-2">
+                      <AppIcon name="warning" className="mt-0.5 size-3.5 shrink-0 text-warning" />
+                      <span>{typeof g === 'string' ? g : g.text || g.label}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="flex flex-wrap gap-1.5">
           {(job.tags || []).map((t) => <StatusBadge key={t} tone="default">{t}</StatusBadge>)}

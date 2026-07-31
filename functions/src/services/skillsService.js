@@ -402,6 +402,66 @@ export async function searchSkills(query, limit = 10) {
     .slice(0, safeLimit);
 }
 
+/** Build a Set of known skill tokens (canonical names + aliases). */
+async function getKnownSkillTokens() {
+  const dict = await getSkillDictionary();
+  const known = new Set();
+  for (const row of dict.skills || []) {
+    const n = normalizeSkillToken(row.name);
+    if (n) known.add(n);
+  }
+  for (const row of dict.aliases || []) {
+    const n = normalizeSkillToken(row.alias);
+    if (n) known.add(n);
+  }
+  return known;
+}
+
+/**
+ * Queue profile skills that are missing from the skill dictionary into
+ * `unknown_skills` (status=pending) so the next enrich run can classify them.
+ * Always returns quietly — profile save must not fail if Supabase is down.
+ */
+export async function queueUnknownSkills(skillNames = []) {
+  if (!isSupabaseEnabled()) return { queued: 0, unknown: [] };
+
+  const candidates = [
+    ...new Set(
+      (Array.isArray(skillNames) ? skillNames : [])
+        .map(normalizeSkillToken)
+        .filter((n) => n && !isNoiseSkill(n)),
+    ),
+  ].slice(0, 60);
+
+  if (!candidates.length) return { queued: 0, unknown: [] };
+
+  let known;
+  try {
+    known = await getKnownSkillTokens();
+  } catch (err) {
+    console.warn("queueUnknownSkills dictionary:", err.message);
+    return { queued: 0, unknown: [] };
+  }
+
+  const unknown = candidates.filter((n) => !known.has(n));
+  if (!unknown.length) return { queued: 0, unknown: [] };
+
+  try {
+    const queued = await supabaseRest("rpc/upsert_unknown_skills", {
+      method: "POST",
+      body: { p_names: unknown },
+      timeoutMs: 8000,
+    });
+    return {
+      queued: Number.isFinite(queued) ? queued : unknown.length,
+      unknown,
+    };
+  } catch (err) {
+    console.warn("queueUnknownSkills upsert:", err.message);
+    return { queued: 0, unknown };
+  }
+}
+
 export async function getSkillTrends(limit = 8) {
   const safeLimit = Math.min(Math.max(1, limit), 20);
 
@@ -575,8 +635,8 @@ export async function getSkillGap({ profile = {}, targetRole = "" } = {}) {
       label: formatDomainLabel(categories),
     },
     coverage,
-    haveSkills: haveSkills.slice(0, 16),
-    missingSkills: missingSkills.slice(0, 16),
+    haveSkills,
+    missingSkills: missingSkills.slice(0, 24),
     profileSkillCount: userSkills.length,
   };
 }

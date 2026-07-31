@@ -50,6 +50,13 @@ const useProfileStore = create((set, get) => ({
   updateProfile: async (partial) => {
     const uid = auth.currentUser?.uid
     if (!uid) return
+    // Never write against empty defaults — that can wipe cloud profile data.
+    if (!get().loaded) {
+      const loaded = await get().load({ force: true })
+      if (!loaded && !get().loaded) {
+        throw new Error('Profile is not loaded yet')
+      }
+    }
     const current = get().profile
     const patch = partial || {}
     const next = {
@@ -78,6 +85,12 @@ const useProfileStore = create((set, get) => ({
       linkedinAudit: patch.linkedinAudit !== undefined
         ? patch.linkedinAudit
         : current.linkedinAudit,
+      resumeAnalysis: patch.resumeAnalysis !== undefined
+        ? patch.resumeAnalysis
+        : current.resumeAnalysis,
+      public: patch.public !== undefined
+        ? { ...(current.public || {}), ...patch.public }
+        : current.public,
       coverLetterDrafts: patch.coverLetterDrafts !== undefined
         ? normalizeCoverLetterDrafts(patch.coverLetterDrafts)
         : normalizeCoverLetterDrafts(current.coverLetterDrafts),
@@ -99,6 +112,12 @@ const useProfileStore = create((set, get) => ({
   replaceProfile: async (profile) => {
     const uid = auth.currentUser?.uid
     if (!uid) return
+    if (!get().loaded) {
+      const loaded = await get().load({ force: true })
+      if (!loaded && !get().loaded) {
+        throw new Error('Profile is not loaded yet')
+      }
+    }
     const next = normalizeProfile(profile)
     set({ profile: next })
     try {

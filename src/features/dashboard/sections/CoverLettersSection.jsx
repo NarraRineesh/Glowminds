@@ -8,7 +8,7 @@ import useAppStore from '@/store/authStore'
 import useProfileStore from '@/store/profileStore'
 import useEntitlements from '@/hooks/useEntitlements'
 import { apiFetch } from '@/services/apiClient'
-import { normalizeCoverLetterDrafts } from '@/constants/schema'
+import { getPreferredRole, normalizeCoverLetterDrafts } from '@/constants/schema'
 
 const TEMPLATES = [
   { id: 'concise', name: 'Concise & Direct', desc: '3 short paragraphs. Best for engineering & product roles.', ico: 'lightning', tone: 'primary' },
@@ -99,7 +99,7 @@ export default function CoverLettersSection() {
     loadProfile()
       .then(() => {
         const p = useProfileStore.getState().profile
-        if (!role) setRole(p?.headline || p?.preferences?.jobType || 'Software Engineer')
+        if (!role) setRole(getPreferredRole(p))
         if (!skill) {
           const tech = p?.skills?.technical || []
           setSkill(tech.slice(0, 2).join(', ') || 'problem solving')

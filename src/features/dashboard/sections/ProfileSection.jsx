@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { Link } from 'react-router-dom'
 import useAppStore from '@/store/authStore'
 import useProfileStore from '@/store/profileStore'
 import { auth } from '@/services/firebase'
 import { apiFetch } from '@/services/apiClient'
 import Loader from '@/components/Loader'
 import SkillSuggestInput from '@/components/SkillSuggestInput'
+import { reportUnknownSkills } from '@/services/skillsApi'
 import useEntitlements from '@/hooks/useEntitlements'
 import { DEFAULT_PRICING_CONFIG } from '@/constants/pricingDefaults'
 import useIsLg from '@/hooks/useIsLg'
@@ -242,6 +244,9 @@ export default function ProfileSection() {
       setLastUpdated(new Date())
       setEditing(null)
       addToast('success', 'Skills saved!')
+      // Queue skills missing from the dictionary for the next enrich pass.
+      const all = [...(skills.technical || []), ...(skills.soft || [])]
+      reportUnknownSkills(all).catch(() => {})
     } catch (e) {
       console.error('Save skills:', e)
       addToast('error', 'Failed to save skills')
@@ -278,6 +283,7 @@ export default function ProfileSection() {
       },
       preferences: {
         jobType: p.preferences?.jobType || '',
+        preferredRole: p.preferences?.preferredRole || '',
         location: toCsv(p.preferences?.preferredLocations),
         expectedCTC: p.preferences?.expectedCTC || '',
         noticePeriod: p.preferences?.noticePeriod || '',
@@ -608,15 +614,15 @@ export default function ProfileSection() {
     : null
 
   const quickLinks = [
-    { id: 'profile-summary', label: 'Profile summary' },
+    { id: 'profile-personal', label: 'Personal details' },
+    { id: 'profile-education', label: 'Education' },
     { id: 'profile-skills', label: 'Key skills' },
     { id: 'profile-experience', label: 'Employment' },
-    { id: 'profile-education', label: 'Education' },
+    { id: 'profile-preferences', label: 'Career profile' },
     { id: 'profile-projects', label: 'Projects' },
     { id: 'profile-internships', label: 'Internships' },
     { id: 'profile-certifications', label: 'Certifications' },
-    { id: 'profile-preferences', label: 'Career profile' },
-    { id: 'profile-personal', label: 'Personal details' },
+    { id: 'profile-summary', label: 'Profile summary' },
     { id: 'profile-ai-review', label: 'AI review' },
   ]
 
@@ -628,7 +634,7 @@ export default function ProfileSection() {
   const educationEmpty = !educationList.some(educationEntryHasContent)
   const skillsEmpty = skillsTechnical.length === 0 && skillsSoft.length === 0
   const experienceEmpty = !isFresher && !experienceList.some(experienceEntryHasContent)
-  const preferencesEmpty = !prefs.jobType && !(prefs.preferredLocations || []).length && !prefs.expectedCTC
+  const preferencesEmpty = !prefs.preferredRole && !prefs.jobType && !(prefs.preferredLocations || []).length && !prefs.expectedCTC
   const projectsEmpty = !projectList.some(projectHasContent)
   const internshipsEmpty = !internshipList.some(internshipHasContent)
   const certsEmpty = !certs.some((c) => c.name)
@@ -681,6 +687,17 @@ export default function ProfileSection() {
                 </p>
               )}
             </div>
+
+            <p className="m-0 text-sm">
+              <Link
+                to="/dashboard/profile/public"
+                className="inline-flex items-center gap-1.5 font-medium text-primary underline-offset-4 hover:underline"
+              >
+                <AppIcon name="globe" className="size-3.5" />
+                Manage public portfolio
+              </Link>
+              <span className="text-muted-foreground"> — build and publish your /u/ page</span>
+            </p>
 
             <div className="space-y-1">
               <div className="flex items-center justify-between text-sm">
@@ -891,19 +908,21 @@ export default function ProfileSection() {
       </ProfileCard>
 
         <ProfileCard id="profile-preferences" className="scroll-mt-20"
-        title="Preferences & Salary" titleIcon="settings"
+        title="Career preferences" titleIcon="settings"
         action={!preferencesEmpty ? <Button variant="ghost" size="sm" onClick={() => startEdit('preferences')}>Edit</Button> : null}
       >
             {preferencesEmpty ? (
-              <ProfileEmptyState icon="salary" message="Set your job type, location & salary expectations" actionLabel="+ Set preferences" onAction={() => startEdit('preferences')} />
+              <ProfileEmptyState icon="salary" message="Set preferred role, location & salary expectations" actionLabel="+ Set preferences" onAction={() => startEdit('preferences')} />
             ) : (
               <div className="space-y-0">
+                <ProfileFieldRow label="Preferred job role">{prefs.preferredRole || '—'}</ProfileFieldRow>
+                <ProfileFieldRow label="Preferred work location">{(prefs.preferredLocations || []).join(', ') || '—'}</ProfileFieldRow>
                 <ProfileFieldRow label="Job Type">{prefs.jobType || '—'}</ProfileFieldRow>
-                <ProfileFieldRow label="Location">{(prefs.preferredLocations || []).join(', ') || '—'}</ProfileFieldRow>
                 <ProfileFieldRow label="Expected CTC"><span className="font-bold text-emerald-500">{prefs.expectedCTC || '—'}</span></ProfileFieldRow>
                 <ProfileFieldRow label="Notice Period">{prefs.noticePeriod || '—'}</ProfileFieldRow>
                 <ProfileFieldRow label="LinkedIn">{links.linkedin ? <a href={links.linkedin} target="_blank" rel="noopener noreferrer" className="text-primary"><AppIcon name="link" className="inline size-3" /> View</a> : '—'}</ProfileFieldRow>
                 <ProfileFieldRow label="GitHub">{links.github ? <a href={links.github} target="_blank" rel="noopener noreferrer" className="text-primary"><AppIcon name="link" className="inline size-3" /> View</a> : '—'}</ProfileFieldRow>
+                <ProfileFieldRow label="Portfolio">{links.portfolio ? <a href={links.portfolio} target="_blank" rel="noopener noreferrer" className="text-primary"><AppIcon name="link" className="inline size-3" /> View</a> : '—'}</ProfileFieldRow>
               </div>
             )}
       </ProfileCard>
@@ -1316,12 +1335,13 @@ export default function ProfileSection() {
       <AppDialog
         open={editing === 'preferences'}
         onOpenChange={(v) => !v && setEditing(null)}
-        title="Preferences & Salary" titleIcon="settings"
+        title="Career preferences" titleIcon="settings"
         footer={
           <>
             <Button variant="ghost" onClick={() => setEditing(null)}>Cancel</Button>
             <Button  disabled={saving} onClick={() => saveSection({
               preferences: {
+                preferredRole: String(form.preferredRole || '').trim().slice(0, 120),
                 jobType: form.jobType || '',
                 preferredLocations: fromCsv(form.location),
                 expectedCTC: form.expectedCTC || '',
@@ -1337,15 +1357,23 @@ export default function ProfileSection() {
           </>
         }
       >
-        <FormField label="Job Type *">
+        <FormField label="Preferred job role">
+          <Input
+            placeholder="e.g. Staff Frontend Engineer"
+            value={form.preferredRole || ''}
+            onChange={e => setForm({ ...form, preferredRole: e.target.value })}
+          />
+          <p className="mt-1 text-[0.7rem] text-muted-foreground">Used for Skills gap, Learning, Interview, and other AI tools.</p>
+        </FormField>
+        <FormField label="Preferred work location (comma-separated)">
+          <Input placeholder="Bangalore, Remote, Hyderabad…" value={form.location || ''} onChange={e => setForm({ ...form, location: e.target.value })} />
+        </FormField>
+        <FormField label="Job Type">
           <Select value={form.jobType || ''} onChange={e => setForm({ ...form, jobType: e.target.value })}>
             <option value="">Select…</option><option>Full-time</option><option>Internship</option><option>Full-time / Internship</option><option>Contract</option><option>Part-time</option><option>Freelance</option>
           </Select>
         </FormField>
-        <FormField label="Preferred Locations (comma-separated) *">
-          <Input placeholder="Bangalore, Remote, Hyderabad…" value={form.location || ''} onChange={e => setForm({ ...form, location: e.target.value })} />
-        </FormField>
-        <FormField label="Expected CTC / Salary *">
+        <FormField label="Expected CTC / Salary">
           <Input placeholder="6–12 LPA or $80K–$120K" value={form.expectedCTC || ''} onChange={e => setForm({ ...form, expectedCTC: e.target.value })} />
         </FormField>
         <FormField label="Notice Period">

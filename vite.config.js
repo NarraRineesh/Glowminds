@@ -55,6 +55,7 @@ export default defineConfig(({ mode }) => {
         'glowminds-resume/embed': path.resolve(__dirname, './packages/glowminds-resume/src/embed/index.ts'),
         'glowminds-resume/embed-theme': path.resolve(__dirname, './packages/glowminds-resume/src/embed/theme.ts'),
         'glowminds-resume/ui': path.resolve(__dirname, './packages/glowminds-resume/src/lib/ui/index.ts'),
+        'glowminds-resume/host.css': path.resolve(__dirname, './packages/glowminds-resume/src/embed/host.css'),
         'glowminds-resume/style.css': path.resolve(__dirname, './packages/glowminds-resume/src/index.css'),
         'glowminds-resume': path.resolve(__dirname, './packages/glowminds-resume'),
       },
@@ -72,9 +73,10 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks(id) {
             if (!id.includes('node_modules')) return undefined
+            // Keep firebase / framer split, but do NOT force all Phosphor icons into one
+            // shared chunk — that pulled resume-builder icons onto the marketing homepage.
             if (id.includes('firebase')) return 'firebase'
             if (id.includes('framer-motion')) return 'framer-motion'
-            if (id.includes('@phosphor-icons') || id.includes('phosphor')) return 'icons'
             return undefined
           },
         },

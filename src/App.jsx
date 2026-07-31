@@ -3,7 +3,6 @@ import { MotionConfig } from 'framer-motion'
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom'
 import useAuthListener from '@/hooks/useAuthListener'
 import usePricingStore from '@/store/pricingStore'
-import { TooltipProvider } from '@/components/ui'
 import Toast from '@/components/Toast'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import PublicOnlyRoute from '@/components/PublicOnlyRoute'
@@ -12,7 +11,8 @@ import ErrorBoundary from '@/components/ErrorBoundary'
 import { PageLoader } from '@/components/Loader'
 import PublicLayout from '@/features/public/PublicLayout'
 
-const LandingPage = lazy(() => import('@/features/public/LandingPage'))
+// Landing is eager so `/` does not blank on Suspense while the chunk downloads.
+import LandingPage from '@/features/public/LandingPage'
 const AboutPage = lazy(() => import('@/features/public/AboutPage'))
 const FeaturesPage = lazy(() => import('@/features/public/FeaturesPage'))
 const ContactPage = lazy(() => import('@/features/public/ContactPage'))
@@ -29,6 +29,7 @@ const OverviewSection = lazy(() => import('@/features/dashboard/sections/Overvie
 const JobsSection = lazy(() => import('@/features/dashboard/sections/JobsSection'))
 const JobDetailSection = lazy(() => import('@/features/dashboard/sections/JobDetailSection'))
 const GlowmindsResumeSection = lazy(() => import('@/features/dashboard/sections/GlowmindsResumeSection'))
+const ResumeHubSection = lazy(() => import('@/features/dashboard/sections/ResumeHubSection'))
 const AISection = lazy(() => import('@/features/dashboard/sections/AISection'))
 const ApplicationsSection = lazy(() => import('@/features/dashboard/sections/ApplicationsSection'))
 const ProfileSection = lazy(() => import('@/features/dashboard/sections/ProfileSection'))
@@ -39,7 +40,14 @@ const SalaryInsightsSection = lazy(() => import('@/features/dashboard/sections/S
 const SettingsSection = lazy(() => import('@/features/dashboard/sections/SettingsSection'))
 const GrammarCheckSection = lazy(() => import('@/features/dashboard/sections/GrammarCheckSection'))
 const ParaphrasingSection = lazy(() => import('@/features/dashboard/sections/ParaphrasingSection'))
-const UpskillingSection = lazy(() => import('@/features/dashboard/sections/UpskillingSection'))
+const LearningSection = lazy(() => import('@/features/dashboard/sections/LearningSection'))
+const SkillsSection = lazy(() => import('@/features/dashboard/sections/SkillsSection'))
+const VaultSection = lazy(() => import('@/features/dashboard/sections/VaultSection'))
+const AnalyticsSection = lazy(() => import('@/features/dashboard/sections/AnalyticsSection'))
+const PublicProfileManageSection = lazy(() => import('@/features/dashboard/sections/PublicProfileManageSection'))
+const TimelineSection = lazy(() => import('@/features/dashboard/sections/TimelineSection'))
+const NotificationsSection = lazy(() => import('@/features/dashboard/sections/NotificationsSection'))
+const PublicCareerProfilePage = lazy(() => import('@/features/public/PublicCareerProfilePage'))
 const AdminShell = lazy(() => import('@/features/admin/AdminShell'))
 const AdminOverview = lazy(() => import('@/features/admin/AdminOverview'))
 const AdminUsers = lazy(() => import('@/features/admin/AdminUsers'))
@@ -49,6 +57,10 @@ const AdminCreditUsage = lazy(() => import('@/features/admin/AdminCreditUsage'))
 const AdminMessages = lazy(() => import('@/features/admin/AdminMessages'))
 const AdminPricing = lazy(() => import('@/features/admin/AdminPricing'))
 const AdminJobs = lazy(() => import('@/features/admin/AdminJobs'))
+const DesignLabShell = lazy(() => import('@/features/design-lab/DesignLabShell'))
+const DesignIndex = lazy(() => import('@/features/design-lab/DesignIndex'))
+const DesignSystemGallery = lazy(() => import('@/features/design-lab/DesignSystemGallery'))
+const DesignScreenView = lazy(() => import('@/features/design-lab/DesignScreenView'))
 
 
 function AnimatedRoutes() {
@@ -60,9 +72,9 @@ function AnimatedRoutes() {
   
   return (
     <Routes location={location}>
-      {/* Public marketing pages (lazy — keep marketing CSS/JS out of first paint) */}
-      <Route element={<PublicOnlyRoute><PublicLayout /></PublicOnlyRoute>}>
-        <Route index element={<Suspense fallback={<PageLoader />}><LandingPage /></Suspense>} />
+      {/* Public marketing pages — no auth gate so crawlers see content without waiting on Firebase Auth */}
+      <Route element={<PublicLayout />}>
+        <Route index element={<LandingPage />} />
         <Route path="about" element={<Suspense fallback={<PageLoader />}><AboutPage /></Suspense>} />
         <Route path="features" element={<Suspense fallback={<PageLoader />}><FeaturesPage /></Suspense>} />
         <Route path="contact" element={<Suspense fallback={<PageLoader />}><ContactPage /></Suspense>} />
@@ -73,6 +85,8 @@ function AnimatedRoutes() {
       </Route>
       <Route path="/login" element={<Suspense fallback={<PageLoader />}><PublicOnlyRoute><LoginPage /></PublicOnlyRoute></Suspense>} />
       <Route path="/signup" element={<Suspense fallback={<PageLoader />}><PublicOnlyRoute><SignupPage /></PublicOnlyRoute></Suspense>} />
+      {/* [v2:public] Public career profiles */}
+      <Route path="/u/:slug" element={<Suspense fallback={<PageLoader />}><PublicCareerProfilePage /></Suspense>} />
       {/* Dashboard (protected) */}
       <Route path="/dashboard" element={
         <Suspense fallback={<PageLoader />}>
@@ -94,7 +108,12 @@ function AnimatedRoutes() {
             <JobDetailSection />
           </Suspense>
         } />
-        <Route path="resume/:resumeId?" element={
+        <Route path="resume" element={
+          <Suspense fallback={<PageLoader />}>
+            <ResumeHubSection />
+          </Suspense>
+        } />
+        <Route path="resume/:resumeId" element={
           <Suspense fallback={<PageLoader />}>
             <GlowmindsResumeSection />
           </Suspense>
@@ -117,6 +136,11 @@ function AnimatedRoutes() {
         <Route path="profile" element={
           <Suspense fallback={<PageLoader />}>
             <ProfileSection />
+          </Suspense>
+        } />
+        <Route path="profile/public" element={
+          <Suspense fallback={<PageLoader />}>
+            <PublicProfileManageSection />
           </Suspense>
         } />
         <Route path="jd-matcher" element={<Navigate to="/dashboard/jobs" replace />} />
@@ -150,9 +174,35 @@ function AnimatedRoutes() {
             <ParaphrasingSection />
           </Suspense>
         } />
-        <Route path="upskilling" element={
+        <Route path="skills" element={
           <Suspense fallback={<PageLoader />}>
-            <UpskillingSection />
+            <SkillsSection />
+          </Suspense>
+        } />
+        <Route path="learning" element={
+          <Suspense fallback={<PageLoader />}>
+            <LearningSection />
+          </Suspense>
+        } />
+        <Route path="upskilling" element={<Navigate to="/dashboard/learning" replace />} />
+        <Route path="vault" element={
+          <Suspense fallback={<PageLoader />}>
+            <VaultSection />
+          </Suspense>
+        } />
+        <Route path="analytics" element={
+          <Suspense fallback={<PageLoader />}>
+            <AnalyticsSection />
+          </Suspense>
+        } />
+        <Route path="timeline" element={
+          <Suspense fallback={<PageLoader />}>
+            <TimelineSection />
+          </Suspense>
+        } />
+        <Route path="notifications" element={
+          <Suspense fallback={<PageLoader />}>
+            <NotificationsSection />
           </Suspense>
         } />
       </Route>
@@ -171,6 +221,17 @@ function AnimatedRoutes() {
         <Route path="pricing" element={<Suspense fallback={<PageLoader />}><AdminPricing /></Suspense>} />
         <Route path="jobs" element={<Suspense fallback={<PageLoader />}><AdminJobs /></Suspense>} />
       </Route>
+      {/* UX Revamp Design Lab — DEV or localStorage.gm_design_lab=1; no product UI */}
+      <Route path="/design" element={
+        <Suspense fallback={<PageLoader />}>
+          <DesignLabShell />
+        </Suspense>
+      }>
+        <Route index element={<Suspense fallback={<PageLoader />}><DesignIndex /></Suspense>} />
+        <Route path="system" element={<Suspense fallback={<PageLoader />}><DesignSystemGallery /></Suspense>} />
+        <Route path="wireframes/:screenId" element={<Suspense fallback={<PageLoader />}><DesignScreenView mode="wire" /></Suspense>} />
+        <Route path="mocks/:screenId" element={<Suspense fallback={<PageLoader />}><DesignScreenView mode="mock" /></Suspense>} />
+      </Route>
       <Route element={<PublicLayout />}>
         <Route path="*" element={<Suspense fallback={<PageLoader />}><NotFoundPage /></Suspense>} />
       </Route>
@@ -178,28 +239,33 @@ function AnimatedRoutes() {
   )
 }
 
-function App() {
+function AppEffects() {
+  // Must live under BrowserRouter — useAuthListener reads the current route to
+  // defer Firebase on marketing pages.
   useAuthListener()
 
   useEffect(() => {
     usePricingStore.getState().load()
   }, [])
 
+  return null
+}
+
+function App() {
   return (
     <ErrorBoundary>
       <MotionConfig reducedMotion="user">
         <BrowserRouter>
-          <TooltipProvider delayDuration={300}>
-            <a href="#main-content" className="skip-link">
-              Skip to main content
-            </a>
-            <ErrorBoundary>
-              <main id="main-content" tabIndex={-1} className="outline-none">
-                <AnimatedRoutes />
-              </main>
-            </ErrorBoundary>
-            <Toast />
-          </TooltipProvider>
+          <AppEffects />
+          <a href="#main-content" className="skip-link">
+            Skip to main content
+          </a>
+          <ErrorBoundary>
+            <main id="main-content" tabIndex={-1} className="outline-none">
+              <AnimatedRoutes />
+            </main>
+          </ErrorBoundary>
+          <Toast />
         </BrowserRouter>
       </MotionConfig>
     </ErrorBoundary>

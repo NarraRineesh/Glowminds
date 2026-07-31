@@ -372,7 +372,7 @@ export default function AISection() {
     <div className="flex h-[calc(100dvh-16rem)] min-h-[26rem] w-full flex-col md:h-[calc(100dvh-12rem)]">
       <div className="mb-3 flex shrink-0 flex-wrap items-start justify-between gap-2">
         <PageTitle
-          title="AI Career Assistant"
+          title="Career Copilot"
           subtitle={
             jobContext?.jobTitle
               ? `Coaching with context: ${jobContext.jobTitle}${jobContext.company ? ` @ ${jobContext.company}` : ''}`

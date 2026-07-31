@@ -1,10 +1,13 @@
-import { signOut } from 'firebase/auth'
-import { auth } from './firebase'
 import useAppStore from '@/store/authStore'
 import { invalidateEntitlementsCache } from '@/hooks/useEntitlements'
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') || '/api'
+
+async function getFirebaseAuth() {
+  const { auth } = await import('./firebase')
+  return auth
+}
 
 class ApiError extends Error {
   constructor(message, { status, code, payload } = {}) {
@@ -35,6 +38,10 @@ async function handleUnauthorized() {
     useAppStore.getState().addToast?.('error', 'Session expired — please sign in again.')
   } catch { /* store may not be ready yet */ }
   try {
+    const [{ signOut }, auth] = await Promise.all([
+      import('firebase/auth'),
+      getFirebaseAuth(),
+    ])
     if (auth.currentUser) await signOut(auth)
   } catch (err) {
     console.warn('apiClient.handleUnauthorized signOut failed:', err)
@@ -44,6 +51,7 @@ async function handleUnauthorized() {
 }
 
 async function getAuthHeader({ required = true } = {}) {
+  const auth = await getFirebaseAuth()
   const user = auth.currentUser
   if (!user) {
     if (required) {

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import SectionHeader from '@/components/dashboard/SectionHeader'
 import { ToolPage, ToolSidebarLayout } from '@/features/dashboard/components/toolSectionLayout'
 import AppIcon from '@/components/icons/AppIcon'
 import {
@@ -18,6 +17,7 @@ import useAppStore from '@/store/authStore'
 import useProfileStore from '@/store/profileStore'
 import useEntitlements from '@/hooks/useEntitlements'
 import { DEFAULT_PRICING_CONFIG } from '@/constants/pricingDefaults'
+import { getPreferredRole } from '@/constants/schema'
 import {
   deleteLearningPath,
   generateLearningPath,
@@ -296,7 +296,7 @@ export default function UpskillingSection() {
   const pathCost = creditCosts?.learningPath ?? DEFAULT_PRICING_CONFIG.creditCosts.learningPath ?? 3
   const balance = credits?.balance
   const canGenerate = typeof balance !== 'number' || balance >= pathCost
-  const defaultRole = profile?.headline || profile?.preferences?.preferredRoles?.[0] || ''
+  const defaultRole = getPreferredRole(profile, '')
 
   const [role, setRole] = useState(defaultRole)
   const [level, setLevel] = useState('beginner')
@@ -555,17 +555,14 @@ export default function UpskillingSection() {
 
   return (
     <ToolPage>
-      <SectionHeader
-        badge="Career growth"
-        title="Upskilling"
-        subtitle="Build focused skills, continue where you stopped, and keep every learning journey in one place."
-        actions={path && !builderOpen ? (
+      {path && !builderOpen ? (
+        <div className="mb-3 flex justify-end">
           <Button onClick={startNewPath}>
             <AppIcon name="sparkle" className="size-4" />
             New learning path
           </Button>
-        ) : null}
-      />
+        </div>
+      ) : null}
 
       {loadError && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm">

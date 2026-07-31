@@ -1,4 +1,5 @@
 import { apiFetch } from '@/services/apiClient'
+import { dedupeAsync } from '@/utils/dedupeAsync'
 
 /** Autocomplete skills from Supabase skill intelligence DB. */
 export async function searchSkills(query, limit = 10) {
@@ -13,7 +14,10 @@ export async function getSkillTrends({ limit = 8, mode = 'demand' } = {}) {
   const params = new URLSearchParams()
   if (limit) params.set('limit', String(limit))
   if (mode) params.set('mode', mode)
-  return apiFetch(`/skills/trends?${params.toString()}`, { method: 'GET' })
+  const qs = params.toString()
+  return dedupeAsync(`skills/trends|${qs}`, () =>
+    apiFetch(`/skills/trends?${qs}`, { method: 'GET' }),
+  )
 }
 
 /** Free skill-gap analysis for a target role. */
@@ -21,17 +25,39 @@ export async function getSkillGap({ role = '' } = {}) {
   const params = new URLSearchParams()
   if (role) params.set('role', role)
   const qs = params.toString()
-  return apiFetch(`/skills/gap${qs ? `?${qs}` : ''}`, { method: 'GET' })
+  return dedupeAsync(`skills/gap|${qs}`, () =>
+    apiFetch(`/skills/gap${qs ? `?${qs}` : ''}`, { method: 'GET' }),
+  )
+}
+
+/**
+ * Queue skills not in the skill DB for the next enrich run.
+ * Safe to call fire-and-forget after profile skill save.
+ */
+export async function reportUnknownSkills(skills = []) {
+  const list = (Array.isArray(skills) ? skills : [])
+    .map((s) => String(s || '').trim())
+    .filter(Boolean)
+  if (!list.length) return { queued: 0, unknown: [] }
+  return apiFetch('/skills/unknown', {
+    method: 'POST',
+    body: { skills: list },
+  })
 }
 
 export async function getLearningPath() {
-  return apiFetch('/skills/learning-path', { method: 'GET' })
+  return dedupeAsync('skills/learning-path', () =>
+    apiFetch('/skills/learning-path', { method: 'GET' }),
+  )
 }
 
 export async function getLearningPathHistory({ limit = 20 } = {}) {
   const params = new URLSearchParams()
   if (limit) params.set('limit', String(limit))
-  return apiFetch(`/skills/learning-path/history?${params.toString()}`, { method: 'GET' })
+  const qs = params.toString()
+  return dedupeAsync(`skills/learning-path/history|${qs}`, () =>
+    apiFetch(`/skills/learning-path/history?${qs}`, { method: 'GET' }),
+  )
 }
 
 export async function generateLearningPath({

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import SectionHeader from '@/components/dashboard/SectionHeader'
 import {
   AppIcon,
   Button,
@@ -27,14 +26,19 @@ import { auth } from '@/services/firebase'
 import { loadUserUsage } from '@/utils/firestoreCollections'
 import { apiFetch } from '@/services/apiClient'
 import { Link, useNavigate } from 'react-router-dom'
+import { normalizeGamification } from '@/constants/schema'
+import { updateGamificationPrefs, xpToNextLevel } from '@/services/gamification'
+import { StreakCard } from '@/features/dashboard/components/v2'
 
 const SECTIONS = [
   { id: 'account', icon: 'user', title: 'Account', desc: 'Profile and security' },
+  { id: 'gamification', icon: 'star', title: 'Gamification', desc: 'Streak, XP, badges' },
   { id: 'billing', icon: 'credit-card', title: 'Billing', desc: 'Plan, renewal, upgrade' },
   { id: 'usage', icon: 'chart', title: 'Usage', desc: 'Tool activity counters' },
   { id: 'appearance', icon: 'palette', title: 'Appearance', desc: 'Theme, density, motion' },
   { id: 'notifications', icon: 'bell', title: 'Notifications', desc: 'Email & in-app alerts' },
   { id: 'privacy', icon: 'lock', title: 'Privacy & Data', desc: 'Export, delete, visibility' },
+  { id: 'integrations', icon: 'puzzle', title: 'Integrations', desc: 'Connect external tools' },
 ]
 
 const USAGE_LABELS = {
@@ -572,16 +576,8 @@ export default function SettingsSection() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-5">
-      <SectionHeader
-        badge="Preferences"
-        badgeClassName="border-purple-500/20 bg-purple-500/10 text-purple-500"
-        title="Make Glowminds yours"
-        accent="yours"
-        subtitle="Account, appearance, and notification controls — everything you can fine-tune."
-      />
-
-      <Tabs value={active} onValueChange={setActive} className="min-h-0 flex-1 gap-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
+      <Tabs value={active} onValueChange={setActive} className="min-h-0 flex-1 gap-0">
         {!isPro && (
           <SettingsUpgradeBanner
             upgradeLoading={upgradeLoading}
@@ -591,26 +587,40 @@ export default function SettingsSection() {
           />
         )}
 
-        <div className="sticky top-0 z-20 -mx-1 border-b border-border/60 bg-background/90 pb-0 pt-1 backdrop-blur-md -mt-1">
-          <TabsList
-            variant="line"
-            aria-label="Settings sections"
-            className="h-auto w-full max-w-full justify-start gap-0 overflow-x-auto rounded-none bg-transparent p-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          >
-            {SECTIONS.map((section) => (
-              <TabsTrigger
-                key={section.id}
-                value={section.id}
-                className="shrink-0 gap-1.5 rounded-t-lg px-3 py-2.5 text-sm data-active:bg-primary/10 data-active:text-primary data-active:after:bg-primary data-active:[&_svg]:text-primary after:bottom-0 sm:px-4"
-              >
-                <AppIcon name={section.icon} className="size-4" />
-                <span>{section.title}</span>
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </div>
+        <div className="grid gap-4 lg:grid-cols-[200px_minmax(0,1fr)]">
+          <aside className="lg:sticky lg:top-20 lg:self-start">
+            <nav
+              aria-label="Settings sections"
+              className="flex gap-1 overflow-x-auto rounded-xl border border-border bg-card p-1.5 lg:flex-col lg:overflow-visible"
+            >
+              {SECTIONS.map((section) => (
+                <button
+                  key={section.id}
+                  type="button"
+                  onClick={() => setActive(section.id)}
+                  className={cn(
+                    'flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors',
+                    active === section.id
+                      ? 'bg-elevated font-semibold text-foreground'
+                      : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+                  )}
+                >
+                  <AppIcon name={section.icon} className="size-4 shrink-0" />
+                  <span>{section.title}</span>
+                </button>
+              ))}
+            </nav>
+          </aside>
 
-        <TabsContent value="account" className="mt-1 outline-none">
+          <div className="min-w-0">
+        {/* Keep TabsTriggers for a11y sync — visually hidden; nav buttons drive value */}
+        <TabsList className="sr-only">
+          {SECTIONS.map((section) => (
+            <TabsTrigger key={section.id} value={section.id}>{section.title}</TabsTrigger>
+          ))}
+        </TabsList>
+
+        <TabsContent value="account" className="mt-0 outline-none">
           <SettingsTabPanel activeSection={SECTION_BY_ID.account}>
             <DashboardCard titleIcon="shield" title="Security" contentClassName="flex flex-col gap-3">
               {user?.email && (
@@ -635,6 +645,88 @@ export default function SettingsSection() {
                 Sign out
               </Button>
             </DashboardCard>
+          </SettingsTabPanel>
+        </TabsContent>
+
+        <TabsContent value="gamification" className="mt-1 outline-none">
+          <SettingsTabPanel activeSection={SECTION_BY_ID.gamification}>
+            {(() => {
+              const g = normalizeGamification(profile?.gamification)
+              const xpMeta = xpToNextLevel(g)
+              const badges = [
+                ...(g.badges || []).map((b) => ({ id: b.id, title: b.title || b.id, subtitle: 'Unlocked' })),
+                { id: 'offers', title: '5 offers', locked: true },
+                { id: 'streak30', title: '30-day streak', locked: true },
+              ].slice(0, 6)
+              return (
+                <>
+                  <DashboardCard titleIcon="star" title="Level & streak" contentClassName="space-y-3">
+                    <StreakCard
+                      streak={g.streak}
+                      bestStreak={g.bestStreak}
+                      level={g.level}
+                      xp={g.xpWeek || xpMeta.xpInLevel}
+                      xpToNext={xpMeta.xpToNext}
+                      weekActive={g.weekActive}
+                      badges={badges}
+                    />
+                  </DashboardCard>
+                  <DashboardCard titleIcon="sliders" title="Preferences" contentClassName="flex flex-col gap-2">
+                    <Toggle
+                      label="Show streak on dashboard"
+                      hint="Hide the streak card from the Command Center"
+                      checked={g.prefs?.showStreakOnDashboard !== false}
+                      onChange={(v) => {
+                        const uid = user?.uid
+                        if (!uid) return
+                        updateGamificationPrefs(uid, { showStreakOnDashboard: v })
+                          .then(() => updateProfile({ gamification: { ...g, prefs: { ...g.prefs, showStreakOnDashboard: v } } }))
+                          .catch(() => addToast('error', 'Could not save preference'))
+                      }}
+                    />
+                    <Toggle
+                      label="Celebrate level-ups"
+                      checked={g.prefs?.celebrateLevelUps !== false}
+                      onChange={(v) => {
+                        const uid = user?.uid
+                        if (!uid) return
+                        updateGamificationPrefs(uid, { celebrateLevelUps: v })
+                          .then(() => updateProfile({ gamification: { ...g, prefs: { ...g.prefs, celebrateLevelUps: v } } }))
+                          .catch(() => {})
+                      }}
+                    />
+                    <Toggle
+                      label="XP reminders when streak at risk"
+                      checked={g.prefs?.streakReminders !== false}
+                      onChange={(v) => {
+                        const uid = user?.uid
+                        if (!uid) return
+                        updateGamificationPrefs(uid, { streakReminders: v })
+                          .then(() => updateProfile({ gamification: { ...g, prefs: { ...g.prefs, streakReminders: v } } }))
+                          .catch(() => {})
+                      }}
+                    />
+                    <Toggle
+                      label="Public badge showcase on portfolio"
+                      checked={!!g.prefs?.publicBadgeShowcase}
+                      onChange={(v) => {
+                        const uid = user?.uid
+                        if (!uid) return
+                        updateGamificationPrefs(uid, { publicBadgeShowcase: v })
+                          .then(() => updateProfile({ gamification: { ...g, prefs: { ...g.prefs, publicBadgeShowcase: v } } }))
+                          .catch(() => {})
+                      }}
+                    />
+                  </DashboardCard>
+                  <DashboardCard titleIcon="info" title="How XP works" contentClassName="space-y-2 text-sm text-muted-foreground">
+                    <p className="m-0 flex justify-between"><span>Daily check-in</span><span className="font-mono">+10</span></p>
+                    <p className="m-0 flex justify-between"><span>ATS improvement</span><span className="font-mono">+15</span></p>
+                    <p className="m-0 flex justify-between"><span>Apply to a role</span><span className="font-mono">+20</span></p>
+                    <p className="m-0 flex justify-between"><span>Mock interview</span><span className="font-mono">+30</span></p>
+                  </DashboardCard>
+                </>
+              )
+            })()}
           </SettingsTabPanel>
         </TabsContent>
 
@@ -777,6 +869,14 @@ export default function SettingsSection() {
                 Export gives you a copy; deletion is permanent after confirmation.
               </p>
             </SettingsInfoBox>
+            <DashboardCard titleIcon="user" title="Public profile" contentClassName="flex flex-col gap-3">
+              <p className="text-sm text-muted-foreground">
+                Control whether recruiters can view your public career page at /u/your-slug.
+              </p>
+              <Button variant="outline" size="sm" className="self-start" onClick={() => navigate('/dashboard/profile/public')}>
+                Manage public profile
+              </Button>
+            </DashboardCard>
             <DashboardCard titleIcon="download" title="Export my data" contentClassName="flex flex-col gap-3">
               <p className="text-sm text-muted-foreground">
                 Download a JSON copy of your profile, saved jobs, applications, resume metadata, and settings.
@@ -796,6 +896,38 @@ export default function SettingsSection() {
             </DashboardCard>
           </SettingsTabPanel>
         </TabsContent>
+
+        <TabsContent value="integrations" className="mt-0 outline-none">
+          <SettingsTabPanel activeSection={SECTION_BY_ID.integrations}>
+            <DashboardCard titleIcon="puzzle" title="Connected tools" contentClassName="flex flex-col gap-3">
+              <p className="text-sm text-muted-foreground">
+                Link Chrome Assist, calendar, and job boards here. More connectors ship as they leave beta.
+              </p>
+              <ul className="space-y-2">
+                {[
+                  ['Chrome Assist', 'Import LinkedIn + capture JDs', true],
+                  ['Google Calendar', 'Interview reminders', false],
+                  ['Job boards', 'Auto-sync applications', false],
+                ].map(([name, hint, soon]) => (
+                  <li
+                    key={name}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2.5"
+                  >
+                    <div>
+                      <p className="m-0 text-sm font-medium">{name}</p>
+                      <p className="m-0 text-xs text-muted-foreground">{hint}</p>
+                    </div>
+                    <Button type="button" size="sm" variant="outline" disabled>
+                      {soon ? 'Coming soon' : 'Connect'}
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </DashboardCard>
+          </SettingsTabPanel>
+        </TabsContent>
+          </div>
+        </div>
       </Tabs>
     </div>
   )

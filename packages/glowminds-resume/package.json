@@ -8,6 +8,7 @@
 	},
 	"exports": {
 		"./embed": "./src/embed/index.ts",
+		"./host.css": "./src/embed/host.css",
 		"./style.css": "./src/index.css",
 		"./ui": "./src/lib/ui/index.ts",
 		"./ui/*": "./src/lib/ui/components/*.tsx"

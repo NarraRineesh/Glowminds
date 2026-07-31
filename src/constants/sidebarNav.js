@@ -1,47 +1,60 @@
-// Canonical dashboard sidebar layout. Edit here to add/move items —
-// DashboardSidebar consumes this directly.
-//
-// Each group can be either always-expanded (no `collapsibleId`) or
-// collapsible (set `collapsibleId` to a unique key persisted in
-// localStorage["gm_sidebar_groups"]).
-//
+// Canonical dashboard sidebar layout — Career OS IA.
 export const SIDEBAR_TOP_ITEMS = [
   { path: '/dashboard', end: true, icon: 'dashboard', label: 'Dashboard' },
 ]
 
 export const SIDEBAR_GROUPS = [
   {
-    label: 'Job Search',
+    label: 'Job search',
     collapsibleId: 'job-search',
     defaultOpen: true,
     items: [
-      { path: '/dashboard/resume', icon: 'resume', label: 'Resume Builder' },
-      { path: '/dashboard/jobs', icon: 'jobs', label: 'Job Board' },
-      { path: '/dashboard/applications', icon: 'applications', label: 'Application Tracker' },
-      { path: '/dashboard/salary', icon: 'salary', label: 'Salary Insights' },
+      { path: '/dashboard/jobs', icon: 'jobs', label: 'Jobs' },
+      { path: '/dashboard/resume', icon: 'resume', label: 'Resume' },
+      { path: '/dashboard/applications', icon: 'applications', label: 'Applications' },
+      { path: '/dashboard/salary', icon: 'salary', label: 'Salary' },
     ],
   },
   {
-    label: 'Practice',
-    collapsibleId: 'practice',
+    label: 'Grow',
+    collapsibleId: 'grow',
     defaultOpen: true,
     items: [
-      { path: '/dashboard/interview', icon: 'interview', label: 'Interview Prep' },
-      { path: '/dashboard/upskilling', icon: 'graduation', label: 'Upskilling' },
+      { path: '/dashboard/skills', icon: 'puzzle', label: 'Skills' },
+      { path: '/dashboard/learning', icon: 'graduation', label: 'Learning' },
+      { path: '/dashboard/interview', icon: 'interview', label: 'Interview' },
+      { path: '/dashboard/linkedin', icon: 'linkedin', label: 'LinkedIn Hub' },
+      { path: '/dashboard/ai', icon: 'ai', label: 'Copilot' },
     ],
   },
   {
-    label: 'AI Tools',
-    collapsibleId: 'ai-tools',
-    defaultOpen: true,
+    label: 'Write',
+    collapsibleId: 'write',
+    defaultOpen: false,
     items: [
-      { path: '/dashboard/ai', icon: 'ai', label: 'AI Coach' },
       { path: '/dashboard/cover-letters', icon: 'cover-letters', label: 'Cover Letters' },
-      { path: '/dashboard/linkedin', icon: 'linkedin', label: 'LinkedIn Optimizer' },
-      { path: '/dashboard/grammar-check', icon: 'grammar-check', label: 'Grammar Check' },
-      { path: '/dashboard/paraphrase', icon: 'paraphrase', label: 'Paraphrasing Tool' },
+      { path: '/dashboard/grammar-check', icon: 'grammar-check', label: 'Grammar' },
+      { path: '/dashboard/paraphrase', icon: 'paraphrase', label: 'Rewrite' },
+    ],
+  },
+  {
+    label: 'Files',
+    collapsibleId: 'files',
+    defaultOpen: false,
+    items: [
+      { path: '/dashboard/vault', icon: 'folder', label: 'Vault' },
+    ],
+  },
+  {
+    label: 'Insights',
+    collapsibleId: 'insights',
+    defaultOpen: false,
+    items: [
+      { path: '/dashboard/analytics', icon: 'chart', label: 'Analytics' },
+      { path: '/dashboard/timeline', icon: 'clock', label: 'Timeline' },
     ],
   },
 ]
 
-export const SIDEBAR_GROUPS_STORAGE_KEY = 'gm_sidebar_groups'
+/** Bump when group ids change so open/closed prefs don't leak across IA. */
+export const SIDEBAR_GROUPS_STORAGE_KEY = 'gm_sidebar_groups_v5'

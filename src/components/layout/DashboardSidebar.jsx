@@ -181,26 +181,27 @@ export default function DashboardSidebar() {
             <SidebarGroup key={group.label}>
               {group.collapsibleId ? (
                 <SidebarGroupLabel
+                  className={cn(
+                    'h-8 text-sm font-semibold tracking-wide text-sidebar-foreground/85',
+                    iconCollapsed && 'md:hidden',
+                  )}
                   render={
                     <button
                       type="button"
-                      className={cn(
-                        'w-full cursor-pointer',
-                        iconCollapsed && 'md:hidden',
-                      )}
+                      className="w-full cursor-pointer"
                       onClick={() => toggleGroup(group)}
                       aria-expanded={open}
                       aria-controls={`navgroup-${group.collapsibleId}`}
                     />
                   }
                 >
-                  <span className="flex flex-1 items-center justify-between">
+                  <span className="flex flex-1 items-center justify-between gap-2">
                     <span>{group.label}</span>
                     {!iconCollapsed && (
                       <AppIcon
                         name="caret-down"
                         className={cn(
-                          'size-3 text-muted-foreground transition-transform',
+                          'size-3.5 shrink-0 text-muted-foreground transition-transform',
                           open ? 'rotate-0' : '-rotate-90',
                         )}
                       />
@@ -208,7 +209,12 @@ export default function DashboardSidebar() {
                   </span>
                 </SidebarGroupLabel>
               ) : (
-                <SidebarGroupLabel className={iconCollapsed ? 'md:hidden' : undefined}>
+                <SidebarGroupLabel
+                  className={cn(
+                    'h-8 text-sm font-semibold tracking-wide text-sidebar-foreground/85',
+                    iconCollapsed && 'md:hidden',
+                  )}
+                >
                   {group.label}
                 </SidebarGroupLabel>
               )}

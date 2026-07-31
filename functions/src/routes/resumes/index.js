@@ -7,11 +7,14 @@ const router = Router();
 
 router.post("/register", requireAuth, async (req, res, next) => {
   try {
-    const { resumeId } = req.body || {};
-    const result = await registerResume(
-      req.user.uid,
-      { resumeId: resumeId ? String(resumeId) : undefined },
-    );
+    const rawId = req.body?.resumeId;
+    const resumeId = rawId == null ? "" : String(rawId).trim();
+    // Require a resumeId so registrations are idempotent and can be de-duped.
+    // Without it the quota counter would increment on every call.
+    if (!resumeId) {
+      throw new ApiError("invalid-argument", "resumeId is required");
+    }
+    const result = await registerResume(req.user.uid, { resumeId });
     if (!result.allowed) {
       throw new ApiError("permission-denied", result.message || "Resume limit reached");
     }

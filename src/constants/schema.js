@@ -59,6 +59,47 @@ export const CAREER_LEVEL_LABEL = Object.freeze({
   [CAREER_LEVELS.SENIOR]: '5+ years',
 })
 
+export function createDefaultGamification() {
+  return {
+    streak: 0,
+    bestStreak: 0,
+    lastActiveDate: null,
+    xp: 0,
+    xpWeek: 0,
+    xpWeekStart: null,
+    level: 1,
+    badges: [],
+    weekActive: [false, false, false, false, false, false, false],
+    prefs: {
+      showStreakOnDashboard: true,
+      celebrateLevelUps: true,
+      streakReminders: true,
+      publicBadgeShowcase: false,
+    },
+  }
+}
+
+export function normalizeGamification(raw) {
+  const d = createDefaultGamification()
+  if (!raw || typeof raw !== 'object') return d
+  const prefs = { ...d.prefs, ...(raw.prefs && typeof raw.prefs === 'object' ? raw.prefs : {}) }
+  const weekActive = Array.isArray(raw.weekActive) && raw.weekActive.length === 7
+    ? raw.weekActive.map(Boolean)
+    : d.weekActive
+  return {
+    streak: Number(raw.streak) || 0,
+    bestStreak: Number(raw.bestStreak) || 0,
+    lastActiveDate: raw.lastActiveDate || null,
+    xp: Number(raw.xp) || 0,
+    xpWeek: Number(raw.xpWeek) || 0,
+    xpWeekStart: raw.xpWeekStart || null,
+    level: Math.max(1, Number(raw.level) || 1),
+    badges: Array.isArray(raw.badges) ? raw.badges : [],
+    weekActive,
+    prefs,
+  }
+}
+
 export function createDefaultProfile() {
   return {
     headline: '',
@@ -81,6 +122,7 @@ export function createDefaultProfile() {
     links: { linkedin: '', github: '', portfolio: '', twitter: '' },
     preferences: {
       jobType: '',
+      preferredRole: '',
       preferredLocations: [],
       expectedCTC: '',
       noticePeriod: '',
@@ -93,8 +135,20 @@ export function createDefaultProfile() {
     },
     aiReview: null,
     linkedinAudit: null,
+    /** Latest ATS / resume-review snapshot for dashboard scores. */
+    resumeAnalysis: null,
+    /** Public career page visibility + slug. */
+    public: {
+      enabled: false,
+      slug: '',
+      showEmail: false,
+      showPhone: false,
+      stats: { views: 0, resumeDownloads: 0 },
+    },
     /** Recent cover letter drafts saved from the Cover Letters tool (max kept client-side). */
     coverLetterDrafts: [],
+    /** Career OS gamification (streak / XP / badges). */
+    gamification: createDefaultGamification(),
   }
 }
 
@@ -260,11 +314,32 @@ export function normalizeProfile(profilePartial) {
   if (profile.linkedinAudit) {
     profile.linkedinAudit = normalizeLinkedInAudit(profile.linkedinAudit)
   }
+  if (profile.resumeAnalysis && typeof profile.resumeAnalysis === 'object') {
+    profile.resumeAnalysis = {
+      ...profile.resumeAnalysis,
+      overallScore: Number(profile.resumeAnalysis.overallScore) || 0,
+    }
+  } else {
+    profile.resumeAnalysis = null
+  }
+  const pub = profile.public && typeof profile.public === 'object' ? profile.public : {}
+  profile.public = {
+    enabled: !!pub.enabled,
+    slug: String(pub.slug || ''),
+    showEmail: !!pub.showEmail,
+    showPhone: !!pub.showPhone,
+    stats: {
+      views: Number(pub.stats?.views) || 0,
+      resumeDownloads: Number(pub.stats?.resumeDownloads) || 0,
+    },
+  }
   profile.coverLetterDrafts = normalizeCoverLetterDrafts(profile.coverLetterDrafts)
+  profile.gamification = normalizeGamification(profile.gamification)
   const defaultPrefs = createDefaultProfile().preferences
   profile.preferences = {
     ...defaultPrefs,
     ...(profile.preferences || {}),
+    preferredRole: String(profile.preferences?.preferredRole || '').slice(0, 120),
     jobAlerts: {
       ...defaultPrefs.jobAlerts,
       ...(profile.preferences?.jobAlerts || {}),
@@ -276,6 +351,17 @@ export function normalizeProfile(profilePartial) {
   return profile
 }
 
+/** Preferred target role for AI tools (skills gap, interview, learning, cover letters). */
+export function getPreferredRole(profile, fallback = 'Software Engineer') {
+  const prefs = profile?.preferences || {}
+  const role =
+    String(prefs.preferredRole || '').trim()
+    || (Array.isArray(prefs.preferredRoles) ? String(prefs.preferredRoles[0] || '').trim() : '')
+    || String(profile?.headline || '').trim()
+    || String(profile?.experience?.[0]?.role || '').trim()
+  return role || fallback
+}
+
 function createDefaultSettings() {
   return {
     theme: 'system',
@@ -284,6 +370,7 @@ function createDefaultSettings() {
     reducedMotion: false,
     compactDensity: false,
     locale: 'en-IN',
+    dismissedFocusId: null,
   }
 }
 

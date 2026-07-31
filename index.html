@@ -12,11 +12,74 @@
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <link rel="canonical" href="%SITE_URL%/" />
 
-    <!-- Theme -->
+    <!-- Theme + critical paint (must not wait on Google Fonts / app CSS) -->
     <meta name="theme-color" content="#07090f" />
     <meta name="color-scheme" content="dark light" />
+    <style>
+      html { background: #07090f; color: #f4f6fb; }
+      html[data-theme="light"], html:not(.dark)[data-theme="light"] { background: #f7f8fb; color: #12141c; }
+      body { margin: 0; min-height: 100%; }
+      /* Branded first paint — never flash the raw SEO article as unstyled text */
+      #app-shell {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: grid;
+        place-items: center;
+        background: #07090f;
+        color: #f4f6fb;
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+      html[data-theme="light"] #app-shell {
+        background: #f7f8fb;
+        color: #12141c;
+      }
+      #app-shell[hidden] { display: none !important; }
+      #app-shell .app-shell-inner {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+      }
+      #app-shell img {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+      }
+      #app-shell .app-shell-mark {
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      /* Keep SEO HTML in the document for crawlers, but never paint it for users */
+      #seo-boot {
+        position: absolute !important;
+        width: 1px !important;
+        height: 1px !important;
+        padding: 0 !important;
+        margin: -1px !important;
+        overflow: hidden !important;
+        clip: rect(0, 0, 0, 0) !important;
+        white-space: nowrap !important;
+        border: 0 !important;
+      }
+      #seo-boot[hidden] { display: none !important; }
+    </style>
     <script>
       (function () {
+        // Prefer apex host for SEO (Firebase www uses CDN 301; this covers *.web.app).
+        try {
+          var host = location.hostname;
+          if (
+            host === 'www.glowminds.in' ||
+            host.endsWith('.web.app') ||
+            host.endsWith('.firebaseapp.com')
+          ) {
+            location.replace('https://glowminds.in' + location.pathname + location.search + location.hash);
+            return;
+          }
+        } catch (e) {}
         try {
           var theme = localStorage.getItem('theme') || 'dark';
           if (theme !== 'light' && theme !== 'dark') theme = 'dark';
@@ -98,16 +161,33 @@
     }
     </script>
 
-    <!-- Fonts (preconnect + load) -->
+    <!-- App fonts only (resume templates load their own). Non-blocking so FCP is not gated on fonts.googleapis.com -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Playfair+Display:wght@400;600;700&family=Merriweather:wght@400;700&family=Roboto:wght@400;500;700&family=Volkhov:wght@400;700&display=swap"
       rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap"
+      media="print"
+      onload="this.media='all'"
     />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap"
+      />
+    </noscript>
   </head>
   <body>
-    <noscript>
+    <!-- Visible branded shell while CSS/JS boot (avoids unstyled SEO text FOUC) -->
+    <div id="app-shell" aria-hidden="true">
+      <div class="app-shell-inner">
+        <img src="/favicon/favicon.svg" width="40" height="40" alt="" />
+        <p class="app-shell-mark">Glowminds</p>
+      </div>
+    </div>
+    <!-- Crawlable copy (visually hidden; outside #root so React never erases it) -->
+    <div id="seo-boot"></div>
+    <noscript id="seo-noscript">
       <main>
         <h1>Glowminds — AI Resume Builder, Job Matching &amp; Upskilling for Freshers in India</h1>
         <p>

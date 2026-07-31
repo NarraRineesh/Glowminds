@@ -1,20 +1,20 @@
 import { useState, useCallback, useMemo, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { getPreferredRole } from '@/constants/schema'
 import useAppStore from '@/store/authStore'
 import useInterviewStore from '@/store/interviewStore'
 import useProfileStore from '@/store/profileStore'
 import useEntitlements from '@/hooks/useEntitlements'
 import UpgradeGate from '@/components/UpgradeGate'
+import { ToolPage, ToolSidebarLayout } from '@/features/dashboard/components/toolSectionLayout'
 import {
   AppIcon,
   Badge,
   Button,
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
   Checkbox,
-  FormField,
+  DashboardCard,
   Input,
   PageTitle,
   Progress,
@@ -57,10 +57,21 @@ function QuestionBadge({ kind, value }) {
   )
 }
 
+function formatSessionDate(when) {
+  if (!when) return '—'
+  if (when?.toDate) return when.toDate().toLocaleDateString()
+  if (when instanceof Date) return when.toLocaleDateString()
+  if (typeof when === 'string') {
+    const d = new Date(when)
+    return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString()
+  }
+  return '—'
+}
+
 function InterviewSectionContent() {
   const navigate = useNavigate()
   const { addToast } = useAppStore()
-  const { isPro, credits, creditCosts, loading: entLoading, refresh } = useEntitlements()
+  const { credits, creditCosts, loading: entLoading } = useEntitlements()
   const startStoredSession = useInterviewStore((s) => s.startSession)
   const saveStoredAnswer = useInterviewStore((s) => s.saveAnswer)
   const appendStoredQuestions = useInterviewStore((s) => s.appendQuestions)
@@ -80,12 +91,16 @@ function InterviewSectionContent() {
   useEffect(() => {
     useProfileStore.getState().load().then(() => {
       const p = useProfileStore.getState().profile
-      if (!role && (p?.headline || p?.experience?.[0]?.role)) {
-        setRole(p.headline || p.experience[0].role || '')
-      }
+      if (!role) setRole(getPreferredRole(p, ''))
     }).catch(() => {})
     loadHistory().catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- seed role once on mount
   }, [loadHistory])
+
+  const lastSession = sessions[0] || null
+  const lastScore = lastSession
+    ? Math.round(lastSession.percent ?? lastSession.totalScore ?? 0)
+    : null
 
   const [sessionId, setSessionId] = useState(null)
   const [questions, setQuestions] = useState([])
@@ -233,102 +248,137 @@ function InterviewSectionContent() {
   const isLastQuestion = currentIdx + 1 >= questions.length
 
   if (phase === 'setup') {
-    return (
-      <>
-        <PageTitle
-          title="Interview Prep"
-          subtitle="AI-powered MCQ mock interviews — pick the best option, get instant scoring + study plan"
-          className="mb-4"
-        />
+    const setupSidebar = (
+      <div className="space-y-4">
+        <DashboardCard titleIcon="target" title="Target role" contentClassName="space-y-3">
+          <Input
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+            placeholder="e.g. Software Engineer"
+          />
+          <p className="text-xs text-muted-foreground">
+            Prefills from your profile preferred role when available.
+          </p>
+        </DashboardCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Start a Mock Interview</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Pick your role, question style, and how many MCQs you want. The AI grades your whole session at the end in a single batch call — you can load 5 more anytime mid-session.
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <FormField label="Target Role">
-              <Input
-                type="text"
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                placeholder="e.g. Software Engineer, Product Manager"
-              />
-            </FormField>
-
-            <div>
-              <p className="mb-2 text-sm font-medium text-muted-foreground">Question Type</p>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {TYPES.map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    className={cn(
-                      'rounded-xl border p-3 text-left transition-colors',
-                      type === t.id
-                        ? 'border-primary bg-primary/10'
-                        : 'border-border bg-muted hover:border-primary/40',
-                    )}
-                    onClick={() => setType(t.id)}
-                  >
-                    <AppIcon name={t.icon} className="size-6 text-primary" />
-                    <div className="mt-1 text-sm font-bold text-foreground">{t.label}</div>
-                    <div className="text-[0.72rem] text-muted-foreground">{t.desc}</div>
-                  </button>
-                ))}
-              </div>
+        <DashboardCard titleIcon="interview" title="Session preferences" contentClassName="space-y-3">
+          <div>
+            <p className="mb-2 text-sm text-muted-foreground">Question type</p>
+            <div className="grid grid-cols-2 gap-2">
+              {TYPES.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  className={cn(
+                    'rounded-xl border p-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
+                    type === t.id
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border bg-muted/30 hover:border-primary/40',
+                  )}
+                  onClick={() => setType(t.id)}
+                >
+                  <AppIcon name={t.icon} className="size-5 text-primary" />
+                  <div className="mt-1 text-sm font-semibold text-foreground">{t.label}</div>
+                  <div className="text-[0.68rem] text-muted-foreground">{t.desc}</div>
+                </button>
+              ))}
             </div>
+          </div>
 
-            <FormField label="Number of Questions" htmlFor="iv-count">
-              <Select
-                id="iv-count"
-                className="max-w-[200px]"
-                value={count}
-                onChange={(e) => setCount(Number(e.target.value) || DEFAULT_COUNT)}
-              >
-                {COUNT_OPTIONS.map((n) => (
-                  <option key={n} value={n}>{n} questions</option>
-                ))}
-              </Select>
-            </FormField>
+          <label className="block space-y-1 text-sm">
+            <span className="text-muted-foreground">Questions</span>
+            <Select
+              value={count}
+              onChange={(e) => setCount(Number(e.target.value) || DEFAULT_COUNT)}
+            >
+              {COUNT_OPTIONS.map((n) => (
+                <option key={n} value={n}>{n} questions</option>
+              ))}
+            </Select>
+          </label>
 
-            <label className="flex cursor-pointer items-center gap-2 text-[0.78rem] text-muted-foreground">
-              <Checkbox checked={showTips} onCheckedChange={(v) => setShowTips(!!v)} />
-              Show hints with each question
-            </label>
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
+            <Checkbox checked={showTips} onCheckedChange={(v) => setShowTips(!!v)} />
+            Show hints with each question
+          </label>
 
-            <Button className="w-full" onClick={startSession} disabled={generating || !role.trim() || !canAfford}>
-              {generating ? `Generating ${count} questions…` : `Start Mock Interview (${count} Qs)`}
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="mt-4">
-          <CardHeader>
-            <CardTitle className="text-base">Recent sessions</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Scores from past mocks — reuse a role to start another round faster.
+          <Button
+            className="w-full"
+            onClick={startSession}
+            disabled={generating || entLoading || !role.trim() || !canAfford}
+          >
+            {generating
+              ? `Generating ${count} questions…`
+              : `Start mock · ${creditCost} credits`}
+          </Button>
+          {!canAfford && (
+            <p className="text-xs text-amber-600">
+              Not enough credits.{' '}
+              <Link to="/dashboard/settings" className="underline">Check balance</Link>
             </p>
-          </CardHeader>
-          <CardContent>
+          )}
+        </DashboardCard>
+
+        {lastSession && (
+          <DashboardCard titleIcon="trophy" title="Last score" contentClassName="space-y-2">
+            <p
+              className={cn(
+                'text-3xl font-bold tabular-nums',
+                lastScore >= 70 ? 'text-emerald-500' : lastScore >= 40 ? 'text-amber-500' : 'text-muted-foreground',
+              )}
+            >
+              {lastScore || '—'}
+              {lastScore != null ? <span className="text-base font-medium text-muted-foreground">%</span> : null}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {lastSession.role || 'Session'} · {lastSession.type || 'mixed'}
+            </p>
+            <Button
+              className="w-full"
+              variant="secondary"
+              onClick={() => {
+                if (lastSession.role) setRole(lastSession.role)
+                if (lastSession.type) setType(lastSession.type)
+              }}
+            >
+              Reuse this setup
+            </Button>
+          </DashboardCard>
+        )}
+      </div>
+    )
+
+    return (
+      <ToolPage>
+        <ToolSidebarLayout sidebar={setupSidebar}>
+          <DashboardCard>
+            <div className="flex flex-col items-center gap-3 py-10 text-center sm:py-14">
+              <div className="flex size-14 items-center justify-center rounded-2xl bg-primary/10">
+                <AppIcon name="interview" className="size-7 text-primary" />
+              </div>
+              <h2 className="text-lg font-semibold">Practice your next interview</h2>
+              <p className="max-w-md text-sm text-muted-foreground">
+                Set a role and question style in the sidebar, then start a mock.
+                Answers are graded in one pass when you submit the session.
+              </p>
+            </div>
+          </DashboardCard>
+
+          <DashboardCard titleIcon="clock" title="Recent sessions" contentClassName="space-y-3">
             {historyLoading && !sessions.length ? (
               <p className="text-sm text-muted-foreground">Loading history…</p>
             ) : !sessions.length ? (
-              <p className="text-sm text-muted-foreground">No past sessions yet. Finish a mock to see it here.</p>
+              <p className="text-sm text-muted-foreground">
+                No past sessions yet. Finish a mock to see scores here.
+              </p>
             ) : (
               <ul className="space-y-2">
                 {sessions.slice(0, 8).map((s) => {
-                  const when = s.completedAt || s.createdAt
-                  const label = when?.toDate
-                    ? when.toDate().toLocaleDateString()
-                    : when instanceof Date
-                      ? when.toLocaleDateString()
-                      : typeof when === 'string'
-                        ? new Date(when).toLocaleDateString()
-                        : '—'
-                  const score = typeof s.totalScore === 'number' ? Math.round(s.totalScore) : null
+                  const score = typeof s.totalScore === 'number'
+                    ? Math.round(s.totalScore)
+                    : typeof s.percent === 'number'
+                      ? Math.round(s.percent)
+                      : null
                   return (
                     <li
                       key={s.id}
@@ -337,8 +387,8 @@ function InterviewSectionContent() {
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold">{s.role || 'Interview'}</p>
                         <p className="text-xs text-muted-foreground">
-                          {s.type || 'mixed'} · {label}
-                          {score != null ? ` · score ${score}` : ''}
+                          {s.type || 'mixed'} · {formatSessionDate(s.completedAt || s.createdAt)}
+                          {score != null ? ` · ${score}%` : ''}
                         </p>
                       </div>
                       <Button
@@ -357,16 +407,16 @@ function InterviewSectionContent() {
                 })}
               </ul>
             )}
-          </CardContent>
-        </Card>
-      </>
+          </DashboardCard>
+        </ToolSidebarLayout>
+      </ToolPage>
     )
   }
 
   if (phase === 'practicing' && q) {
     const selected = picks[currentIdx]
     return (
-      <>
+      <ToolPage>
         <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
           <PageTitle
             title="Mock Interview"
@@ -510,13 +560,13 @@ function InterviewSectionContent() {
             })}
           </div>
         </div>
-      </>
+      </ToolPage>
     )
   }
 
   if (phase === 'grading') {
     return (
-      <>
+      <ToolPage>
         <PageTitle
           title="Grading Session…"
           subtitle="Computing your score and asking the AI for a tailored study plan"
@@ -528,7 +578,7 @@ function InterviewSectionContent() {
             <div className="mt-1.5 text-[0.76rem] text-muted-foreground">Per-question correctness is instant. The AI summary takes ~5–10 s.</div>
           </CardContent>
         </Card>
-      </>
+      </ToolPage>
     )
   }
 
@@ -539,7 +589,7 @@ function InterviewSectionContent() {
     const summaryColor = percent >= 70 ? 'text-emerald-500' : percent >= 50 ? 'text-amber-500' : 'text-destructive'
 
     return (
-      <>
+      <ToolPage>
         <PageTitle
           title="Session Complete"
           subtitle={`Here's how you did in your ${role} mock interview`}
@@ -691,7 +741,7 @@ function InterviewSectionContent() {
             </div>
           </CardContent>
         </Card>
-      </>
+      </ToolPage>
     )
   }
 

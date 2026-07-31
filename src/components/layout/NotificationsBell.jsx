@@ -1,14 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import useAppStore from '@/store/authStore'
 import useNotifStore from '@/store/notifStore'
-import { OPEN_NOTIFS_EVENT } from '@/constants/events'
 import AppIcon from '@/components/icons/AppIcon'
 import {
   Badge,
   Button,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
   ScrollArea,
 } from '@/components/ui'
 
@@ -23,46 +19,50 @@ function timeAgo(ts) {
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
 }
 
-export function NotificationsPanel({ className, scrollClassName }) {
+/** Inbox list used on /dashboard/notifications */
+export function NotificationsPanel({ className, scrollClassName, filterFn, hideHeader }) {
   const { user } = useAppStore()
   const { notifs, markRead, markAllRead, deleteNotif, clearAll } = useNotifStore()
-  const unread = notifs.filter((n) => !n.read).length
+  const list = filterFn ? notifs.filter(filterFn) : notifs
+  const unread = list.filter((n) => !n.read).length
 
   return (
     <div className={className}>
-      <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
-        <span className="text-sm font-bold text-foreground">
-          Notifications{' '}
-          {unread > 0 && (
-            <Badge variant="secondary" className="ms-1 font-mono text-primary">
-              {unread}
-            </Badge>
-          )}
-        </span>
-        <div className="flex gap-1.5">
-          {unread > 0 && (
-            <Button type="button" variant="ghost" size="sm" onClick={() => markAllRead(user?.uid)}>
-              <AppIcon name="check" className="me-1 size-3.5" />
-              Read all
-            </Button>
-          )}
-          {notifs.length > 0 && (
-            <Button type="button" variant="ghost" size="sm" onClick={() => clearAll(user?.uid)}>
-              Clear
-            </Button>
-          )}
+      {!hideHeader && (
+        <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
+          <span className="text-sm font-bold text-foreground">
+            Notifications{' '}
+            {unread > 0 && (
+              <Badge variant="secondary" className="ms-1 font-mono text-primary">
+                {unread}
+              </Badge>
+            )}
+          </span>
+          <div className="flex gap-1.5">
+            {unread > 0 && (
+              <Button type="button" variant="ghost" size="sm" onClick={() => markAllRead(user?.uid)}>
+                <AppIcon name="check" className="me-1 size-3.5" />
+                Read all
+              </Button>
+            )}
+            {list.length > 0 && (
+              <Button type="button" variant="ghost" size="sm" onClick={() => clearAll(user?.uid)}>
+                Clear
+              </Button>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       <ScrollArea className={scrollClassName || 'max-h-80'}>
-        {notifs.length === 0 ? (
+        {list.length === 0 ? (
           <div className="px-4 py-8 text-center text-muted-foreground">
             <AppIcon name="bell-slash" className="mx-auto mb-2 size-8 opacity-50" />
             <div className="text-xs">No notifications</div>
           </div>
         ) : (
           <ul className="divide-y divide-border">
-            {notifs.map((n) => (
+            {list.map((n) => (
               <li key={n.id}>
                 <div
                   role="button"
@@ -128,51 +128,24 @@ export function useNotificationUnreadCount() {
   return notifs.filter((n) => !n.read).length
 }
 
-/** Standalone bell + popover. Sidebar uses profile menu instead. */
-export default function NotificationsBell({ variant = 'nav' }) {
-  const { user } = useAppStore()
-  const { loadNotifs, notifs } = useNotifStore()
-  const unread = notifs.filter((n) => !n.read).length
-  const [open, setOpen] = useState(false)
-
-  useEffect(() => {
-    const openNotifs = () => setOpen(true)
-    window.addEventListener(OPEN_NOTIFS_EVENT, openNotifs)
-    return () => window.removeEventListener(OPEN_NOTIFS_EVENT, openNotifs)
-  }, [])
+/** Topbar bell — navigates to inbox route (no popover). */
+export default function NotificationsBell() {
+  const navigate = useNavigate()
+  const unread = useNotificationUnreadCount()
 
   return (
-    <Popover
-      open={open}
-      onOpenChange={(next) => {
-        setOpen(next)
-        if (next && user?.uid) loadNotifs(user.uid, { force: true })
-      }}
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      className="relative shrink-0"
+      aria-label={`Notifications${unread > 0 ? `, ${unread} unread` : ''}`}
+      onClick={() => navigate('/dashboard/notifications')}
     >
-      <PopoverTrigger
-        render={
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="relative shrink-0"
-            aria-label={`Notifications${unread > 0 ? `, ${unread} unread` : ''}`}
-          >
-            <AppIcon name="bell" className="size-5" />
-            {unread > 0 && (
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary ring-2 ring-popover" />
-            )}
-          </Button>
-        }
-      />
-      <PopoverContent
-        align={variant === 'drawer' ? 'start' : 'end'}
-        side="bottom"
-        sideOffset={10}
-        className={variant === 'drawer' ? 'w-full max-w-none p-0 sm:w-80' : 'w-80 p-0'}
-      >
-        <NotificationsPanel scrollClassName={variant === 'drawer' ? 'max-h-64' : 'max-h-80'} />
-      </PopoverContent>
-    </Popover>
+      <AppIcon name="bell" className="size-5" />
+      {unread > 0 && (
+        <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary ring-2 ring-background" />
+      )}
+    </Button>
   )
 }

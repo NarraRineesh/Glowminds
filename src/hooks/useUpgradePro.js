@@ -1,9 +1,6 @@
 import { useCallback, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { apiFetch } from '@/services/apiClient'
 import useAppStore from '@/store/authStore'
-import useProfileStore from '@/store/profileStore'
-import { invalidateEntitlementsCache } from '@/hooks/useEntitlements'
 
 function loadRazorpayScript() {
   return new Promise((resolve) => {
@@ -37,6 +34,14 @@ export default function useUpgradePro() {
 
       setLoading(true)
       try {
+        // Keep payment + Firestore clients off the marketing bundle until checkout.
+        const [{ apiFetch }, { default: useProfileStore }, { invalidateEntitlementsCache }] =
+          await Promise.all([
+            import('@/services/apiClient'),
+            import('@/store/profileStore'),
+            import('@/hooks/useEntitlements'),
+          ])
+
         const loaded = await loadRazorpayScript()
         if (!loaded) {
           addToast('error', 'Failed to load payment gateway')
@@ -82,7 +87,7 @@ export default function useUpgradePro() {
             name: user?.displayName || '',
             email: user?.email || '',
           },
-          theme: { color: '#388bfd' },
+          theme: { color: '#2563eb' },
           modal: { ondismiss: () => setLoading(false) },
         }
 

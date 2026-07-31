@@ -1,6 +1,7 @@
 {
   "hosting": {
     "public": "dist",
+    "trailingSlash": true,
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "headers": [
       {
@@ -12,7 +13,13 @@
         ]
       },
       {
-        "source": "/index.html",
+        "source": "/",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        ]
+      },
+      {
+        "source": "**/*.html",
         "headers": [
           { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
         ]
@@ -31,7 +38,13 @@
         ]
       },
       {
-        "source": "**/*.@(js|css|woff2|png|jpg|jpeg|svg|webp|ico)",
+        "source": "/assets/**",
+        "headers": [
+          { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        ]
+      },
+      {
+        "source": "**/*.@(woff2|png|jpg|jpeg|svg|webp|ico)",
         "headers": [
           { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
         ]
@@ -41,6 +54,10 @@
       {
         "source": "/api/**",
         "function": { "functionId": "api", "region": "asia-south1" }
+      },
+      {
+        "source": "/assets/**",
+        "function": { "functionId": "assetNotFound", "region": "asia-south1" }
       },
       { "source": "**", "destination": "/index.html" }
     ]
@@ -62,6 +79,9 @@
   "firestore": {
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "storage.rules"
   },
   "emulators": {
     "functions": { "port": 5001 },

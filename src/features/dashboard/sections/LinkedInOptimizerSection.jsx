@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import SectionHeader from '@/components/dashboard/SectionHeader'
-import { ToolPage, ToolSidebarLayout } from '@/features/dashboard/components/toolSectionLayout'
 import AppIcon from '@/components/icons/AppIcon'
-import { Badge, Button, Checkbox, DashboardCard, Input, Progress, Textarea, cn } from '@/components/ui'
+import { Badge, Button, Checkbox, Input, Progress, Textarea, cn } from '@/components/ui'
 import useAppStore from '@/store/authStore'
 import useProfileStore from '@/store/profileStore'
 import useEntitlements from '@/hooks/useEntitlements'
@@ -10,6 +8,15 @@ import { apiFetch } from '@/services/apiClient'
 import { auth } from '@/services/firebase'
 import { buildLinkedInAuditSnapshot } from '@/constants/schema'
 import Loader from '@/components/Loader'
+import {
+  AiRail,
+  ScoreGauge,
+  SectionCard,
+  SplitRail,
+} from '@/features/dashboard/components/v2'
+import { logActivity } from '@/services/activityLog'
+import { awardXp } from '@/services/gamification'
+import { v2Debug } from '@/utils/v2Debug'
 
 function normalizeLinkedIn(input) {
   const v = (input || '').trim()
@@ -29,6 +36,8 @@ function isValidLinkedInUrl(input) {
   }
 }
 
+const STEPPER_STEPS = ['Import', 'Audit', 'Rewrite']
+
 const FALLBACK_CHECKS = [
   { id: 'photo', label: 'Professional photo', tip: 'Headshot · neutral background · genuine smile', done: false },
   { id: 'banner', label: 'Custom banner', tip: "Don't use the default LinkedIn banner", done: false },
@@ -38,13 +47,61 @@ const FALLBACK_CHECKS = [
   { id: 'skills', label: '15+ skills', tip: 'Pin your top 3 skills', done: false },
 ]
 
+function LinkedInStepper({ active, onStep }) {
+  return (
+    <div className="mb-4 flex items-center gap-0">
+      {STEPPER_STEPS.map((label, i) => {
+        const done = i < active
+        const current = i === active
+        return (
+          <div key={label} className="flex min-w-0 flex-1 items-center">
+            <button
+              type="button"
+              onClick={() => onStep?.(i)}
+              className="flex min-w-0 items-center gap-2 rounded-lg text-left hover:opacity-90"
+            >
+              <span className={cn(
+                'flex size-6 shrink-0 items-center justify-center rounded-full text-[0.65rem] font-bold',
+                done && 'bg-emerald-500 text-white',
+                current && !done && 'bg-primary text-primary-foreground',
+                !done && !current && 'border border-border bg-muted text-muted-foreground',
+              )}
+              >
+                {done ? <AppIcon name="check" className="size-3" /> : i + 1}
+              </span>
+              <span className={cn(
+                'truncate text-xs font-semibold',
+                current ? 'text-foreground' : 'text-muted-foreground',
+              )}
+              >
+                {label}
+              </span>
+            </button>
+            {i < STEPPER_STEPS.length - 1 && (
+              <div className={cn('mx-2 h-px flex-1', done ? 'bg-emerald-500/50' : 'bg-border')} />
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function findingSeverity(checked, index) {
+  if (checked) return 'ok'
+  if (index < 2) return 'high'
+  if (index < 4) return 'med'
+  return 'low'
+}
+
 export default function LinkedInOptimizerSection() {
   const addToast = useAppStore((s) => s.addToast)
-  const { isPro, credits, creditCosts, loading: entLoading, refresh } = useEntitlements()
+  const { credits, creditCosts, refresh } = useEntitlements()
   const creditCost = creditCosts?.linkedinAudit ?? 2
   const balance = credits?.balance
   const canRun = typeof balance !== 'number' || balance >= creditCost
 
+  const [step, setStep] = useState(0)
   const [done, setDone] = useState({})
   const [checklist, setChecklist] = useState(FALLBACK_CHECKS)
   const [rewrites, setRewrites] = useState([])
@@ -62,6 +119,10 @@ export default function LinkedInOptimizerSection() {
   const [draft, setDraft] = useState('')
   const [saving, setSaving] = useState(false)
 
+  const hasImport = !!(headline.trim() || about.trim() || experience.trim())
+  const audited = typeof aiScore === 'number'
+  const hasRewrites = rewrites.length > 0
+
   useEffect(() => {
     let cancelled = false
     async function load() {
@@ -75,7 +136,6 @@ export default function LinkedInOptimizerSection() {
         setProfileUrl(url)
         setEditing(!url)
         setDraft(url)
-        fillFieldsFromProfile(profile, { onlyEmpty: true, setHeadline, setAbout, setExperience })
 
         const audit = profile.linkedinAudit
         if (audit) {
@@ -88,13 +148,15 @@ export default function LinkedInOptimizerSection() {
           if (audit.ai?.checklist?.length) setChecklist(audit.ai.checklist)
           if (audit.ai?.rewrites?.length) setRewrites(audit.ai.rewrites)
           if (audit.ai?.summary) setAiSummary(audit.ai.summary)
-          // Prefer last audited paste snapshot if fields empty
           const snap = audit.ai?.snapshot
           if (snap && typeof snap === 'object') {
             if (snap.headline) setHeadline(String(snap.headline))
             if (snap.about) setAbout(String(snap.about))
             if (snap.experience) setExperience(String(snap.experience))
           }
+          if (audit.ai?.rewrites?.length) setStep(2)
+          else if (typeof audit.score === 'number') setStep(1)
+          else if (snap?.headline || snap?.about || snap?.experience) setStep(0)
         }
       } catch (e) {
         console.error('LinkedIn load:', e)
@@ -159,6 +221,38 @@ export default function LinkedInOptimizerSection() {
     addToast?.('success', 'Filled from your GlowMinds profile')
   }
 
+  const importFromExtension = async () => {
+    try {
+      let raw = ''
+      try {
+        raw = await navigator.clipboard.readText()
+      } catch {
+        raw = localStorage.getItem('gm_linkedin_extract') || ''
+      }
+      const data = JSON.parse(raw)
+      if (!data || data.source !== 'glowminds-linkedin-assist') {
+        throw new Error('Clipboard does not contain GlowMinds LinkedIn Assist data. Use the extension first.')
+      }
+      if (data.headline) setHeadline(String(data.headline))
+      if (data.about) setAbout(String(data.about))
+      if (data.experience) setExperience(String(data.experience))
+      if (data.url && isValidLinkedInUrl(data.url)) {
+        setDraft(data.url)
+        setProfileUrl(normalizeLinkedIn(data.url))
+      }
+      v2Debug('linkedin', 'imported extension payload', data.url)
+      const uid = auth.currentUser?.uid
+      if (uid) {
+        await logActivity(uid, { type: 'linkedin', title: 'Imported LinkedIn via extension' })
+        await awardXp(uid, 'linkedin')
+      }
+      addToast?.('success', 'Imported profile fields from extension')
+      setStep(0)
+    } catch (err) {
+      addToast?.('error', err.message || 'Import failed')
+    }
+  }
+
   const applyRewrite = async (r) => {
     const text = String(r?.suggestion || '').trim()
     if (!text) return
@@ -174,12 +268,28 @@ export default function LinkedInOptimizerSection() {
     }
   }
 
+  const copyAllRewrites = async () => {
+    const text = rewrites.map((r) => `${r.section || r.title}\n${r.suggestion}`).join('\n\n---\n\n')
+    try {
+      await navigator.clipboard.writeText(text)
+      addToast?.('success', 'All rewrites copied')
+    } catch {
+      addToast?.('error', 'Could not copy')
+    }
+  }
+
   const runAiAudit = async () => {
+    if (!hasImport) {
+      addToast?.('error', 'Import or paste LinkedIn fields first')
+      setStep(0)
+      return
+    }
     if (!canRun) {
       addToast?.('error', 'Not enough AI credits')
       return
     }
     setRunning(true)
+    setStep(1)
     try {
       const profile = useProfileStore.getState().profile || {}
       const res = await apiFetch('/ai/linkedin-audit', {
@@ -229,181 +339,354 @@ export default function LinkedInOptimizerSection() {
     return scoreFromDone(done, checklist)
   }, [aiScore, done, checklist])
 
-  const tone = score >= 80 ? 'great' : score >= 50 ? 'ok' : 'low'
   const doneCount = Object.values(done).filter(Boolean).length
+  const openFindings = checklist.length - doneCount
 
-  const sidebar = (
-    <>
-      <DashboardCard titleIcon="chart" title="LinkedIn score" contentClassName="space-y-3 text-center">
-        <p className={cn(
-          'text-4xl font-black tabular-nums',
-          tone === 'great' ? 'text-emerald-500' : tone === 'ok' ? 'text-amber-500' : 'text-primary',
-        )}>
-          {score}
-        </p>
-        <Progress
-          value={score}
-          className={cn(
-            'gap-0 [&_[data-slot=progress-track]]:h-2',
-            tone === 'great'
-              ? '[&_[data-slot=progress-indicator]]:bg-emerald-500'
-              : tone === 'ok'
-                ? '[&_[data-slot=progress-indicator]]:bg-amber-500'
-                : '[&_[data-slot=progress-indicator]]:bg-primary',
-          )}
-        />
-        <p className="text-xs text-muted-foreground">out of 100</p>
-        {aiSummary ? <p className="text-left text-xs text-muted-foreground">{aiSummary}</p> : null}
-      </DashboardCard>
+  const goStep = (i) => {
+    if (i === 1 && !hasImport) {
+      addToast?.('info', 'Import LinkedIn fields before audit')
+      return
+    }
+    if (i === 2 && !hasRewrites && !audited) {
+      addToast?.('info', 'Run an AI audit first to unlock rewrites')
+      return
+    }
+    setStep(i)
+  }
 
-      {rewrites.length > 0 && (
-        <DashboardCard titleIcon="lightbulb" title="AI rewrites" contentClassName="space-y-3">
-          {rewrites.map((r) => (
-            <div key={`${r.section}-${r.title}`} className="rounded-lg border border-border/60 p-2.5">
-              <div className="flex items-start justify-between gap-2">
-                <p className="text-xs font-semibold uppercase text-muted-foreground">{r.section} · {r.title}</p>
-                <Button variant="ghost" size="sm" onClick={() => void applyRewrite(r)}>Apply</Button>
-              </div>
-              <p className="mt-1 text-sm whitespace-pre-wrap">{r.suggestion}</p>
-            </div>
-          ))}
-        </DashboardCard>
-      )}
-    </>
-  )
+  if (loadingProfile) {
+    return <Loader variant="section" label="Loading LinkedIn hub…" />
+  }
 
   return (
-    <ToolPage>
-      <SectionHeader
-        badge="LinkedIn · AI Audit"
-        badgeClassName="border-primary/20 bg-primary/10 text-primary"
-        title="Make recruiters find you first"
-        accent="find you first"
-        subtitle="Paste your About and Experience for an AI audit, or use the checklist to track improvements."
-      />
+    <div className="space-y-4">
+      <LinkedInStepper active={step} onStep={goStep} />
 
-      <DashboardCard
-        titleIcon="linkedin"
-        title="Your LinkedIn"
-        action={profileUrl && !editing ? (
-          <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-            <AppIcon name="check" className="size-3" /> Linked
-          </Badge>
-        ) : null}
-      >
-        {loadingProfile ? (
-          <Loader variant="block" label="Loading your profile…" />
-        ) : !editing && profileUrl ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <a
-              href={profileUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex max-w-full items-center gap-2 truncate rounded-xl border border-border bg-muted/50 px-3 py-2 text-sm font-semibold text-primary transition-colors hover:border-primary/40"
-              title={profileUrl}
-            >
-              <AppIcon name="linkedin" className="size-4 shrink-0" />
-              <span className="truncate">{profileUrl.replace(/^https?:\/\//, '')}</span>
-            </a>
-            <Button variant="ghost" size="sm" onClick={() => { setDraft(profileUrl); setEditing(true) }}>Edit</Button>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <Input
-                className="min-w-[220px] flex-1"
-                type="url"
-                inputMode="url"
-                placeholder="https://linkedin.com/in/yourname"
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter' && !saving) handleSaveUrl() }}
-              />
-              <Button size="sm" disabled={saving || !draft.trim()} onClick={handleSaveUrl}>
-                {saving ? 'Saving…' : 'Save to profile'}
-              </Button>
-              {profileUrl && (
-                <Button variant="ghost" size="sm" disabled={saving} onClick={() => { setDraft(profileUrl); setEditing(false) }}>
-                  Cancel
-                </Button>
-              )}
-            </div>
-          </div>
-        )}
-      </DashboardCard>
+      {step === 0 && (
+        <SplitRail
+          main={(
+            <SectionCard title="1 · Get data with LinkedIn Assist" action={<Badge variant="outline">Required</Badge>}>
+              <ol className="mb-4 list-decimal space-y-3 pl-5 text-sm">
+                <li>
+                  <strong className="text-foreground">Add the extension</strong>
+                  <p className="m-0 mt-1 text-muted-foreground">
+                    Load <code className="rounded bg-muted px-1 text-xs">extensions/linkedin-assist</code> unpacked in Chrome (Developer mode).
+                  </p>
+                </li>
+                <li>
+                  <strong className="text-foreground">Open your LinkedIn profile</strong>
+                  <p className="m-0 mt-1 text-muted-foreground">Click Assist → Copy profile JSON to clipboard.</p>
+                </li>
+                <li>
+                  <strong className="text-foreground">Import here</strong>
+                  <p className="m-0 mt-1 text-muted-foreground">Paste from clipboard, or fill fields manually / from GlowMinds profile.</p>
+                </li>
+              </ol>
 
-      <DashboardCard
-        titleIcon="sparkle"
-        title="AI LinkedIn audit"
-        className="mt-4"
-        contentClassName="space-y-3"
-        action={(
-          <Button variant="ghost" size="sm" disabled={running} onClick={useMyProfile}>
-            Use my profile
-          </Button>
-        )}
-      >
-        <p className="text-sm text-muted-foreground">
-          Paste text from LinkedIn (no scraping), or prefill from your GlowMinds profile. Costs {creditCost} AI credits.
-        </p>
-        <Input
-          value={headline}
-          onChange={(e) => setHeadline(e.target.value)}
-          placeholder="Your LinkedIn headline"
-          disabled={running}
-        />
-        <Textarea
-          value={about}
-          onChange={(e) => setAbout(e.target.value)}
-          placeholder="Paste your About section…"
-          rows={5}
-          disabled={running}
-        />
-        <Textarea
-          value={experience}
-          onChange={(e) => setExperience(e.target.value)}
-          placeholder="Paste Experience bullets…"
-          rows={6}
-          disabled={running}
-        />
-        <Button disabled={running || !canRun} onClick={runAiAudit}>
-          {running ? 'Analyzing…' : 'Run AI audit'}
-        </Button>
-      </DashboardCard>
-
-      <ToolSidebarLayout sidebar={sidebar} sidebarRight className="mt-4">
-        <DashboardCard
-          titleIcon="check-circle"
-          title="Profile audit"
-          action={<span className="text-xs text-muted-foreground">{doneCount}/{checklist.length} done</span>}
-          contentClassName="space-y-2"
-        >
-          {checklist.map((c) => {
-            const id = c.id || c.label
-            const checked = !!done[id]
-            return (
-              <label
-                key={id}
-                className={cn(
-                  'flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-2.5 transition-colors',
-                  checked ? 'border-emerald-500/40 bg-emerald-500/10' : 'border-border bg-muted/50 hover:border-primary/20',
-                )}
-              >
-                <Checkbox
-                  checked={checked}
-                  onCheckedChange={(v) => void toggleCheck(id, Boolean(v))}
-                  className="mt-0.5"
-                />
-                <div className="min-w-0 flex-1">
-                  <span className="text-sm font-semibold">{c.label || c.title}</span>
-                  <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{c.tip || c.desc}</p>
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-muted/40 px-3 py-3">
+                <div>
+                  <p className="m-0 text-sm font-semibold">Paste Assist JSON</p>
+                  <p className="m-0 mt-0.5 text-xs text-muted-foreground">Clipboard must contain GlowMinds LinkedIn Assist data.</p>
                 </div>
-              </label>
-            )
-          })}
-        </DashboardCard>
-      </ToolSidebarLayout>
-    </ToolPage>
+                <Button type="button" size="sm" onClick={() => void importFromExtension()}>
+                  Import from clipboard
+                </Button>
+              </div>
+
+              <div className="mb-3 space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Your LinkedIn URL</p>
+                {!editing && profileUrl ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <a
+                      href={profileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex max-w-full items-center gap-2 truncate rounded-xl border border-border bg-muted/50 px-3 py-2 text-sm font-semibold text-primary"
+                    >
+                      <AppIcon name="linkedin" className="size-4 shrink-0" />
+                      <span className="truncate">{profileUrl.replace(/^https?:\/\//, '')}</span>
+                    </a>
+                    <Button variant="ghost" size="sm" onClick={() => { setDraft(profileUrl); setEditing(true) }}>Edit</Button>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    <Input
+                      className="min-w-[220px] flex-1"
+                      type="url"
+                      placeholder="https://linkedin.com/in/yourname"
+                      value={draft}
+                      onChange={(e) => setDraft(e.target.value)}
+                    />
+                    <Button size="sm" disabled={saving || !draft.trim()} onClick={handleSaveUrl}>
+                      {saving ? 'Saving…' : 'Save'}
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Input
+                  value={headline}
+                  onChange={(e) => setHeadline(e.target.value)}
+                  placeholder="Headline — empty until you import or paste"
+                />
+                <Textarea
+                  value={about}
+                  onChange={(e) => setAbout(e.target.value)}
+                  placeholder="About — paste from LinkedIn or import via Assist"
+                  rows={4}
+                />
+                <Textarea
+                  value={experience}
+                  onChange={(e) => setExperience(e.target.value)}
+                  placeholder="Experience bullets / roles"
+                  rows={5}
+                />
+              </div>
+            </SectionCard>
+          )}
+          rail={(
+            <>
+              <SectionCard title="Why Assist?">
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  <li className="flex gap-2"><AppIcon name="check" className="mt-0.5 size-3.5 shrink-0 text-emerald-500" /> No password sharing with GlowMinds</li>
+                  <li className="flex gap-2"><AppIcon name="check" className="mt-0.5 size-3.5 shrink-0 text-emerald-500" /> You control what gets copied</li>
+                  <li className="flex gap-2"><AppIcon name="check" className="mt-0.5 size-3.5 shrink-0 text-emerald-500" /> Re-import anytime after LinkedIn edits</li>
+                </ul>
+              </SectionCard>
+              <SectionCard title="Next step">
+                <p className="mb-3 text-sm text-muted-foreground">
+                  After fields are filled, continue to Audit — AI scores headline, About, experience, and skills.
+                </p>
+                <Button
+                  type="button"
+                  className="w-full"
+                  disabled={!hasImport}
+                  onClick={() => setStep(1)}
+                >
+                  Continue to Audit
+                </Button>
+                {!hasImport && (
+                  <p className="mt-2 text-[11px] text-muted-foreground">Enabled once import has content</p>
+                )}
+              </SectionCard>
+              <AiRail
+                title="Tip"
+                body="You can also paste headline / About / experience by hand if you prefer not to use the extension yet."
+                cta="Fill from GlowMinds profile"
+                onCta={useMyProfile}
+              />
+            </>
+          )}
+        />
+      )}
+
+      {step === 1 && (
+        <SplitRail
+          main={(
+            <SectionCard
+              title="Audit findings"
+              action={(
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" size="sm" variant="outline" onClick={() => setStep(0)}>Back to import</Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="bg-ai text-background hover:bg-ai/90"
+                    disabled={running || !canRun || !hasImport}
+                    onClick={() => void runAiAudit()}
+                  >
+                    {running ? 'Analyzing…' : `Run AI audit · ${creditCost} cr`}
+                  </Button>
+                </div>
+              )}
+            >
+              {running ? (
+                <Loader variant="block" label="Running AI audit…" />
+              ) : !audited ? (
+                <div className="py-8 text-center">
+                  <p className="mb-3 text-sm text-muted-foreground">
+                    Run an AI audit on your imported fields to get prioritized findings.
+                  </p>
+                  <Button
+                    type="button"
+                    className="bg-ai text-background hover:bg-ai/90"
+                    disabled={!canRun || !hasImport}
+                    onClick={() => void runAiAudit()}
+                  >
+                    {`Run AI audit · ${creditCost} cr`}
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  {openFindings > 0 && (
+                    <Badge variant="outline" className="mb-3 border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400">
+                      {openFindings} open finding{openFindings !== 1 ? 's' : ''}
+                    </Badge>
+                  )}
+                  <ul className="divide-y divide-border rounded-xl border border-border">
+                    {checklist.map((c, index) => {
+                      const id = c.id || c.label
+                      const checked = !!done[id]
+                      const sev = findingSeverity(checked, index)
+                      const sevLabel = sev === 'high' ? 'High' : sev === 'med' ? 'Med' : sev === 'ok' ? 'Done' : 'Low'
+                      return (
+                        <li key={id}>
+                          <label className={cn(
+                            'flex cursor-pointer items-start gap-2 px-3 py-2.5 transition-colors hover:bg-muted/40',
+                            checked && 'bg-emerald-500/5',
+                          )}
+                          >
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={(v) => void toggleCheck(id, Boolean(v))}
+                              className="mt-0.5 shrink-0"
+                            />
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                'mt-0.5 shrink-0 text-[0.6rem] uppercase',
+                                sev === 'high' && 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400',
+                                sev === 'ok' && 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600',
+                              )}
+                            >
+                              {sevLabel}
+                            </Badge>
+                            <div className="min-w-0 flex-1">
+                              <span className="text-[0.8rem] font-semibold">{c.label || c.title}</span>
+                              <p className="m-0 text-[0.68rem] leading-snug text-muted-foreground">{c.tip || c.desc}</p>
+                            </div>
+                          </label>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                  <Button
+                    type="button"
+                    className="mt-4 w-full"
+                    disabled={!hasRewrites && typeof aiScore !== 'number'}
+                    onClick={() => setStep(2)}
+                  >
+                    Continue to Rewrites
+                  </Button>
+                </>
+              )}
+            </SectionCard>
+          )}
+          rail={(
+            <>
+              <SectionCard title="LinkedIn health">
+                <div className="mb-3 flex items-center gap-3">
+                  <ScoreGauge score={score} size={72} label="/100" />
+                  <div>
+                    <p className="m-0 text-sm font-semibold">{score >= 75 ? 'On track' : 'Needs work'}</p>
+                    {aiSummary ? <p className="m-0 mt-1 text-xs text-muted-foreground">{aiSummary}</p> : (
+                      <p className="m-0 mt-1 text-xs text-muted-foreground">Run audit to score sections.</p>
+                    )}
+                  </div>
+                </div>
+                <p className="text-[0.7rem] text-muted-foreground">{doneCount}/{checklist.length} checklist done</p>
+                <Progress value={checklist.length ? (doneCount / checklist.length) * 100 : 0} className="mt-2 h-2" />
+              </SectionCard>
+              <AiRail
+                title="Next"
+                body={hasRewrites
+                  ? 'Findings are ready — open Rewrites to apply AI fills for headline and About first.'
+                  : 'Run the AI audit to unlock prioritized findings and rewrite suggestions.'}
+                cta={hasRewrites ? 'Open rewrites' : `Run AI audit · ${creditCost} cr`}
+                onCta={() => {
+                  if (hasRewrites) setStep(2)
+                  else void runAiAudit()
+                }}
+              />
+            </>
+          )}
+        />
+      )}
+
+      {step === 2 && (
+        <SplitRail
+          main={(
+            <SectionCard
+              title="AI fills & rewrites"
+              action={(
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" size="sm" variant="outline" onClick={() => setStep(1)}>Back to audit</Button>
+                  <Button type="button" size="sm" disabled={!rewrites.length} onClick={() => void copyAllRewrites()}>
+                    Copy all
+                  </Button>
+                </div>
+              )}
+            >
+              {!rewrites.length ? (
+                <div className="py-8 text-center">
+                  <p className="mb-3 text-sm text-muted-foreground">No rewrites yet — run an AI audit to generate fills.</p>
+                  <Button type="button" variant="outline" onClick={() => setStep(1)}>Back to audit</Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {rewrites.map((r) => {
+                    const section = r.section || r.title || 'Rewrite'
+                    const before = r.before || r.original || ''
+                    return (
+                      <div key={`${section}-${r.title}`} className="border-b border-border pb-4 last:border-0 last:pb-0">
+                        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                          <strong className="text-sm">{section}{r.title && r.title !== section ? ` · ${r.title}` : ''}</strong>
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="bg-ai text-background hover:bg-ai/90"
+                            onClick={() => void applyRewrite(r)}
+                          >
+                            Use & copy
+                          </Button>
+                        </div>
+                        {before ? (
+                          <p className="mb-2 text-xs text-muted-foreground line-through">{before}</p>
+                        ) : null}
+                        <p className="m-0 whitespace-pre-wrap rounded-lg border border-ai/25 bg-ai/5 px-3 py-2.5 text-sm leading-relaxed">
+                          {r.suggestion}
+                        </p>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </SectionCard>
+          )}
+          rail={(
+            <>
+              <AiRail
+                title="Apply order"
+                body="Copy headline first (highest leverage), then About, then one experience role. Mark findings done as you paste into LinkedIn."
+                cta={rewrites[0] ? 'Copy first rewrite' : 'Back to audit'}
+                onCta={() => {
+                  if (rewrites[0]) void applyRewrite(rewrites[0])
+                  else setStep(1)
+                }}
+              />
+              <SectionCard title="Imported fields">
+                <ul className="space-y-2 text-sm">
+                  {[
+                    ['Headline', headline],
+                    ['About', about],
+                    ['Experience', experience],
+                  ].map(([label, val]) => (
+                    <li key={label} className="flex items-center justify-between gap-2">
+                      <span>{label}</span>
+                      <AppIcon
+                        name={val?.trim() ? 'check' : 'x'}
+                        className={cn('size-3.5', val?.trim() ? 'text-emerald-500' : 'text-muted-foreground/40')}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </SectionCard>
+            </>
+          )}
+        />
+      )}
+    </div>
   )
 }
 

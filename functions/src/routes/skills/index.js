@@ -2,7 +2,12 @@ import { Router } from "express";
 import { requireAuth } from "../../middleware/auth.js";
 import { requireCredits } from "../../middleware/requireCredits.js";
 import { ApiError } from "../../middleware/errors.js";
-import { getPersonalizedSkillTrends, getSkillGap, searchSkills } from "../../services/skillsService.js";
+import {
+  getPersonalizedSkillTrends,
+  getSkillGap,
+  queueUnknownSkills,
+  searchSkills,
+} from "../../services/skillsService.js";
 import {
   activateLearningPath,
   deleteLearningPath,
@@ -54,6 +59,23 @@ router.get("/gap", requireAuth, async (req, res, next) => {
     const { profile } = await loadProfileContext(req.user.uid);
     const gap = await getSkillGap({ profile, targetRole: role });
     res.json(gap);
+  } catch (err) {
+    next(err instanceof ApiError ? err : new ApiError("internal", err.message));
+  }
+});
+
+/**
+ * Queue skills missing from the dictionary into `unknown_skills` for the
+ * next enrich pass. Profile still stores free-text; this is fire-and-forget.
+ */
+router.post("/unknown", requireAuth, async (req, res, next) => {
+  try {
+    if (!isSupabaseEnabled()) {
+      return res.json({ queued: 0, unknown: [] });
+    }
+    const skills = Array.isArray(req.body?.skills) ? req.body.skills : [];
+    const result = await queueUnknownSkills(skills);
+    res.json(result);
   } catch (err) {
     next(err instanceof ApiError ? err : new ApiError("internal", err.message));
   }

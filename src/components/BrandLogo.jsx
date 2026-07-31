@@ -54,7 +54,8 @@ export function BrandLogo({
     )
   }
 
-  const src = variant === 'mark' ? BRAND_ASSETS.logoMark : BRAND_ASSETS.favicon96
+  // Prefer the tiny SVG mark in chrome — favicon-96 PNG is ~12KB for a 32px slot.
+  const src = variant === 'mark' ? BRAND_ASSETS.logoMark : BRAND_ASSETS.faviconSvg
 
   return (
     <img

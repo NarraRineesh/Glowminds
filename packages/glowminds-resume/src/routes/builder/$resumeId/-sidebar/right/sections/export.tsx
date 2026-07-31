@@ -1,6 +1,6 @@
 import { t } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
-import { CircleNotchIcon, FileDocIcon, FileJsIcon, FilePdfIcon } from "@phosphor-icons/react";
+import { CircleNotchIcon, CloudArrowUpIcon, FileDocIcon, FileJsIcon, FilePdfIcon } from "@phosphor-icons/react";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { buildDocx } from "@/lib/docx";
@@ -8,13 +8,34 @@ import { Button } from "@/lib/ui/components/button";
 import { downloadWithAnchor, generateFilename } from "@/lib/utils/file";
 import { useResume } from "@/features/resume/builder/draft";
 import { createResumePdfBlob } from "@/features/resume/export/pdf-document";
+import { getEmbedConfig } from "@/embed/runtime";
 import { SectionBase } from "../shared/section-base";
 
 export function ExportSectionBuilder() {
 	const resumeData = useResume();
 
 	const [isPrinting, setIsPrinting] = useState(false);
+	const [isStoring, setIsStoring] = useState(false);
 	const resume = resumeData;
+	const onStorePdf = getEmbedConfig()?.onStorePdf;
+
+	const onSavePdfToAccount = useCallback(async () => {
+		if (!resume || !onStorePdf) return;
+		const filename = generateFilename(resume.name, "pdf");
+		const toastId = toast.loading(t`Saving your PDF to your account...`);
+
+		setIsStoring(true);
+		try {
+			const blob = await createResumePdfBlob(resume.data);
+			await onStorePdf({ blob, name: filename, resumeId: resume.id });
+			toast.success(t`Saved to your account. Find it in your Vault.`);
+		} catch {
+			toast.error(t`Could not save the PDF to your account, please try again.`);
+		} finally {
+			setIsStoring(false);
+			toast.dismiss(toastId);
+		}
+	}, [resume, onStorePdf]);
 
 	const onDownloadJSON = useCallback(() => {
 		if (!resume) return;
@@ -114,6 +135,33 @@ export function ExportSectionBuilder() {
 					</p>
 				</div>
 			</Button>
+
+			{onStorePdf ? (
+				<Button
+					variant="outline"
+					disabled={isStoring}
+					onClick={onSavePdfToAccount}
+					className="h-auto gap-x-4 whitespace-normal p-4! text-start font-normal active:scale-98"
+				>
+					{isStoring ? (
+						<CircleNotchIcon className="size-6 shrink-0 animate-spin" />
+					) : (
+						<CloudArrowUpIcon className="size-6 shrink-0" />
+					)}
+
+					<div className="flex flex-1 flex-col gap-y-1">
+						<h6 className="font-medium">
+							<Trans>Save PDF to account</Trans>
+						</h6>
+						<p className="text-muted-foreground text-xs leading-normal">
+							<Trans>
+								Store a PDF copy securely in your account. It appears in your Vault so you can access it from any
+								device.
+							</Trans>
+						</p>
+					</div>
+				</Button>
+			) : null}
 		</SectionBase>
 	);
 }

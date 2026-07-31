@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import SEO from '@/components/SEO'
 import {
@@ -77,7 +77,6 @@ function PageHero({ badge, title, highlight, description }) {
 }
 
 export default function AboutPage() {
-  const navigate = useNavigate()
   const { config: landingConfig } = useLandingConfig()
   const aboutMetrics = landingConfig.aboutMetrics || []
   const socialProof = landingConfig.socialProof || {}
@@ -238,10 +237,10 @@ export default function AboutPage() {
               <h2 className="mb-3 text-2xl font-black text-foreground md:text-3xl">{socialProof.joinStudentsTitle || 'Join 52,000+ Students'}</h2>
               <p className="mx-auto mb-6 max-w-md text-base text-muted-foreground">Start building your career today — completely free.</p>
               <div className="mb-3 flex flex-wrap justify-center gap-3">
-                <Button size="lg" onClick={() => navigate('/signup')}>
+                <Button size="lg" render={<Link to="/signup" />}>
                   Get Started Now
                 </Button>
-                <Button size="lg" variant="outline" onClick={() => navigate('/contact')}>
+                <Button size="lg" variant="outline" render={<Link to="/contact" />}>
                   Contact Us
                 </Button>
               </div>

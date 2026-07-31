@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import useUpgradePro from '@/hooks/useUpgradePro'
 import useAppStore from '@/store/authStore'
 import usePricingConfig from '@/hooks/usePricingConfig'
@@ -17,8 +17,7 @@ import {
   cn,
 } from '@/components/ui'
 
-export default function LandingPricingCards({ pricing, onSignup }) {
-  const navigate = useNavigate()
+export default function LandingPricingCards({ pricing }) {
   const isLg = useIsLg()
   const { loggedIn } = useAppStore()
   const { startUpgrade, loading: upgradeLoading } = useUpgradePro()
@@ -31,14 +30,6 @@ export default function LandingPricingCards({ pricing, onSignup }) {
   const launchOfferText = marketing?.launchOfferText || 'Founding Member Offer'
   const monthlyEquivalent = marketing?.monthlyEquivalent || 'Only ₹50/month when billed annually'
   const dailyEquivalent = marketing?.dailyEquivalent || 'Less than ₹2/day'
-
-  const handlePro = () => {
-    if (loggedIn) {
-      startUpgrade({ plan: 'yearly' })
-    } else {
-      navigate('/pricing')
-    }
-  }
 
   return (
     <LandingSection muted>
@@ -64,7 +55,7 @@ export default function LandingPricingCards({ pricing, onSignup }) {
               <LandingCheckList items={pricing.free.features} />
             </CardContent>
             <CardFooter className="mt-auto">
-              <Button variant="outline" className="w-full" onClick={onSignup}>
+              <Button variant="outline" className="w-full" render={<Link to="/signup" />}>
                 Get started free
               </Button>
             </CardFooter>
@@ -102,9 +93,15 @@ export default function LandingPricingCards({ pricing, onSignup }) {
               <LandingCheckList items={proHighlights} />
             </CardContent>
             <CardFooter className="mt-auto">
-              <Button className="w-full" onClick={handlePro} disabled={upgradeLoading}>
-                {loggedIn ? 'Upgrade to Pro' : 'View Pro plan'}
-              </Button>
+              {loggedIn ? (
+                <Button className="w-full" onClick={() => startUpgrade({ plan: 'yearly' })} disabled={upgradeLoading}>
+                  Upgrade to Pro
+                </Button>
+              ) : (
+                <Button className="w-full" render={<Link to="/pricing" />}>
+                  View Pro plan
+                </Button>
+              )}
             </CardFooter>
           </Card>
         </LandingRevealItem>

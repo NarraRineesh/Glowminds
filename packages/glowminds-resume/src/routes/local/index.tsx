@@ -229,21 +229,17 @@ function RouteComponent() {
 			)}
 		>
 			<div className={cn(embedded && "mx-auto w-full max-w-4xl")}>
-				<div className={cn("space-y-2", embedded ? "mb-5 text-left" : "mb-8 space-y-3 text-center")}>
-					{!embedded && (
+				{!embedded && (
+					<div className="mb-8 space-y-3 text-center">
 						<BrandIcon variant="logo" className="mx-auto size-14 rounded-2xl" />
-					)}
-					<h1 className={cn("font-semibold tracking-tight", embedded ? "text-lg" : "text-3xl")}>
-						<Trans>Resume Builder</Trans>
-					</h1>
-					<p
-						className={cn(
-							embedded ? "text-sm text-muted-foreground" : "mx-auto max-w-2xl text-muted-foreground",
-						)}
-					>
-						<Trans>Create and edit resumes in your browser. Everything is saved to localStorage on this device.</Trans>
-					</p>
-				</div>
+						<h1 className="text-3xl font-semibold tracking-tight">
+							<Trans>Resume Builder</Trans>
+						</h1>
+						<p className="mx-auto max-w-2xl text-muted-foreground">
+							<Trans>Create and edit resumes in your browser. Everything is saved to localStorage on this device.</Trans>
+						</p>
+					</div>
+				)}
 
 				{resumes.length === 0 ? (
 					<Card className="border-dashed">

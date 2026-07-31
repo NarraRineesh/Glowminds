@@ -1,3 +1,4 @@
+# Glowminds — https://glowminds.in
 User-agent: *
 Allow: /
 Disallow: /dashboard
@@ -7,6 +8,8 @@ Disallow: /signup
 Disallow: /admin
 Disallow: /admin/
 Disallow: /api
+Disallow: /design
+Disallow: /design/
 
 User-agent: Googlebot
 Allow: /
@@ -17,5 +20,8 @@ Disallow: /signup
 Disallow: /admin
 Disallow: /admin/
 Disallow: /api
+Disallow: /design
+Disallow: /design/
 
+Host: https://glowminds.in
 Sitemap: https://glowminds.in/sitemap.xml

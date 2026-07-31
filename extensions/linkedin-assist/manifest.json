@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Glowminds LinkedIn Assist",
+  "version": "0.1.0",
+  "description": "Extract LinkedIn profile text for Glowminds LinkedIn Sync (user-initiated).",
+  "permissions": ["activeTab", "scripting", "clipboardWrite"],
+  "host_permissions": ["https://www.linkedin.com/*", "https://linkedin.com/*"],
+  "action": {
+    "default_title": "Copy profile to Glowminds",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.linkedin.com/in/*", "https://linkedin.com/in/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

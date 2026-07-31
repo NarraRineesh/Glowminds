@@ -1,5 +1,6 @@
 import { Component } from 'react'
 import { AppIcon, Button, Card, CardContent } from '@/components/ui'
+import { isChunkLoadError, reloadOnceForChunkError } from '@/utils/chunkLoadRecovery'
 
 export default class ErrorBoundary extends Component {
   constructor(props) {
@@ -13,6 +14,9 @@ export default class ErrorBoundary extends Component {
 
   componentDidCatch(error, info) {
     console.error('ErrorBoundary caught:', error, info)
+    if (isChunkLoadError(error)) {
+      reloadOnceForChunkError()
+    }
   }
 
   render() {

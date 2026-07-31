@@ -1,31 +1,41 @@
 import { useState } from 'react'
-import SectionHeader from '@/components/dashboard/SectionHeader'
+import { Link } from 'react-router-dom'
 import { ToolPage, ToolSidebarLayout } from '@/features/dashboard/components/toolSectionLayout'
 import AppIcon from '@/components/icons/AppIcon'
-import { Button, ButtonGroup, DashboardCard, Textarea } from '@/components/ui'
+import { Button, DashboardCard, Select, Textarea, cn } from '@/components/ui'
 import useAppStore from '@/store/authStore'
 import useEntitlements from '@/hooks/useEntitlements'
 import { DEFAULT_PRICING_CONFIG } from '@/constants/pricingDefaults'
 import { apiFetch } from '@/services/apiClient'
 
 const TONES = [
-  { id: 'professional', label: 'Professional', icon: 'handshake' },
-  { id: 'casual', label: 'Casual', icon: 'leaf' },
-  { id: 'academic', label: 'Academic', icon: 'graduation' },
-  { id: 'concise', label: 'Concise', icon: 'lightning' },
-  { id: 'creative', label: 'Creative', icon: 'palette' },
+  { id: 'professional', label: 'Professional' },
+  { id: 'casual', label: 'Casual' },
+  { id: 'academic', label: 'Academic' },
+  { id: 'concise', label: 'Concise' },
+  { id: 'creative', label: 'Creative' },
 ]
+
+const SCOPES = [
+  { id: 'about', label: 'About', hint: 'Profile / LinkedIn summary' },
+  { id: 'headline', label: 'Headline', hint: 'One-line positioning' },
+  { id: 'bullet', label: 'Bullet', hint: 'Resume achievement line' },
+  { id: 'cover', label: 'Cover letter', hint: 'Paragraph or opening' },
+]
+
+const VARIANT_NAMES = ['A · Confident', 'B · Concise', 'C · Warm']
 
 const SAMPLE = `I worked on a side project for 3 months that helps students discover internships, and it now has 1200 weekly users. I want to highlight this on my resume.`
 
 export default function ParaphrasingSection() {
   const { addToast } = useAppStore()
-  const { credits, creditCosts, isPro, loading: entitlementsLoading, refresh: refreshEntitlements } = useEntitlements()
+  const { credits, creditCosts, loading: entLoading, refresh: refreshEntitlements } = useEntitlements()
   const paraphraseCost = creditCosts?.paraphrase ?? DEFAULT_PRICING_CONFIG.creditCosts.paraphrase ?? 1
   const creditBalance = credits?.balance
   const canRun = creditBalance == null || creditBalance >= paraphraseCost
   const [text, setText] = useState('')
   const [tone, setTone] = useState('professional')
+  const [scope, setScope] = useState('about')
   const [variants, setVariants] = useState([])
   const [loading, setLoading] = useState(false)
 
@@ -41,7 +51,7 @@ export default function ParaphrasingSection() {
     setLoading(true)
     setVariants([])
     try {
-      const data = await apiFetch('/ai/paraphrase', { body: { text, tone } })
+      const data = await apiFetch('/ai/paraphrase', { body: { text, tone, scope } })
       setVariants(data?.variants || [])
       refreshEntitlements({ force: true }).catch(() => {})
     } catch (err) {
@@ -61,77 +71,138 @@ export default function ParaphrasingSection() {
   }
 
   const sidebar = (
-    <DashboardCard titleIcon="target" title="Variants" contentClassName="space-y-3">
-      {variants.length === 0 ? (
-        <p className="py-8 text-center text-sm text-muted-foreground">Hit “Generate variants” to see three rewrites.</p>
-      ) : (
-        variants.map((v, i) => (
-          <div key={i} className="rounded-xl border border-border bg-muted/30 p-3">
-            <div className="mb-2 flex items-center justify-between gap-1">
-              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Variant {i + 1}</span>
-              <div className="flex gap-1">
-                <Button variant="ghost" size="sm" onClick={() => copy(v)}>Copy</Button>
-                <Button variant="outline" size="sm" onClick={() => { setText(v); addToast('success', 'Applied to editor') }}>Apply</Button>
-              </div>
-            </div>
-            <p className="whitespace-pre-wrap text-sm leading-relaxed">{v}</p>
-          </div>
-        ))
-      )}
-    </DashboardCard>
+    <div className="space-y-4">
+      <DashboardCard titleIcon="sliders" title="What to rewrite" contentClassName="space-y-2">
+        <div className="grid gap-2">
+          {SCOPES.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => setScope(s.id)}
+              className={cn(
+                'rounded-xl border px-3 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
+                scope === s.id
+                  ? 'border-primary bg-primary/10'
+                  : 'border-border bg-muted/30 hover:border-primary/40',
+              )}
+            >
+              <span className="block text-sm font-semibold text-foreground">{s.label}</span>
+              <span className="block text-[0.68rem] text-muted-foreground">{s.hint}</span>
+            </button>
+          ))}
+        </div>
+      </DashboardCard>
+
+      <DashboardCard titleIcon="palette" title="Preferences" contentClassName="space-y-3">
+        <label className="block space-y-1 text-sm">
+          <span className="text-muted-foreground">Tone</span>
+          <Select value={tone} onChange={(e) => setTone(e.target.value)}>
+            {TONES.map((t) => (
+              <option key={t.id} value={t.id}>{t.label}</option>
+            ))}
+          </Select>
+        </label>
+
+        <Button
+          className="w-full"
+          onClick={run}
+          disabled={loading || entLoading || !text.trim() || !canRun}
+        >
+          {loading
+            ? 'Rewriting…'
+            : `Generate variants · ${paraphraseCost} credit${paraphraseCost === 1 ? '' : 's'}`}
+        </Button>
+
+        {!canRun && (
+          <p className="text-xs text-amber-600">
+            Not enough credits.{' '}
+            <Link to="/dashboard/settings" className="underline">Check balance</Link>
+          </p>
+        )}
+
+        <Button
+          className="w-full"
+          variant="ghost"
+          type="button"
+          onClick={() => {
+            setText(SAMPLE)
+            setVariants([])
+          }}
+        >
+          Load sample text
+        </Button>
+      </DashboardCard>
+    </div>
   )
 
   return (
     <ToolPage>
-      <SectionHeader
-          badge="AI · Writing"
-          badgeClassName="border-purple-500/20 bg-purple-500/10 text-purple-500"
-          title="Three rewrites, one click"
-          accent="three rewrites"
-          subtitle="Pick a tone and we'll generate three distinct ways to say the same thing — perfect for resume bullets, cover letters, and outreach."
-        />
-
-        <ToolSidebarLayout sidebar={sidebar} sidebarRight>
-          <DashboardCard
-            titleIcon="pencil"
-            title="Original text"
-            action={(
-              <div className="flex gap-2">
-                <Button variant="ghost" size="sm" onClick={() => setText(SAMPLE)}>Use sample</Button>
-                <Button size="sm" onClick={run} disabled={loading || !text.trim() || !canRun}>
-                  {loading ? 'Rewriting…' : 'Generate variants'}
-                </Button>
+      <ToolSidebarLayout sidebar={sidebar}>
+        <DashboardCard titleIcon="pencil" title="Original text" contentClassName="space-y-3">
+          {!text.trim() && !loading ? (
+            <div className="flex flex-col items-center gap-3 py-8 text-center sm:py-10">
+              <div className="flex size-14 items-center justify-center rounded-2xl bg-primary/10">
+                <AppIcon name="paraphrase" className="size-7 text-primary" />
               </div>
-            )}
-            contentClassName="space-y-4"
-          >
-            <Textarea
-              rows={8}
-              placeholder="Paste up to ~4000 characters of text here…"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-            />
-            <p className="text-right text-xs text-muted-foreground">{text.length} / 4000</p>
-
-            <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tone</p>
-              <ButtonGroup className="flex-wrap">
-                {TONES.map((t) => (
-                  <Button
-                    key={t.id}
-                    type="button"
-                    size="sm"
-                    variant={tone === t.id ? 'default' : 'outline'}
-                    onClick={() => setTone(t.id)}
-                  >
-                    <AppIcon name={t.icon} className="size-3.5" />
-                    {t.label}
-                  </Button>
-                ))}
-              </ButtonGroup>
+              <h2 className="text-lg font-semibold">Rewrite in your voice</h2>
+              <p className="max-w-md text-sm text-muted-foreground">
+                Paste a headline, about section, resume bullet, or cover-letter snippet.
+                Pick scope and tone in the sidebar, then generate three variants.
+              </p>
             </div>
-          </DashboardCard>
-        </ToolSidebarLayout>
-      </ToolPage>
+          ) : null}
+          <Textarea
+            rows={text.trim() ? 8 : 5}
+            placeholder={`Paste ${SCOPES.find((s) => s.id === scope)?.label.toLowerCase() || 'text'} here…`}
+            value={text}
+            onChange={(e) => setText(e.target.value.slice(0, 4000))}
+          />
+          <p className="text-right text-xs text-muted-foreground">{text.length} / 4000</p>
+        </DashboardCard>
+
+        <DashboardCard
+          titleIcon="sparkle"
+          title="Variants"
+          action={
+            variants.length > 0 ? (
+              <span className="text-xs text-muted-foreground">{variants.length} options</span>
+            ) : null
+          }
+          contentClassName="space-y-3"
+        >
+          {loading ? (
+            <p className="py-10 text-center text-sm text-muted-foreground">Generating three rewrites…</p>
+          ) : variants.length === 0 ? (
+            <p className="py-10 text-center text-sm text-muted-foreground">
+              Variants appear here after you generate.
+            </p>
+          ) : (
+            variants.map((v, i) => (
+              <div key={i} className="rounded-xl border border-border bg-muted/30 p-3">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    {VARIANT_NAMES[i] || `Variant ${i + 1}`}
+                  </span>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="sm" onClick={() => copy(v)}>Copy</Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setText(v)
+                        addToast('success', 'Applied to editor')
+                      }}
+                    >
+                      Use
+                    </Button>
+                  </div>
+                </div>
+                <p className="whitespace-pre-wrap text-sm leading-relaxed">{v}</p>
+              </div>
+            ))
+          )}
+        </DashboardCard>
+      </ToolSidebarLayout>
+    </ToolPage>
   )
 }

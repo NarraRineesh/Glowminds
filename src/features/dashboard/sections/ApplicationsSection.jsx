@@ -36,6 +36,14 @@ const COLUMN_STYLE = {
   [APPLICATION_STATUS.REJECTED]: { text: 'text-destructive', badge: 'bg-destructive/20 text-destructive' },
 }
 
+const NEXT_STEP = {
+  [APPLICATION_STATUS.APPLIED]: 'Follow up in 5–7 days',
+  [APPLICATION_STATUS.IN_REVIEW]: 'Prep talking points',
+  [APPLICATION_STATUS.INTERVIEW]: 'Practice mock interview',
+  [APPLICATION_STATUS.OFFER]: 'Review & negotiate',
+  [APPLICATION_STATUS.REJECTED]: 'Note lessons learned',
+}
+
 
 const EMPTY_FORM = {
   company: '',
@@ -151,6 +159,9 @@ export default function ApplicationsSection() {
                           {a.salary && <div className="text-xs font-semibold text-emerald-500">{a.salary}</div>}
                           <div className="text-xs text-muted-foreground">
                             {a.appliedDate}{a.notes ? ` · ${a.notes}` : ''}
+                          </div>
+                          <div className="mt-1 text-[0.7rem] font-medium text-primary/80">
+                            Next: {NEXT_STEP[a.status] || 'Update status'}
                           </div>
                           <div className="mt-1.5 flex items-center gap-1.5">
                             <Select

@@ -1,14 +1,9 @@
 import { useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useAppStore from '@/store/authStore'
-import useNotifStore from '@/store/notifStore'
-import useTheme from '@/hooks/useTheme'
 import useIsLg from '@/hooks/useIsLg'
 import AppIcon from '@/components/icons/AppIcon'
-import {
-  NotificationsPanel,
-  useNotificationUnreadCount,
-} from '@/components/layout/NotificationsBell'
+import { useNotificationUnreadCount } from '@/components/layout/NotificationsBell'
 import {
   Avatar,
   AvatarFallback,
@@ -20,9 +15,6 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
   SidebarMenuButton,
   cn,
@@ -31,8 +23,6 @@ import {
 export default function SidebarProfileMenu({ user, initials, iconCollapsed, onCloseDrawer }) {
   const navigate = useNavigate()
   const { doLogout } = useAppStore()
-  const { loadNotifs } = useNotifStore()
-  const { theme, toggleTheme } = useTheme()
   const isLg = useIsLg()
   const unread = useNotificationUnreadCount()
 
@@ -108,24 +98,15 @@ export default function SidebarProfileMenu({ user, initials, iconCollapsed, onCl
           Profile
         </DropdownMenuItem>
 
-        <DropdownMenuSub
-          onOpenChange={(open) => {
-            if (open && user?.uid) loadNotifs(user.uid, { force: true })
-          }}
-        >
-          <DropdownMenuSubTrigger>
-            <AppIcon name="bell" className="me-2 size-4" />
-            Notifications
-            {unread > 0 && (
-              <Badge variant="secondary" className="ms-auto font-mono text-primary">
-                {unread}
-              </Badge>
-            )}
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent side="right" align="start" sideOffset={8} className="w-80 p-0">
-            <NotificationsPanel scrollClassName="max-h-72" />
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
+        <DropdownMenuItem onClick={() => go('/dashboard/notifications')}>
+          <AppIcon name="bell" className="me-2 size-4" />
+          Notifications
+          {unread > 0 && (
+            <Badge variant="secondary" className="ms-auto font-mono text-primary">
+              {unread}
+            </Badge>
+          )}
+        </DropdownMenuItem>
 
         <DropdownMenuItem onClick={() => go('/dashboard/settings')}>
           <AppIcon name="settings" className="me-2 size-4" />
@@ -138,11 +119,6 @@ export default function SidebarProfileMenu({ user, initials, iconCollapsed, onCl
             Admin dashboard
           </DropdownMenuItem>
         )}
-
-        <DropdownMenuItem onClick={toggleTheme}>
-          <AppIcon name={theme === 'dark' ? 'sun' : 'moon'} className="me-2 size-4" />
-          {theme === 'dark' ? 'Light mode' : 'Dark mode'}
-        </DropdownMenuItem>
 
         <DropdownMenuSeparator />
 

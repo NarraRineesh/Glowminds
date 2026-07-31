@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import 'glowminds-resume/style.css'
+// Icon font only. Do not import glowminds-resume/style.css (second Tailwind Preflight).
+import 'glowminds-resume/host.css'
 import Loader from '@/components/Loader'
 import useTheme from '@/hooks/useTheme'
 import useIsPro from '@/hooks/useIsPro'
@@ -87,6 +88,14 @@ export default function GlowmindsResumeSection() {
     setCloudResumes((prev) => (prev ?? []).filter((row) => row.id !== deletedResumeId))
   }, [user?.uid])
 
+  const onStorePdf = useCallback(async ({ blob, name, resumeId }) => {
+    if (!user?.uid) throw new Error('Sign in required')
+    const fileName = name || `resume-${resumeId || Date.now()}.pdf`
+    const file = new File([blob], fileName, { type: 'application/pdf' })
+    const { uploadVaultDoc } = await import('@/services/vaultService')
+    await uploadVaultDoc({ uid: user.uid, file, category: 'resumes' })
+  }, [user?.uid])
+
   const payload = useMemo(() => ({
     theme: resolvedTheme,
     themeTokens: getCopilotThemeTokens(resolvedTheme),
@@ -104,7 +113,8 @@ export default function GlowmindsResumeSection() {
     onUpgrade: () => navigate('/dashboard/settings'),
     onResumeSave,
     onResumeDelete,
-  }), [resolvedTheme, user, navigate, cloudResumes, loadError, isPro, onResumeSave, onResumeDelete])
+    onStorePdf,
+  }), [resolvedTheme, user, navigate, cloudResumes, loadError, isPro, onResumeSave, onResumeDelete, onStorePdf])
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
