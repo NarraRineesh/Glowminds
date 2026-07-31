@@ -644,10 +644,10 @@ export default function ProfileSection() {
 
   return (
     <>
-      <div className="min-w-0 space-y-6">
+      <div className="min-w-0 space-y-3 sm:space-y-6">
       <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-primary/5 to-emerald-500/5 py-0">
-        <CardContent className="px-5 py-5 sm:px-7 sm:py-6">
-        <div className="flex flex-col items-start gap-5 sm:flex-row">
+        <CardContent className="px-4 py-4 sm:px-7 sm:py-6">
+        <div className="flex flex-row items-start gap-3 sm:gap-5">
           <ProfileAvatarBlock
             name={name}
             photoURL={user?.photoURL}
@@ -657,97 +657,90 @@ export default function ProfileSection() {
             onPickPhoto={() => photoRef.current?.click()}
             onRemovePhoto={handlePhotoDelete}
             onPhotoChange={handlePhotoUpload}
+            compact={!isLg}
+            hideScore={!isLg}
           />
 
-          <div className="min-w-0 flex-1 space-y-4">
-            <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 flex-1 space-y-3 sm:space-y-4">
+            <div className="flex flex-wrap items-start justify-between gap-2 sm:gap-3">
               <div className="min-w-0">
                 <h1
-                  className="flex flex-wrap items-center gap-2 text-xl font-bold tracking-tight text-foreground sm:text-2xl"
+                  className="flex flex-wrap items-center gap-1.5 text-lg font-bold tracking-tight text-foreground sm:gap-2 sm:text-2xl"
                   title="Name is locked for account consistency"
                 >
                   <span>{name}</span>
-                  <Badge variant="outline" className="text-[0.65rem] font-semibold uppercase tracking-wide">
-                    <AppIcon name="lock" className="size-3" /> locked
-                  </Badge>
+                  {!isLg ? (
+                    <span className={cn('text-sm font-bold tabular-nums', profileScore >= 80 ? 'text-emerald-500' : 'text-primary')}>
+                      {profileScore}%
+                    </span>
+                  ) : (
+                    <Badge variant="outline" className="text-[0.65rem] font-semibold uppercase tracking-wide">
+                      <AppIcon name="lock" className="size-3" /> locked
+                    </Badge>
+                  )}
                 </h1>
-                {headline && <p className="mt-1 text-base font-semibold text-foreground">{headline}</p>}
-                {currentRole && <p className="text-sm font-medium text-muted-foreground">{currentRole}</p>}
-                {currentCompany && <p className="text-sm text-muted-foreground">at {currentCompany}</p>}
+                {headline && <p className="mt-0.5 text-sm font-semibold text-foreground sm:mt-1 sm:text-base">{headline}</p>}
+                {currentRole && <p className="text-xs font-medium text-muted-foreground sm:text-sm">{currentRole}</p>}
+                {currentCompany && <p className="text-xs text-muted-foreground sm:text-sm">at {currentCompany}</p>}
                 {collegeName && (
-                  <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground sm:mt-1 sm:text-sm">
                     <AppIcon name="graduation" className="size-3.5 shrink-0" />
                     <span className="font-medium">{degreeLine ? `${degreeLine} · ` : ''}{collegeName}{eduYearDisplay ? ` · Class of ${eduYearDisplay}` : ''}</span>
                   </p>
                 )}
               </div>
               {lastUpdatedStr && (
-                <p className="text-xs text-muted-foreground sm:text-right">
+                <p className="hidden text-xs text-muted-foreground sm:block sm:text-right">
                   Profile last updated · <span className="font-semibold">{lastUpdatedStr}</span>
                 </p>
               )}
             </div>
 
-            <p className="m-0 text-sm">
-              <Link
-                to="/dashboard/profile/public"
-                className="inline-flex items-center gap-1.5 font-medium text-primary underline-offset-4 hover:underline"
-              >
-                <AppIcon name="globe" className="size-3.5" />
-                Manage public portfolio
-              </Link>
-              <span className="text-muted-foreground"> — build and publish your /u/ page</span>
-            </p>
-
             <div className="space-y-1">
-              <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center justify-between text-xs sm:text-sm">
                 <span className="text-muted-foreground">Profile completion</span>
                 <span className={cn('font-bold tabular-nums', profileScore >= 80 ? 'text-emerald-500' : 'text-primary')}>{profileScore}%</span>
               </div>
-              <Progress value={profileScore} className="gap-0 [&_[data-slot=progress-track]]:h-2" />
+              <Progress value={profileScore} className="gap-0 [&_[data-slot=progress-track]]:h-1.5 sm:[&_[data-slot=progress-track]]:h-2" />
             </div>
 
-            <div className="grid grid-cols-1 gap-x-6 gap-y-2 border-t border-border pt-3 sm:grid-cols-2">
-              <div className="flex flex-col gap-1.5">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <AppIcon name="map-pin" className="size-3.5 shrink-0" />
-                  <span>{personal.location || 'Add location'}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <AppIcon name="jobs" className="size-3.5 shrink-0" />
-                  <span>
-                    {isFresher
-                      ? 'Fresher'
-                      : currentDuration || (experienceList.some(experienceEntryHasContent)
-                        ? `${experienceList.filter(experienceEntryHasContent).length} role${experienceList.filter(experienceEntryHasContent).length > 1 ? 's' : ''}`
-                        : 'Add experience')}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <AppIcon name="credit-card" className="size-3.5 shrink-0" />
-                  <span className={prefs.expectedCTC ? 'font-semibold text-foreground' : ''}>{prefs.expectedCTC || 'Add expected CTC'}</span>
-                </div>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 border-t border-border pt-2.5 text-xs sm:gap-x-6 sm:gap-y-2 sm:pt-3 sm:text-sm">
+              <div className="flex items-center gap-1.5 text-muted-foreground sm:gap-2">
+                <AppIcon name="map-pin" className="size-3.5 shrink-0" />
+                <span className="truncate">{personal.location || 'Add location'}</span>
               </div>
-              <div className="flex flex-col gap-1.5">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <AppIcon name="phone" className="size-3.5 shrink-0" />
-                  <span>{personal.phone || 'Add phone'}</span>
-                  {personal.phone && <span className="text-emerald-500" title="Verified">✓</span>}
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <AppIcon name="envelope" className="size-3.5 shrink-0" />
-                  <span className="truncate">{user?.email || '—'}</span>
-                  {user?.email && <span className="text-emerald-500" title="Verified">✓</span>}
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <AppIcon name="calendar" className="size-3.5 shrink-0" />
-                  <span>{prefs.noticePeriod ? `${prefs.noticePeriod} notice period` : 'Add notice period'}</span>
-                </div>
+              <div className="flex items-center gap-1.5 text-muted-foreground sm:gap-2">
+                <AppIcon name="phone" className="size-3.5 shrink-0" />
+                <span className="truncate">{personal.phone || 'Add phone'}</span>
+                {personal.phone && <span className="text-emerald-500" title="Verified">✓</span>}
+              </div>
+              <div className="flex items-center gap-1.5 text-muted-foreground sm:gap-2">
+                <AppIcon name="jobs" className="size-3.5 shrink-0" />
+                <span className="truncate">
+                  {isFresher
+                    ? 'Fresher'
+                    : currentDuration || (experienceList.some(experienceEntryHasContent)
+                      ? `${experienceList.filter(experienceEntryHasContent).length} role${experienceList.filter(experienceEntryHasContent).length > 1 ? 's' : ''}`
+                      : 'Add experience')}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 text-muted-foreground sm:gap-2">
+                <AppIcon name="envelope" className="size-3.5 shrink-0" />
+                <span className="truncate">{user?.email || '—'}</span>
+                {user?.email && <span className="hidden text-emerald-500 sm:inline" title="Verified">✓</span>}
+              </div>
+              <div className="flex items-center gap-1.5 text-muted-foreground sm:gap-2">
+                <AppIcon name="credit-card" className="size-3.5 shrink-0" />
+                <span className={cn('truncate', prefs.expectedCTC && 'font-semibold text-foreground')}>{prefs.expectedCTC || 'Add expected CTC'}</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-muted-foreground sm:gap-2">
+                <AppIcon name="calendar" className="size-3.5 shrink-0" />
+                <span className="truncate">{prefs.noticePeriod ? `${prefs.noticePeriod} notice` : 'Add notice period'}</span>
               </div>
             </div>
 
             {profileScore < 100 && (
-              <div className="rounded-xl border border-dashed border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+              <div className="rounded-xl border border-dashed border-border bg-muted/50 px-2.5 py-1.5 text-xs text-muted-foreground sm:px-3 sm:py-2 sm:text-sm">
                 <AppIcon name="lightbulb" className="inline size-3.5" /> Next: <span className="font-semibold text-foreground">{nextTip}</span>
               </div>
             )}
@@ -756,7 +749,23 @@ export default function ProfileSection() {
         </CardContent>
       </Card>
 
-      <div className={cn('grid gap-6', isLg ? 'grid-cols-[220px_minmax(0,1fr)]' : 'grid-cols-1')}>
+      {!isLg && (
+        <div className="-mx-1 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex w-max gap-1.5 pb-0.5">
+            {quickLinks.map((link) => (
+              <a
+                key={link.id}
+                href={`#${link.id}`}
+                className="shrink-0 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"
+              >
+                {link.label}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className={cn('grid gap-3 sm:gap-6', isLg ? 'grid-cols-[220px_minmax(0,1fr)]' : 'grid-cols-1')}>
         {isLg && (
         <aside>
           <div className="sticky top-20 rounded-2xl border border-border bg-card p-4">
@@ -777,7 +786,7 @@ export default function ProfileSection() {
         </aside>
         )}
 
-        <div className="flex min-w-0 flex-col gap-4">
+        <div className="flex min-w-0 flex-col gap-2.5 sm:gap-4">
       <ProfileCard id="profile-personal" className="scroll-mt-20"
         title="Personal Information" titleIcon="id-card"
         action={!personalEmpty ? <Button variant="ghost" size="sm" onClick={() => startEdit('personal')}>Edit</Button> : null}
@@ -788,6 +797,7 @@ export default function ProfileSection() {
               message="Add your personal details — phone, location, gender, languages"
               actionLabel="+ Add details"
               onAction={() => startEdit('personal')}
+              compact={!isLg}
             />
           ) : (
             <div className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
@@ -812,6 +822,7 @@ export default function ProfileSection() {
                 message="Add 10th, 12th, degree, masters — one qualification at a time"
                 actionLabel="+ Add education"
                 onAction={openAddEducation}
+                compact={!isLg}
               />
             ) : (
               educationList.filter(educationEntryHasContent).map((entry, i, arr) => (
@@ -846,7 +857,7 @@ export default function ProfileSection() {
         action={!skillsEmpty ? <Button variant="ghost" size="sm" onClick={openSkillsEdit}>Edit</Button> : null}
       >
             {skillsEmpty ? (
-              <ProfileEmptyState icon="target" message="Add your technical & soft skills" actionLabel="+ Add skills" onAction={openSkillsEdit} />
+              <ProfileEmptyState icon="target" message="Add your technical & soft skills" actionLabel="+ Add skills" onAction={openSkillsEdit} compact={!isLg} />
             ) : (
               <div className="space-y-4">
                 {skillsTechnical.length > 0 && (
@@ -879,7 +890,7 @@ export default function ProfileSection() {
             {isFresher ? (
               <p className="py-2 text-center text-sm text-muted-foreground">Add internships and projects in the sections below.</p>
             ) : experienceEmpty ? (
-              <ProfileEmptyState icon="jobs" message="Add each job one at a time — company, role, and dates" actionLabel="+ Add experience" onAction={openAddExperience} />
+              <ProfileEmptyState icon="jobs" message="Add each job one at a time — company, role, and dates" actionLabel="+ Add experience" onAction={openAddExperience} compact={!isLg} />
             ) : (
               experienceList.filter(experienceEntryHasContent).map((entry, i, arr) => {
                 const preview = experienceEntryPreview(entry)
@@ -912,7 +923,7 @@ export default function ProfileSection() {
         action={!preferencesEmpty ? <Button variant="ghost" size="sm" onClick={() => startEdit('preferences')}>Edit</Button> : null}
       >
             {preferencesEmpty ? (
-              <ProfileEmptyState icon="salary" message="Set preferred role, location & salary expectations" actionLabel="+ Set preferences" onAction={() => startEdit('preferences')} />
+              <ProfileEmptyState icon="salary" message="Set preferred role, location & salary expectations" actionLabel="+ Set preferences" onAction={() => startEdit('preferences')} compact={!isLg} />
             ) : (
               <div className="space-y-0">
                 <ProfileFieldRow label="Preferred job role">{prefs.preferredRole || '—'}</ProfileFieldRow>
@@ -933,7 +944,7 @@ export default function ProfileSection() {
         action={!projectsEmpty ? <Button size="sm" onClick={openAddProject}>+ Add</Button> : null}
       >
           {projectsEmpty ? (
-            <ProfileEmptyState icon="rocket" message="Add your key projects — crucial for freshers" actionLabel="+ Add project" onAction={openAddProject} />
+            <ProfileEmptyState icon="rocket" message="Add your key projects — crucial for freshers" actionLabel="+ Add project" onAction={openAddProject} compact={!isLg} />
           ) : (
             projectList.filter(projectHasContent).map((entry, i, arr) => {
               const preview = projectEntryPreview(entry)
@@ -973,7 +984,7 @@ export default function ProfileSection() {
         action={!internshipsEmpty ? <Button size="sm" onClick={openAddInternship}>+ Add</Button> : null}
       >
             {internshipsEmpty ? (
-              <ProfileEmptyState icon="buildings" message="Add your internship experiences" actionLabel="+ Add internship" onAction={openAddInternship} />
+              <ProfileEmptyState icon="buildings" message="Add your internship experiences" actionLabel="+ Add internship" onAction={openAddInternship} compact={!isLg} />
             ) : (
               internshipList.filter(internshipHasContent).map((entry, i, arr) => {
                 const preview = internshipEntryPreview(entry)
@@ -1006,7 +1017,7 @@ export default function ProfileSection() {
         action={!certsEmpty ? <Button variant="ghost" size="sm" onClick={() => startEdit('certifications')}>Edit</Button> : null}
       >
             {certsEmpty ? (
-              <ProfileEmptyState icon="scroll" message="Add your certifications & courses" actionLabel="+ Add certification" onAction={() => startEdit('certifications')} />
+              <ProfileEmptyState icon="scroll" message="Add your certifications & courses" actionLabel="+ Add certification" onAction={() => startEdit('certifications')} compact={!isLg} />
             ) : (
               certs.filter(c => c.name).map((c, idx, arr) => (
                 <ProfileEntryBlock key={c.id || idx} isLast={idx >= arr.length - 1}>
@@ -1026,7 +1037,7 @@ export default function ProfileSection() {
         action={!summaryEmpty ? <Button variant="ghost" size="sm" onClick={() => startEdit('summary')}>Edit</Button> : null}
       >
           {summaryEmpty ? (
-            <ProfileEmptyState icon="grammar-check" message="Add a headline + 2–3 line summary for recruiters" actionLabel="+ Add summary" onAction={() => startEdit('summary')} />
+            <ProfileEmptyState icon="grammar-check" message="Add a headline + 2–3 line summary for recruiters" actionLabel="+ Add summary" onAction={() => startEdit('summary')} compact={!isLg} />
           ) : (
             <>
               {headline && <p className="text-base font-semibold text-foreground">{headline}</p>}
@@ -1074,18 +1085,18 @@ export default function ProfileSection() {
         )}
       >
           {!aiReview && !reviewLoading && (
-            <div className="flex flex-col items-center gap-2 py-6 text-center">
-              <AppIcon name="robot" className="size-10 text-muted-foreground/60" />
+            <div className={cn('flex flex-col text-center', isLg ? 'items-center gap-2 py-6' : 'items-start gap-1.5 py-1 text-left')}>
+              {isLg ? <AppIcon name="robot" className="size-10 text-muted-foreground/60" /> : null}
               <p className="text-sm font-semibold text-foreground">Get AI-powered profile feedback</p>
-              <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
+              <p className={cn('text-sm leading-relaxed text-muted-foreground', isLg ? 'max-w-md' : 'text-xs')}>
                 Glowminds AI will analyze your profile and suggest skills to learn, areas to improve, and provide a polished summary you can copy.
               </p>
             </div>
           )}
 
           {reviewLoading && (
-            <div className="flex flex-col items-center gap-2 py-8 text-center">
-              <AppIcon name="brain" className="size-10 text-muted-foreground/60" />
+            <div className={cn('flex flex-col text-center', isLg ? 'items-center gap-2 py-8' : 'items-start gap-1.5 py-2 text-left')}>
+              {isLg ? <AppIcon name="brain" className="size-10 text-muted-foreground/60" /> : null}
               <p className="text-sm font-semibold text-foreground">Analyzing your profile…</p>
               <p className="text-xs text-muted-foreground">This takes a few seconds</p>
             </div>

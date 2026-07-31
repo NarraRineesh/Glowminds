@@ -10,10 +10,6 @@ import { AppIcon,
   Avatar,
   AvatarFallback,
   Button,
-  Card,
-  CardContent,
-  CardFooter,
-  PageTitle,
   Select,
   Textarea,
   cn,
@@ -42,14 +38,86 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;')
 }
 
-function formatInline(text) {
+function formatInlineMarkdown(text) {
   return escapeHtml(text)
     .replace(/`([^`\n]+)`/g, '<code class="rounded bg-muted px-1 py-0.5 font-mono text-[0.85em] text-primary">$1</code>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/(^|[\s(])\*(.+?)\*(?=[\s).,]|$)/g, '$1<em>$2</em>')
     .replace(/^• /gm, '<span class="mr-1 text-emerald-500">•</span> ')
     .replace(/^→ /gm, '<span class="mr-1 text-primary">→</span> ')
-    .replace(/\n/g, '<br/>')
+}
+
+/** Convert common markdown blocks (headings, lists, hr) to HTML. */
+function formatMarkdown(text) {
+  const lines = String(text || '').replace(/\r\n/g, '\n').split('\n')
+  const out = []
+  let listType = null // 'ul' | 'ol'
+
+  const closeList = () => {
+    if (listType) {
+      out.push(listType === 'ol' ? '</ol>' : '</ul>')
+      listType = null
+    }
+  }
+
+  for (const raw of lines) {
+    const line = raw.trimEnd()
+    const trimmed = line.trim()
+
+    if (!trimmed) {
+      closeList()
+      out.push('<div class="h-2"></div>')
+      continue
+    }
+
+    if (/^(-{3,}|\*{3,}|_{3,})$/.test(trimmed)) {
+      closeList()
+      out.push('<hr class="my-3 border-border" />')
+      continue
+    }
+
+    const heading = /^(#{1,4})\s*(.+)$/.exec(trimmed)
+    if (heading && heading[2]) {
+      closeList()
+      const level = heading[1].length
+      const cls =
+        level === 1
+          ? 'mt-3 mb-1.5 text-base font-bold tracking-tight text-foreground'
+          : level === 2
+            ? 'mt-3 mb-1.5 text-[0.95rem] font-bold tracking-tight text-foreground'
+            : 'mt-2.5 mb-1 text-sm font-semibold text-foreground'
+      out.push(`<h${level} class="${cls}">${formatInlineMarkdown(heading[2])}</h${level}>`)
+      continue
+    }
+
+    const ol = /^(\d+)[.)]\s+(.+)$/.exec(trimmed)
+    if (ol) {
+      if (listType !== 'ol') {
+        closeList()
+        out.push('<ol class="my-1.5 list-decimal space-y-1 ps-5">')
+        listType = 'ol'
+      }
+      out.push(`<li class="leading-relaxed">${formatInlineMarkdown(ol[2])}</li>`)
+      continue
+    }
+
+    const ul = /^([-•*]|\u2022)\s+(.+)$/.exec(trimmed)
+    if (ul) {
+      if (listType !== 'ul') {
+        closeList()
+        out.push('<ul class="my-1.5 list-disc space-y-1 ps-5">')
+        listType = 'ul'
+      }
+      out.push(`<li class="leading-relaxed">${formatInlineMarkdown(ul[2])}</li>`)
+      continue
+    }
+
+    closeList()
+    out.push(`<p class="my-1.5 leading-relaxed">${formatInlineMarkdown(trimmed)}</p>`)
+  }
+
+  closeList()
+  return out.join('')
 }
 
 function parseChatContent(text) {
@@ -122,15 +190,14 @@ function CodeBlock({ lang, content, streaming }) {
 function RichMessage({ text }) {
   const parts = parseChatContent(text)
   return (
-    <div className="min-w-0 break-words [overflow-wrap:anywhere]">
+    <div className="min-w-0 break-words [overflow-wrap:anywhere] [&_p:first-child]:mt-0 [&_h1:first-child]:mt-0 [&_h2:first-child]:mt-0 [&_h3:first-child]:mt-0">
       {parts.map((p, i) =>
         p.type === 'code' ? (
           <CodeBlock key={i} lang={p.lang} content={p.content} streaming={p.streaming} />
         ) : (
-          <span
+          <div
             key={i}
-            className="block"
-            dangerouslySetInnerHTML={{ __html: formatInline(p.content) }}
+            dangerouslySetInnerHTML={{ __html: formatMarkdown(p.content) }}
           />
         ),
       )}
@@ -366,148 +433,184 @@ export default function AISection() {
 
   const hasHistory = currentMessages.length > 0
   const userInitial = user?.firstName?.[0] || user?.displayName?.[0] || 'U'
+  const showSuggestions = !hasHistory && !loading
 
   return (
-    <UpgradeGate feature="AI Career Coach">
-    <div className="flex h-[calc(100dvh-16rem)] min-h-[26rem] w-full flex-col md:h-[calc(100dvh-12rem)]">
-      <div className="mb-3 flex shrink-0 flex-wrap items-start justify-between gap-2">
-        <PageTitle
-          title="Career Copilot"
-          subtitle={
-            jobContext?.jobTitle
-              ? `Coaching with context: ${jobContext.jobTitle}${jobContext.company ? ` @ ${jobContext.company}` : ''}`
-              : 'Glowminds AI — real-time career coaching grounded in your profile'
-          }
-          className="mb-0"
-        />
-        <div className="flex items-center gap-2">
-          {chats.length > 1 && (
-            <Select
-              className="h-8 min-w-[180px] text-[0.72rem]"
-              value={currentChatId || ''}
-              onChange={(e) => switchChat(e.target.value)}
-            >
-              {chats.map((c) => (
-                <option key={c.id} value={c.id}>{c.title || 'Untitled chat'}</option>
-              ))}
-            </Select>
-          )}
-          <Button variant="ghost" size="sm" onClick={startNewChat}>＋ New chat</Button>
-        </div>
-      </div>
-
-      <div className="mb-2.5 flex shrink-0 flex-wrap gap-1.5">
-        {SUGGESTIONS.map((s) => (
-          <Button key={s.label} variant="outline" size="sm" onClick={() => send(s.text)} disabled={loading || !canSend}>
-            <AppIcon name={s.icon} className="size-3.5" />
-            {s.label}
-          </Button>
-        ))}
-      </div>
-
-      <Card className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden py-0">
-        <CardContent className="flex min-h-0 flex-1 flex-col overflow-hidden p-0">
-          <div
-            ref={scrollRef}
-            className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain p-4"
-          >
-            <div className="flex flex-col gap-4">
-            {messages.map((m, i) => {
-              const isUser = m.role === 'user'
-              const isAssistant = !isUser
-              const isStreaming = isAssistant && i === streamingIdx
-              return (
-                <div
-                  key={i}
-                  className={cn(
-                    'flex w-full items-start gap-2.5',
-                    isUser ? 'flex-row-reverse' : 'flex-row',
-                  )}
+    <UpgradeGate feature="AI Career Coach" className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden">
+      <div className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col gap-2 overflow-hidden sm:gap-3">
+        <div className="flex shrink-0 items-center gap-2">
+          {jobContext?.jobTitle ? (
+            <p className="m-0 min-w-0 flex-1 truncate text-xs text-muted-foreground sm:text-sm">
+              Context: <span className="font-medium text-foreground">{jobContext.jobTitle}</span>
+              {jobContext.company ? ` @ ${jobContext.company}` : ''}
+            </p>
+          ) : (
+            <div className="hidden min-w-0 flex-1 items-center gap-1.5 overflow-x-auto sm:flex [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {SUGGESTIONS.map((s) => (
+                <Button
+                  key={s.label}
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 shrink-0"
+                  disabled={loading || !canSend}
+                  onClick={() => send(s.text)}
                 >
-                  <Avatar className="mt-0.5 h-8 w-8 shrink-0">
-                    <AvatarFallback className={cn(
-                      'text-xs font-bold',
-                      isUser ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground',
-                    )}>
-                      {isAssistant ? <AppIcon name="robot" className="size-4" /> : userInitial}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div
-                    className={cn(
-                      'min-w-0 max-w-[min(42rem,88%)] rounded-xl px-3.5 py-2.5 text-[0.84rem] leading-relaxed',
-                      isUser
-                        ? 'bg-primary text-primary-foreground'
-                        : 'border border-border bg-muted/50 text-foreground',
-                    )}
-                  >
-                    {!isAssistant ? (
-                      <p className="m-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
-                        {m.text}
-                      </p>
-                    ) : isStreaming ? (
-                      <StreamingText
-                        text={String(m.text || '')}
-                        onScroll={scrollToBottom}
-                        onDone={() => setStreamingIdx(-1)}
-                      />
-                    ) : (
-                      <RichMessage text={m.text} />
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-            {loading && (
-              <div className="flex w-full items-start gap-2.5">
-                <Avatar className="mt-0.5 h-8 w-8 shrink-0">
-                  <AvatarFallback className="bg-muted text-xs"><AppIcon name="robot" className="size-4" /></AvatarFallback>
-                </Avatar>
-                <div className="rounded-xl border border-border bg-muted/50 px-3.5 py-2.5">
-                  <TypingIndicator />
-                </div>
-              </div>
-            )}
-            <div ref={bottomRef} aria-hidden className="h-px shrink-0" />
+                  <AppIcon name={s.icon} className="size-3.5" />
+                  {s.label}
+                </Button>
+              ))}
             </div>
-          </div>
-        </CardContent>
-
-        <CardFooter className="shrink-0 flex-col gap-2 border-t p-3">
-          <div className="flex w-full items-end gap-2">
-            <Textarea
-              ref={inputRef}
-              className="min-h-[44px] max-h-32 flex-1 resize-none text-[0.84rem]"
-              placeholder={
-                !canSend
-                  ? 'No credits left — upgrade or wait for monthly reset'
-                  : loading
-                    ? 'AI is thinking…'
-                    : 'Ask me anything about your career…'
-              }
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKey}
-              rows={1}
-              disabled={loading || !canSend}
-            />
-            <Button
-              size="icon"
-              className="shrink-0"
-              onClick={() => send(input)}
-              disabled={loading || !input.trim() || !canSend}
-              aria-label="Send message"
-            >
-              {loading ? <AppIcon name="hourglass" className="size-4 animate-pulse" /> : <AppIcon name="send" className="size-4" />}
+          )}
+          <div className="ml-auto flex shrink-0 items-center gap-2">
+            {chats.length > 1 && (
+              <Select
+                className="h-8 w-[min(100%,11rem)] text-xs sm:w-auto sm:min-w-[11rem]"
+                value={currentChatId || ''}
+                onChange={(e) => switchChat(e.target.value)}
+                aria-label="Switch chat"
+              >
+                {chats.map((c) => (
+                  <option key={c.id} value={c.id}>{c.title || 'Untitled chat'}</option>
+                ))}
+              </Select>
+            )}
+            <Button variant="outline" size="sm" className="h-8 shrink-0" onClick={startNewChat}>
+              <span className="sm:hidden">＋ New</span>
+              <span className="hidden sm:inline">＋ New chat</span>
             </Button>
           </div>
-          {hasHistory && canSend && (
-            <p className="w-full text-right text-[0.66rem] text-muted-foreground">
-              Chats are saved automatically — switch between them above.
-            </p>
-          )}
-        </CardFooter>
-      </Card>
-    </div>
+        </div>
+
+        <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card">
+          <div
+            ref={scrollRef}
+            className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]"
+          >
+            <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 px-4 py-4 sm:max-w-4xl sm:gap-4 sm:px-6 sm:py-5 lg:max-w-5xl">
+              {showSuggestions ? (
+                <div className="space-y-4">
+                  <div className="rounded-2xl border border-border bg-muted/40 px-4 py-5 text-center sm:px-6 sm:py-8">
+                    <div className="mx-auto mb-3 flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                      <AppIcon name="robot" className="size-5" />
+                    </div>
+                    <h2 className="m-0 text-base font-semibold tracking-tight sm:text-lg">How can I help today?</h2>
+                    <p className="mx-auto mt-1.5 mb-0 max-w-md text-sm text-muted-foreground">
+                      Resume wording, interview prep, salary scripts, cold outreach, and learning paths.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {SUGGESTIONS.map((s) => (
+                      <button
+                        key={s.label}
+                        type="button"
+                        disabled={loading || !canSend}
+                        onClick={() => send(s.text)}
+                        className={cn(
+                          'flex min-h-14 flex-col items-start gap-1 rounded-xl border border-border bg-background px-3 py-2.5 text-left transition-colors',
+                          'hover:border-primary/40 hover:bg-primary/5 disabled:opacity-50',
+                        )}
+                      >
+                        <AppIcon name={s.icon} className="size-4 text-primary" />
+                        <span className="text-xs font-semibold text-foreground sm:text-sm">{s.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {messages.map((m, i) => {
+                const isUser = m.role === 'user'
+                const isAssistant = !isUser
+                const isStreaming = isAssistant && i === streamingIdx
+                if (m.isWelcome && showSuggestions) return null
+                return (
+                  <div
+                    key={i}
+                    className={cn(
+                      'flex w-full items-start gap-2',
+                      isUser ? 'flex-row-reverse' : 'flex-row',
+                    )}
+                  >
+                    <Avatar className="mt-0.5 hidden h-7 w-7 shrink-0 sm:flex sm:h-8 sm:w-8">
+                      <AvatarFallback className={cn(
+                        'text-xs font-bold',
+                        isUser ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground',
+                      )}>
+                        {isAssistant ? <AppIcon name="robot" className="size-4" /> : userInitial}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div
+                      className={cn(
+                        'min-w-0 rounded-2xl px-3 py-2.5 text-[0.875rem] leading-relaxed sm:px-3.5',
+                        isUser
+                          ? 'max-w-[min(28rem,88%)] bg-primary text-primary-foreground'
+                          : 'w-full max-w-none border border-border bg-muted/30 text-foreground sm:bg-background',
+                      )}
+                    >
+                      {!isAssistant ? (
+                        <p className="m-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+                          {m.text}
+                        </p>
+                      ) : isStreaming ? (
+                        <StreamingText
+                          text={String(m.text || '')}
+                          onScroll={scrollToBottom}
+                          onDone={() => setStreamingIdx(-1)}
+                        />
+                      ) : (
+                        <RichMessage text={m.text} />
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+
+              {loading && (
+                <div className="flex w-full items-start gap-2">
+                  <Avatar className="mt-0.5 hidden h-7 w-7 shrink-0 sm:flex sm:h-8 sm:w-8">
+                    <AvatarFallback className="bg-muted text-xs"><AppIcon name="robot" className="size-4" /></AvatarFallback>
+                  </Avatar>
+                  <div className="rounded-2xl border border-border bg-muted/30 px-3 py-2.5 sm:bg-background">
+                    <TypingIndicator />
+                  </div>
+                </div>
+              )}
+              <div ref={bottomRef} aria-hidden className="h-px shrink-0" />
+            </div>
+          </div>
+
+          <div className="shrink-0 border-t border-border bg-card/95 px-4 py-3 backdrop-blur sm:px-6 sm:py-4">
+            <div className="mx-auto flex w-full max-w-3xl items-end gap-2 sm:max-w-4xl lg:max-w-5xl">
+              <Textarea
+                ref={inputRef}
+                className="min-h-11 max-h-32 flex-1 resize-none rounded-xl text-sm"
+                placeholder={
+                  !canSend
+                    ? 'No credits left — upgrade or wait for monthly reset'
+                    : loading
+                      ? 'AI is thinking…'
+                      : 'Ask me anything about your career…'
+                }
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKey}
+                rows={1}
+                disabled={loading || !canSend}
+              />
+              <Button
+                size="icon"
+                className="size-11 shrink-0 rounded-xl"
+                onClick={() => send(input)}
+                disabled={loading || !input.trim() || !canSend}
+                aria-label="Send message"
+              >
+                {loading ? <AppIcon name="hourglass" className="size-4 animate-pulse" /> : <AppIcon name="send" className="size-4" />}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
     </UpgradeGate>
   )
 }

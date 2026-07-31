@@ -74,7 +74,6 @@ export function createDefaultGamification() {
       showStreakOnDashboard: true,
       celebrateLevelUps: true,
       streakReminders: true,
-      publicBadgeShowcase: false,
     },
   }
 }
@@ -137,14 +136,6 @@ export function createDefaultProfile() {
     linkedinAudit: null,
     /** Latest ATS / resume-review snapshot for dashboard scores. */
     resumeAnalysis: null,
-    /** Public career page visibility + slug. */
-    public: {
-      enabled: false,
-      slug: '',
-      showEmail: false,
-      showPhone: false,
-      stats: { views: 0, resumeDownloads: 0 },
-    },
     /** Recent cover letter drafts saved from the Cover Letters tool (max kept client-side). */
     coverLetterDrafts: [],
     /** Career OS gamification (streak / XP / badges). */
@@ -298,7 +289,7 @@ export function normalizeSkills(raw) {
 }
 
 /** Strip removed profile fields from Firestore payloads. */
-const REMOVED_PROFILE_KEYS = ['education']
+const REMOVED_PROFILE_KEYS = ['education', 'public']
 
 /** Full profile object for store / UI (fills defaults, normalizes aiReview). */
 export function normalizeProfile(profilePartial) {
@@ -322,17 +313,7 @@ export function normalizeProfile(profilePartial) {
   } else {
     profile.resumeAnalysis = null
   }
-  const pub = profile.public && typeof profile.public === 'object' ? profile.public : {}
-  profile.public = {
-    enabled: !!pub.enabled,
-    slug: String(pub.slug || ''),
-    showEmail: !!pub.showEmail,
-    showPhone: !!pub.showPhone,
-    stats: {
-      views: Number(pub.stats?.views) || 0,
-      resumeDownloads: Number(pub.stats?.resumeDownloads) || 0,
-    },
-  }
+  delete profile.public
   profile.coverLetterDrafts = normalizeCoverLetterDrafts(profile.coverLetterDrafts)
   profile.gamification = normalizeGamification(profile.gamification)
   const defaultPrefs = createDefaultProfile().preferences

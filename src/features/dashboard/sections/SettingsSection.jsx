@@ -86,12 +86,12 @@ function planLabel(sub, plans) {
 
 function Toggle({ checked, onChange, label, hint }) {
   return (
-    <div className="flex w-full items-center justify-between gap-4 rounded-xl border border-border bg-muted px-3.5 py-3">
+    <div className="flex w-full items-start justify-between gap-3 rounded-xl border border-border bg-muted px-3 py-3 sm:items-center sm:gap-4 sm:px-3.5">
       <span className="min-w-0 flex-1">
         <span className="block text-[0.86rem] font-bold text-foreground">{label}</span>
-        {hint && <span className="mt-0.5 block text-[0.72rem] text-muted-foreground">{hint}</span>}
+        {hint && <span className="mt-0.5 block text-[0.72rem] leading-snug text-muted-foreground">{hint}</span>}
       </span>
-      <Switch checked={checked} onCheckedChange={onChange} aria-label={label} />
+      <Switch checked={checked} onCheckedChange={onChange} aria-label={label} className="mt-0.5 shrink-0 sm:mt-0" />
     </div>
   )
 }
@@ -129,7 +129,7 @@ function BillingDetail({ label, value }) {
 
 function SettingsUpgradeBanner({ upgradeLoading, startUpgrade, yearlyPriceLabel, onGoToBilling }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
+    <div className="flex flex-col gap-3 rounded-xl border border-primary/20 bg-primary/5 px-3 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:px-4">
       <div className="flex min-w-0 items-center gap-3">
         <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-primary/10">
           <AppIcon name="sparkle" className="size-4 text-primary" />
@@ -141,16 +141,17 @@ function SettingsUpgradeBanner({ upgradeLoading, startUpgrade, yearlyPriceLabel,
           </p>
         </div>
       </div>
-      <div className="flex shrink-0 flex-wrap gap-2">
+      <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
         <Button
           type="button"
           size="sm"
+          className="min-h-10 w-full sm:min-h-8 sm:w-auto"
           disabled={upgradeLoading}
           onClick={() => void startUpgrade({ plan: 'yearly' })}
         >
           {upgradeLoading ? 'Processing…' : 'Upgrade'}
         </Button>
-        <Button type="button" variant="outline" size="sm" onClick={onGoToBilling}>
+        <Button type="button" variant="outline" size="sm" className="min-h-10 w-full sm:min-h-8 sm:w-auto" onClick={onGoToBilling}>
           View billing
         </Button>
       </div>
@@ -171,14 +172,14 @@ function SettingsInfoBox({ children, icon = 'info' }) {
 
 function SettingsPanelHeader({ section }) {
   return (
-    <header className="mb-5 border-b border-border/80 pb-4">
-      <div className="flex items-start gap-3">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-primary/10">
+    <header className="mb-3 border-b border-border/80 pb-3 sm:mb-5 sm:pb-4">
+      <div className="flex items-start gap-2.5 sm:gap-3">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 sm:size-9">
           <AppIcon name={section.icon} className="size-4 text-primary" />
         </span>
         <div className="min-w-0">
-          <h2 className="text-lg font-bold tracking-tight text-foreground">{section.title}</h2>
-          <p className="mt-0.5 text-sm text-muted-foreground">{section.desc}</p>
+          <h2 className="text-base font-bold tracking-tight text-foreground sm:text-lg">{section.title}</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">{section.desc}</p>
         </div>
       </div>
     </header>
@@ -187,13 +188,13 @@ function SettingsPanelHeader({ section }) {
 
 function SettingsTabPanel({ activeSection, children }) {
   return (
-    <section className="min-w-0 pt-1" aria-labelledby={`settings-panel-${activeSection.id}`}>
+    <section className="w-full min-w-0 max-w-full" aria-labelledby={`settings-panel-${activeSection.id}`}>
       <AnimatePresence mode="wait">
         <motion.div
           key={activeSection.id}
           id={`settings-panel-${activeSection.id}`}
           {...contentMotion}
-          className="flex flex-col gap-4"
+          className="flex w-full min-w-0 max-w-full flex-col gap-4"
         >
           <SettingsPanelHeader section={activeSection} />
           {children}
@@ -358,21 +359,21 @@ function BillingPanel({
           <p className="text-sm text-muted-foreground">
             {billingBlurb || 'Secure checkout via Razorpay (UPI, cards, net banking).'}
           </p>
-          <div className="overflow-hidden rounded-xl border border-border">
-            <table className="w-full text-left text-sm">
+          <div className="overflow-x-auto rounded-xl border border-border">
+            <table className="w-full min-w-[280px] text-left text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/60">
-                  <th className="px-3 py-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">Feature</th>
-                  <th className="px-3 py-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">Free</th>
-                  <th className="px-3 py-2 text-xs font-bold uppercase tracking-wide text-primary">Pro</th>
+                  <th className="px-2 py-2 text-[0.65rem] font-bold uppercase tracking-wide text-muted-foreground sm:px-3 sm:text-xs">Feature</th>
+                  <th className="px-2 py-2 text-[0.65rem] font-bold uppercase tracking-wide text-muted-foreground sm:px-3 sm:text-xs">Free</th>
+                  <th className="px-2 py-2 text-[0.65rem] font-bold uppercase tracking-wide text-primary sm:px-3 sm:text-xs">Pro</th>
                 </tr>
               </thead>
               <tbody>
                 {pricingComparison.map((row) => (
                   <tr key={row.feature} className="border-b border-border/60 last:border-0">
-                    <td className="px-3 py-2 font-medium text-foreground">{row.feature}</td>
-                    <td className="px-3 py-2 text-muted-foreground">{comparisonCellText(row, 'free')}</td>
-                    <td className="px-3 py-2 font-medium text-primary">{comparisonCellText(row, 'pro')}</td>
+                    <td className="px-2 py-2 text-xs font-medium text-foreground sm:px-3 sm:text-sm">{row.feature}</td>
+                    <td className="px-2 py-2 text-xs text-muted-foreground sm:px-3 sm:text-sm">{comparisonCellText(row, 'free')}</td>
+                    <td className="px-2 py-2 text-xs font-medium text-primary sm:px-3 sm:text-sm">{comparisonCellText(row, 'pro')}</td>
                   </tr>
                 ))}
               </tbody>
@@ -576,8 +577,8 @@ export default function SettingsSection() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
-      <Tabs value={active} onValueChange={setActive} className="min-h-0 flex-1 gap-0">
+    <div className="flex w-full min-w-0 max-w-full flex-1 flex-col gap-3 sm:gap-4">
+      <Tabs value={active} onValueChange={setActive} className="flex w-full min-w-0 max-w-full flex-1 flex-col gap-3">
         {!isPro && (
           <SettingsUpgradeBanner
             upgradeLoading={upgradeLoading}
@@ -587,11 +588,12 @@ export default function SettingsSection() {
           />
         )}
 
-        <div className="grid gap-4 lg:grid-cols-[200px_minmax(0,1fr)]">
-          <aside className="lg:sticky lg:top-20 lg:self-start">
+        <div className="flex w-full min-w-0 max-w-full flex-col gap-2 lg:grid lg:grid-cols-[200px_minmax(0,1fr)] lg:items-start lg:gap-4">
+          {/* Mobile: in-flow horizontal nav (not sticky — sticky was overlapping content). Desktop: side rail. */}
+          <aside className="w-full min-w-0 max-w-full lg:sticky lg:top-4 lg:self-start">
             <nav
               aria-label="Settings sections"
-              className="flex gap-1 overflow-x-auto rounded-xl border border-border bg-card p-1.5 lg:flex-col lg:overflow-visible"
+              className="flex w-full min-w-0 max-w-full snap-x snap-mandatory gap-0.5 overflow-x-auto overscroll-x-contain rounded-lg border border-border bg-card p-1 [-ms-overflow-style:none] [scrollbar-width:none] lg:flex-col lg:gap-1 lg:overflow-visible lg:rounded-xl lg:p-1.5 lg:snap-none [&::-webkit-scrollbar]:hidden"
             >
               {SECTIONS.map((section) => (
                 <button
@@ -599,20 +601,20 @@ export default function SettingsSection() {
                   type="button"
                   onClick={() => setActive(section.id)}
                   className={cn(
-                    'flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors',
+                    'flex min-h-8 shrink-0 snap-start items-center gap-1 rounded-md px-2 py-1.5 text-left text-xs transition-colors lg:min-h-0 lg:w-full lg:gap-2 lg:rounded-lg lg:px-3 lg:py-2 lg:text-sm',
                     active === section.id
-                      ? 'bg-elevated font-semibold text-foreground'
+                      ? 'bg-primary/10 font-semibold text-primary ring-1 ring-primary/20 lg:bg-elevated lg:text-foreground lg:ring-0'
                       : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
                   )}
                 >
-                  <AppIcon name={section.icon} className="size-4 shrink-0" />
-                  <span>{section.title}</span>
+                  <AppIcon name={section.icon} className="size-3.5 shrink-0 lg:size-4" />
+                  <span className="whitespace-nowrap">{section.title}</span>
                 </button>
               ))}
             </nav>
           </aside>
 
-          <div className="min-w-0">
+          <div className="flex w-full min-w-0 max-w-full flex-col gap-0">
         {/* Keep TabsTriggers for a11y sync — visually hidden; nav buttons drive value */}
         <TabsList className="sr-only">
           {SECTIONS.map((section) => (
@@ -620,35 +622,41 @@ export default function SettingsSection() {
           ))}
         </TabsList>
 
-        <TabsContent value="account" className="mt-0 outline-none">
+        <TabsContent value="account" className="mt-0 w-full min-w-0 max-w-full outline-none">
           <SettingsTabPanel activeSection={SECTION_BY_ID.account}>
-            <DashboardCard titleIcon="shield" title="Security" contentClassName="flex flex-col gap-3">
+            <DashboardCard titleIcon="shield" title="Security" className="w-full min-w-0" contentClassName="flex min-w-0 flex-col gap-3">
               {user?.email && (
-                <FormField label="Email" hint="Sign-in address — contact support to change.">
-                  <Input disabled readOnly value={user.email} />
+                <FormField label="Email" hint="Sign-in address — contact support to change." className="min-w-0">
+                  <Input disabled readOnly value={user.email} className="max-w-full" />
                 </FormField>
               )}
-              <p className="text-sm text-muted-foreground">
-                Password reset sends a link to <span className="font-medium text-foreground">{user?.email || 'your email'}</span>.
-                Google sign-in accounts use Google to manage passwords.
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                Password reset sends a link to{' '}
+                <span className="inline break-all font-medium text-foreground">{user?.email || 'your email'}</span>
+                . Google sign-in accounts use Google to manage passwords.
               </p>
               <Button
                 variant="outline"
                 size="sm"
-                className="self-start"
+                className="min-h-10 w-full sm:min-h-8 sm:w-auto sm:self-start"
                 disabled={resettingPassword || !user?.email}
                 onClick={() => void sendPasswordReset()}
               >
                 {resettingPassword ? 'Sending…' : 'Send password reset email'}
               </Button>
-              <Button variant="outline" size="sm" className="self-start" onClick={async () => { await doLogout(); addToast('info', 'Signed out') }}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="min-h-10 w-full sm:min-h-8 sm:w-auto sm:self-start"
+                onClick={async () => { await doLogout(); addToast('info', 'Signed out') }}
+              >
                 Sign out
               </Button>
             </DashboardCard>
           </SettingsTabPanel>
         </TabsContent>
 
-        <TabsContent value="gamification" className="mt-1 outline-none">
+        <TabsContent value="gamification" className="mt-1 w-full min-w-0 max-w-full outline-none">
           <SettingsTabPanel activeSection={SECTION_BY_ID.gamification}>
             {(() => {
               const g = normalizeGamification(profile?.gamification)
@@ -706,17 +714,6 @@ export default function SettingsSection() {
                           .catch(() => {})
                       }}
                     />
-                    <Toggle
-                      label="Public badge showcase on portfolio"
-                      checked={!!g.prefs?.publicBadgeShowcase}
-                      onChange={(v) => {
-                        const uid = user?.uid
-                        if (!uid) return
-                        updateGamificationPrefs(uid, { publicBadgeShowcase: v })
-                          .then(() => updateProfile({ gamification: { ...g, prefs: { ...g.prefs, publicBadgeShowcase: v } } }))
-                          .catch(() => {})
-                      }}
-                    />
                   </DashboardCard>
                   <DashboardCard titleIcon="info" title="How XP works" contentClassName="space-y-2 text-sm text-muted-foreground">
                     <p className="m-0 flex justify-between"><span>Daily check-in</span><span className="font-mono">+10</span></p>
@@ -730,7 +727,7 @@ export default function SettingsSection() {
           </SettingsTabPanel>
         </TabsContent>
 
-        <TabsContent value="billing" className="mt-1 outline-none">
+        <TabsContent value="billing" className="mt-1 w-full min-w-0 max-w-full outline-none">
           <SettingsTabPanel activeSection={SECTION_BY_ID.billing}>
             <BillingPanel
               subscription={subscription}
@@ -753,13 +750,13 @@ export default function SettingsSection() {
           </SettingsTabPanel>
         </TabsContent>
 
-        <TabsContent value="usage" className="mt-1 outline-none">
+        <TabsContent value="usage" className="mt-1 w-full min-w-0 max-w-full outline-none">
           <SettingsTabPanel activeSection={SECTION_BY_ID.usage}>
             <UsagePanel uid={user?.uid} />
           </SettingsTabPanel>
         </TabsContent>
 
-        <TabsContent value="appearance" className="mt-1 outline-none">
+        <TabsContent value="appearance" className="mt-1 w-full min-w-0 max-w-full outline-none">
           <SettingsTabPanel activeSection={SECTION_BY_ID.appearance}>
             <SettingsInfoBox icon="palette">
               <p className="font-medium text-foreground">Personalise the workspace</p>
@@ -791,7 +788,7 @@ export default function SettingsSection() {
           </SettingsTabPanel>
         </TabsContent>
 
-        <TabsContent value="notifications" className="mt-1 outline-none">
+        <TabsContent value="notifications" className="mt-1 w-full min-w-0 max-w-full outline-none">
           <SettingsTabPanel activeSection={SECTION_BY_ID.notifications}>
             <SettingsInfoBox icon="bell">
               <p className="font-medium text-foreground">What you’ll hear from us</p>
@@ -860,7 +857,7 @@ export default function SettingsSection() {
           </SettingsTabPanel>
         </TabsContent>
 
-        <TabsContent value="privacy" className="mt-1 outline-none">
+        <TabsContent value="privacy" className="mt-1 w-full min-w-0 max-w-full outline-none">
           <SettingsTabPanel activeSection={SECTION_BY_ID.privacy}>
             <SettingsInfoBox icon="lock">
               <p className="font-medium text-foreground">Your data, your control</p>
@@ -869,14 +866,6 @@ export default function SettingsSection() {
                 Export gives you a copy; deletion is permanent after confirmation.
               </p>
             </SettingsInfoBox>
-            <DashboardCard titleIcon="user" title="Public profile" contentClassName="flex flex-col gap-3">
-              <p className="text-sm text-muted-foreground">
-                Control whether recruiters can view your public career page at /u/your-slug.
-              </p>
-              <Button variant="outline" size="sm" className="self-start" onClick={() => navigate('/dashboard/profile/public')}>
-                Manage public profile
-              </Button>
-            </DashboardCard>
             <DashboardCard titleIcon="download" title="Export my data" contentClassName="flex flex-col gap-3">
               <p className="text-sm text-muted-foreground">
                 Download a JSON copy of your profile, saved jobs, applications, resume metadata, and settings.
@@ -897,7 +886,7 @@ export default function SettingsSection() {
           </SettingsTabPanel>
         </TabsContent>
 
-        <TabsContent value="integrations" className="mt-0 outline-none">
+        <TabsContent value="integrations" className="mt-0 w-full min-w-0 max-w-full outline-none">
           <SettingsTabPanel activeSection={SECTION_BY_ID.integrations}>
             <DashboardCard titleIcon="puzzle" title="Connected tools" contentClassName="flex flex-col gap-3">
               <p className="text-sm text-muted-foreground">

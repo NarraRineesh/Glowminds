@@ -25,7 +25,8 @@ export const VAULT_CATEGORIES = [
 ]
 
 const FREE_QUOTA = 200 * 1024 * 1024
-const PRO_QUOTA = 5 * 1024 * 1024 * 1024
+/** Pro vault storage cap (500 MB). */
+const PRO_QUOTA = 500 * 1024 * 1024
 
 /** Per-file upload cap (mirrors storage.rules). */
 export const MAX_FILE_BYTES = 5 * 1024 * 1024

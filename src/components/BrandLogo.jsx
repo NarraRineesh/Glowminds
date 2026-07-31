@@ -54,8 +54,8 @@ export function BrandLogo({
     )
   }
 
-  // Prefer the tiny SVG mark in chrome — favicon-96 PNG is ~12KB for a 32px slot.
-  const src = variant === 'mark' ? BRAND_ASSETS.logoMark : BRAND_ASSETS.faviconSvg
+  // icon → logo-mark.png (real Glowminds monogram); mark → same asset for chrome consistency
+  const src = BRAND_ASSETS.logoMark
 
   return (
     <img
@@ -63,7 +63,7 @@ export function BrandLogo({
       alt={alt}
       width={size}
       height={size}
-      className={cn('shrink-0 rounded-lg object-contain', imgClassName, className)}
+      className={cn('shrink-0 rounded-lg object-contain bg-foreground/5', imgClassName, className)}
       style={{ width: px, height: px }}
     />
   )

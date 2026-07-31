@@ -8,9 +8,9 @@ export function Label(props) {
 
 export function FormField({ label, htmlFor, children, className, hint, error }) {
   return (
-    <FormItem className={cn('gap-1.5', className)}>
+    <FormItem className={cn('min-w-0 gap-1.5', className)}>
       {label && <FormLabel htmlFor={htmlFor}>{label}</FormLabel>}
-      <FormControl>{children}</FormControl>
+      <FormControl className="min-w-0">{children}</FormControl>
       {hint && !error && <FormDescription>{hint}</FormDescription>}
       {error && <p className="text-xs text-destructive">{error}</p>}
     </FormItem>

@@ -10,6 +10,7 @@ export default function SectionHeader({
   accent,
   subtitle,
   actions,
+  className,
 }) {
   let titleNode = title
   if (accent && typeof title === 'string' && title.includes(accent)) {
@@ -24,7 +25,7 @@ export default function SectionHeader({
   }
 
   return (
-    <div className="relative flex flex-wrap items-end justify-between gap-4">
+    <div className={cn('relative flex flex-wrap items-end justify-between gap-4', className)}>
       <div className="min-w-0 flex-1">
         {badge && (
           <Badge

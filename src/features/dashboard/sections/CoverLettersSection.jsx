@@ -7,6 +7,7 @@ import { Button, DashboardCard, FormField, Input, Textarea, cn } from '@/compone
 import useAppStore from '@/store/authStore'
 import useProfileStore from '@/store/profileStore'
 import useEntitlements from '@/hooks/useEntitlements'
+import useIsLg from '@/hooks/useIsLg'
 import { apiFetch } from '@/services/apiClient'
 import { getPreferredRole, normalizeCoverLetterDrafts } from '@/constants/schema'
 
@@ -23,6 +24,11 @@ const TEMPLATE_TONE = {
   amber: 'border-amber-500/30 bg-amber-500/10 text-amber-500',
   purple: 'border-purple-500/30 bg-purple-500/10 text-purple-500',
 }
+
+const MODES = [
+  { id: 'cover_letter', label: 'Cover letter', desc: 'Formal application letter' },
+  { id: 'cold_email', label: 'Cold email', desc: 'Short recruiter outreach' },
+]
 
 function buildLetter(template, vars) {
   const { yourName = 'Your Name', role = 'the role', company = 'the company', skill = 'your top skill' } = vars
@@ -75,16 +81,17 @@ function draftId() {
 }
 
 export default function CoverLettersSection() {
+  const isLg = useIsLg()
   const { user, addToast } = useAppStore()
   const firstName = user?.firstName || user?.displayName?.split(' ')[0] || 'Your Name'
-  const { isPro, credits, creditCosts, loading: entLoading, refresh, error: entError } = useEntitlements()
+  const { credits, creditCosts, refresh, error: entError } = useEntitlements()
 
   const profile = useProfileStore((s) => s.profile)
   const loadProfile = useProfileStore((s) => s.load)
   const updateProfile = useProfileStore((s) => s.updateProfile)
 
   const [template, setTemplate] = useState('concise')
-  const [mode, setMode] = useState('cover_letter') // cover_letter | cold_email
+  const [mode, setMode] = useState('cover_letter')
   const [role, setRole] = useState('')
   const [company, setCompany] = useState('')
   const [skill, setSkill] = useState('')
@@ -199,34 +206,9 @@ export default function CoverLettersSection() {
     }
     setAiLoading(true)
     try {
-      const userExperience = (profile?.experience || [])
-        .map((e) => {
-          const bits = [`${e.role || ''} @ ${e.company || ''}`]
-          if (e.description) bits.push(String(e.description).slice(0, 200))
-          return bits.filter(Boolean).join(' — ')
-        })
-        .filter(Boolean)
-        .join('; ')
-      const education = (profile?.educationList || [])
-        .map((e) => `${e.degree || e.level || ''} ${e.field || ''} — ${e.school || e.college || ''}`.trim())
-        .filter(Boolean)
-        .join('; ')
-      const projects = (profile?.projects || [])
-        .map((p) => `${p.name || p.title || ''}: ${p.description || ''}`.trim())
-        .filter(Boolean)
-        .slice(0, 4)
-        .join('; ')
       const data = await apiFetch('/ai/cover-letter', {
         body: {
-          profile: {
-            name: user?.displayName || firstName,
-            title: profile?.headline || role,
-            skills: profile?.skills?.technical || (skill ? [skill] : []),
-            education,
-            experience: userExperience,
-            projects,
-          },
-          jobTitle: role.trim(),
+          role: role.trim(),
           company: company.trim(),
           jobDescription: jobDescription.trim() || undefined,
           template,
@@ -249,29 +231,30 @@ export default function CoverLettersSection() {
   const creditCost = creditCosts?.coverLetter ?? 5
   const canRunAi = typeof credits?.balance !== 'number' || credits.balance >= creditCost
 
-  const sidebar = (
-    <>
-      <DashboardCard titleIcon="send" title="Output type" contentClassName="space-y-2">
-        {[
-          { id: 'cover_letter', label: 'Cover letter', desc: 'Formal application letter' },
-          { id: 'cold_email', label: 'Cold email', desc: 'Short recruiter outreach (same credits)' },
-        ].map((m) => (
+  const modeCard = (
+    <DashboardCard titleIcon="send" title="Output type" contentClassName="space-y-2 !py-3 sm:!py-4">
+      <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-1 sm:gap-2">
+        {MODES.map((m) => (
           <button
             key={m.id}
             type="button"
             onClick={() => { setMode(m.id); setAiLetter('') }}
             className={cn(
-              'w-full rounded-xl border px-3 py-2.5 text-left transition-colors',
+              'rounded-xl border px-2.5 py-2 text-left transition-colors sm:px-3 sm:py-2.5',
               mode === m.id ? 'border-primary/30 bg-primary/10' : 'border-border bg-muted/50 hover:border-primary/20',
             )}
           >
             <span className="block text-sm font-semibold">{m.label}</span>
-            <span className="mt-0.5 block text-xs text-muted-foreground">{m.desc}</span>
+            <span className="mt-0.5 block text-[0.65rem] leading-snug text-muted-foreground sm:text-xs">{m.desc}</span>
           </button>
         ))}
-      </DashboardCard>
+      </div>
+    </DashboardCard>
+  )
 
-      <DashboardCard titleIcon="palette" title="Pick a template" contentClassName="space-y-2">
+  const templateCard = (
+    <DashboardCard titleIcon="palette" title="Pick a template" contentClassName="space-y-1.5 !py-3 sm:space-y-2 sm:!py-4">
+      <div className="grid grid-cols-1 gap-1.5 sm:gap-2">
         {TEMPLATES.map((t) => {
           const active = template === t.id
           return (
@@ -280,23 +263,27 @@ export default function CoverLettersSection() {
               type="button"
               onClick={() => { setTemplate(t.id); setAiLetter('') }}
               className={cn(
-                'flex w-full items-start gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors',
+                'flex w-full items-start gap-2.5 rounded-xl border px-2.5 py-2 text-left transition-colors sm:gap-3 sm:px-3 sm:py-2.5',
                 active ? 'border-primary/30 bg-primary/10' : 'border-border bg-muted/50 hover:border-primary/20',
               )}
             >
-              <span className={cn('flex size-9 shrink-0 items-center justify-center rounded-lg border', TEMPLATE_TONE[t.tone])}>
-                <AppIcon name={t.ico} className="size-4" />
+              <span className={cn('flex size-8 shrink-0 items-center justify-center rounded-lg border sm:size-9', TEMPLATE_TONE[t.tone])}>
+                <AppIcon name={t.ico} className="size-3.5 sm:size-4" />
               </span>
               <span className="min-w-0">
-                <span className="block text-sm font-semibold">{t.name}</span>
-                <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">{t.desc}</span>
+                <span className="block text-sm font-semibold leading-snug">{t.name}</span>
+                <span className="mt-0.5 block text-[0.65rem] leading-snug text-muted-foreground sm:text-xs">{t.desc}</span>
               </span>
             </button>
           )
         })}
-      </DashboardCard>
+      </div>
+    </DashboardCard>
+  )
 
-      <DashboardCard titleIcon="pencil" title="Variables" contentClassName="space-y-3">
+  const variablesCard = (
+    <DashboardCard titleIcon="pencil" title="Variables" contentClassName="space-y-2.5 !py-3 sm:space-y-3 sm:!py-4">
+      <div className="grid grid-cols-1 gap-2.5 sm:gap-3">
         <FormField label="Role">
           <Input value={role} onChange={(e) => { setRole(e.target.value); setAiLetter('') }} />
         </FormField>
@@ -308,32 +295,87 @@ export default function CoverLettersSection() {
         </FormField>
         <FormField label="Job description (optional)">
           <Textarea
-            rows={5}
+            rows={isLg ? 5 : 3}
             value={jobDescription}
             onChange={(e) => setJobDescription(e.target.value)}
             placeholder="Paste the JD so AI can mirror keywords and requirements…"
           />
         </FormField>
-      </DashboardCard>
+      </div>
+    </DashboardCard>
+  )
 
-      {drafts.length > 0 && (
-        <DashboardCard titleIcon="book" title="Saved drafts" contentClassName="space-y-2">
-          {drafts.map((d) => (
-            <div
-              key={d.id}
-              className="flex items-start justify-between gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2"
-            >
-              <button type="button" className="min-w-0 flex-1 text-left" onClick={() => loadDraft(d)}>
-                <span className="block truncate text-sm font-semibold">{d.company || 'Draft'}</span>
-                <span className="block truncate text-xs text-muted-foreground">
-                  {d.role} · {d.source === 'ai' ? 'AI' : 'Template'}
-                </span>
-              </button>
-              <Button variant="ghost" size="sm" onClick={() => void deleteDraft(d.id)}>Delete</Button>
-            </div>
-          ))}
-        </DashboardCard>
+  const draftsCard = drafts.length > 0 ? (
+    <DashboardCard titleIcon="book" title="Saved drafts" contentClassName="space-y-2 !py-3 sm:!py-4">
+      {drafts.map((d) => (
+        <div
+          key={d.id}
+          className="flex items-start justify-between gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2"
+        >
+          <button type="button" className="min-w-0 flex-1 text-left" onClick={() => loadDraft(d)}>
+            <span className="block truncate text-sm font-semibold">{d.company || 'Draft'}</span>
+            <span className="block truncate text-xs text-muted-foreground">
+              {d.role} · {d.source === 'ai' ? 'AI' : 'Template'}
+            </span>
+          </button>
+          <Button variant="ghost" size="sm" onClick={() => void deleteDraft(d.id)}>Delete</Button>
+        </div>
+      ))}
+    </DashboardCard>
+  ) : null
+
+  const previewCard = (
+    <DashboardCard
+      titleIcon="send"
+      title="Preview"
+      contentClassName="space-y-2.5 !py-3 sm:!py-4"
+      action={isLg ? (
+        <div className="flex flex-wrap gap-2">
+          <Button variant="ghost" size="sm" onClick={copy}>Copy</Button>
+          <Button variant="ghost" size="sm" onClick={downloadTxt}>Download</Button>
+          <Button variant="outline" size="sm" onClick={() => void saveDraft()} disabled={savingDraft}>
+            {savingDraft ? 'Saving…' : 'Save draft'}
+          </Button>
+          {aiLetter ? (
+            <Button variant="ghost" size="sm" onClick={() => setAiLetter('')}>Use template</Button>
+          ) : null}
+          <Button size="sm" onClick={() => void generateAi()} disabled={aiLoading || !canRunAi}>
+            {aiLoading ? 'Drafting…' : mode === 'cold_email' ? 'AI cold email' : 'AI draft'}
+          </Button>
+        </div>
+      ) : null}
+    >
+      {!isLg && (
+        <div className="flex flex-wrap gap-1.5">
+          <Button size="sm" className="flex-1" onClick={() => void generateAi()} disabled={aiLoading || !canRunAi}>
+            {aiLoading ? 'Drafting…' : mode === 'cold_email' ? 'AI cold email' : 'AI draft'}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => void saveDraft()} disabled={savingDraft}>
+            {savingDraft ? '…' : 'Save'}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={copy}>Copy</Button>
+          <Button variant="ghost" size="sm" onClick={downloadTxt}>Txt</Button>
+          {aiLetter ? (
+            <Button variant="ghost" size="sm" onClick={() => setAiLetter('')}>Template</Button>
+          ) : null}
+        </div>
       )}
+      <pre className="max-h-[42vh] overflow-y-auto whitespace-pre-wrap rounded-xl border border-border bg-muted/30 p-3 font-sans text-sm leading-relaxed sm:max-h-none sm:p-4">
+        {letter}
+      </pre>
+      <p className="text-xs text-muted-foreground sm:text-right">
+        {aiLetter ? 'AI draft — edit before sending.' : 'Template draft — use AI for a JD-aware rewrite.'}
+        {' '}Save keeps up to 8 drafts.
+      </p>
+    </DashboardCard>
+  )
+
+  const sidebar = (
+    <>
+      {modeCard}
+      {templateCard}
+      {variablesCard}
+      {draftsCard}
     </>
   )
 
@@ -341,42 +383,30 @@ export default function CoverLettersSection() {
     <UpgradeGate feature="AI Cover Letters">
       <ToolPage>
         <SectionHeader
+          className="gap-2 sm:gap-4"
           badge="Generate · 1-click"
-          badgeClassName="border-purple-500/20 bg-purple-500/10 text-purple-500"
+          badgeClassName="border-purple-500/20 bg-purple-500/10 text-purple-500 mb-1.5 sm:mb-2"
           title="Cover letters that get replies"
           accent="get replies"
-          subtitle="Pick a template, paste the JD, and draft with AI — then save copies keyed to each company."
+          subtitle={isLg
+            ? 'Pick a template, paste the JD, and draft with AI — then save copies keyed to each company.'
+            : 'Fill role & company, pick a template, then AI draft.'}
         />
 
-        <ToolSidebarLayout sidebar={sidebar}>
-          <DashboardCard
-            titleIcon="send"
-            title="Preview"
-            action={(
-              <div className="flex flex-wrap gap-2">
-                <Button variant="ghost" size="sm" onClick={copy}>Copy</Button>
-                <Button variant="ghost" size="sm" onClick={downloadTxt}>Download</Button>
-                <Button variant="outline" size="sm" onClick={() => void saveDraft()} disabled={savingDraft}>
-                  {savingDraft ? 'Saving…' : 'Save draft'}
-                </Button>
-                {aiLetter ? (
-                  <Button variant="ghost" size="sm" onClick={() => setAiLetter('')}>Use template</Button>
-                ) : null}
-                <Button size="sm" onClick={() => void generateAi()} disabled={aiLoading || !canRunAi}>
-                  {aiLoading ? 'Drafting…' : mode === 'cold_email' ? 'AI cold email' : 'AI draft'}
-                </Button>
-              </div>
-            )}
-          >
-            <pre className="whitespace-pre-wrap rounded-xl border border-border bg-muted/30 p-4 font-sans text-sm leading-relaxed">
-              {letter}
-            </pre>
-            <p className="mt-2 text-right text-xs text-muted-foreground">
-              {aiLetter ? 'AI draft — edit before sending.' : 'Template draft — use AI for a JD-aware rewrite.'}
-              {' '}Save keeps up to 8 drafts on your profile.
-            </p>
-          </DashboardCard>
-        </ToolSidebarLayout>
+        {isLg ? (
+          <ToolSidebarLayout sidebar={sidebar}>
+            {previewCard}
+          </ToolSidebarLayout>
+        ) : (
+          <div className="flex min-w-0 flex-col gap-2.5">
+            {/* Inputs first on mobile so AI draft isn’t blocked by scrolling past preview */}
+            {variablesCard}
+            {modeCard}
+            {templateCard}
+            {previewCard}
+            {draftsCard}
+          </div>
+        )}
       </ToolPage>
     </UpgradeGate>
   )

@@ -199,6 +199,51 @@ export function applyGlowmindsSampleToResume(id: string): Resume {
 	});
 }
 
+/** Merge profile-built resume data into an existing resume, keeping template/design metadata. */
+export function applyProfileDataToResume(id: string, profileData: ResumeData): Resume {
+	const resume = getLocalResume(id);
+	if (!resume) throw new Error("Resume not found");
+	if (resume.isLocked) throw new Error("Resume is locked");
+
+	const current = resume.data;
+	const incoming = profileData.sections;
+
+	const nextData: ResumeData = {
+		...current,
+		basics: profileData.basics,
+		summary: {
+			...current.summary,
+			content: profileData.summary.content || current.summary.content,
+		},
+		picture:
+			profileData.picture?.url && String(profileData.picture.url).trim()
+				? profileData.picture
+				: current.picture,
+		sections: {
+			profiles: { ...current.sections.profiles, items: incoming.profiles.items },
+			experience: { ...current.sections.experience, items: incoming.experience.items },
+			education: { ...current.sections.education, items: incoming.education.items },
+			projects: { ...current.sections.projects, items: incoming.projects.items },
+			skills: { ...current.sections.skills, items: incoming.skills.items },
+			languages: { ...current.sections.languages, items: incoming.languages.items },
+			interests: { ...current.sections.interests, items: incoming.interests.items },
+			awards: { ...current.sections.awards, items: incoming.awards.items },
+			certifications: { ...current.sections.certifications, items: incoming.certifications.items },
+			publications: { ...current.sections.publications, items: incoming.publications.items },
+			volunteer: { ...current.sections.volunteer, items: incoming.volunteer.items },
+			references: { ...current.sections.references, items: incoming.references.items },
+		},
+		customSections: current.customSections,
+		metadata: current.metadata,
+	};
+
+	return saveLocalResume({
+		...resume,
+		data: nextData,
+		updatedAt: new Date(),
+	});
+}
+
 export function deleteLocalResume(id: string, options: SaveLocalResumeOptions = {}): void {
 	const { syncHost = true } = options;
 	localStorage.removeItem(resumeKey(id));

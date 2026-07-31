@@ -1,5 +1,6 @@
 import {
   ArrowsClockwise,
+  ArrowRight,
   Bell,
   BellSlash,
   BookOpen,
@@ -153,6 +154,7 @@ export const APP_ICONS = {
   warning: Warning,
   x: X,
   'x-circle': XCircle,
+  'arrow-right': ArrowRight,
   trash: Trash,
   copy: Copy,
   bookmark: BookmarkSimple,

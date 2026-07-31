@@ -83,21 +83,9 @@ const META = {
     primary: 'Copy all',
     secondary: 'Back to audit',
   },
-  'portfolio-builder': {
-    title: 'Public profile',
-    subtitle: 'What others see at /u/rineesh',
-    primary: 'Publish',
-    secondary: 'Copy link',
-  },
-  'public-profile': {
-    title: 'Rineesh Narra',
-    subtitle: 'Staff Frontend Engineer · Hyderabad',
-    primary: 'Download resume',
-    secondary: null,
-  },
   vault: {
     title: 'Vault',
-    subtitle: '1.2 GB of 5 GB used',
+    subtitle: '120 MB of 500 MB used',
     primary: 'Upload',
     secondary: null,
   },
@@ -264,7 +252,6 @@ function OsShell({ activeId, children, isWire, hideSide, viewport }) {
                     || (item.id === 'linkedin-hub' && ['linkedin-audit', 'linkedin-rewrite'].includes(activeId))
                     || (item.id === 'cover-letter' && ['grammar', 'paraphrase'].includes(activeId))
                     || (item.id === 'job-explorer' && activeId === 'job-details')
-                    || (item.id === 'portfolio-builder' && activeId === 'public-profile')
                     || (item.id === 'ats-report' && activeId === 'ats-report')
                   return (
                     <div key={item.id} className={`os-nav-item${on ? ' is-on' : ''}`}>{item.label}</div>
@@ -300,7 +287,6 @@ function OsShell({ activeId, children, isWire, hideSide, viewport }) {
 function HeaderFromMeta({ id, isWire }) {
   const m = META[id]
   if (!m) return null
-  if (['public-profile'].includes(id)) return null
   if (!m.primary && !m.secondary) return null
   if (isWire) {
     return (
@@ -579,7 +565,7 @@ export default function DesignScreenView({ mode }) {
   const { state = 'default', viewport = 'desktop' } = useOutletContext() || {}
   const screen = getScreen(screenId)
   const isWire = mode === 'wire'
-  const hideSide = screenId === 'public-profile'
+  const hideSide = false
 
   if (!screen) {
     return <div style={{ padding: 24 }}><Empty label={`Unknown: ${screenId}`} cta="Index" /></div>

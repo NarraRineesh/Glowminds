@@ -8,27 +8,17 @@ import {
   organizationSchema,
   webPageSchema,
 } from '@/config/seo'
-import { fadeUp, motionEase, staggerContact } from '@/features/public/motionVariants'
+import { motionEase } from '@/features/public/motionVariants'
 import useLandingConfig from '@/hooks/useLandingConfig'
-import { AppIcon,
-  Avatar,
-  AvatarFallback,
+import {
   Badge,
   Button,
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
   Separator,
 } from '@/components/ui'
-
-const TEAM = [
-  { name: 'Narayana KNR', role: 'Founder & CEO', icon: 'code', desc: 'Full-stack developer. 8+ years experience. Previously at Flipkart.' },
-  { name: 'Priya Sharma', role: 'Head of AI', icon: 'robot', desc: 'ML engineer. 5+ years building recommendation systems at scale.' },
-  { name: 'Arjun Patel', role: 'Product Lead', icon: 'target', desc: 'Ex-Swiggy PM. Obsessed with delightful user experiences.' },
-  { name: 'Sneha Reddy', role: 'Design Lead', icon: 'palette', desc: 'UI/UX designer crafting beautiful, accessible interfaces.' },
-]
 
 const MISSION_HIGHLIGHTS = [
   'Bridge the gap between tier-1 and tier-2/3 colleges',
@@ -177,48 +167,6 @@ export default function AboutPage() {
                 </div>
               </CardContent>
             </Card>
-          </motion.div>
-        </div>
-      </section>
-
-      <section className="pb-12 md:pb-16">
-        <div className="mx-auto max-w-6xl px-4 md:px-8">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, ease: motionEase }}
-            className="mb-8 text-center text-2xl font-black text-foreground md:text-3xl"
-          >
-            Meet the <span className="bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">Team</span>
-          </motion.h2>
-          <motion.div
-            variants={staggerContact}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-40px' }}
-            className="grid grid-cols-2 gap-4 lg:grid-cols-4"
-          >
-            {TEAM.map((t) => (
-              <motion.div key={t.name} variants={fadeUp} transition={{ duration: 0.5, ease: motionEase }}>
-                <Card className="h-full text-center">
-                  <CardContent className="pt-6">
-                    <Avatar className="mx-auto mb-3 size-14 border-2 border-primary/30">
-                      <AvatarFallback className="bg-gradient-to-br from-primary to-emerald-500 text-primary-foreground">
-                        <AppIcon name={t.icon} className="size-6" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <CardTitle className="text-base">{t.name}</CardTitle>
-                    <CardDescription className="mb-2 font-semibold text-primary">{t.role}</CardDescription>
-                    <p className="text-sm leading-relaxed text-muted-foreground">{t.desc}</p>
-                    <div className="mt-3 flex justify-center gap-2">
-                      <span className="flex size-7 items-center justify-center rounded-md border border-border bg-muted text-xs">𝕏</span>
-                      <span className="flex size-7 items-center justify-center rounded-md border border-border bg-muted text-xs">in</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
           </motion.div>
         </div>
       </section>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import useJobStore from '@/store/jobStore'
 import useProfileStore from '@/store/profileStore'
 import ProUpgradeInline from '@/components/ProUpgradeInline'
@@ -9,8 +9,6 @@ import Loader from '@/components/Loader'
 import { JobGridSkeleton } from '@/features/dashboard/components/JobCardSkeleton'
 import { JobMetaItem, JobMetaRow } from '@/features/dashboard/components/JobMeta'
 import {
-  Toolbar,
-  FilterBar,
   StatStrip,
   SplitRail,
   SectionCard,
@@ -109,14 +107,16 @@ function CompanyMark({ name, logo, tone = 0 }) {
 
 export default function JobsSection() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { jobs, pagination, loading, error, fetchJobs, saveJob, unsaveJob, isJobSaved, loadSavedJobs, savedJobs } = useJobStore()
   const profile = useProfileStore((s) => s.profile)
   const loadProfile = useProfileStore((s) => s.load)
 
+  const initialQ = searchParams.get('q') || ''
   const [boardTab, setBoardTab] = useState('browse')
   const [quick, setQuick] = useState('all')
-  const [search, setSearch] = useState('')
-  const [searchInput, setSearchInput] = useState('')
+  const [search, setSearch] = useState(initialQ)
+  const [searchInput, setSearchInput] = useState(initialQ)
   const [typeFilter, setTypeFilter] = useState('')
   const [companyInput, setCompanyInput] = useState('')
   const [company, setCompany] = useState('')
@@ -124,6 +124,23 @@ export default function JobsSection() {
   const [sort, setSort] = useState('')
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [page, setPage] = useState(1)
+
+  const syncQ = (next) => {
+    const trimmed = (next || '').trim()
+    setSearchParams((prev) => {
+      const p = new URLSearchParams(prev)
+      if (trimmed) p.set('q', trimmed)
+      else p.delete('q')
+      return p
+    }, { replace: true })
+  }
+
+  // Keep local search in sync when topbar navigates with ?q=
+  useEffect(() => {
+    const q = searchParams.get('q') || ''
+    setSearch((prev) => (prev === q ? prev : q))
+    setSearchInput((prev) => (prev === q ? prev : q))
+  }, [searchParams])
 
   const readyForMatches = profileReadyForJobMatches(profile)
   const filters = useMemo(
@@ -166,13 +183,16 @@ export default function JobsSection() {
 
   const handleSearch = (e) => {
     e?.preventDefault?.()
-    setSearch(searchInput.trim())
+    const next = searchInput.trim()
+    setSearch(next)
+    syncQ(next)
     setPage(1)
   }
 
   const clearSearch = () => {
     setSearchInput('')
     setSearch('')
+    syncQ('')
     setPage(1)
   }
 
@@ -243,45 +263,52 @@ export default function JobsSection() {
   }
 
   return (
-    <div className="w-full min-w-0 max-w-full space-y-4">
+    <div className="w-full min-w-0 max-w-full space-y-3 sm:space-y-4">
       {!isSavedBoard && (
-        <Toolbar
-          left={(
-            <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
-              <form onSubmit={handleSearch} className="relative min-w-0 flex-1 sm:max-w-xs">
-                <AppIcon name="search" className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 opacity-50" />
-                <Input
-                  className={cn('h-8 pl-8 text-sm', searchInput && 'pr-8')}
-                  placeholder="Search roles, companies…"
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  aria-label="Search jobs"
-                />
-                {searchInput ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    className="absolute right-0.5 top-1/2 -translate-y-1/2"
-                    onClick={clearSearch}
-                    aria-label="Clear search"
-                  >
-                    <AppIcon name="x" className="size-3" />
-                  </Button>
-                ) : null}
-              </form>
-              <FilterBar
-                options={QUICK_FILTERS}
-                value={quick}
-                onChange={onQuickChange}
-                className="shrink-0"
-              />
+        <div className="space-y-2.5">
+          <form onSubmit={handleSearch} className="relative w-full min-w-0">
+            <AppIcon name="search" className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 opacity-50" />
+            <Input
+              className={cn('h-10 w-full pl-8 text-sm sm:h-9', searchInput && 'pr-9')}
+              placeholder="Search roles, companies…"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              aria-label="Search jobs"
+            />
+            {searchInput ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className="absolute right-1 top-1/2 -translate-y-1/2"
+                onClick={clearSearch}
+                aria-label="Clear search"
+              >
+                <AppIcon name="x" className="size-3" />
+              </Button>
+            ) : null}
+          </form>
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
+            <div className="-mx-0.5 flex min-w-0 flex-1 gap-1.5 overflow-x-auto px-0.5 pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {QUICK_FILTERS.map((opt) => (
+                <Button
+                  key={opt.id}
+                  type="button"
+                  size="sm"
+                  variant={quick === opt.id ? 'default' : 'outline'}
+                  className="h-8 shrink-0"
+                  aria-pressed={quick === opt.id}
+                  onClick={() => onQuickChange(opt.id)}
+                >
+                  {opt.label}
+                </Button>
+              ))}
             </div>
-          )}
-          right={(
-            <>
+
+            <div className="flex w-full shrink-0 flex-nowrap items-center gap-2 sm:w-auto">
               <Select
-                className="h-8 w-[140px] text-xs"
+                className="h-9 w-auto min-w-0 flex-1 text-xs sm:h-8 sm:w-[10.5rem] sm:flex-none"
                 value={sort}
                 disabled={loading}
                 onChange={(e) => { setSort(e.target.value); setPage(1) }}
@@ -295,15 +322,20 @@ export default function JobsSection() {
                 type="button"
                 size="sm"
                 variant={filtersOpen ? 'default' : 'outline'}
-                className="h-8"
+                className="h-9 shrink-0 sm:h-8"
                 onClick={() => setFiltersOpen((v) => !v)}
               >
-                Filters
-                {(typeFilter || country || company) ? ' ·' : ''}
+                <AppIcon name="sliders" className="size-3.5 sm:mr-1" />
+                <span className="hidden sm:inline">Filters</span>
+                {(typeFilter || country || company) ? (
+                  <span className="ml-1 inline-flex size-4 items-center justify-center rounded-full bg-primary/15 text-[0.6rem] font-semibold text-primary sm:ml-0.5">
+                    {[typeFilter, country, company].filter(Boolean).length}
+                  </span>
+                ) : null}
               </Button>
-            </>
-          )}
-        />
+            </div>
+          </div>
+        </div>
       )}
 
       {!isSavedBoard && filtersOpen && (
@@ -357,6 +389,7 @@ export default function JobsSection() {
       )}
 
       <StatStrip
+        className="max-sm:hidden"
         stats={[
           [
             isSavedBoard ? 'Saved' : boardTab === 'recommended' ? 'Recommended' : 'Results',
@@ -385,26 +418,43 @@ export default function JobsSection() {
         ]}
       />
 
-      <div className="flex gap-1 rounded-lg bg-muted p-1 w-fit">
-        {BOARD_TABS.map((t) => (
-          <Button
-            key={t.id}
-            type="button"
-            size="sm"
-            variant={boardTab === t.id ? 'default' : 'ghost'}
-            className="h-8"
-            onClick={() => {
-              setBoardTab(t.id)
-              if (t.id === 'recommended') setQuick('match')
-              else if (t.id === 'browse' && quick === 'match') setQuick('all')
-              setPage(1)
-            }}
-          >
-            {t.label}
-            {t.id === 'saved' && savedJobs?.length ? ` (${savedJobs.length})` : ''}
-          </Button>
-        ))}
+      <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-1 gap-1 rounded-lg bg-muted p-1" role="tablist" aria-label="Job boards">
+          {BOARD_TABS.map((t) => (
+            <Button
+              key={t.id}
+              type="button"
+              size="sm"
+              variant={boardTab === t.id ? 'default' : 'ghost'}
+              className="h-8 min-w-0 flex-1 px-1.5 text-[0.7rem] sm:flex-none sm:px-3 sm:text-sm"
+              role="tab"
+              aria-selected={boardTab === t.id}
+              onClick={() => {
+                setBoardTab(t.id)
+                if (t.id === 'recommended') setQuick('match')
+                else if (t.id === 'browse' && quick === 'match') setQuick('all')
+                setPage(1)
+              }}
+            >
+              <span className="truncate">
+                {t.label}
+                {t.id === 'saved' && savedJobs?.length ? ` (${savedJobs.length})` : ''}
+              </span>
+            </Button>
+          ))}
+        </div>
+        <p className="m-0 hidden shrink-0 text-xs text-muted-foreground sm:block">
+          {isSavedBoard
+            ? `${displayJobs.length} saved`
+            : `${totalLabel} results`}
+        </p>
       </div>
+
+      <p className="m-0 text-xs text-muted-foreground sm:hidden">
+        {isSavedBoard
+          ? `${displayJobs.length} saved`
+          : `${totalLabel} results${avgMatch != null ? ` · avg ${avgMatch}% match` : ''}`}
+      </p>
 
       {error && !loading && !isSavedBoard && (
         isProUpgradeRequired({ message: error, code: 'permission-denied' }) || /pro/i.test(error) ? (
@@ -450,9 +500,9 @@ export default function JobsSection() {
 
               <div className={cn('transition-opacity duration-200', isRefreshing && !isSavedBoard && 'pointer-events-none opacity-60')}>
                 {((!isSavedBoard && bestMatchNeedsProfile) || displayJobs.length === 0) ? (
-                  <div className="flex flex-col items-center px-4 py-12 text-center">
-                    <AppIcon name={bestMatchNeedsProfile && !isSavedBoard ? 'user' : 'search'} className="mb-3 size-10 opacity-40" />
-                    <h3 className="text-lg font-bold text-foreground">
+                  <div className="flex flex-col items-center px-2 py-8 text-center sm:px-4 sm:py-12">
+                    <AppIcon name={bestMatchNeedsProfile && !isSavedBoard ? 'user' : 'search'} className="mb-3 size-8 opacity-40 sm:size-10" />
+                    <h3 className="text-base font-bold text-foreground sm:text-lg">
                       {isSavedBoard
                         ? 'No saved jobs'
                         : bestMatchNeedsProfile
@@ -582,7 +632,10 @@ export default function JobsSection() {
           )}
           rail={(
             <>
-              <SectionCard title="Active filters">
+              <SectionCard
+                className={cn(!activeFilterTags.length && 'max-lg:hidden')}
+                title="Active filters"
+              >
                 {activeFilterTags.length ? (
                   <div className="flex flex-wrap gap-1.5">
                     {activeFilterTags.map((tag) => (

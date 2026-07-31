@@ -192,12 +192,14 @@ export default function ResumeHubSection() {
 
       {tab === 'templates' && (
         <SectionCard title="Templates">
-          <p className="text-sm text-muted-foreground">
-            Pick and customize templates inside the Builder. Open Builder, then use the template picker in the sidebar.
-          </p>
-          <Button type="button" className="mt-3" size="sm" onClick={() => setTab('builder')}>
-            Open builder
-          </Button>
+          <div className="space-y-3">
+            <p className="m-0 text-sm text-muted-foreground">
+              Templates live in the Builder — open a resume and use Design → Template on the right (or Export tab on mobile).
+            </p>
+            <Button type="button" size="sm" onClick={() => setTab('builder')}>
+              Go to Builder
+            </Button>
+          </div>
         </SectionCard>
       )}
     </div>

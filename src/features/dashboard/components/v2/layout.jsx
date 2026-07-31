@@ -101,14 +101,14 @@ export function AiRail({ title, body, cta, onCta, className }) {
   )
 }
 
-/** Dense data table */
+/** Dense data table — drops min-width on small screens to avoid forced horizontal scroll */
 export function DenseTable({ columns = [], rows = [], className, empty }) {
   if (!rows.length) {
     return empty || <p className="text-sm text-muted-foreground">No rows yet.</p>
   }
   return (
     <div className={cn('overflow-x-auto', className)}>
-      <table className="w-full min-w-[420px] border-collapse text-left text-sm">
+      <table className="w-full min-w-0 border-collapse text-left text-sm sm:min-w-[420px]">
         <thead>
           <tr className="border-b border-border text-[0.68rem] uppercase tracking-wider text-muted-foreground">
             {columns.map((c) => (

@@ -48,6 +48,8 @@ export type CopilotInitPayload = {
 	onResumeSave?: (resume: CopilotEmbedResume) => Promise<void>;
 	onResumeDelete?: (resumeId: string) => Promise<void>;
 	onStorePdf?: (args: { blob: Blob; name: string; resumeId: string }) => Promise<void> | void;
+	/** Returns Glowminds resume `data` built from the host profile, or null if profile is empty. */
+	onSyncFromProfile?: () => Promise<{ data: unknown } | null>;
 	allowLocalMigration?: boolean;
 };
 

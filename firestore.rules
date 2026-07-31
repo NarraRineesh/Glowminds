@@ -50,15 +50,6 @@ service cloud.firestore {
       }
     }
 
-    // [v2:public] Public career profiles by slug (readable by anyone)
-    match /publicProfiles/{slug} {
-      allow read: if true;
-      allow create, update: if request.auth != null
-        && request.resource.data.uid == request.auth.uid;
-      allow delete: if request.auth != null
-        && resource.data.uid == request.auth.uid;
-    }
-
     // ----- top-level user-owned collections -----
     match /applications/{appId} {
       allow read, update, delete: if isOwnerByUserId();

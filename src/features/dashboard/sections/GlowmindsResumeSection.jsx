@@ -6,6 +6,7 @@ import Loader from '@/components/Loader'
 import useTheme from '@/hooks/useTheme'
 import useIsPro from '@/hooks/useIsPro'
 import useAppStore from '@/store/authStore'
+import useProfileStore from '@/store/profileStore'
 import { getCopilotThemeTokens } from '@/constants/copilotThemeTokens'
 import { applyCopilotTheme, clearCopilotTheme } from 'glowminds-resume/embed-theme'
 import {
@@ -13,6 +14,8 @@ import {
   embedPathFromDashboardPath,
   embedPathFromResumeId,
 } from '@/utils/resumeEmbedPaths'
+import { profileHasResumeData } from '@/utils/resumeFromProfile'
+import { profileToGlowmindsResume } from '@/utils/profileToGlowmindsResume'
 import {
   deleteEmbedResume,
   loadEmbedResumes,
@@ -96,6 +99,17 @@ export default function GlowmindsResumeSection() {
     await uploadVaultDoc({ uid: user.uid, file, category: 'resumes' })
   }, [user?.uid])
 
+  const onSyncFromProfile = useCallback(async () => {
+    if (!user) return null
+    const store = useProfileStore.getState()
+    if (!store.loaded) await store.load()
+    const profile = useProfileStore.getState().profile
+    const userDoc = useProfileStore.getState().user
+    if (!profileHasResumeData(user, profile, userDoc)) return null
+    const built = profileToGlowmindsResume(user, profile, userDoc)
+    return { data: built.data }
+  }, [user])
+
   const payload = useMemo(() => ({
     theme: resolvedTheme,
     themeTokens: getCopilotThemeTokens(resolvedTheme),
@@ -114,10 +128,11 @@ export default function GlowmindsResumeSection() {
     onResumeSave,
     onResumeDelete,
     onStorePdf,
-  }), [resolvedTheme, user, navigate, cloudResumes, loadError, isPro, onResumeSave, onResumeDelete, onStorePdf])
+    onSyncFromProfile,
+  }), [resolvedTheme, user, navigate, cloudResumes, loadError, isPro, onResumeSave, onResumeDelete, onStorePdf, onSyncFromProfile])
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
+    <div className="flex h-[min(100dvh,100%)] min-h-0 flex-col gap-2 max-md:h-[calc(100dvh-var(--dashboard-chrome,8rem))]">
       {loadError ? (
         <p className="px-4 py-2 text-sm text-destructive">{loadError}</p>
       ) : null}

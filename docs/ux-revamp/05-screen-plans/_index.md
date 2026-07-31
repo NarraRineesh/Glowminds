@@ -7,7 +7,6 @@ Each file covers: UX Goals · Information Hierarchy · User Flow · Component La
 | [dashboard.md](./dashboard.md) | Career Command Center |
 | [resume-studio.md](./resume-studio.md) | Resume Studio (+ builder, ATS, library) |
 | [linkedin.md](./linkedin.md) | LinkedIn Hub / Audit |
-| [portfolio.md](./portfolio.md) | Portfolio Builder + Public |
 | [vault.md](./vault.md) | Document Center |
 | [jobs.md](./jobs.md) | Job Discovery + Details |
 | [applications.md](./applications.md) | Application CRM |

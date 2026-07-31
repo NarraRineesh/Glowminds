@@ -206,14 +206,15 @@ function LearningPlan({ path, progress, togglingId, onToggle }) {
                             </p>
                           )}
                           {!!item.resources?.length && (
-                            <div className="flex flex-wrap gap-2 pt-1">
+                            <div className="flex gap-2 overflow-x-auto pb-1 pt-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                               {item.resources.map((resource) => (
                                 <a
                                   key={resource.url}
                                   href={resource.url}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="inline-flex min-h-9 items-center rounded-lg border border-border bg-background px-2.5 text-xs text-primary transition-colors hover:bg-muted"
+                                  className="inline-flex min-h-9 max-w-[11rem] shrink-0 items-center truncate rounded-lg border border-border bg-background px-2.5 text-xs text-primary transition-colors hover:bg-muted"
+                                  title={resource.label}
                                 >
                                   {resource.label}
                                 </a>

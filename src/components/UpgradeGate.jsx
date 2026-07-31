@@ -27,7 +27,9 @@ export default function UpgradeGate({
   const body = description || copy.description || `${feature} is available on Glowminds Pro.`
   const bullets = highlights || copy.highlights || []
 
-  if (!proOnly) return children
+  if (!proOnly) {
+    return className ? <div className={className}>{children}</div> : children
+  }
 
   if (loading) {
     return (
@@ -38,7 +40,9 @@ export default function UpgradeGate({
     )
   }
 
-  if (isPro) return children
+  if (isPro) {
+    return className ? <div className={className}>{children}</div> : children
+  }
 
   return (
     <div className={cn('flex min-h-[min(28rem,70vh)] items-center justify-center py-8', className)}>

@@ -179,7 +179,14 @@ export default function SalaryInsightsSection() {
   }
 
   const sidebar = (
-    <DashboardCard titleIcon="faders" title="Filters" contentClassName="space-y-4">
+    <details className="group rounded-xl border border-border bg-card open:pb-0 lg:border-0 lg:bg-transparent" open>
+      <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold lg:hidden [&::-webkit-details-marker]:hidden">
+        Filters
+        <span className="ms-2 text-xs font-normal text-muted-foreground">
+          {role} · {levels.find((l) => l.id === level)?.name || level} · {city}
+        </span>
+      </summary>
+      <DashboardCard titleIcon="faders" title="Filters" className="max-lg:border-0 max-lg:shadow-none lg:border lg:shadow-sm [&_[data-slot=card-header]]:max-lg:hidden" contentClassName="space-y-4 max-lg:pt-0">
       {prefilled && (profile?.headline || profile?.preferences?.expectedCTC) ? (
         <p className="rounded-lg border border-primary/15 bg-primary/5 px-2.5 py-2 text-xs text-muted-foreground">
           Prefilling from your profile
@@ -221,6 +228,7 @@ export default function SalaryInsightsSection() {
         </Select>
       </FormField>
     </DashboardCard>
+    </details>
   )
 
   const runNegotiate = async () => {
@@ -249,6 +257,7 @@ export default function SalaryInsightsSection() {
   return (
     <ToolPage>
       <SectionHeader
+        className="max-sm:hidden"
         badge="Comp · India"
         badgeClassName="border-emerald-500/20 bg-emerald-500/10 text-emerald-500"
         title="Know your worth before the offer call"

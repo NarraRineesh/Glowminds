@@ -900,7 +900,7 @@ export function workspaceBody(id, isWire) {
             </Panel>
             <Panel title="Storage">
               <div className="dl-bar" style={{ height: 8 }}><i style={{ width: '24%' }} /></div>
-              <p className="dl-muted" style={{ margin: '8px 0 0' }}>1.2 GB of 5 GB</p>
+              <p className="dl-muted" style={{ margin: '8px 0 0' }}>120 MB of 500 MB</p>
             </Panel>
           </>
         )}
@@ -950,180 +950,6 @@ export function workspaceBody(id, isWire) {
     )
   }
 
-  if (id === 'portfolio-builder') {
-    if (isWire) return <Wire lines={['URL · THEME', 'SECTIONS', 'BROWSER PREVIEW']} />
-    return (
-      <>
-        <Toolbar
-          left={(
-            <>
-              <span className="dl-badge-ok dl-badge">Published</span>
-              <div className="os-search" style={{ maxWidth: 280, margin: 0 }}>glowminds.app/u/rineesh</div>
-            </>
-          )}
-          right={(
-            <>
-              <button type="button" className="dl-btn">Copy link</button>
-              <button type="button" className="dl-btn">Preview</button>
-              <button type="button" className="dl-btn dl-btn-primary">Save & publish</button>
-            </>
-          )}
-        />
-        <SplitRail
-          ratio="7-5"
-          main={(
-            <>
-              <Panel title="Sections" action={<span className="dl-muted">Drag to reorder</span>}>
-                <ul className="dl-list pb-sections">
-                  {[
-                    ['About', 'On', true],
-                    ['Experience', 'On', true],
-                    ['Projects', 'On', true],
-                    ['Skills', 'On', true],
-                    ['Education', 'On', true],
-                    ['Resume download', 'On', true],
-                    ['Contact email', 'Off', false],
-                  ].map(([name, state, on]) => (
-                    <li key={name}>
-                      <span style={{ flex: 1 }}>{name}</span>
-                      <span className="dl-muted">{state}</span>
-                      <span className={`dl-check${on ? ' on' : ''}`} />
-                    </li>
-                  ))}
-                </ul>
-              </Panel>
-              <Panel title="Theme">
-                <div className="pb-themes">
-                  {['Midnight', 'Paper', 'Signal'].map((t, i) => (
-                    <button key={t} type="button" className={`pb-theme${i === 0 ? ' is-on' : ''}`}>
-                      <span className={`pb-theme-swatch t-${i}`} />
-                      {t}
-                    </button>
-                  ))}
-                </div>
-              </Panel>
-              <Panel title="Publish checklist">
-                <ul className="dl-list">
-                  <li><span className="dl-check on" /> About complete</li>
-                  <li><span className="dl-check on" /> Experience ≥ 2 roles</li>
-                  <li><span className="dl-check" /> Public resume attached</li>
-                  <li><span className="dl-check on" /> Custom URL reserved</li>
-                </ul>
-              </Panel>
-            </>
-          )}
-          rail={(
-            <Panel title="Live preview" action={<span className="dl-muted">Desktop</span>}>
-              <div className="pb-browser">
-                <div className="pb-browser-bar">
-                  <span /><span /><span />
-                  <div className="pb-browser-url">glowminds.app/u/rineesh</div>
-                </div>
-                <div className="pb-browser-body">
-                  <div className="pp-mini-hero">
-                    <span className="os-avatar" style={{ width: 44, height: 44 }}>RN</span>
-                    <div>
-                      <strong>Rineesh Narra</strong>
-                      <div className="dl-muted">Staff Frontend · Hyderabad</div>
-                    </div>
-                  </div>
-                  <div className="dl-tabs" style={{ margin: '12px 0' }}>
-                    <button type="button" className="is-on">About</button>
-                    <button type="button">Work</button>
-                    <button type="button">Projects</button>
-                  </div>
-                  <p style={{ fontSize: 12, lineHeight: 1.55, margin: 0 }}>
-                    Building career tooling that feels like a premium OS — not an admin panel.
-                  </p>
-                  <div className="pp-mini-stats">
-                    <span>128 views</span>
-                    <span>14 downloads</span>
-                  </div>
-                </div>
-              </div>
-            </Panel>
-          )}
-        />
-      </>
-    )
-  }
-
-  if (id === 'public-profile') {
-    if (isWire) return <Wire lines={['PUBLIC HERO', 'WORK · PROJECTS', 'FOOTER']} />
-    return (
-      <div className="pp">
-        <header className="pp-top">
-          <span className="pp-brand">GlowMinds</span>
-          <nav className="pp-nav">
-            <button type="button" className="is-on">About</button>
-            <button type="button">Experience</button>
-            <button type="button">Projects</button>
-            <button type="button">Skills</button>
-          </nav>
-          <button type="button" className="dl-btn dl-btn-primary">Download resume</button>
-        </header>
-        <section className="pp-hero">
-          <div className="pp-hero-copy">
-            <p className="pp-kicker">Open to Staff Frontend</p>
-            <h1>Rineesh Narra</h1>
-            <p className="pp-lede">
-              Staff Frontend Engineer in Hyderabad. Design systems, Web Perf, and career products with OS-grade craft.
-            </p>
-            <div className="pp-hero-actions">
-              <button type="button" className="dl-btn dl-btn-primary">Download resume</button>
-              <button type="button" className="dl-btn">Contact</button>
-            </div>
-            <MetaRow items={['Hyderabad', 'Remote OK', 'Design systems · React · TS']} />
-          </div>
-          <div className="pp-hero-card">
-            <span className="os-avatar" style={{ width: 72, height: 72, fontSize: 22 }}>RN</span>
-            <div className="pp-hero-metrics">
-              <div><strong>128</strong><span className="dl-muted">profile views</span></div>
-              <div><strong>14</strong><span className="dl-muted">resume downloads</span></div>
-              <div><strong>81</strong><span className="dl-muted">best ATS</span></div>
-            </div>
-          </div>
-        </section>
-        <section className="pp-section">
-          <h2>Experience</h2>
-          <div className="pp-roles">
-            {[
-              ['Stripe', 'Staff Frontend', '2022 — Present', 'Design systems adopted by 8 teams. Led Web Vitals program (−38% LCP).'],
-              ['Acme', 'Senior Frontend', '2019 — 2022', 'Platform UI, accessibility, and component libraries for 3 product lines.'],
-            ].map(([co, role, when, blurb]) => (
-              <article key={co} className="pp-role">
-                <CoMark name={co} />
-                <div>
-                  <strong>{role} · {co}</strong>
-                  <div className="dl-muted">{when}</div>
-                  <p>{blurb}</p>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-        <section className="pp-section">
-          <h2>Projects</h2>
-          <div className="pp-projects">
-            {[
-              ['Design System', 'Tokens, docs, adoption dashboards'],
-              ['Web Vitals Ops', 'LCP / INP monitoring for product surfaces'],
-              ['Career OS', 'GlowMinds portfolio + ATS workflows'],
-            ].map(([t, d]) => (
-              <article key={t} className="pp-project">
-                <strong>{t}</strong>
-                <p className="dl-muted">{d}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-        <footer className="pp-foot">
-          <span className="dl-muted">Powered by GlowMinds</span>
-          <button type="button" className="dl-btn-ghost dl-btn">Create yours</button>
-        </footer>
-      </div>
-    )
-  }
 
   if (['cover-letter', 'grammar', 'paraphrase'].includes(id)) {
     if (isWire) return <Wire lines={['INPUT', 'RESULT', 'VARIANTS']} />
@@ -1278,7 +1104,6 @@ export function workspaceBody(id, isWire) {
               <li>Show streak on dashboard <span className="dl-check on" style={{ marginLeft: 'auto' }} /></li>
               <li>Celebrate level-ups <span className="dl-check on" style={{ marginLeft: 'auto' }} /></li>
               <li>XP reminders when streak at risk <span className="dl-check on" style={{ marginLeft: 'auto' }} /></li>
-              <li>Public badge showcase on portfolio <span className="dl-check" style={{ marginLeft: 'auto' }} /></li>
             </ul>
           </Panel>
 

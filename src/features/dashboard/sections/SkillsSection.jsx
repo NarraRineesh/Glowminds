@@ -151,7 +151,7 @@ export default function SkillsSection() {
           {imp}
           {Number.isFinite(Number(s.importanceScore)) ? ` · ${Math.round(s.importanceScore)}` : ''}
         </Badge>,
-        <span key={`sig-${i}`} className="text-muted-foreground">{signalFor(s)}</span>,
+        <span key={`sig-${i}`} className="max-w-[6.5rem] truncate text-muted-foreground sm:max-w-none">{signalFor(s)}</span>,
         <Link
           key={`a-${i}`}
           to="/dashboard/learning"
@@ -224,11 +224,51 @@ export default function SkillsSection() {
             {gap ? (
               <>
                 <Progress value={gap.coverage || 0} className="mb-3" />
-                <DenseTable
-                  columns={['Skill', 'Importance', 'Demand', '']}
-                  rows={gapRows}
-                  empty={<p className="text-sm text-muted-foreground">No gaps detected for this role.</p>}
-                />
+                {/* Mobile: stacked cards (no clipped table columns) */}
+                <div className="space-y-2 sm:hidden">
+                  {(gap.missingSkills || []).length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No gaps detected for this role.</p>
+                  ) : (
+                    (gap.missingSkills || []).map((s, i) => {
+                      const label = skillLabel(s)
+                      const imp = importanceLabel(s)
+                      return (
+                        <div key={`m-${i}`} className="rounded-xl border border-border bg-muted/30 p-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="m-0 font-semibold">{label}</p>
+                              {s.category && s.category !== 'Other' ? (
+                                <p className="m-0 mt-0.5 text-[0.65rem] text-muted-foreground">{s.category}</p>
+                              ) : null}
+                            </div>
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                'shrink-0 text-[0.65rem]',
+                                imp === 'High' && 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400',
+                              )}
+                            >
+                              {imp}
+                            </Badge>
+                          </div>
+                          <div className="mt-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                            <span className="truncate">{signalFor(s)}</span>
+                            <Link to="/dashboard/learning" className="shrink-0 font-medium text-primary underline-offset-4 hover:underline">
+                              Learn
+                            </Link>
+                          </div>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+                <div className="hidden sm:block">
+                  <DenseTable
+                    columns={['Skill', 'Importance', 'Demand', '']}
+                    rows={gapRows}
+                    empty={<p className="text-sm text-muted-foreground">No gaps detected for this role.</p>}
+                  />
+                </div>
                 {mySkills.length > 0 && (
                   <div className="mt-4">
                     <div className="mb-2 flex items-center justify-between gap-2">

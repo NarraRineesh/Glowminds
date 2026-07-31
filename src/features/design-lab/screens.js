@@ -2,8 +2,6 @@
 export const DESIGN_SCREENS = [
   { id: 'dashboard', title: 'Dashboard', group: 'Core' },
   { id: 'ats-report', title: 'ATS Report', group: 'Job search' },
-  { id: 'portfolio-builder', title: 'Portfolio Builder', group: 'Profile' },
-  { id: 'public-profile', title: 'Public Portfolio', group: 'Profile' },
   { id: 'linkedin-hub', title: 'LinkedIn Hub', group: 'Grow' },
   { id: 'linkedin-audit', title: 'LinkedIn Audit', group: 'Grow' },
   { id: 'linkedin-rewrite', title: 'LinkedIn Rewrite', group: 'Grow' },

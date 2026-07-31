@@ -44,10 +44,8 @@ const LearningSection = lazy(() => import('@/features/dashboard/sections/Learnin
 const SkillsSection = lazy(() => import('@/features/dashboard/sections/SkillsSection'))
 const VaultSection = lazy(() => import('@/features/dashboard/sections/VaultSection'))
 const AnalyticsSection = lazy(() => import('@/features/dashboard/sections/AnalyticsSection'))
-const PublicProfileManageSection = lazy(() => import('@/features/dashboard/sections/PublicProfileManageSection'))
 const TimelineSection = lazy(() => import('@/features/dashboard/sections/TimelineSection'))
 const NotificationsSection = lazy(() => import('@/features/dashboard/sections/NotificationsSection'))
-const PublicCareerProfilePage = lazy(() => import('@/features/public/PublicCareerProfilePage'))
 const AdminShell = lazy(() => import('@/features/admin/AdminShell'))
 const AdminOverview = lazy(() => import('@/features/admin/AdminOverview'))
 const AdminUsers = lazy(() => import('@/features/admin/AdminUsers'))
@@ -85,8 +83,6 @@ function AnimatedRoutes() {
       </Route>
       <Route path="/login" element={<Suspense fallback={<PageLoader />}><PublicOnlyRoute><LoginPage /></PublicOnlyRoute></Suspense>} />
       <Route path="/signup" element={<Suspense fallback={<PageLoader />}><PublicOnlyRoute><SignupPage /></PublicOnlyRoute></Suspense>} />
-      {/* [v2:public] Public career profiles */}
-      <Route path="/u/:slug" element={<Suspense fallback={<PageLoader />}><PublicCareerProfilePage /></Suspense>} />
       {/* Dashboard (protected) */}
       <Route path="/dashboard" element={
         <Suspense fallback={<PageLoader />}>
@@ -136,11 +132,6 @@ function AnimatedRoutes() {
         <Route path="profile" element={
           <Suspense fallback={<PageLoader />}>
             <ProfileSection />
-          </Suspense>
-        } />
-        <Route path="profile/public" element={
-          <Suspense fallback={<PageLoader />}>
-            <PublicProfileManageSection />
           </Suspense>
         } />
         <Route path="jd-matcher" element={<Navigate to="/dashboard/jobs" replace />} />

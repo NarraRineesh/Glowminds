@@ -193,24 +193,34 @@ export default function OverviewSection() {
   ].slice(0, 3)
 
   const showStreak = gamification.prefs?.showStreakOnDashboard !== false
+  const firstName = user?.firstName || user?.displayName?.split?.(' ')?.[0] || ''
 
   return (
-    <div className="flex w-full min-w-0 max-w-full flex-col gap-4">
+    <div className="flex w-full min-w-0 max-w-full flex-col gap-3 sm:gap-4">
+      {firstName ? (
+        <p className="m-0 text-sm text-muted-foreground">
+          Hi, <span className="font-medium text-foreground">{firstName}</span>
+        </p>
+      ) : null}
+
       {/* 1. Focus */}
       {!focusDismissed && focus && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border border-l-[3px] border-l-warning bg-card px-4 py-3.5">
-          <div>
-            <div className="mb-0.5 flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Today’s focus</span>
-            </div>
-            <p className="m-0 text-[15px] font-semibold tracking-tight">{focus.title}</p>
-            {focus.hint && <p className="mt-1 mb-0 text-xs text-muted-foreground">{focus.hint}</p>}
+        <div className="flex items-center gap-2 rounded-xl border border-border border-l-[3px] border-l-warning bg-card px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3.5">
+          <div className="min-w-0 flex-1">
+            <span className="text-[0.65rem] text-muted-foreground sm:text-xs">Today’s focus</span>
+            <p className="m-0 truncate text-sm font-semibold tracking-tight sm:text-[15px]">{focus.title}</p>
+            {focus.hint ? (
+              <p className="mt-0.5 mb-0 truncate text-[0.7rem] text-muted-foreground sm:text-xs">{focus.hint}</p>
+            ) : null}
           </div>
-          <div className="flex gap-2">
+          <div className="flex shrink-0 items-center gap-1.5">
             <Button
               type="button"
               variant="outline"
-              size="sm"
+              size="icon"
+              className="size-8"
+              aria-label="Dismiss focus"
+              title="Dismiss"
               onClick={() => {
                 try {
                   sessionStorage.setItem('gm_focus_dismissed', '1')
@@ -219,17 +229,24 @@ export default function OverviewSection() {
                 patchUserDoc({ settings: { dismissedFocusId: focus.id } }).catch(() => {})
               }}
             >
-              Dismiss
+              <AppIcon name="x" className="size-3.5" />
             </Button>
-            <Button type="button" size="sm" onClick={() => focus.to && navigate(focus.to)}>
-              Open
+            <Button
+              type="button"
+              size="icon"
+              className="size-8"
+              aria-label="Open focus"
+              title="Open"
+              onClick={() => focus.to && navigate(focus.to)}
+            >
+              <AppIcon name="arrow-right" className="size-3.5" />
             </Button>
           </div>
         </div>
       )}
 
       {/* 2. Score sparklines */}
-      <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+      <div className="grid min-w-0 grid-cols-2 gap-2.5 lg:grid-cols-4 [&>*]:min-w-0">
         <ScoreSparkCard
           label="Career"
           value={scores.careerScore || '—'}
@@ -266,126 +283,162 @@ export default function OverviewSection() {
         ]}
       />
 
-      {/* 3. Work columns */}
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1.35fr_1fr]">
-        <div className="flex min-w-0 flex-col gap-3">
-          <SectionCard title="Action plan" action={<span className="text-xs text-muted-foreground">{actionPlan.filter((i) => i.done).length} / {actionPlan.length || 0}</span>}>
-            <ActionPlanList items={actionPlan} onItemClick={(item) => item.to && navigate(item.to)} />
-          </SectionCard>
+      {/* 3. Work cards — flat list so mobile order can lift Suggested after Action plan */}
+      <div className="flex flex-col gap-3 lg:grid lg:grid-cols-[1.35fr_1fr] lg:items-start lg:gap-3">
+        <SectionCard
+          className="order-1 min-w-0 lg:col-start-1 lg:row-start-1"
+          title="Action plan"
+          action={<span className="text-xs text-muted-foreground">{actionPlan.filter((i) => i.done).length} / {actionPlan.length || 0}</span>}
+        >
+          <ActionPlanList items={actionPlan} onItemClick={(item) => item.to && navigate(item.to)} />
+        </SectionCard>
 
-          <SectionCard
-            title="Upcoming interviews"
-            action={<Link to="/dashboard/applications" className="text-xs font-medium text-primary">CRM</Link>}
-          >
-            {upcomingInterviews.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No interviews scheduled yet.</p>
-            ) : (
-              <ul className="space-y-2">
-                {upcomingInterviews.map((a) => (
-                  <li key={a.id} className="flex items-center gap-2.5 rounded-lg border border-border px-2.5 py-2">
-                    <AppIcon name="buildings" className="size-4 shrink-0 text-muted-foreground" />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[0.8rem] font-semibold">{a.role} · {a.company}</p>
-                      <p className="truncate text-[0.68rem] text-muted-foreground">
-                        {a.nextStep || a.interviewDate || 'In pipeline'}
-                      </p>
-                    </div>
-                    <Button type="button" size="sm" variant="outline" onClick={() => navigate('/dashboard/interview')}>
-                      Prep
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </SectionCard>
+        <SectionCard
+          className="order-2 min-w-0 lg:col-start-2 lg:row-start-1"
+          title="Suggested"
+          action={<span className="rounded-md bg-ai/15 px-1.5 py-0.5 text-[10px] font-medium text-ai">AI</span>}
+        >
+          <p className="mt-0 mb-3 text-sm leading-relaxed font-medium">{suggestion}</p>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" size="sm" className="bg-ai text-background hover:bg-ai/90" onClick={() => navigate('/dashboard/resume')}>
+              Apply to resume
+            </Button>
+            <Button type="button" size="sm" variant="ghost" onClick={() => navigate('/dashboard/ai')}>
+              Why this?
+            </Button>
+          </div>
+        </SectionCard>
 
-          <SectionCard title="Goals & activity">
-            <div className="mb-3 space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <div className="min-w-0 flex-1">
-                  <strong className="text-sm">ATS ≥ 85</strong>
-                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-elevated">
-                    <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, atsScore)}%` }} />
-                  </div>
-                </div>
-                <span className="font-mono text-xs text-muted-foreground">{atsScore || '—'}</span>
+        <SectionCard
+          className="order-3 min-w-0 lg:col-start-1 lg:row-start-2"
+          title="Upcoming interviews"
+          action={<Link to="/dashboard/applications" className="text-xs font-medium text-primary">CRM</Link>}
+        >
+          {upcomingInterviews.length === 0 ? (
+            <div className="space-y-3">
+              <p className="m-0 text-sm text-muted-foreground">No interviews scheduled yet.</p>
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" size="sm" variant="outline" onClick={() => navigate('/dashboard/applications')}>
+                  Open applications
+                </Button>
+                <Button type="button" size="sm" onClick={() => navigate('/dashboard/interview')}>
+                  Start prep
+                </Button>
               </div>
             </div>
-            <TimelineList items={activityItems.slice(0, 3)} />
-          </SectionCard>
-        </div>
-
-        <div className="flex min-w-0 flex-col gap-3">
-          <SectionCard title="Suggested" action={<span className="rounded-md bg-ai/15 px-1.5 py-0.5 text-[10px] font-medium text-ai">AI</span>}>
-            <p className="mt-0 mb-3 text-sm leading-relaxed font-medium">{suggestion}</p>
-            <div className="flex flex-wrap gap-2">
-              <Button type="button" size="sm" className="bg-ai text-background hover:bg-ai/90" onClick={() => navigate('/dashboard/resume')}>
-                Apply to resume
-              </Button>
-              <Button type="button" size="sm" variant="ghost" onClick={() => navigate('/dashboard/ai')}>
-                Why this?
-              </Button>
-            </div>
-          </SectionCard>
-
-          <SectionCard
-            title="Job matches"
-            action={<Link to="/dashboard/jobs" className="text-xs font-medium text-primary">See all</Link>}
-          >
-            {!readyForMatches ? (
-              <p className="text-sm text-muted-foreground">Add skills on your profile to unlock matches.</p>
-            ) : topMatches?.length ? (
-              <div className="space-y-1">
-                {topMatches.slice(0, 3).map((j) => (
-                  <div key={j.id}>
-                    <JobMiniRow job={j} onClick={() => navigate(`/dashboard/jobs/${encodeURIComponent(j.id)}`)} />
-                    {j.matchScore != null && <MatchBar value={j.matchScore} />}
+          ) : (
+            <ul className="space-y-2">
+              {upcomingInterviews.map((a) => (
+                <li key={a.id} className="flex items-center gap-2.5 rounded-lg border border-border px-2.5 py-2">
+                  <AppIcon name="buildings" className="size-4 shrink-0 text-muted-foreground" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[0.8rem] font-semibold">{a.role} · {a.company}</p>
+                    <p className="truncate text-[0.68rem] text-muted-foreground">
+                      {a.nextStep || a.interviewDate || 'In pipeline'}
+                    </p>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">No matches yet.</p>
-            )}
-          </SectionCard>
-
-          <SectionCard
-            title="Learning"
-            action={(
-              <Button type="button" size="sm" variant="outline" onClick={() => navigate('/dashboard/learning')}>
-                Continue
-              </Button>
-            )}
-          >
-            {gap ? (
-              <>
-                <strong className="text-sm">{gap.targetRole || 'Skill path'}</strong>
-                <div className="mt-2 h-2 overflow-hidden rounded-full bg-elevated">
-                  <div className="h-full rounded-full bg-primary" style={{ width: `${gap.coverage || 0}%` }} />
-                </div>
-                <p className="mt-2 mb-0 text-xs text-muted-foreground">
-                  Coverage {gap.coverage || 0}%
-                  {gap.missingSkills?.[0] ? ` · next: ${skillLabel(gap.missingSkills[0])}` : ''}
-                </p>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground">Open Learning to start a path.</p>
-            )}
-          </SectionCard>
-
-          {showStreak && (
-            <SectionCard title="Streak & rewards" action={<span className="rounded-md border border-border px-1.5 py-0.5 text-[10px]">Level {gamification.level}</span>}>
-              <StreakCard
-                streak={gamification.streak}
-                bestStreak={gamification.bestStreak}
-                level={gamification.level}
-                xp={gamification.xpWeek || xpMeta.xpInLevel}
-                xpToNext={xpMeta.xpToNext}
-                weekActive={gamification.weekActive}
-                badges={badgeDisplay}
-              />
-            </SectionCard>
+                  <Button type="button" size="sm" variant="outline" onClick={() => navigate('/dashboard/interview')}>
+                    Prep
+                  </Button>
+                </li>
+              ))}
+            </ul>
           )}
-        </div>
+        </SectionCard>
+
+        <SectionCard
+          className="order-4 min-w-0 lg:col-start-2 lg:row-start-2"
+          title="Job matches"
+          action={<Link to="/dashboard/jobs" className="text-xs font-medium text-primary">See all</Link>}
+        >
+          {!readyForMatches ? (
+            <div className="space-y-3">
+              <p className="m-0 text-sm text-muted-foreground">Add skills on your profile to unlock matches.</p>
+              <Button type="button" size="sm" onClick={() => navigate('/dashboard/profile')}>
+                Add skills
+              </Button>
+            </div>
+          ) : topMatches?.length ? (
+            <div className="space-y-1">
+              {topMatches.slice(0, 3).map((j) => (
+                <div key={j.id}>
+                  <JobMiniRow job={j} onClick={() => navigate(`/dashboard/jobs/${encodeURIComponent(j.id)}`)} />
+                  {j.matchScore != null && <MatchBar value={j.matchScore} />}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="m-0 text-sm text-muted-foreground">No matches yet.</p>
+              <Button type="button" size="sm" variant="outline" onClick={() => navigate('/dashboard/jobs')}>
+                Browse jobs
+              </Button>
+            </div>
+          )}
+        </SectionCard>
+
+        <SectionCard className="order-5 min-w-0 lg:col-start-1 lg:row-start-3" title="Goals & activity">
+          <div className="mb-3 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <strong className="text-sm">ATS ≥ 85</strong>
+                <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-elevated">
+                  <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, atsScore)}%` }} />
+                </div>
+              </div>
+              <span className="font-mono text-xs text-muted-foreground">{atsScore || '—'}</span>
+            </div>
+          </div>
+          <TimelineList items={activityItems.slice(0, 3)} />
+        </SectionCard>
+
+        <SectionCard
+          className="order-6 min-w-0 lg:col-start-2 lg:row-start-3"
+          title="Learning"
+          action={(
+            <Button type="button" size="sm" variant="outline" onClick={() => navigate('/dashboard/learning')}>
+              Continue
+            </Button>
+          )}
+        >
+          {gap ? (
+            <>
+              <strong className="text-sm">{gap.targetRole || 'Skill path'}</strong>
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-elevated">
+                <div className="h-full rounded-full bg-primary" style={{ width: `${gap.coverage || 0}%` }} />
+              </div>
+              <p className="mt-2 mb-0 text-xs text-muted-foreground">
+                Coverage {gap.coverage || 0}%
+                {gap.missingSkills?.[0] ? ` · next: ${skillLabel(gap.missingSkills[0])}` : ''}
+              </p>
+            </>
+          ) : (
+            <div className="space-y-3">
+              <p className="m-0 text-sm text-muted-foreground">Start a learning path to close skill gaps for your target role.</p>
+              <Button type="button" size="sm" onClick={() => navigate('/dashboard/learning')}>
+                Open Learning
+              </Button>
+            </div>
+          )}
+        </SectionCard>
+
+        {showStreak && (
+          <SectionCard
+            className="order-7 min-w-0 lg:col-start-2 lg:row-start-4"
+            title="Streak & rewards"
+            action={<span className="rounded-md border border-border px-1.5 py-0.5 text-[10px]">Level {gamification.level}</span>}
+          >
+            <StreakCard
+              streak={gamification.streak}
+              bestStreak={gamification.bestStreak}
+              level={gamification.level}
+              xp={gamification.xpWeek || xpMeta.xpInLevel}
+              xpToNext={xpMeta.xpToNext}
+              weekActive={gamification.weekActive}
+              badges={badgeDisplay}
+            />
+          </SectionCard>
+        )}
       </div>
 
     </div>

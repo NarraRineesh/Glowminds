@@ -22,9 +22,9 @@ export function DashboardCard({
   id,
 }) {
   return (
-    <ShadCard id={id} className={cn('gap-0 py-0', className)} style={style}>
+    <ShadCard id={id} className={cn('w-full min-w-0 gap-0 overflow-hidden py-0', className)} style={style}>
       {(title || action || description) && (
-        <CardHeader className="flex-row items-center justify-between gap-3 border-b py-3">
+        <CardHeader className="flex-row items-center justify-between gap-3 border-b py-2.5 sm:py-3">
           <div className="min-w-0">
             {title && (
               <CardTitle className="flex items-center gap-2 text-sm font-semibold">
@@ -37,7 +37,7 @@ export function DashboardCard({
           {action && <div className="shrink-0">{action}</div>}
         </CardHeader>
       )}
-      <CardContent className={cn('py-4', contentClassName)}>{children}</CardContent>
+      <CardContent className={cn('min-w-0 py-4', contentClassName)}>{children}</CardContent>
       {footer && <CardFooter>{footer}</CardFooter>}
     </ShadCard>
   )

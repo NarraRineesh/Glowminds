@@ -30,7 +30,7 @@ export function ResumeBuilderRoot(props: ResumeBuilderRootProps) {
 
 	useEffect(() => {
 		setEmbedConfig(config);
-	}, [resumeIdsKey, config.theme, themeTokensKey, config.user?.uid, isProKey, config.onResumeSave, config.onResumeDelete]);
+	}, [resumeIdsKey, config.theme, themeTokensKey, config.user?.uid, isProKey, config.onResumeSave, config.onResumeDelete, config.onSyncFromProfile]);
 
 	useEffect(() => {
 		if (!router) return;

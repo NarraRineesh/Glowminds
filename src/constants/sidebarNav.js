@@ -57,4 +57,4 @@ export const SIDEBAR_GROUPS = [
 ]
 
 /** Bump when group ids change so open/closed prefs don't leak across IA. */
-export const SIDEBAR_GROUPS_STORAGE_KEY = 'gm_sidebar_groups_v5'
+export const SIDEBAR_GROUPS_STORAGE_KEY = 'gm_sidebar_groups_v7'

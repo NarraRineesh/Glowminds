@@ -140,8 +140,8 @@ function BuilderLayoutShell({ initialLayout }: BuilderLayoutShellProps) {
 	const artboardSize = isMobile ? "100%" : `${initialLayout.artboard}%`;
 
 	const embedded = isEmbedded();
-	const shellHeight = embedded ? "h-full min-h-0" : "h-svh";
-	const panelHeight = embedded ? "h-full min-h-0" : "h-[calc(100svh-3.5rem)]";
+	const shellHeight = embedded ? "h-full min-h-0" : "h-dvh";
+	const panelHeight = embedded ? "h-full min-h-0" : "h-[calc(100dvh-3.5rem)]";
 
 	return (
 		<div className={cn("flex flex-col", shellHeight)}>
@@ -165,7 +165,7 @@ function BuilderLayoutShell({ initialLayout }: BuilderLayoutShellProps) {
 				>
 					<BuilderSidebarLeft />
 				</ResizablePanel>
-				<ResizableSeparator withHandle className="z-50 border-s" />
+				<ResizableSeparator withHandle className={cn("z-50 border-s", isMobile && "hidden")} />
 				<ResizablePanel
 					id="artboard"
 					defaultSize={artboardSize}
@@ -173,7 +173,7 @@ function BuilderLayoutShell({ initialLayout }: BuilderLayoutShellProps) {
 				>
 					<Outlet />
 				</ResizablePanel>
-				<ResizableSeparator withHandle className="z-50 border-e" />
+				<ResizableSeparator withHandle className={cn("z-50 border-e", isMobile && "hidden")} />
 				<ResizablePanel
 					collapsible
 					id="right"
