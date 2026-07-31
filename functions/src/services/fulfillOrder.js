@@ -3,6 +3,7 @@ import { PRO_TIER } from "../constants/plans.js";
 import { ApiError } from "../middleware/errors.js";
 import {
   billingPlansFromConfig,
+  findPlan,
   getPricingConfig,
 } from "./pricingConfig.js";
 import { grantProCredits } from "./creditService.js";
@@ -14,8 +15,6 @@ import {
 
 /**
  * Idempotent Razorpay order fulfillment — shared by verify-payment and webhook.
- *
- * @param {{ uid: string, order: object, payment: object, source?: string, signature?: string }} params
  */
 export async function fulfillOrder({ uid, order, payment, source = "verify", signature = null }) {
   if (!uid || !order?.id || !payment?.id) {
@@ -43,8 +42,13 @@ export async function fulfillOrder({ uid, order, payment, source = "verify", sig
 
   const pricing = await getPricingConfig();
   const PLANS = billingPlansFromConfig(pricing);
-  const plan = order.notes?.plan || "monthly";
-  const planConfig = PLANS[plan] || PLANS.monthly;
+  const planRef = order.notes?.plan || "";
+  const planConfig = PLANS[planRef] || null;
+  const planRow = findPlan(pricing, planRef);
+
+  if (!planConfig || !planRow || !(planRow.amountPaise > 0)) {
+    throw new ApiError("invalid-argument", "Invalid or unpaid plan");
+  }
 
   if (Number(order.amount) !== planConfig.amount) {
     throw new ApiError("permission-denied", "Order amount does not match current plan pricing");
@@ -54,15 +58,19 @@ export async function fulfillOrder({ uid, order, payment, source = "verify", sig
   const endDate = new Date(now.getTime() + planConfig.durationDays * 86400_000);
   const currency = pricing.currency || "INR";
   const currencySymbol = pricing.currencySymbol || "₹";
+  const planId = planRow.id;
+  const planKey = planRow.key || planId;
 
   const subscription = {
     userId: uid,
-    plan,
-    tier: PRO_TIER,
+    plan: planId,
+    planKey,
+    tier: planRow.tier || PRO_TIER,
     status: "active",
-    currentPlanId: plan,
+    currentPlanId: planId,
+    currentPlanKey: planKey,
     currentPlanLabel: planConfig.label,
-    currentPlanPeriod: plan === "yearly" ? "/year" : "/month",
+    currentPlanPeriod: planRow.period || null,
     currentPlanAmountPaise: planConfig.amount,
     currency,
     currencySymbol,
@@ -98,7 +106,8 @@ export async function fulfillOrder({ uid, order, payment, source = "verify", sig
 
   await subscriptionPaymentRef(uid, payment.id).set({
     userId: uid,
-    planId: plan,
+    planId,
+    planKey,
     planLabel: planConfig.label,
     amountPaise,
     currency,
@@ -119,7 +128,8 @@ export async function fulfillOrder({ uid, order, payment, source = "verify", sig
   return {
     success: true,
     alreadyFulfilled: false,
-    plan,
+    plan: planId,
+    planKey,
     endDate: endDate.toISOString(),
     subscription: {
       ...subscription,

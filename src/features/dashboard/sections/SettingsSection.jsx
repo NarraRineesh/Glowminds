@@ -18,8 +18,16 @@ import useProfileStore from '@/store/profileStore'
 import useTheme from '@/hooks/useTheme'
 import useIsPro from '@/hooks/useIsPro'
 import useUpgradePro from '@/hooks/useUpgradePro'
-import usePricingConfig, { useYearlyPriceLabel } from '@/hooks/usePricingConfig'
+import usePricingConfig from '@/hooks/usePricingConfig'
 import useEntitlements from '@/hooks/useEntitlements'
+import {
+  cardFeaturesAsChecklist,
+  highlightedPlan,
+  planBillingCadence,
+  planPriceLabel,
+  resolveUserPlan,
+  visiblePlans,
+} from '@/constants/pricingDefaults'
 import { formatSubscriptionEndDate, isActiveProSubscription } from '@/constants/plans'
 import { sendPasswordResetEmail } from 'firebase/auth'
 import { auth } from '@/services/firebase'
@@ -76,10 +84,9 @@ function formatSubDate(value) {
   return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
-function planLabel(sub, plans) {
+function planLabel(sub, currentPlan) {
+  if (currentPlan?.label) return currentPlan.label
   if (!sub) return null
-  const key = sub.plan === 'yearly' || sub.plan === 'monthly' ? sub.plan : null
-  if (key && plans?.[key]) return plans[key].label
   if (sub.tier === 'pro') return 'Glowminds Pro'
   return null
 }
@@ -127,7 +134,9 @@ function BillingDetail({ label, value }) {
   )
 }
 
-function SettingsUpgradeBanner({ upgradeLoading, startUpgrade, yearlyPriceLabel, onGoToBilling }) {
+function SettingsUpgradeBanner({ upgradeLoading, startUpgrade, upgradePlan, onGoToBilling }) {
+  const price = planPriceLabel(upgradePlan) || 'Pro'
+  const highlight = (upgradePlan?.cardFeatures || []).find((f) => f.badge)?.text
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-primary/20 bg-primary/5 px-3 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:px-4">
       <div className="flex min-w-0 items-center gap-3">
@@ -135,9 +144,13 @@ function SettingsUpgradeBanner({ upgradeLoading, startUpgrade, yearlyPriceLabel,
           <AppIcon name="sparkle" className="size-4 text-primary" />
         </span>
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-foreground">Unlock Glowminds Pro</p>
+          <p className="text-sm font-semibold text-foreground">
+            Unlock {upgradePlan?.label || 'Glowminds Pro'}
+          </p>
           <p className="text-xs text-muted-foreground">
-            {upgradeLoading ? 'Opening checkout…' : `${yearlyPriceLabel} · Unlimited resumes, AI tools & more`}
+            {upgradeLoading
+              ? 'Opening checkout…'
+              : `${price}${highlight ? ` · ${highlight}` : upgradePlan?.desc ? ` · ${upgradePlan.desc}` : ''}`}
           </p>
         </div>
       </div>
@@ -146,8 +159,8 @@ function SettingsUpgradeBanner({ upgradeLoading, startUpgrade, yearlyPriceLabel,
           type="button"
           size="sm"
           className="min-h-10 w-full sm:min-h-8 sm:w-auto"
-          disabled={upgradeLoading}
-          onClick={() => void startUpgrade({ plan: 'yearly' })}
+          disabled={upgradeLoading || !upgradePlan}
+          onClick={() => void startUpgrade({ plan: upgradePlan?.id || upgradePlan?.key || 'yearly' })}
         >
           {upgradeLoading ? 'Processing…' : 'Upgrade'}
         </Button>
@@ -202,16 +215,6 @@ function SettingsTabPanel({ activeSection, children }) {
       </AnimatePresence>
     </section>
   )
-}
-
-function comparisonCellText(row, tier) {
-  if ('freeIncluded' in row || 'proIncluded' in row) {
-    const included = tier === 'free' ? row.freeIncluded : row.proIncluded
-    const detail = tier === 'free' ? row.freeDetail : row.proDetail
-    if (detail) return detail
-    return included ? 'Included' : '—'
-  }
-  return tier === 'free' ? row.free : row.pro
 }
 
 function UsagePanel({ uid }) {
@@ -289,27 +292,32 @@ function BillingPanel({
   upgradeLoading,
   startUpgrade,
   navigate,
-  plans,
-  freeFeatures,
-  proFeatures,
-  pricingComparison,
-  yearlyPriceLabel,
+  currentPlan,
+  upgradePlans,
   billingBlurb,
   termsBillingText,
   onCancelSubscription,
   cancelling,
 }) {
-  const planTitle = isPro ? 'Glowminds Pro' : 'Free'
+  const planTitle = currentPlan?.label || (isPro ? 'Glowminds Pro' : 'Free')
+  const priceLabel = planPriceLabel(currentPlan)
+  const cadence = planBillingCadence(currentPlan)
+  const includedFeatures = cardFeaturesAsChecklist(currentPlan)
+  const includedSummary =
+    currentPlan?.desc
+    || (typeof currentPlan?.aiCreditsPerPeriod === 'number'
+      ? `${planTitle} includes ${currentPlan.aiCreditsPerPeriod} AI credits per billing period.`
+      : null)
 
-  const billingPlan = planLabel(subscription, plans)
+  const billingPlan = planLabel(subscription, currentPlan)
   const startLabel = formatSubDate(subscription?.startDate)
   const paymentRef = subscription?.razorpayPaymentId
     ? `···${String(subscription.razorpayPaymentId).slice(-8)}`
     : null
 
-  const includedSummary = isPro
-    ? 'Pro includes 100 AI credits every month, unlimited resumes, unlimited application tracking, and premium career tools.'
-    : 'Free includes job search, 1 ATS resume, up to 10 application tracks, and 10 AI credits every month.'
+  const primaryUpgrade = upgradePlans.find((p) => p.highlighted) || upgradePlans[0] || null
+  const isLifetime = String(currentPlan?.key || '').toLowerCase() === 'lifetime'
+    || String(currentPlan?.period || '').toLowerCase().includes('life')
 
   return (
     <div className="flex flex-col gap-4">
@@ -319,30 +327,50 @@ function BillingPanel({
             <div>
               <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Current plan</p>
               <p className="mt-1 text-lg font-black text-foreground">{planTitle}</p>
-              {proActive && renewalLabel && (
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {subscription?.status === 'active' ? 'Renews' : 'Expires'} on {renewalLabel}
-                  {subscription?.plan === 'yearly' ? ' · Yearly billing' : subscription?.plan === 'monthly' ? ' · Monthly billing' : ''}
+              {(priceLabel || cadence) && (
+                <p className="mt-1 text-sm font-medium text-foreground">
+                  {[priceLabel || null, cadence].filter(Boolean).join(' · ')}
                 </p>
               )}
-              <p className="mt-1 text-sm text-muted-foreground">{includedSummary}</p>
+              {proActive && renewalLabel && !isLifetime && (
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {subscription?.status === 'active' ? 'Renews' : 'Expires'} on {renewalLabel}
+                </p>
+              )}
+              {includedSummary && (
+                <p className="mt-1 text-sm text-muted-foreground">{includedSummary}</p>
+              )}
               {isPro && !proActive && (
-                <p className="mt-1 text-sm text-muted-foreground">Your subscription is not active. Upgrade to restore Pro features.</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Your subscription is not active. Upgrade to restore plan features.
+                </p>
               )}
             </div>
             {isPro && (
               <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-500">
-                Pro active
+                {proActive ? 'Active' : 'Inactive'}
               </span>
             )}
           </div>
         </div>
 
-        {!isPro && (
+        {!isPro && upgradePlans.length > 0 && (
           <div className="flex flex-wrap gap-2">
-            <Button disabled={upgradeLoading} onClick={() => void startUpgrade({ plan: 'yearly' })}>
-              {upgradeLoading ? 'Opening checkout…' : `Upgrade — ${yearlyPriceLabel}`}
-            </Button>
+            {upgradePlans.map((plan) => {
+              const planRef = plan.id || plan.key
+              const label = planPriceLabel(plan) || plan.label
+              const isPrimary = primaryUpgrade && (primaryUpgrade.id === plan.id || primaryUpgrade.key === plan.key)
+              return (
+                <Button
+                  key={planRef}
+                  variant={isPrimary ? 'default' : 'outline'}
+                  disabled={upgradeLoading}
+                  onClick={() => void startUpgrade({ plan: planRef })}
+                >
+                  {upgradeLoading ? 'Opening checkout…' : `${plan.label || 'Upgrade'} — ${label}`}
+                </Button>
+              )
+            })}
             <Button variant="outline" onClick={() => navigate('/pricing')}>
               View full pricing
             </Button>
@@ -350,36 +378,70 @@ function BillingPanel({
         )}
       </DashboardCard>
 
-      <DashboardCard titleIcon="sparkle" title={isPro ? 'Included in your plan' : 'Included on Free'} contentClassName="flex flex-col gap-3">
-        <FeatureChecklist items={isPro ? proFeatures : freeFeatures} variant={isPro ? 'pro' : 'included'} />
+      <DashboardCard
+        titleIcon="sparkle"
+        title="Included in your plan"
+        contentClassName="flex flex-col gap-3"
+      >
+        {includedFeatures.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Plan features will appear here once pricing config loads.{' '}
+            <Link to="/pricing" className="font-semibold text-primary hover:underline">See pricing</Link>.
+          </p>
+        ) : (
+          <FeatureChecklist items={includedFeatures} variant={isPro ? 'pro' : 'included'} />
+        )}
       </DashboardCard>
 
-      {!isPro && (
-        <DashboardCard titleIcon="lightning" title="Upgrade to Pro" contentClassName="flex flex-col gap-4">
+      {!isPro && upgradePlans.length > 0 && (
+        <DashboardCard titleIcon="lightning" title="Upgrade options" contentClassName="flex flex-col gap-4">
           <p className="text-sm text-muted-foreground">
             {billingBlurb || 'Secure checkout via Razorpay (UPI, cards, net banking).'}
           </p>
-          <div className="overflow-x-auto rounded-xl border border-border">
-            <table className="w-full min-w-[280px] text-left text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/60">
-                  <th className="px-2 py-2 text-[0.65rem] font-bold uppercase tracking-wide text-muted-foreground sm:px-3 sm:text-xs">Feature</th>
-                  <th className="px-2 py-2 text-[0.65rem] font-bold uppercase tracking-wide text-muted-foreground sm:px-3 sm:text-xs">Free</th>
-                  <th className="px-2 py-2 text-[0.65rem] font-bold uppercase tracking-wide text-primary sm:px-3 sm:text-xs">Pro</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pricingComparison.map((row) => (
-                  <tr key={row.feature} className="border-b border-border/60 last:border-0">
-                    <td className="px-2 py-2 text-xs font-medium text-foreground sm:px-3 sm:text-sm">{row.feature}</td>
-                    <td className="px-2 py-2 text-xs text-muted-foreground sm:px-3 sm:text-sm">{comparisonCellText(row, 'free')}</td>
-                    <td className="px-2 py-2 text-xs font-medium text-primary sm:px-3 sm:text-sm">{comparisonCellText(row, 'pro')}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <FeatureChecklist items={proFeatures.filter((f) => f.highlight)} variant="pro" />
+          <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border">
+            {upgradePlans.map((plan) => {
+              const planRef = plan.id || plan.key
+              const highlights = cardFeaturesAsChecklist(plan).filter((f) => f.highlight || f.included)
+              return (
+                <li key={planRef} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-bold text-foreground">{plan.label}</p>
+                      {plan.badge && (
+                        <span className="rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[0.65rem] font-bold text-primary">
+                          {plan.badge}
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-0.5 text-sm font-semibold text-primary">{planPriceLabel(plan)}</p>
+                    {plan.desc && <p className="mt-1 text-xs text-muted-foreground">{plan.desc}</p>}
+                    {highlights.length > 0 && (
+                      <ul className="mt-2 space-y-1">
+                        {highlights.slice(0, 4).map((f) => (
+                          <li key={f.text} className="flex items-start gap-2 text-xs text-muted-foreground">
+                            <AppIcon name="check" className="mt-0.5 size-3.5 shrink-0 text-emerald-500" />
+                            <span>{f.text}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  <Button
+                    size="sm"
+                    className="shrink-0 self-start"
+                    disabled={upgradeLoading}
+                    onClick={() => void startUpgrade({ plan: planRef })}
+                  >
+                    {upgradeLoading ? 'Opening…' : 'Choose plan'}
+                  </Button>
+                </li>
+              )
+            })}
+          </ul>
+          <p className="text-xs text-muted-foreground">
+            Full feature comparison is on the{' '}
+            <Link to="/pricing" className="font-semibold text-primary hover:underline">pricing page</Link>.
+          </p>
         </DashboardCard>
       )}
 
@@ -388,7 +450,7 @@ function BillingPanel({
           <p className="font-medium text-foreground">Billing & cancellation</p>
           <p>
             {termsBillingText ||
-              'Pro is billed through Razorpay. Cancel before your renewal date to avoid the next charge; you keep access until the period ends.'}
+              'Paid plans are billed through Razorpay. Cancel before your renewal date to avoid the next charge; you keep access until the period ends.'}
           </p>
           <p>
             Refunds follow our{' '}
@@ -401,18 +463,22 @@ function BillingPanel({
       {proActive && (
         <DashboardCard titleIcon="credit-card" title="Subscription details" contentClassName="flex flex-col gap-3">
           <BillingDetail label="Billing plan" value={billingPlan} />
+          <BillingDetail label="Price" value={priceLabel || null} />
+          <BillingDetail label="Cadence" value={cadence} />
           <BillingDetail label="Status" value={subscription?.status ? String(subscription.status) : null} />
           <BillingDetail label="Started" value={startLabel} />
-          <BillingDetail label={subscription?.status === 'active' ? 'Next renewal' : 'Access until'} value={renewalLabel} />
+          {!isLifetime && (
+            <BillingDetail label={subscription?.status === 'active' ? 'Next renewal' : 'Access until'} value={renewalLabel} />
+          )}
           <BillingDetail label="Payment reference" value={paymentRef} />
           {subscription?.status === 'cancelled' || subscription?.cancelAtPeriodEnd ? (
             <p className="border-t border-border pt-3 text-sm text-muted-foreground">
-              Cancellation scheduled. You keep Pro access until {renewalLabel || 'the end of your billing period'}.
+              Cancellation scheduled. You keep access until {renewalLabel || 'the end of your billing period'}.
             </p>
-          ) : (
+          ) : !isLifetime ? (
             <div className="flex flex-col gap-2 border-t border-border pt-3">
               <p className="text-sm text-muted-foreground">
-                Cancel anytime. You keep Pro access until the end of your billing period.
+                Cancel anytime. You keep access until the end of your billing period.
               </p>
               <Button
                 variant="outline"
@@ -424,7 +490,7 @@ function BillingPanel({
                 {cancelling ? 'Cancelling…' : 'Cancel subscription'}
               </Button>
             </div>
-          )}
+          ) : null}
         </DashboardCard>
       )}
 
@@ -438,12 +504,8 @@ export default function SettingsSection() {
   const isPro = useIsPro()
   const { startUpgrade, loading: upgradeLoading } = useUpgradePro()
   const navigate = useNavigate()
-  const yearlyPriceLabel = useYearlyPriceLabel()
   const {
-    plans,
-    freeFeatures,
-    proFeatures,
-    pricingComparison,
+    config,
     marketing,
   } = usePricingConfig()
   const { entitlements, refresh: refreshEntitlements } = useEntitlements()
@@ -501,6 +563,18 @@ export default function SettingsSection() {
   const subscription = entitlements?.subscription
   const proActive = isActiveProSubscription(subscription)
   const renewalLabel = formatSubscriptionEndDate(subscription)
+  // Prefer server entitlements.plans (same source as access) when present.
+  const billingConfig = Array.isArray(entitlements?.plans) && entitlements.plans.length
+    ? { ...config, plans: entitlements.plans }
+    : config
+  const currentPlan = resolveUserPlan(billingConfig, subscription, {
+    isPro,
+    planId: entitlements?.planId || null,
+  })
+  const upgradePlan = highlightedPlan(billingConfig)
+  const upgradePlans = visiblePlans(billingConfig).filter(
+    (p) => p && p.amountPaise > 0 && (p.tier === 'pro' || !p.tier),
+  )
 
   const sendPasswordReset = async () => {
     const email = user?.email
@@ -583,7 +657,7 @@ export default function SettingsSection() {
           <SettingsUpgradeBanner
             upgradeLoading={upgradeLoading}
             startUpgrade={startUpgrade}
-            yearlyPriceLabel={yearlyPriceLabel}
+            upgradePlan={upgradePlan}
             onGoToBilling={() => setActive('billing')}
           />
         )}
@@ -737,11 +811,8 @@ export default function SettingsSection() {
               upgradeLoading={upgradeLoading}
               startUpgrade={startUpgrade}
               navigate={navigate}
-              plans={plans}
-              freeFeatures={freeFeatures}
-              proFeatures={proFeatures}
-              pricingComparison={pricingComparison}
-              yearlyPriceLabel={yearlyPriceLabel}
+              currentPlan={currentPlan}
+              upgradePlans={upgradePlans}
               billingBlurb={marketing?.billingBlurb}
               termsBillingText={marketing?.termsBillingText}
               onCancelSubscription={cancelSubscription}

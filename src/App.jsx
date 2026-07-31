@@ -54,6 +54,8 @@ const AdminTokenUsage = lazy(() => import('@/features/admin/AdminTokenUsage'))
 const AdminCreditUsage = lazy(() => import('@/features/admin/AdminCreditUsage'))
 const AdminMessages = lazy(() => import('@/features/admin/AdminMessages'))
 const AdminPricing = lazy(() => import('@/features/admin/AdminPricing'))
+const AdminFeatureComparison = lazy(() => import('@/features/admin/AdminFeatureComparison'))
+const AdminPricingFaqs = lazy(() => import('@/features/admin/AdminPricingFaqs'))
 const AdminJobs = lazy(() => import('@/features/admin/AdminJobs'))
 const DesignLabShell = lazy(() => import('@/features/design-lab/DesignLabShell'))
 const DesignIndex = lazy(() => import('@/features/design-lab/DesignIndex'))
@@ -210,6 +212,8 @@ function AnimatedRoutes() {
         <Route path="usage/credits" element={<Suspense fallback={<PageLoader />}><AdminCreditUsage /></Suspense>} />
         <Route path="messages" element={<Suspense fallback={<PageLoader />}><AdminMessages /></Suspense>} />
         <Route path="pricing" element={<Suspense fallback={<PageLoader />}><AdminPricing /></Suspense>} />
+        <Route path="feature-comparison" element={<Suspense fallback={<PageLoader />}><AdminFeatureComparison /></Suspense>} />
+        <Route path="pricing-faqs" element={<Suspense fallback={<PageLoader />}><AdminPricingFaqs /></Suspense>} />
         <Route path="jobs" element={<Suspense fallback={<PageLoader />}><AdminJobs /></Suspense>} />
       </Route>
       {/* UX Revamp Design Lab — DEV or localStorage.gm_design_lab=1; no product UI */}

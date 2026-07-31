@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { createHash } from "crypto";
+import { requireFeature } from "../../middleware/requireFeature.js";
 import { requireAuth } from "../../middleware/auth.js";
-import { requireCredits } from "../../middleware/requireCredits.js";
 import { ApiError } from "../../middleware/errors.js";
 import { completionTask } from "../../services/aiClient.js";
 import { stripJsonFences } from "../../utils/stripJsonFences.js";
@@ -30,7 +30,7 @@ function sanitizeProfileForReview(profile) {
   return out;
 }
 
-router.post("/profile-review", requireAuth, requireCredits("profileReview"), async (req, res, next) => {
+router.post("/profile-review", requireAuth, requireFeature("profileReview"), async (req, res, next) => {
   try {
     const { profile = {} } = req.body || {};
     if (!profile || Object.keys(profile).length === 0) {

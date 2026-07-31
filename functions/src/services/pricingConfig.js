@@ -2,10 +2,15 @@ import { admin, getFirestore } from "../config/firebase.js";
 import { ApiError } from "../middleware/errors.js";
 import { DEFAULT_PRICING_CONFIG } from "../constants/pricingDefaults.js";
 import {
+  FREE_CREDIT_FEATURES,
+  PRO_ONLY_CREDIT_FEATURES,
+} from "../constants/featureAccess.js";
+import {
   decryptPricingPayload,
   encryptPricingPayload,
   isPricingEncryptionEnabled,
 } from "../utils/pricingCrypto.js";
+import { ensureHashedId, ensureHashedIds, isHashedId, newHashedId } from "../utils/hashedId.js";
 
 const CACHE_TTL_MS = 60_000;
 let cache = { data: null, expiresAt: 0 };
@@ -14,90 +19,212 @@ function cloneDefaults() {
   return structuredClone(DEFAULT_PRICING_CONFIG);
 }
 
-function formatDisplayPrice(symbol, amountInr) {
-  return `${symbol}${amountInr}`;
+function toNonNegativeInt(value) {
+  if (value == null || value === "") return null;
+  const n = typeof value === "number" ? value : Number.parseInt(String(value), 10);
+  if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0) return null;
+  return n;
+}
+
+function toIntOrNegOne(value) {
+  if (value == null || value === "") return null;
+  const n = typeof value === "number" ? value : Number.parseInt(String(value), 10);
+  if (!Number.isFinite(n) || !Number.isInteger(n) || n < -1) return null;
+  return n;
+}
+
+/** Normalize legacy plans map → array. */
+function coercePlansArray(rawPlans, basePlans) {
+  if (Array.isArray(rawPlans) && rawPlans.length) {
+    return rawPlans.map((p) => ensureHashedId({ ...p }));
+  }
+  if (rawPlans && typeof rawPlans === "object") {
+    const fromMap = Object.entries(rawPlans).map(([key, plan]) =>
+      ensureHashedId({
+        key: plan?.key || key,
+        ...plan,
+        id: isHashedId(plan?.id) ? plan.id : undefined,
+      }),
+    );
+    if (fromMap.length) return fromMap;
+  }
+  return structuredClone(basePlans);
+}
+
+function migrateCreditPolicies(data, basePolicies) {
+  if (Array.isArray(data?.creditPolicies) && data.creditPolicies.length) {
+    return data.creditPolicies.map((p) => ensureHashedId({ ...p }));
+  }
+
+  const costs = data?.creditCosts || {};
+  const keys = new Set([
+    ...Object.keys(costs),
+    ...PRO_ONLY_CREDIT_FEATURES,
+    ...FREE_CREDIT_FEATURES,
+    ...basePolicies.map((p) => p.key),
+  ]);
+
+  const byKey = new Map(basePolicies.map((p) => [p.key, p]));
+  const out = [];
+  for (const key of keys) {
+    const base = byKey.get(key);
+    const access = PRO_ONLY_CREDIT_FEATURES.has(key)
+      ? "pro"
+      : FREE_CREDIT_FEATURES.has(key)
+        ? "free"
+        : base?.access || "pro";
+    const creditCost =
+      costs[key] != null ? Number(costs[key]) || 0 : base?.creditCost ?? 0;
+    out.push(
+      ensureHashedId({
+        ...(base || {}),
+        key,
+        label: base?.label || key,
+        enabled: base?.enabled !== false,
+        access,
+        creditCost,
+        usageLimitPerPeriod: base?.usageLimitPerPeriod || {
+          free: access === "pro" ? 0 : -1,
+          pro: -1,
+        },
+      }),
+    );
+  }
+  return out.length ? out : structuredClone(basePolicies);
+}
+
+function deriveLegacyViews(config) {
+  const plans = Array.isArray(config.plans) ? config.plans : [];
+  const freePlan = plans.find((p) => p.key === "free" || p.tier === "free") || plans.find((p) => !p.amountPaise);
+  const proPlan = plans.find((p) => p.tier === "pro" && p.amountPaise > 0) || plans.find((p) => p.key === "yearly");
+
+  config.freeLimits = {
+    applications: freePlan?.limits?.applications ?? 10,
+    resumes: freePlan?.limits?.resumes ?? 1,
+    aiCredits: freePlan?.aiCreditsPerPeriod ?? 10,
+    template: freePlan?.limits?.template ?? "onyx",
+  };
+  config.proLimits = {
+    applications: proPlan?.limits?.applications ?? -1,
+    resumes: proPlan?.limits?.resumes ?? -1,
+    aiCreditsPerMonth: proPlan?.aiCreditsPerPeriod ?? 100,
+  };
+
+  const creditCosts = {};
+  for (const policy of config.creditPolicies || []) {
+    if (policy?.key) creditCosts[policy.key] = Number(policy.creditCost) || 0;
+  }
+  config.creditCosts = creditCosts;
+  return config;
+}
+
+function normalizeCardFeatures(list) {
+  if (!Array.isArray(list)) return [];
+  return list.map((f) =>
+    ensureHashedId({
+      text: String(f?.text || ""),
+      included: f?.included !== false,
+      ...(f?.badge ? { badge: String(f.badge) } : {}),
+      ...(f?.id && isHashedId(f.id) ? { id: f.id } : {}),
+    }),
+  );
+}
+
+function normalizePlan(plan, baseByKey = new Map()) {
+  if (!plan || typeof plan !== "object") return null;
+  const key = String(plan.key || plan.id || "plan").slice(0, 64);
+  const base = baseByKey.get(key) || {};
+  const amountPaise = toNonNegativeInt(plan.amountPaise) ?? toNonNegativeInt(base.amountPaise) ?? 0;
+  const durationDays = toNonNegativeInt(plan.durationDays) ?? toNonNegativeInt(base.durationDays) ?? 0;
+  const aiCredits = toNonNegativeInt(plan.aiCreditsPerPeriod) ?? toNonNegativeInt(base.aiCreditsPerPeriod);
+  const cardFeaturesRaw =
+    Array.isArray(plan.cardFeatures) && plan.cardFeatures.length
+      ? plan.cardFeatures
+      : base.cardFeatures;
+  return ensureHashedId({
+    ...base,
+    ...plan,
+    key,
+    label: String(plan.label || base.label || key),
+    amountPaise,
+    durationDays,
+    tier: plan.tier === "pro" || amountPaise > 0 ? (plan.tier || base.tier || "pro") : "free",
+    visible: plan.visible !== false,
+    highlighted: Boolean(plan.highlighted ?? base.highlighted),
+    sortOrder: Number.isFinite(Number(plan.sortOrder))
+      ? Number(plan.sortOrder)
+      : Number(base.sortOrder) || 0,
+    ...(aiCredits != null ? { aiCreditsPerPeriod: aiCredits } : {}),
+    limits: {
+      applications:
+        toIntOrNegOne(plan.limits?.applications) ??
+        toIntOrNegOne(base.limits?.applications) ??
+        (amountPaise > 0 ? -1 : 10),
+      resumes:
+        toIntOrNegOne(plan.limits?.resumes) ??
+        toIntOrNegOne(base.limits?.resumes) ??
+        (amountPaise > 0 ? -1 : 1),
+      template: plan.limits?.template ?? base.limits?.template ?? null,
+    },
+    cardFeatures: normalizeCardFeatures(cardFeaturesRaw),
+  });
+}
+
+function normalizePolicy(policy) {
+  if (!policy || typeof policy !== "object" || !policy.key) return null;
+  const access = ["free", "pro", "disabled"].includes(policy.access) ? policy.access : "pro";
+  return ensureHashedId({
+    ...policy,
+    key: String(policy.key),
+    label: String(policy.label || policy.key),
+    enabled: policy.enabled !== false,
+    access,
+    creditCost: toNonNegativeInt(policy.creditCost) ?? 0,
+    usageLimitPerPeriod: {
+      free: toIntOrNegOne(policy.usageLimitPerPeriod?.free) ?? (access === "pro" ? 0 : -1),
+      pro: toIntOrNegOne(policy.usageLimitPerPeriod?.pro) ?? -1,
+    },
+  });
 }
 
 function syncDerivedPricingFields(config) {
   const symbol = config.currencySymbol || "₹";
-  const yearly = config.plans?.yearly;
-  const monthly = config.plans?.monthly;
-
-  if (yearly?.amountPaise != null) {
-    const yearlyInr = Math.round(yearly.amountPaise / 100);
-    yearly.displayPrice = formatDisplayPrice(symbol, yearlyInr);
-    if (config.pricing?.pro) {
-      config.pricing.pro.price = yearly.displayPrice;
-      config.pricing.pro.period = yearly.period || "/year";
-    }
-    const monthlyEq = Math.max(1, Math.round(yearlyInr / 12));
-    config.marketing = config.marketing || {};
-    if (!config.marketing.monthlyEquivalent) {
-      config.marketing.monthlyEquivalent = `${symbol}${monthlyEq}/month`;
-    }
-    if (!config.marketing.proTagline) {
-      config.marketing.proTagline =
-        `Just ${symbol}${monthlyEq}/month billed yearly — less than a cup of coffee`;
-    }
-    if (!config.marketing.billingBlurb) {
-      config.marketing.billingBlurb =
-        `One payment of ${yearly.displayPrice}${yearly.period || "/year"} — about ${symbol}${monthlyEq}/month. Secure checkout via Razorpay (UPI, cards, net banking).`;
-    }
-    if (!config.marketing.termsBillingText) {
-      config.marketing.termsBillingText =
-        `Pro subscriptions are billed annually at ${yearly.displayPrice}${yearly.period || "/year"}. Payments are processed securely through Razorpay. You can cancel your subscription at any time from your dashboard. Cancellations take effect at the end of the current billing period.`;
+  for (const plan of config.plans || []) {
+    if (plan.amountPaise != null && !plan.displayPrice) {
+      plan.displayPrice = `${symbol}${Math.round(plan.amountPaise / 100)}`;
     }
   }
-
-  if (monthly?.amountPaise != null) {
-    const monthlyInr = Math.round(monthly.amountPaise / 100);
-    monthly.displayPrice = formatDisplayPrice(symbol, monthlyInr);
-  }
-
-  return config;
+  return deriveLegacyViews(config);
 }
 
-function mergeWithDefaults(data) {
+export function mergeWithDefaults(data) {
   const base = cloneDefaults();
   if (!data || typeof data !== "object") return syncDerivedPricingFields(base);
 
-  const merged = {
-    ...base,
-    ...data,
-    plans: {
-      ...base.plans,
-      ...(data.plans || {}),
-      yearly: normalizePlanFields({ ...base.plans.yearly, ...(data.plans?.yearly || {}) }),
-      monthly: normalizePlanFields({ ...base.plans.monthly, ...(data.plans?.monthly || {}) }),
-    },
-    freeLimits: { ...base.freeLimits, ...(data.freeLimits || {}) },
-    proLimits: { ...base.proLimits, ...(data.proLimits || {}) },
-    creditCosts: { ...base.creditCosts, ...(data.creditCosts || {}) },
-    pricing: {
-      free: {
-        ...base.pricing.free,
-        ...(data.pricing?.free || {}),
-        features: base.pricing.free.features,
-      },
-      pro: {
-        ...base.pricing.pro,
-        ...(data.pricing?.pro || {}),
-        features: base.pricing.pro.features,
-      },
-    },
-    marketing: { ...base.marketing, ...(data.marketing || {}) },
-    freeFeatures: base.freeFeatures,
-    proFeatures: base.proFeatures,
-    pricingComparison: base.pricingComparison,
-    pricingFaqs: base.pricingFaqs,
-  };
+  const baseByKey = new Map(base.plans.map((p) => [p.key, p]));
+  let plans = coercePlansArray(data.plans, base.plans)
+    .map((p) => normalizePlan(p, baseByKey))
+    .filter(Boolean);
 
-  if (merged.plans.yearly?.amountPaise === 39900) {
-    merged.plans.yearly = { ...merged.plans.yearly, ...base.plans.yearly };
+  // Ensure default free/monthly/yearly/lifetime keys exist when migrating from 2-plan map.
+  for (const basePlan of base.plans) {
+    if (!plans.some((p) => p.key === basePlan.key)) {
+      plans.push(normalizePlan(basePlan, baseByKey));
+    }
   }
-  if (merged.plans.monthly?.amountPaise === 4900) {
-    merged.plans.monthly = { ...merged.plans.monthly, ...base.plans.monthly };
-  }
+  plans = plans.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+
+  const creditPolicies = migrateCreditPolicies(data, base.creditPolicies)
+    .map(normalizePolicy)
+    .filter(Boolean);
+
+  const merged = {
+    currency: data.currency || base.currency,
+    currencySymbol: data.currencySymbol || base.currencySymbol,
+    plans: plans.length ? plans : base.plans,
+    creditPolicies: creditPolicies.length ? creditPolicies : base.creditPolicies,
+    marketing: { ...base.marketing, ...(data.marketing || {}) },
+  };
 
   return syncDerivedPricingFields(merged);
 }
@@ -155,7 +282,6 @@ function buildStoredPricingDoc(config, { uid, seeded = false } = {}) {
   return { ...config, ...meta };
 }
 
-/** Public API wire format — encrypt JSON when a key is configured. */
 export function pricingConfigForPublicApi(config) {
   if (!isPricingEncryptionEnabled()) {
     return { config };
@@ -184,9 +310,12 @@ export async function getPricingConfig({ fresh = false } = {}) {
     await ref.set(buildStoredPricingDoc(config, { seeded: true }));
   } else {
     const raw = snap.data();
-    config = mergeWithDefaults(pricingFieldsFromDoc(raw));
-    // Re-write plaintext docs as encrypted once a key is configured.
-    if (isPricingEncryptionEnabled() && raw?.encrypted !== true) {
+    const fields = pricingFieldsFromDoc(raw);
+    config = mergeWithDefaults(fields);
+    const legacyPlansMap = fields.plans && !Array.isArray(fields.plans);
+    const missingPolicies = !Array.isArray(fields.creditPolicies);
+    // Persist migrated array shape so hashed ids stay stable.
+    if (legacyPlansMap || missingPolicies || (isPricingEncryptionEnabled() && raw?.encrypted !== true)) {
       await ref.set(buildStoredPricingDoc(config, { uid: raw?.updatedBy || null }));
     }
   }
@@ -195,93 +324,61 @@ export async function getPricingConfig({ fresh = false } = {}) {
   return config;
 }
 
-function toPositiveInt(value) {
-  if (value == null || value === "") return null;
-  const n = typeof value === "number" ? value : Number.parseInt(String(value), 10);
-  if (!Number.isFinite(n) || !Number.isInteger(n) || n <= 0) return null;
-  return n;
-}
-
-function toNonNegativeInt(value) {
-  if (value == null || value === "") return null;
-  const n = typeof value === "number" ? value : Number.parseInt(String(value), 10);
-  if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0) return null;
-  return n;
-}
-
-function normalizePlanFields(plan) {
-  if (!plan || typeof plan !== "object") return plan;
-  const amountPaise = toPositiveInt(plan.amountPaise);
-  const durationDays = toPositiveInt(plan.durationDays);
-  return {
-    ...plan,
-    ...(amountPaise != null ? { amountPaise } : {}),
-    ...(durationDays != null ? { durationDays } : {}),
-  };
-}
-
-function validatePlan(plan, label) {
-  if (!plan || typeof plan !== "object") {
-    throw new ApiError("invalid-argument", `${label} plan is required`);
+function validatePricingConfig(config) {
+  if (!Array.isArray(config.plans) || !config.plans.length) {
+    throw new ApiError("invalid-argument", "plans must be a non-empty array");
   }
-  const amountPaise = toPositiveInt(plan.amountPaise);
-  if (amountPaise == null) {
-    throw new ApiError("invalid-argument", `${label} amountPaise must be a positive integer`);
+  const ids = new Set();
+  const keys = new Set();
+  for (const plan of config.plans) {
+    if (!isHashedId(plan.id)) {
+      throw new ApiError("invalid-argument", `plan id must be 16 hex digits (${plan.key})`);
+    }
+    if (ids.has(plan.id)) throw new ApiError("invalid-argument", `duplicate plan id ${plan.id}`);
+    ids.add(plan.id);
+    if (keys.has(plan.key)) throw new ApiError("invalid-argument", `duplicate plan key ${plan.key}`);
+    keys.add(plan.key);
+    if (plan.amountPaise > 0 && plan.durationDays <= 0) {
+      throw new ApiError("invalid-argument", `paid plan ${plan.key} needs durationDays > 0`);
+    }
   }
-  const durationDays = toPositiveInt(plan.durationDays);
-  if (durationDays == null) {
-    throw new ApiError("invalid-argument", `${label} durationDays must be a positive integer`);
+  if (!Array.isArray(config.creditPolicies)) {
+    throw new ApiError("invalid-argument", "creditPolicies must be an array");
+  }
+  const pIds = new Set();
+  const pKeys = new Set();
+  for (const policy of config.creditPolicies) {
+    if (!isHashedId(policy.id)) {
+      throw new ApiError("invalid-argument", `creditPolicy id must be 16 hex digits (${policy.key})`);
+    }
+    if (pIds.has(policy.id)) throw new ApiError("invalid-argument", `duplicate creditPolicy id`);
+    pIds.add(policy.id);
+    if (pKeys.has(policy.key)) throw new ApiError("invalid-argument", `duplicate creditPolicy key ${policy.key}`);
+    pKeys.add(policy.key);
   }
 }
 
-function validatePricingPatch(patch) {
+export async function updatePricingConfig(patch, uid) {
   if (!patch || typeof patch !== "object") {
     throw new ApiError("invalid-argument", "Request body must be an object");
   }
 
-  if (patch.plans) {
-    for (const [id, plan] of Object.entries(patch.plans)) {
-      if (!plan || typeof plan !== "object") continue;
-      if (plan.amountPaise != null && toPositiveInt(plan.amountPaise) == null) {
-        throw new ApiError("invalid-argument", `${id} amountPaise must be a positive integer`);
-      }
-      if (plan.durationDays != null && toPositiveInt(plan.durationDays) == null) {
-        throw new ApiError("invalid-argument", `${id} durationDays must be a positive integer`);
-      }
-    }
-  }
-
-  if (patch.freeLimits) {
-    const { applications, resumes } = patch.freeLimits;
-    if (applications != null && toNonNegativeInt(applications) == null) {
-      throw new ApiError("invalid-argument", "freeLimits.applications must be a non-negative integer");
-    }
-    if (resumes != null && toNonNegativeInt(resumes) == null) {
-      throw new ApiError("invalid-argument", "freeLimits.resumes must be a non-negative integer");
-    }
-  }
-
-  for (const key of ["freeFeatures", "proFeatures", "pricingComparison", "pricingFaqs"]) {
-    if (patch[key] != null && !Array.isArray(patch[key])) {
-      throw new ApiError("invalid-argument", `${key} must be an array`);
-    }
-  }
-}
-
-function validatePricingConfig(config) {
-  validatePlan(config.plans?.yearly, "yearly");
-  validatePlan(config.plans?.monthly, "monthly");
-}
-
-export async function updatePricingConfig(patch, uid) {
-  validatePricingPatch(patch);
+  // Full replace semantics for plans/creditPolicies when provided as arrays.
   const current = await getPricingConfig({ fresh: true });
-  const next = mergeWithDefaults({ ...current, ...patch, plans: {
-    ...current.plans,
-    ...(patch.plans || {}),
-    yearly: normalizePlanFields({ ...current.plans.yearly, ...(patch.plans?.yearly || {}) }),
-    monthly: normalizePlanFields({ ...current.plans.monthly, ...(patch.plans?.monthly || {}) }),
-  } });
+  const next = mergeWithDefaults({
+    ...current,
+    ...patch,
+    plans: patch.plans != null ? patch.plans : current.plans,
+    creditPolicies: patch.creditPolicies != null ? patch.creditPolicies : current.creditPolicies,
+    marketing: { ...(current.marketing || {}), ...(patch.marketing || {}) },
+  });
+
+  // Backfill any missing ids before validate.
+  next.plans = ensureHashedIds(next.plans);
+  next.creditPolicies = ensureHashedIds(next.creditPolicies);
+  for (const plan of next.plans) {
+    plan.cardFeatures = ensureHashedIds(plan.cardFeatures || []);
+  }
 
   validatePricingConfig(next);
 
@@ -295,18 +392,43 @@ export async function updatePricingConfig(patch, uid) {
   return getPricingConfig({ fresh: true });
 }
 
-/** Map pricing config plans to Razorpay `{ amount, label, durationDays }` shape. */
+/** Lookup plan by hashed id or legacy key (yearly/monthly). */
+export function findPlan(config, planIdOrKey) {
+  const plans = config?.plans || [];
+  return (
+    plans.find((p) => p.id === planIdOrKey) ||
+    plans.find((p) => p.key === planIdOrKey) ||
+    null
+  );
+}
+
+export function listPaidPlans(config) {
+  return (config?.plans || []).filter((p) => Number(p.amountPaise) > 0 && p.visible !== false);
+}
+
+/** Map for Razorpay — keyed by hashed id and by key for compat. */
 export function billingPlansFromConfig(config) {
   const cfg = config || DEFAULT_PRICING_CONFIG;
   const out = {};
-  for (const id of ["yearly", "monthly"]) {
-    const p = cfg.plans?.[id];
-    if (!p) continue;
-    out[id] = {
+  for (const p of listPaidPlans(cfg)) {
+    const entry = {
+      id: p.id,
+      key: p.key,
       amount: p.amountPaise,
       label: p.label,
       durationDays: p.durationDays,
+      period: p.period || null,
+      aiCreditsPerPeriod: p.aiCreditsPerPeriod,
+      tier: p.tier || "pro",
     };
+    out[p.id] = entry;
+    if (p.key) out[p.key] = entry;
   }
   return out;
 }
+
+export function getCreditPolicyByKey(config, featureKey) {
+  return (config?.creditPolicies || []).find((p) => p.key === featureKey) || null;
+}
+
+export { newHashedId, isHashedId };

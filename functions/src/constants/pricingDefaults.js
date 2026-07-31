@@ -1,43 +1,185 @@
-/** Default pricing config — seeded to Firestore `config/pricing` on first read. */
+/** Default pricing config — seeded to Firestore `config/pricing` on first read.
+ * Display lists live on plans[].cardFeatures. creditPolicies[] is backend-only.
+ * FAQ + Feature Comparison are separate config docs.
+ */
+
+function cf(id, text, included, badge = null) {
+  return badge
+    ? { id, text, included, badge }
+    : { id, text, included };
+}
 
 export const DEFAULT_PRICING_CONFIG = {
   currency: "INR",
   currencySymbol: "₹",
 
-  plans: {
-    yearly: {
-      id: "yearly",
-      label: "Glowminds Pro Yearly",
+  plans: [
+    {
+      id: "7c2e9a1f4b80d3e6",
+      key: "free",
+      label: "FREE",
+      badge: null,
+      displayPrice: "₹0",
+      regularPrice: null,
+      period: "/forever",
+      monthlyEquivalent: null,
+      dailyEquivalent: null,
+      desc: "Perfect for getting started with job hunting.",
+      ctaLabel: "Start Free",
+      ctaVariant: "outline",
+      amountPaise: 0,
+      durationDays: 0,
+      tier: "free",
+      visible: true,
+      highlighted: false,
+      sortOrder: 0,
+      aiCreditsPerPeriod: 10,
+      limits: { applications: 10, resumes: 1, template: "onyx" },
+      cardFeatures: [
+        cf("a100000000000001", "Job Search & Browse", true),
+        cf("a100000000000002", "Profile & Portfolio", true),
+        cf("a100000000000003", "1 Resume", true),
+        cf("a100000000000004", "10 Application Tracks", true),
+        cf("a100000000000005", "10 AI Credits / Month", true),
+        cf("a100000000000006", "Basic Job Alerts", true),
+        cf("a100000000000007", "AI Career Coach", false),
+        cf("a100000000000008", "AI Interview Prep", false),
+        cf("a100000000000009", "AI Cover Letters", false),
+        cf("a10000000000000a", "Salary Insights", false),
+      ],
+    },
+    {
+      id: "0d48f2a9c1e7b653",
+      key: "monthly",
+      label: "PRO MONTHLY",
+      badge: null,
+      displayPrice: "₹99",
+      regularPrice: null,
+      period: "/month",
+      monthlyEquivalent: null,
+      dailyEquivalent: null,
+      desc: "Full Pro access billed monthly. Cancel anytime.",
+      ctaLabel: "Get Pro — ₹99/month",
+      ctaVariant: "primary",
+      amountPaise: 9900,
+      durationDays: 30,
+      tier: "pro",
+      visible: true,
+      highlighted: false,
+      sortOrder: 1,
+      aiCreditsPerPeriod: 100,
+      limits: { applications: -1, resumes: -1, template: null },
+      cardFeatures: [
+        cf("a200000000000001", "Everything in Free", true),
+        cf("a200000000000002", "100 AI Credits / Month", true, "AI"),
+        cf("a200000000000003", "AI Mock Interviews", true, "AI"),
+        cf("a200000000000004", "AI Cover Letters", true, "AI"),
+        cf("a200000000000005", "AI Career Coach Chat", true, "AI"),
+        cf("a200000000000006", "Resume ATS Reviews", true, "AI"),
+        cf("a200000000000007", "Unlimited Applications", true),
+        cf("a200000000000008", "Unlimited Resumes", true),
+        cf("a200000000000009", "All 6 Resume Templates", true),
+        cf("a20000000000000a", "Salary Insights & Analytics", true),
+        cf("a20000000000000b", "Real-time Job Alerts", true),
+        cf("a20000000000000c", "Priority Support", true),
+      ],
+    },
+    {
+      id: "e91b04c7a2f65d38",
+      key: "yearly",
+      label: "PRO",
+      badge: "Founding Member Offer",
       displayPrice: "₹599",
       regularPrice: "₹999",
       period: "/year",
+      monthlyEquivalent: "Only ₹50/month when billed annually",
+      dailyEquivalent: "Less than ₹2/day",
+      desc: "100 AI credits/month, AI mock interviews, cover letters, career coach, and resume ATS reviews.",
+      ctaLabel: "Get Pro — ₹599/year",
+      ctaVariant: "primary",
       amountPaise: 59900,
       durationDays: 365,
+      tier: "pro",
+      visible: true,
+      highlighted: true,
+      sortOrder: 2,
+      aiCreditsPerPeriod: 100,
+      limits: { applications: -1, resumes: -1, template: null },
+      cardFeatures: [
+        cf("a300000000000001", "Everything in Free", true),
+        cf("a300000000000002", "100 AI Credits / Month", true, "AI"),
+        cf("a300000000000003", "AI Mock Interviews", true, "AI"),
+        cf("a300000000000004", "AI Cover Letters", true, "AI"),
+        cf("a300000000000005", "AI Career Coach Chat", true, "AI"),
+        cf("a300000000000006", "Resume ATS Reviews", true, "AI"),
+        cf("a300000000000007", "Unlimited Applications", true),
+        cf("a300000000000008", "Unlimited Resumes", true),
+        cf("a300000000000009", "All 6 Resume Templates", true),
+        cf("a30000000000000a", "Salary Insights & Analytics", true),
+        cf("a30000000000000b", "Real-time Job Alerts", true),
+        cf("a30000000000000c", "Priority Support", true),
+      ],
     },
-
-    monthly: {
-      id: "monthly",
-      label: "Glowminds Pro Monthly",
-      displayPrice: "₹99",
-      period: "/month",
-      amountPaise: 9900,
-      durationDays: 30,
+    {
+      id: "f1a2b3c4d5e6f708",
+      key: "lifetime",
+      label: "LIFETIME",
+      badge: "Best value",
+      displayPrice: "₹2,999",
+      regularPrice: "₹4,999",
+      period: "/lifetime",
+      monthlyEquivalent: null,
+      dailyEquivalent: "One-time payment",
+      desc: "Pay once. Keep Pro access for life — all AI tools and unlimited tracking.",
+      ctaLabel: "Get Lifetime — ₹2,999",
+      ctaVariant: "primary",
+      amountPaise: 299900,
+      durationDays: 36500,
+      tier: "pro",
+      visible: true,
+      highlighted: false,
+      sortOrder: 3,
+      aiCreditsPerPeriod: 100,
+      limits: { applications: -1, resumes: -1, template: null },
+      cardFeatures: [
+        cf("a400000000000001", "Everything in Pro", true),
+        cf("a400000000000002", "100 AI Credits / Month forever", true, "AI"),
+        cf("a400000000000003", "All AI tools included", true, "AI"),
+        cf("a400000000000004", "Unlimited resumes & applications", true),
+        cf("a400000000000005", "Priority support for life", true),
+      ],
     },
-  },
+  ],
 
+  creditPolicies: [
+    { id: "b5a1c83e0f2947d6", key: "careerChat", label: "AI Career Coach", enabled: true, access: "pro", creditCost: 1, usageLimitPerPeriod: { free: 0, pro: -1 } },
+    { id: "c6b2d94f1a3058e7", key: "coverLetter", label: "AI Cover Letters", enabled: true, access: "pro", creditCost: 5, usageLimitPerPeriod: { free: 0, pro: -1 } },
+    { id: "d7c3e05a2b4169f8", key: "interviewSession", label: "AI Mock Interviews", enabled: true, access: "pro", creditCost: 10, usageLimitPerPeriod: { free: 0, pro: -1 } },
+    { id: "e8d4f16b3c5270a9", key: "resumeReview", label: "Resume ATS Review", enabled: true, access: "pro", creditCost: 5, usageLimitPerPeriod: { free: 0, pro: -1 } },
+    { id: "f9e5a27c4d6381b0", key: "jobFit", label: "AI Job Fit", enabled: true, access: "pro", creditCost: 3, usageLimitPerPeriod: { free: 0, pro: -1 } },
+    { id: "0af6b38d5e7492c1", key: "salaryNegotiate", label: "Salary Negotiation", enabled: true, access: "pro", creditCost: 2, usageLimitPerPeriod: { free: 0, pro: -1 } },
+    { id: "1b07c49e6f85a3d2", key: "salaryInsights", label: "Salary Insights", enabled: true, access: "pro", creditCost: 0, usageLimitPerPeriod: { free: 0, pro: -1 } },
+    { id: "2c18d5af7096b4e3", key: "topMatches", label: "Smart Job Matching", enabled: true, access: "pro", creditCost: 0, usageLimitPerPeriod: { free: 0, pro: -1 } },
+    { id: "3d29e6b081a7c5f4", key: "evaluateSession", label: "Interview Grading", enabled: true, access: "pro", creditCost: 0, usageLimitPerPeriod: { free: 0, pro: -1 } },
+    { id: "3f7e2d19a8c046b1", key: "grammar", label: "Grammar Check", enabled: true, access: "free", creditCost: 1, usageLimitPerPeriod: { free: -1, pro: -1 } },
+    { id: "4e8f3e2ab9d157c2", key: "paraphrase", label: "Rewrite / Paraphrase", enabled: true, access: "free", creditCost: 1, usageLimitPerPeriod: { free: -1, pro: -1 } },
+    { id: "5f904f3bca0268d3", key: "profileReview", label: "Profile Review", enabled: true, access: "free", creditCost: 1, usageLimitPerPeriod: { free: -1, pro: -1 } },
+    { id: "60a15f4cdb1379e4", key: "linkedinAudit", label: "LinkedIn Audit", enabled: true, access: "free", creditCost: 2, usageLimitPerPeriod: { free: -1, pro: -1 } },
+    { id: "71b26f5dec248af5", key: "learningPath", label: "AI Learning Path", enabled: true, access: "free", creditCost: 3, usageLimitPerPeriod: { free: -1, pro: -1 } },
+  ],
+
+  /** Derived for backward-compatible clients — rebuilt on merge. */
   freeLimits: {
     applications: 10,
     resumes: 1,
     aiCredits: 10,
     template: "onyx",
   },
-
   proLimits: {
     applications: -1,
     resumes: -1,
     aiCreditsPerMonth: 100,
   },
-
   creditCosts: {
     careerChat: 1,
     coverLetter: 5,
@@ -52,275 +194,10 @@ export const DEFAULT_PRICING_CONFIG = {
     learningPath: 3,
   },
 
-  pricing: {
-    free: {
-      label: "FREE",
-      price: "₹0",
-      period: "/forever",
-      desc: "Perfect for getting started with job hunting.",
-      features: [
-        "Job search & matching",
-        "1 ATS resume",
-        "Track up to 10 applications",
-        "10 AI credits/month",
-        "Basic job alerts",
-        "Profile & portfolio",
-      ],
-    },
-
-    pro: {
-      label: "PRO",
-      price: "₹599",
-      regularPrice: "₹999",
-      period: "/year",
-      desc: "Everything you need to land your dream job.",
-      highlights: [
-        "100 AI Credits / Month",
-        "AI Mock Interviews",
-        "AI Cover Letters",
-        "AI Career Coach",
-        "Smart Job Matching",
-      ],
-      features: [
-        "Unlimited resumes",
-        "Unlimited application tracking",
-        "100 AI credits every month",
-        "AI Mock Interviews",
-        "AI Cover Letters",
-        "AI Career Coach Chat",
-        "Resume ATS Reviews",
-        "All 6 premium templates",
-        "Salary insights & analytics",
-        "Real-time job alerts",
-        "Priority support",
-      ],
-    },
-  },
-
-  freeFeatures: [
-    { text: "Job Search & Browse", included: true },
-    { text: "Profile & Portfolio", included: true },
-    { text: "1 Resume", included: true },
-    { text: "10 Application Tracks", included: true },
-    { text: "10 AI Credits / Month", included: true },
-    { text: "Basic Job Alerts", included: true },
-    { text: "AI Career Coach", included: false },
-    { text: "AI Interview Prep", included: false },
-    { text: "AI Cover Letters", included: false },
-    { text: "Salary Insights", included: false },
-  ],
-
-  proFeatures: [
-    {
-      text: "Everything in Free",
-      included: true,
-      highlight: false,
-    },
-    {
-      text: "100 AI Credits / Month",
-      included: true,
-      highlight: true,
-    },
-    {
-      text: "AI Mock Interviews",
-      included: true,
-      highlight: true,
-    },
-    {
-      text: "AI Cover Letters",
-      included: true,
-      highlight: true,
-    },
-    {
-      text: "AI Career Coach Chat",
-      included: true,
-      highlight: true,
-    },
-    {
-      text: "Resume ATS Reviews",
-      included: true,
-      highlight: true,
-    },
-    {
-      text: "Unlimited Applications",
-      included: true,
-      highlight: false,
-    },
-    {
-      text: "Unlimited Resumes",
-      included: true,
-      highlight: false,
-    },
-    {
-      text: "All 6 Resume Templates",
-      included: true,
-      highlight: false,
-    },
-    {
-      text: "Salary Insights & Analytics",
-      included: true,
-      highlight: false,
-    },
-    {
-      text: "Real-time Job Alerts",
-      included: true,
-      highlight: false,
-    },
-    {
-      text: "Priority Support",
-      included: true,
-      highlight: false,
-    },
-  ],
-
-  pricingComparison: [
-    {
-      feature: "Job Search",
-      freeIncluded: true,
-      proIncluded: true,
-      freeDetail: "Basic",
-      proDetail: "Advanced + AI Matching",
-    },
-    {
-      feature: "Resume Builder",
-      freeIncluded: true,
-      proIncluded: true,
-      freeDetail: "1 Resume",
-      proDetail: "Unlimited Resumes",
-    },
-    {
-      feature: "Application Tracker",
-      freeIncluded: true,
-      proIncluded: true,
-      freeDetail: "10 Applications",
-      proDetail: "Unlimited",
-    },
-    {
-      feature: "AI Credits",
-      freeIncluded: true,
-      proIncluded: true,
-      freeDetail: "10 Credits",
-      proDetail: "100 Credits / Month",
-    },
-    {
-      feature: "AI Career Coach",
-      freeIncluded: false,
-      proIncluded: true,
-      freeDetail: "-",
-      proDetail: "Included",
-    },
-    {
-      feature: "Interview Prep",
-      freeIncluded: false,
-      proIncluded: true,
-      freeDetail: "-",
-      proDetail: "AI Mock Interviews",
-    },
-    {
-      feature: "Cover Letters",
-      freeIncluded: false,
-      proIncluded: true,
-      freeDetail: "-",
-      proDetail: "AI Generated",
-    },
-    {
-      feature: "Resume ATS Reviews",
-      freeIncluded: false,
-      proIncluded: true,
-      freeDetail: "-",
-      proDetail: "Included",
-    },
-    {
-      feature: "Salary Insights",
-      freeIncluded: false,
-      proIncluded: true,
-      freeDetail: "-",
-      proDetail: "Full Analytics",
-    },
-    {
-      feature: "Job Alerts",
-      freeIncluded: true,
-      proIncluded: true,
-      freeDetail: "Basic",
-      proDetail: "Real-time",
-    },
-    {
-      feature: "Support",
-      freeIncluded: true,
-      proIncluded: true,
-      freeDetail: "Community",
-      proDetail: "Priority",
-    },
-  ],
-
-  pricingFaqs: [
-    {
-      q: "Is Glowminds free?",
-      a: "Yes. You can create a resume, search jobs, track applications, and receive 10 AI credits every month for free. No credit card required.",
-    },
-    {
-      q: "Why is Glowminds Pro so affordable?",
-      a: "We're currently offering a founding member launch price of ₹599/year (regular ₹999/year) for students and early-career professionals.",
-    },
-    {
-      q: "Do AI features have usage limits?",
-      a: "Yes. Free users receive 10 AI credits per month. Pro users receive 100 AI credits per month.",
-    },
-    {
-      q: "How do AI credits work?",
-      a: "Career Chat, Grammar, Paraphrase, Profile Review cost 1 credit. LinkedIn Audit costs 2. Job Fit and Salary Negotiate cost 3 and 2. Resume Review and Cover Letters cost 5. Starting a Mock Interview costs 10 credits (grading included — no second charge).",
-    },
-    {
-      q: "Can I cancel anytime?",
-      a: "Yes. Cancel from your dashboard anytime. You'll retain Pro access until the end of your billing cycle.",
-    },
-    {
-      q: "Is my resume data secure?",
-      a: "Yes. Your resumes and profile data are stored securely. Payments are processed through Razorpay and we never store payment details.",
-    },
-    {
-      q: "Do I need a credit card for the free plan?",
-      a: "No. The free plan requires no payment information.",
-    },
-    {
-      q: "Can working professionals use Glowminds?",
-      a: "Absolutely. Glowminds is ideal for students, fresh graduates, career switchers, and professionals with up to 5 years of experience.",
-    },
-  ],
-
   marketing: {
-    proTagline:
-      "Only ₹50/month when billed annually — less than ₹2/day",
-
-    monthlyEquivalent:
-      "Only ₹50/month when billed annually",
-
-    dailyEquivalent:
-      "Less than ₹2/day",
-
     heroDescription:
       "Build ATS-friendly resumes, discover relevant jobs, generate AI cover letters, practice interviews, and track applications — all in one platform.",
-
-    billingBlurb:
-      "Founding member offer: ₹599/year (regular ₹999). Secure checkout via Razorpay (UPI, Cards, Net Banking).",
-
-    termsBillingText:
-      "Pro subscriptions are billed at ₹599/year (founding member offer) or ₹99/month. Payments are processed securely through Razorpay. Cancel anytime from your dashboard.",
-
-    proHighlights: [
-      "100 AI Credits / Month",
-      "AI Mock Interviews",
-      "AI Cover Letters",
-      "AI Career Coach",
-      "Resume ATS Reviews",
-    ],
-
-    launchOfferText: "Founding Member Offer",
-
-    guaranteeText:
-      "7-day money-back guarantee — try Pro risk-free.",
-
-    socialProof:
-      "Built for students and early-career professionals across India.",
+    guaranteeText: "7-day money-back guarantee — try Pro risk-free.",
+    socialProof: "Built for students and early-career professionals across India.",
   },
 };

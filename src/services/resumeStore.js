@@ -2,24 +2,29 @@ import { deleteDoc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore'
 import { resumeDocRef, loadUserResumes } from '@/utils/firestoreCollections'
 import { apiFetch } from '@/services/apiClient'
 import { invalidateEntitlementsCache } from '@/hooks/useEntitlements'
+import usePricingStore from '@/store/pricingStore'
 
 export { loadUserResumes }
 
 const CLOUD_SAVE_DEBOUNCE_MS = 1500
 const pendingCloudSaves = new Map()
-const FREE_TEMPLATE = 'onyx'
+
+function freeTemplateId() {
+  return usePricingStore.getState().config?.freeLimits?.template || 'onyx'
+}
 
 function clampResumeTemplateForPlan(resume, isPro) {
   if (isPro || !resume?.data?.metadata) return resume
+  const allowed = freeTemplateId()
   const template = resume.data.metadata.template
-  if (!template || template === FREE_TEMPLATE) return resume
+  if (!template || template === allowed) return resume
   return {
     ...resume,
     data: {
       ...resume.data,
       metadata: {
         ...resume.data.metadata,
-        template: FREE_TEMPLATE,
+        template: allowed,
       },
     },
   }

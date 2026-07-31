@@ -3,10 +3,12 @@ import { cn } from '@/components/ui'
 import { BRAND_ASSETS } from '@/constants/brandAssets'
 
 /**
- * @param {'icon' | 'mark' | 'full'} variant
- *   icon — square favicon (sidebar, compact)
- *   mark — subtle dark mark
- *   full — theme-aware full logo (light/dark PNG pair); pass forceDark for logo-dark.png only
+ * Theme-aware Glowminds mark for chrome (sidebar, header, footer).
+ * Light mode → logo-light.png; dark mode → logo-dark.png.
+ * (logo-mark.png is dark-on-dark and disappears on dark surfaces.)
+ *
+ * @param {'icon' | 'mark' | 'full'} variant — visual size/role only; all use the theme pair
+ * @param {boolean} forceDark — always use logo-dark.png (e.g. dark auth panels)
  */
 export function BrandLogo({
   variant = 'icon',
@@ -17,55 +19,46 @@ export function BrandLogo({
   forceDark = false,
 }) {
   const px = typeof size === 'number' ? `${size}px` : size
+  const sharedImg = cn(
+    'shrink-0 object-contain',
+    variant === 'full' ? 'rounded-xl' : 'rounded-lg',
+    imgClassName,
+    className,
+  )
+  const boxStyle = { width: px, height: px }
 
-  if (variant === 'full') {
-    if (forceDark) {
-      return (
-        <img
-          src={BRAND_ASSETS.logoDark}
-          alt={alt}
-          width={size}
-          height={size}
-          className={cn('rounded-xl object-contain', imgClassName, className)}
-          style={{ width: px, height: px }}
-        />
-      )
-    }
-
+  if (forceDark) {
     return (
-      <>
-        <img
-          src={BRAND_ASSETS.logoLight}
-          alt={alt}
-          width={size}
-          height={size}
-          className={cn('rounded-xl object-contain dark:hidden', imgClassName, className)}
-          style={{ width: px, height: px }}
-        />
-        <img
-          src={BRAND_ASSETS.logoDark}
-          alt={alt}
-          width={size}
-          height={size}
-          className={cn('hidden rounded-xl object-contain dark:block', imgClassName, className)}
-          style={{ width: px, height: px }}
-        />
-      </>
+      <img
+        src={BRAND_ASSETS.logoDark}
+        alt={alt}
+        width={size}
+        height={size}
+        className={sharedImg}
+        style={boxStyle}
+      />
     )
   }
 
-  // icon → logo-mark.png (real Glowminds monogram); mark → same asset for chrome consistency
-  const src = BRAND_ASSETS.logoMark
-
   return (
-    <img
-      src={src}
-      alt={alt}
-      width={size}
-      height={size}
-      className={cn('shrink-0 rounded-lg object-contain bg-foreground/5', imgClassName, className)}
-      style={{ width: px, height: px }}
-    />
+    <>
+      <img
+        src={BRAND_ASSETS.logoLight}
+        alt={alt}
+        width={size}
+        height={size}
+        className={cn(sharedImg, 'dark:hidden')}
+        style={boxStyle}
+      />
+      <img
+        src={BRAND_ASSETS.logoDark}
+        alt={alt}
+        width={size}
+        height={size}
+        className={cn(sharedImg, 'hidden dark:block')}
+        style={boxStyle}
+      />
+    </>
   )
 }
 

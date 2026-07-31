@@ -80,6 +80,25 @@ export const adminApi = {
   updatePricing: (pricing) =>
     apiFetch('/admin/config/pricing', { method: 'PUT', body: { pricing } }),
 
+  getFeatureComparison: () =>
+    dedupeAsync('admin-feature-comparison', () =>
+      apiFetch('/admin/config/feature-comparison', { method: 'GET' }),
+    ),
+
+  updateFeatureComparison: (featureComparison) =>
+    apiFetch('/admin/config/feature-comparison', {
+      method: 'PUT',
+      body: { featureComparison },
+    }),
+
+  getPricingFaqs: () =>
+    dedupeAsync('admin-pricing-faqs', () =>
+      apiFetch('/admin/config/pricing-faqs', { method: 'GET' }),
+    ),
+
+  updatePricingFaqs: (pricingFaqs) =>
+    apiFetch('/admin/config/pricing-faqs', { method: 'PUT', body: pricingFaqs }),
+
   jobStats: () =>
     dedupeAsync('admin-job-stats', () =>
       apiFetch('/admin/jobs/stats', { method: 'GET' }),

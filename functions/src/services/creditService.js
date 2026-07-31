@@ -44,7 +44,9 @@ function addCalendarMonth(from) {
 }
 
 export function getFeatureCreditCost(pricing, featureKey) {
-  const cost = pricing?.creditCosts?.[featureKey];
+  const policy = (pricing?.creditPolicies || []).find((p) => p.key === featureKey);
+  const raw = policy?.creditCost ?? pricing?.creditCosts?.[featureKey];
+  const cost = Number(raw);
   return Number.isFinite(cost) && cost > 0 ? Math.trunc(cost) : 0;
 }
 
@@ -303,15 +305,34 @@ export async function getEntitlements(uid) {
     lifetimeUsed: credits.lifetimeUsed ?? 0,
   };
 
+  const activePlanId = sub?.currentPlanId || sub?.plan || null;
+  const plans = Array.isArray(pricing.plans) ? pricing.plans : [];
+  const activePlan =
+    plans.find((p) => p.id === activePlanId || p.key === activePlanId) || null;
+  const freePlan = plans.find((p) => p.key === "free" || p.tier === "free") || null;
+  const limits = isPro
+    ? activePlan?.limits || pricing.proLimits
+    : freePlan?.limits || pricing.freeLimits;
+
   const data = {
     isPro,
+    planId: activePlan?.id || activePlanId,
+    plans,
+    creditPolicies: pricing.creditPolicies || [],
     credits: creditPayload,
     creditCosts: pricing.creditCosts || {},
     freeLimits: pricing.freeLimits,
     proLimits: pricing.proLimits,
+    limits: {
+      applications: limits?.applications ?? (isPro ? -1 : 10),
+      resumes: limits?.resumes ?? (isPro ? -1 : 1),
+      template: limits?.template ?? pricing.freeLimits?.template ?? "onyx",
+    },
+    usage: entitlements?.featureUsage || {},
     entitlements: {
       resumeCount: entitlements?.resumeCount ?? 0,
       applicationCount,
+      featureUsage: entitlements?.featureUsage || {},
     },
     subscription: sub,
   };

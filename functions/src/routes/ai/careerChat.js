@@ -1,7 +1,6 @@
 import { Router } from "express";
+import { requireFeature } from "../../middleware/requireFeature.js";
 import { requireAuth } from "../../middleware/auth.js";
-import { requireCredits } from "../../middleware/requireCredits.js";
-import { requirePro } from "../../middleware/requirePro.js";
 import { ApiError } from "../../middleware/errors.js";
 import { chatTask } from "../../services/aiClient.js";
 import { withCreditDebit } from "../../utils/creditResponse.js";
@@ -57,7 +56,7 @@ Notes: ${String(context.jobNotes || "").slice(0, 600)}`);
 
 const router = Router();
 
-router.post("/career-chat", requireAuth, requirePro(), requireCredits("careerChat"), async (req, res, next) => {
+router.post("/career-chat", requireAuth, requireFeature("careerChat"), async (req, res, next) => {
   try {
     const { message, history = [], context = null } = req.body || {};
     if (!message || typeof message !== "string" || !message.trim()) {

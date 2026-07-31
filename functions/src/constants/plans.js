@@ -7,7 +7,8 @@ export const PLANS = {
 
 export const PRO_TIER = "pro";
 
-const PAID_PLANS = new Set(["yearly", "monthly"]);
+/** Legacy keys still treated as paid when tier is missing. */
+const LEGACY_PAID_PLAN_KEYS = new Set(["yearly", "monthly", "lifetime"]);
 
 const TRUSTED_PRO_SOURCES = new Set(["verify", "webhook", "admin_grant"]);
 
@@ -27,17 +28,19 @@ export function isActiveProSubscription(sub) {
   // "cancelled" with a future endDate still has access until the period ends.
   if (!sub || (sub.status !== "active" && sub.status !== "cancelled")) return false;
 
-  if (sub.tier === PRO_TIER) {
-    const end = parseEndDate(sub.endDate);
-    if (!end) return false;
-    return end >= new Date();
+  const end = parseEndDate(sub.endDate);
+  if (!end || end < new Date()) return false;
+
+  if (sub.tier === PRO_TIER) return true;
+
+  // Hashed plan ids or legacy keys with a future endDate.
+  if (sub.plan && sub.plan !== "free") {
+    if (LEGACY_PAID_PLAN_KEYS.has(sub.plan) || LEGACY_PAID_PLAN_KEYS.has(sub.planKey)) return true;
+    // Opaque hashed plan id (16 hex) from admin pricing.
+    if (typeof sub.plan === "string" && /^[0-9a-f]{16}$/.test(sub.plan)) return true;
   }
 
-  if (!PAID_PLANS.has(sub.plan)) return false;
-
-  const end = parseEndDate(sub.endDate);
-  if (!end) return false;
-  return end >= new Date();
+  return false;
 }
 
 /** Pro subscription backed by Razorpay payment or a trusted server source. */

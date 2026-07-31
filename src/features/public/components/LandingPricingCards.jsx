@@ -1,111 +1,59 @@
 import { Link } from 'react-router-dom'
-import useUpgradePro from '@/hooks/useUpgradePro'
 import useAppStore from '@/store/authStore'
+import useUpgradePro from '@/hooks/useUpgradePro'
+import useIsPro from '@/hooks/useIsPro'
 import usePricingConfig from '@/hooks/usePricingConfig'
-import LandingReveal, { LandingRevealItem, LandingRevealStagger } from '@/features/public/components/LandingReveal'
-import { LandingCheckList, LandingSection, LandingSectionTitle } from '@/features/public/components/landingPageUi'
-import useIsLg from '@/hooks/useIsLg'
-import {
-  Badge,
-  Button,
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-  cn,
-} from '@/components/ui'
+import PlanCard from '@/features/public/components/PlanCard'
+import { highlightedPlan, visiblePlans } from '@/constants/pricingDefaults'
+import { Button } from '@/components/ui'
 
-export default function LandingPricingCards({ pricing }) {
-  const isLg = useIsLg()
+/** Landing pricing strip — cards from admin plans[] JSON. */
+export default function LandingPricingCards() {
   const { loggedIn } = useAppStore()
-  const { startUpgrade, loading: upgradeLoading } = useUpgradePro()
-  const { marketing, plans } = usePricingConfig()
-
-  if (!pricing) return null
-
-  const proHighlights = pricing.pro.highlights || marketing?.proHighlights || pricing.pro.features?.slice(0, 5) || []
-  const regularPrice = pricing.pro.regularPrice || plans?.yearly?.regularPrice
-  const launchOfferText = marketing?.launchOfferText || 'Founding Member Offer'
-  const monthlyEquivalent = marketing?.monthlyEquivalent || 'Only ₹50/month when billed annually'
-  const dailyEquivalent = marketing?.dailyEquivalent || 'Less than ₹2/day'
+  const isPro = useIsPro()
+  const { startUpgrade, loading } = useUpgradePro()
+  const { config } = usePricingConfig()
+  const plans = visiblePlans(config).slice(0, 4)
+  const highlight = highlightedPlan(config)
 
   return (
-    <LandingSection muted>
-      <LandingReveal>
-        <LandingSectionTitle
-          title="Choose the plan"
-          highlight="right for you"
-          subtitle="Start free. Upgrade when you need more power."
-        />
-      </LandingReveal>
-      <LandingRevealStagger className={cn('mx-auto grid max-w-4xl gap-5 pt-2 lg:items-stretch', isLg ? 'grid-cols-2' : 'grid-cols-1')}>
-        <LandingRevealItem>
-          <Card className="flex h-full flex-col">
-            <CardHeader>
-              <Badge variant="secondary">{pricing.free.label}</Badge>
-              <div className="flex items-baseline gap-1 pt-2">
-                <CardTitle className="text-3xl">{pricing.free.price}</CardTitle>
-                <span className="text-sm text-muted-foreground">{pricing.free.period}</span>
-              </div>
-              <CardDescription>{pricing.free.desc}</CardDescription>
-            </CardHeader>
-            <CardContent className="flex-1 space-y-2">
-              <LandingCheckList items={pricing.free.features} />
-            </CardContent>
-            <CardFooter className="mt-auto">
-              <Button variant="outline" className="w-full" render={<Link to="/signup" />}>
-                Get started free
-              </Button>
-            </CardFooter>
-          </Card>
-        </LandingRevealItem>
-        <LandingRevealItem>
-          <Card
-            className={cn(
-              'relative flex h-full flex-col border-primary/50 bg-gradient-to-b from-primary/5 to-card shadow-lg shadow-primary/10',
-              isLg && 'lg:z-[1]',
-            )}
-          >
-            <Badge
-              variant="outline"
-              className="absolute left-1/2 top-3 -translate-x-1/2 border-primary/30 bg-primary text-primary-foreground shadow-sm"
-            >
-              {launchOfferText}
-            </Badge>
-            <CardHeader className="pt-12">
-              <Badge variant="outline" className="w-fit border-primary/20 bg-primary/10 text-primary">
-                {pricing.pro.label}
-              </Badge>
-              {regularPrice && (
-                <p className="pt-2 text-sm text-muted-foreground line-through">{regularPrice}{pricing.pro.period}</p>
-              )}
-              <div className="flex items-baseline gap-1">
-                <CardTitle className="text-3xl">{pricing.pro.price}</CardTitle>
-                <span className="text-sm text-muted-foreground">{pricing.pro.period}</span>
-              </div>
-              <p className="text-sm text-muted-foreground">{monthlyEquivalent}</p>
-              <p className="text-xs text-muted-foreground">{dailyEquivalent}</p>
-              <CardDescription>{pricing.pro.desc}</CardDescription>
-            </CardHeader>
-            <CardContent className="flex-1 space-y-2">
-              <LandingCheckList items={proHighlights} />
-            </CardContent>
-            <CardFooter className="mt-auto">
-              {loggedIn ? (
-                <Button className="w-full" onClick={() => startUpgrade({ plan: 'yearly' })} disabled={upgradeLoading}>
-                  Upgrade to Pro
-                </Button>
-              ) : (
-                <Button className="w-full" render={<Link to="/pricing" />}>
-                  View Pro plan
-                </Button>
-              )}
-            </CardFooter>
-          </Card>
-        </LandingRevealItem>
-      </LandingRevealStagger>
-    </LandingSection>
+    <section className="py-16 md:py-20">
+      <div className="mx-auto max-w-6xl px-4 md:px-8">
+        <div className="mb-10 text-center">
+          <h2 className="text-3xl font-black tracking-tight text-foreground md:text-4xl">
+            Simple pricing for every stage
+          </h2>
+          <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
+            {highlight?.monthlyEquivalent ||
+              'Start free. Upgrade when you need AI coaching, interviews, and unlimited tracking.'}
+          </p>
+        </div>
+        <div
+          className={
+            plans.length >= 4
+              ? 'grid gap-4 lg:grid-cols-4 md:grid-cols-2'
+              : plans.length === 3
+                ? 'grid gap-4 lg:grid-cols-3 md:grid-cols-2'
+                : 'mx-auto grid max-w-4xl gap-4 md:grid-cols-2'
+          }
+        >
+          {plans.map((plan) => (
+            <PlanCard
+              key={plan.id}
+              plan={plan}
+              isProUser={isPro && plan.tier === 'pro'}
+              upgradeLoading={loading}
+              loggedIn={loggedIn}
+              onUpgrade={(p) => startUpgrade({ plan: p.id })}
+            />
+          ))}
+        </div>
+        <div className="mt-8 text-center">
+          <Button variant="link" render={<Link to="/pricing" />}>
+            Compare all features →
+          </Button>
+        </div>
+      </div>
+    </section>
   )
 }

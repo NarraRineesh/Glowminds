@@ -9,7 +9,10 @@ import {
   adminAdjustCredits,
   grantProCredits,
 } from "./creditService.js";
-import { getPricingConfig } from "./pricingConfig.js";
+import {
+  findPlan,
+  getPricingConfig,
+} from "./pricingConfig.js";
 import {
   creditLedgerCol,
   readCredits,
@@ -98,7 +101,12 @@ export async function getAdminOverview() {
       const s = doc.data() || {};
       totalPaidPaise += s.totalPaidPaise || 0;
       const amount = s.currentPlanAmountPaise || 0;
-      if (s.plan === "yearly" || s.currentPlanId === "yearly") {
+      if (
+        s.plan === "yearly" ||
+        s.currentPlanId === "yearly" ||
+        s.planKey === "yearly" ||
+        s.currentPlanKey === "yearly"
+      ) {
         mrrEstimatePaise += Math.round(amount / 12);
       } else {
         mrrEstimatePaise += amount;
@@ -297,11 +305,15 @@ export async function getAdminUserDetail(uid) {
 export async function adminGrantPro(uid, { plan = "yearly", days = null } = {}) {
   if (!uid) throw new ApiError("invalid-argument", "uid required");
   const pricing = await getPricingConfig();
-  const planId = plan === "monthly" ? "monthly" : "yearly";
+  const planRow =
+    findPlan(pricing, plan) ||
+    findPlan(pricing, "yearly") ||
+    (pricing.plans || []).find((p) => p.tier === "pro" && p.amountPaise > 0);
+
+  if (!planRow) throw new ApiError("failed-precondition", "No Pro plan configured");
+
   const durationDays =
-    Number(days) > 0
-      ? Math.trunc(Number(days))
-      : pricing.plans?.[planId]?.durationDays || (planId === "yearly" ? 365 : 30);
+    Number(days) > 0 ? Math.trunc(Number(days)) : planRow.durationDays || 365;
 
   const now = new Date();
   const endDate = new Date(now.getTime() + durationDays * 86400_000);
@@ -310,13 +322,15 @@ export async function adminGrantPro(uid, { plan = "yearly", days = null } = {}) 
   await subscriptionRef(uid).set(
     {
       userId: uid,
-      plan: planId,
+      plan: planRow.id,
+      planKey: planRow.key,
       tier: PRO_TIER,
       status: "active",
-      currentPlanId: planId,
-      currentPlanLabel: pricing.plans?.[planId]?.label || `Glowminds Pro ${planId}`,
-      currentPlanPeriod: planId === "yearly" ? "/year" : "/month",
-      currentPlanAmountPaise: pricing.plans?.[planId]?.amountPaise || 0,
+      currentPlanId: planRow.id,
+      currentPlanKey: planRow.key,
+      currentPlanLabel: planRow.label || `Glowminds Pro`,
+      currentPlanPeriod: planRow.period || null,
+      currentPlanAmountPaise: planRow.amountPaise || 0,
       currency: pricing.currency || "INR",
       currencySymbol: pricing.currencySymbol || "₹",
       startDate: existing?.startDate || now.toISOString(),

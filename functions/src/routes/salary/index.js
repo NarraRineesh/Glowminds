@@ -1,6 +1,6 @@
 import { Router } from "express";
+import { requireFeature } from "../../middleware/requireFeature.js";
 import { requireAuth } from "../../middleware/auth.js";
-import { requirePro } from "../../middleware/requirePro.js";
 import {
   CITY_MULTIPLIER,
   NEGOTIATION_TIPS,
@@ -35,7 +35,7 @@ router.get("/preview", requireAuth, (_req, res) => {
   });
 });
 
-router.get("/insights", requireAuth, requirePro(), (_req, res) => {
+router.get("/insights", requireAuth, requireFeature("salaryInsights"), (_req, res) => {
   res.json({
     table: SALARY_TABLE,
     cityMultiplier: CITY_MULTIPLIER,

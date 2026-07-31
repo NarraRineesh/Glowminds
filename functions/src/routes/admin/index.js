@@ -22,6 +22,14 @@ import {
   updatePricingConfig,
 } from "../../services/pricingConfig.js";
 import {
+  getFeatureComparison,
+  updateFeatureComparison,
+} from "../../services/featureComparisonConfig.js";
+import {
+  getPricingFaqs,
+  updatePricingFaqs,
+} from "../../services/pricingFaqsConfig.js";
+import {
   getJobModeration,
   updateJobModeration,
 } from "../../services/jobModeration.js";
@@ -159,6 +167,44 @@ router.put(
     }
     const pricing = await updatePricingConfig(patch, req.user.uid);
     res.json({ pricing });
+  }),
+);
+
+router.get(
+  "/config/feature-comparison",
+  asyncHandler(async (_req, res) => {
+    res.json({ featureComparison: await getFeatureComparison({ fresh: true }) });
+  }),
+);
+
+router.put(
+  "/config/feature-comparison",
+  asyncHandler(async (req, res) => {
+    const patch = req.body?.featureComparison || req.body;
+    if (!patch || typeof patch !== "object") {
+      throw new ApiError("invalid-argument", "featureComparison object required");
+    }
+    const featureComparison = await updateFeatureComparison(patch, req.user.uid);
+    res.json({ featureComparison });
+  }),
+);
+
+router.get(
+  "/config/pricing-faqs",
+  asyncHandler(async (_req, res) => {
+    res.json({ pricingFaqs: await getPricingFaqs({ fresh: true }) });
+  }),
+);
+
+router.put(
+  "/config/pricing-faqs",
+  asyncHandler(async (req, res) => {
+    const patch = req.body?.pricingFaqs || req.body;
+    if (!patch || typeof patch !== "object") {
+      throw new ApiError("invalid-argument", "pricingFaqs object required");
+    }
+    const pricingFaqs = await updatePricingFaqs(patch, req.user.uid);
+    res.json({ pricingFaqs });
   }),
 );
 

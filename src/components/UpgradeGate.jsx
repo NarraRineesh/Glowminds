@@ -1,7 +1,8 @@
 import useIsPro from '@/hooks/useIsPro'
 import useEntitlements from '@/hooks/useEntitlements'
 import useUpgradePro from '@/hooks/useUpgradePro'
-import { useYearlyPriceLabel } from '@/hooks/usePricingConfig'
+import usePricingConfig, { useYearlyPriceLabel } from '@/hooks/usePricingConfig'
+import { highlightedPlan } from '@/constants/pricingDefaults'
 import { PRO_FEATURE_COPY } from '@/constants/featureAccess'
 import AppIcon from '@/components/icons/AppIcon'
 import { Button, Card, CardContent, cn } from '@/components/ui'
@@ -21,6 +22,11 @@ export default function UpgradeGate({
   const { loading } = useEntitlements()
   const { startUpgrade, loading: upgradeLoading } = useUpgradePro()
   const yearlyPriceLabel = useYearlyPriceLabel()
+  const { config, freeLimits } = usePricingConfig()
+  const upgradePlan = highlightedPlan(config)
+  const freeCredits = freeLimits?.aiCredits ?? 10
+  const freeApps = freeLimits?.applications ?? 10
+  const freeResumes = freeLimits?.resumes ?? 1
 
   const copy = PRO_FEATURE_COPY[feature] || {}
   const title = copy.title || feature
@@ -67,7 +73,10 @@ export default function UpgradeGate({
             </ul>
           )}
           <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
-            <Button disabled={upgradeLoading} onClick={() => void startUpgrade({ plan: 'yearly' })}>
+            <Button
+              disabled={upgradeLoading}
+              onClick={() => void startUpgrade({ plan: upgradePlan?.id || upgradePlan?.key || 'yearly' })}
+            >
               {upgradeLoading ? 'Opening checkout…' : `Upgrade — ${yearlyPriceLabel}`}
             </Button>
             <Button variant="outline" onClick={() => { window.location.href = '/pricing' }}>
@@ -75,7 +84,8 @@ export default function UpgradeGate({
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            Free plan still includes job search, 1 resume, 10 application tracks, and 10 AI credits/month for grammar & profile tools.
+            Free plan still includes job search, {freeResumes} resume{freeResumes === 1 ? '' : 's'},{' '}
+            {freeApps} application tracks, and {freeCredits} AI credits/month for grammar & profile tools.
           </p>
         </CardContent>
       </Card>

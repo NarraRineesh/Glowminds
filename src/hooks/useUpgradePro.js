@@ -50,14 +50,14 @@ export default function useUpgradePro() {
         }
 
         const data = await apiFetch('/payments/create-order', { body: { plan } })
-        const { orderId, amount, currency, key } = data
+        const { orderId, amount, currency, key, planKey } = data
 
         const options = {
           key,
           amount,
           currency,
           name: 'Glowminds AI',
-          description: plan === 'yearly' ? 'Pro Yearly Plan' : 'Pro Monthly Plan',
+          description: planKey ? `Glowminds Pro (${planKey})` : 'Glowminds Pro',
           order_id: orderId,
           handler: async (response) => {
             try {

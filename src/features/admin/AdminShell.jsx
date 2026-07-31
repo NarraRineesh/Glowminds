@@ -10,6 +10,8 @@ const NAV = [
   { to: '/admin/usage/credits', label: 'Credits' },
   { to: '/admin/messages', label: 'Messages' },
   { to: '/admin/pricing', label: 'Pricing' },
+  { to: '/admin/feature-comparison', label: 'Feature Comparison' },
+  { to: '/admin/pricing-faqs', label: 'Pricing FAQs' },
 ]
 
 export default function AdminShell() {

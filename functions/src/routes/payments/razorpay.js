@@ -30,14 +30,15 @@ router.post("/create-order", requireAuth, paymentRateLimit, async (req, res, nex
     );
     const pricing = await getPricingConfig();
     const PLANS = billingPlansFromConfig(pricing);
-    if (!PLANS[plan]) throw new ApiError("invalid-argument", "Invalid plan");
+    const planEntry = PLANS[plan];
+    if (!planEntry) throw new ApiError("invalid-argument", "Invalid plan");
 
     const rzp = getClient();
     const order = await rzp.orders.create({
-      amount: PLANS[plan].amount,
-      currency: "INR",
+      amount: planEntry.amount,
+      currency: pricing.currency || "INR",
       receipt: `rcpt_${req.user.uid}_${Date.now()}`,
-      notes: { uid: req.user.uid, plan },
+      notes: { uid: req.user.uid, plan: planEntry.id },
     });
 
     res.json({
@@ -45,6 +46,8 @@ router.post("/create-order", requireAuth, paymentRateLimit, async (req, res, nex
       amount: order.amount,
       currency: order.currency,
       key: env.razorpayKeyId,
+      planId: planEntry.id,
+      planKey: planEntry.key,
     });
   } catch (err) {
     next(err instanceof ApiError ? err : new ApiError("internal", err.message));

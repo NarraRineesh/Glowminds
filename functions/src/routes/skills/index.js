@@ -1,6 +1,6 @@
 import { Router } from "express";
+import { requireFeature } from "../../middleware/requireFeature.js";
 import { requireAuth } from "../../middleware/auth.js";
-import { requireCredits } from "../../middleware/requireCredits.js";
 import { ApiError } from "../../middleware/errors.js";
 import {
   getPersonalizedSkillTrends,
@@ -93,7 +93,7 @@ router.get("/learning-path", requireAuth, async (req, res, next) => {
 router.post(
   "/learning-path",
   requireAuth,
-  requireCredits("learningPath"),
+  requireFeature("learningPath"),
   async (req, res, next) => {
     try {
       const {

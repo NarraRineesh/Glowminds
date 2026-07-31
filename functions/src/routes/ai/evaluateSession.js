@@ -1,6 +1,6 @@
 import { Router } from "express";
+import { requireFeature } from "../../middleware/requireFeature.js";
 import { requireAuth } from "../../middleware/auth.js";
-import { requirePro } from "../../middleware/requirePro.js";
 import { ApiError } from "../../middleware/errors.js";
 import { completionTask } from "../../services/aiClient.js";
 import { stripJsonFences } from "../../utils/stripJsonFences.js";
@@ -22,7 +22,7 @@ const router = Router();
 //     items: [{ question, type, difficulty, options, correctIndex, selectedIndex }]
 //   }
 // Evaluation is included with the paid question generate — no second debit.
-router.post("/evaluate-session", requireAuth, requirePro(), async (req, res, next) => {
+router.post("/evaluate-session", requireAuth, requireFeature("evaluateSession"), async (req, res, next) => {
   try {
     const { role = "Software Engineer", items = [] } = req.body || {};
 

@@ -1,6 +1,6 @@
 import { Router } from "express";
+import { requireFeature } from "../../middleware/requireFeature.js";
 import { requireAuth } from "../../middleware/auth.js";
-import { requirePro } from "../../middleware/requirePro.js";
 import { ApiError } from "../../middleware/errors.js";
 import { hasProAccess } from "../../constants/plans.js";
 import { readSubscription } from "../../services/userCollections.js";
@@ -122,7 +122,7 @@ router.post("/board", requireAuth, handleBoardSearch);
 router.post("/search", requireAuth, handleBoardSearch);
 
 /** Profile top matches — dual skills + title query, merge, rank, top N. */
-router.get("/top-matches", requireAuth, requirePro(), async (req, res, next) => {
+router.get("/top-matches", requireAuth, requireFeature("topMatches"), async (req, res, next) => {
   try {
     const uid = req.user.uid;
     const limit = clampInt(req.query.limit, { min: 1, max: 25, fallback: 10 });

@@ -4,6 +4,10 @@ import { Button } from '@/components/ui'
 import useAppStore from '@/store/authStore'
 import { AdminBarChart, AdminChartCard } from './AdminCharts'
 
+/**
+ * Admin JSON editor for config/pricing — plans[] + creditPolicies[].
+ * Missing 16-hex ids are assigned on the server when you save.
+ */
 export default function AdminPricing() {
   const addToast = useAppStore((s) => s.addToast)
   const [json, setJson] = useState('')
@@ -49,10 +53,26 @@ export default function AdminPricing() {
   const creditBars = useMemo(() => {
     try {
       const parsed = JSON.parse(json || '{}')
+      const policies = parsed.creditPolicies || []
+      if (Array.isArray(policies) && policies.length) {
+        return policies.map((p) => ({
+          label: p.key || p.label,
+          value: Number(p.creditCost) || 0,
+        }))
+      }
       const costs = parsed.creditCosts || {}
       return Object.entries(costs).map(([label, value]) => ({ label, value: Number(value) || 0 }))
     } catch {
       return []
+    }
+  }, [json])
+
+  const planCount = useMemo(() => {
+    try {
+      const parsed = JSON.parse(json || '{}')
+      return Array.isArray(parsed.plans) ? parsed.plans.length : 0
+    } catch {
+      return 0
     }
   }, [json])
 
@@ -62,7 +82,9 @@ export default function AdminPricing() {
         <div>
           <h1 className="text-xl font-semibold">Pricing config</h1>
           <p className="text-sm text-muted-foreground">
-            Edit Firestore <code className="text-xs">config/pricing</code> (validated on save).
+            Firestore <code className="text-xs">config/pricing</code> — <strong>plans[]</strong> (cards) +{' '}
+            <strong>creditPolicies[]</strong> (backend access/credits only). Ids are 16 hex digits.
+            {planCount ? ` · ${planCount} plans` : null}
           </p>
         </div>
         <div className="flex gap-2">
@@ -71,7 +93,7 @@ export default function AdminPricing() {
         </div>
       </div>
 
-      <AdminChartCard title="Credit costs" subtitle="From current pricing JSON">
+      <AdminChartCard title="Credit costs" subtitle="From creditPolicies (or legacy creditCosts)">
         <AdminBarChart data={creditBars} color="#0f766e" />
       </AdminChartCard>
 

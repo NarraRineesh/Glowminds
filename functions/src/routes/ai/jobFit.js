@@ -1,8 +1,7 @@
 import { Router } from "express";
 import { createHash } from "crypto";
+import { requireFeature } from "../../middleware/requireFeature.js";
 import { requireAuth } from "../../middleware/auth.js";
-import { requireCredits } from "../../middleware/requireCredits.js";
-import { requirePro } from "../../middleware/requirePro.js";
 import { ApiError } from "../../middleware/errors.js";
 import { completionTask } from "../../services/aiClient.js";
 import { stripJsonFences } from "../../utils/stripJsonFences.js";
@@ -40,8 +39,7 @@ function normalizeFit(raw) {
 router.post(
   "/job-fit",
   requireAuth,
-  requirePro(),
-  requireCredits("jobFit"),
+  requireFeature("jobFit"),
   async (req, res, next) => {
     try {
       const { job = {}, profile = null } = req.body || {};
