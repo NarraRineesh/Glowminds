@@ -16,9 +16,10 @@ function loadRazorpayScript() {
 }
 
 /**
- * Reusable hook to start the Razorpay upgrade flow.
- * - If the user is not logged in, redirects to /login.
- * - Otherwise: createOrder → Razorpay checkout → verifyPayment.
+ * Upgrade flow — UI only selects a plan; Razorpay order + amount come from the backend.
+ * 1) POST /payments/create-order { plan }  → server verifies plan & creates Razorpay order
+ * 2) Open Razorpay Checkout with the server payload only
+ * 3) POST /payments/verify-payment → server re-checks session/order/payment
  */
 export default function useUpgradePro() {
   const navigate = useNavigate()
@@ -32,15 +33,33 @@ export default function useUpgradePro() {
         return
       }
 
+      // Only a plan id/key — never send amounts from the client.
+      const planRef =
+        typeof plan === 'string'
+          ? plan.trim()
+          : String(plan?.id || plan?.key || '').trim()
+      if (!planRef) {
+        addToast('error', 'No plan selected')
+        return
+      }
+
       setLoading(true)
       try {
-        // Keep payment + Firestore clients off the marketing bundle until checkout.
         const [{ apiFetch }, { default: useProfileStore }, { invalidateEntitlementsCache }] =
           await Promise.all([
             import('@/services/apiClient'),
             import('@/store/profileStore'),
             import('@/hooks/useEntitlements'),
           ])
+
+        // Backend verifies plan against pricing config and creates the Razorpay order.
+        const session = await apiFetch('/payments/create-order', {
+          body: { plan: planRef },
+        })
+
+        if (!session?.orderId || session.amount == null || !session.key) {
+          throw new Error('Checkout session incomplete')
+        }
 
         const loaded = await loadRazorpayScript()
         if (!loaded) {
@@ -49,16 +68,14 @@ export default function useUpgradePro() {
           return
         }
 
-        const data = await apiFetch('/payments/create-order', { body: { plan } })
-        const { orderId, amount, currency, key, planKey } = data
-
         const options = {
-          key,
-          amount,
-          currency,
+          key: session.key,
+          amount: session.amount,
+          currency: session.currency,
           name: 'Glowminds AI',
-          description: planKey ? `Glowminds Pro (${planKey})` : 'Glowminds Pro',
-          order_id: orderId,
+          description: session.planLabel
+            || (session.planKey ? `Glowminds Pro (${session.planKey})` : 'Glowminds Pro'),
+          order_id: session.orderId,
           handler: async (response) => {
             try {
               const result = await apiFetch('/payments/verify-payment', {
@@ -100,7 +117,8 @@ export default function useUpgradePro() {
         rzp.open()
       } catch (err) {
         console.error('Create order:', err)
-        addToast('error', 'Could not start payment. Try again.')
+        const msg = err?.message || 'Could not start payment. Try again.'
+        addToast('error', msg)
         setLoading(false)
       }
     },

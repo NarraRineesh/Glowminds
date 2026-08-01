@@ -1,12 +1,12 @@
-import { admin, getFirestore } from "../config/firebase.js";
+import { admin } from "../config/firebase.js";
 import { PRO_TIER } from "../constants/plans.js";
 import { ApiError } from "../middleware/errors.js";
-import {
-  billingPlansFromConfig,
-  findPlan,
-  getPricingConfig,
-} from "./pricingConfig.js";
+import { getPricingConfig } from "./pricingConfig.js";
 import { grantProCredits } from "./creditService.js";
+import {
+  assertCheckoutForUser,
+  markCheckoutSessionPaid,
+} from "./checkoutSession.js";
 import {
   readSubscription,
   subscriptionPaymentRef,
@@ -15,6 +15,7 @@ import {
 
 /**
  * Idempotent Razorpay order fulfillment — shared by verify-payment and webhook.
+ * Plan + amount are resolved from the server checkout session / order notes — never the client.
  */
 export async function fulfillOrder({ uid, order, payment, source = "verify", signature = null }) {
   if (!uid || !order?.id || !payment?.id) {
@@ -29,9 +30,18 @@ export async function fulfillOrder({ uid, order, payment, source = "verify", sig
     throw new ApiError("failed-precondition", "Payment is not captured");
   }
 
+  if (payment.order_id && payment.order_id !== order.id) {
+    throw new ApiError("permission-denied", "Payment does not belong to this order");
+  }
+
+  if (Number(payment.amount) !== Number(order.amount)) {
+    throw new ApiError("permission-denied", "Payment amount does not match order");
+  }
+
   const existingSub = await readSubscription(uid);
 
   if (existingSub?.razorpayPaymentId === payment.id) {
+    await markCheckoutSessionPaid(order.id, payment.id);
     return {
       success: true,
       alreadyFulfilled: true,
@@ -40,38 +50,31 @@ export async function fulfillOrder({ uid, order, payment, source = "verify", sig
     };
   }
 
+  const { session, plan } = await assertCheckoutForUser({ uid, order });
+
+  // Prefer the amount locked at order creation (session / Razorpay order).
+  const amountPaise = Number(order.amount) || Number(session?.amountPaise) || plan.amountPaise;
+  const durationDays = Number(session?.durationDays) || plan.durationDays;
+
   const pricing = await getPricingConfig();
-  const PLANS = billingPlansFromConfig(pricing);
-  const planRef = order.notes?.plan || "";
-  const planConfig = PLANS[planRef] || null;
-  const planRow = findPlan(pricing, planRef);
-
-  if (!planConfig || !planRow || !(planRow.amountPaise > 0)) {
-    throw new ApiError("invalid-argument", "Invalid or unpaid plan");
-  }
-
-  if (Number(order.amount) !== planConfig.amount) {
-    throw new ApiError("permission-denied", "Order amount does not match current plan pricing");
-  }
-
   const now = new Date();
-  const endDate = new Date(now.getTime() + planConfig.durationDays * 86400_000);
-  const currency = pricing.currency || "INR";
+  const endDate = new Date(now.getTime() + durationDays * 86400_000);
+  const currency = order.currency || session?.currency || pricing.currency || "INR";
   const currencySymbol = pricing.currencySymbol || "₹";
-  const planId = planRow.id;
-  const planKey = planRow.key || planId;
+  const planId = plan.id;
+  const planKey = plan.key || planId;
 
   const subscription = {
     userId: uid,
     plan: planId,
     planKey,
-    tier: planRow.tier || PRO_TIER,
+    tier: plan.tier || PRO_TIER,
     status: "active",
     currentPlanId: planId,
     currentPlanKey: planKey,
-    currentPlanLabel: planConfig.label,
-    currentPlanPeriod: planRow.period || null,
-    currentPlanAmountPaise: planConfig.amount,
+    currentPlanLabel: plan.label,
+    currentPlanPeriod: plan.period || null,
+    currentPlanAmountPaise: amountPaise,
     currency,
     currencySymbol,
     startDate: now.toISOString(),
@@ -89,7 +92,6 @@ export async function fulfillOrder({ uid, order, payment, source = "verify", sig
   const subRef = subscriptionRef(uid);
   const subSnap = await subRef.get();
   const prev = subSnap.exists ? subSnap.data() : {};
-  const amountPaise = Number(order.amount) || planConfig.amount;
   const paymentCount = (prev.paymentCount || 0) + 1;
   const successfulPaymentCount = (prev.successfulPaymentCount || 0) + 1;
 
@@ -108,7 +110,7 @@ export async function fulfillOrder({ uid, order, payment, source = "verify", sig
     userId: uid,
     planId,
     planKey,
-    planLabel: planConfig.label,
+    planLabel: plan.label,
     amountPaise,
     currency,
     status: "captured",
@@ -124,6 +126,7 @@ export async function fulfillOrder({ uid, order, payment, source = "verify", sig
   });
 
   await grantProCredits(uid, pricing);
+  await markCheckoutSessionPaid(order.id, payment.id);
 
   return {
     success: true,

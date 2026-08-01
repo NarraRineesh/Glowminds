@@ -81,6 +81,11 @@ service cloud.firestore {
       allow create: if isOwnerByUserIdOnCreate();
     }
 
+    // Server-authoritative checkout intents (Razorpay orders)
+    match /checkoutSessions/{orderId} {
+      allow read, write: if false;
+    }
+
     // Server-authoritative billing & credits
     match /subscriptions/{userId} {
       allow read: if isOwner(userId);

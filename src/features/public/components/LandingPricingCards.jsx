@@ -44,12 +44,12 @@ export default function LandingPricingCards() {
               isProUser={isPro && plan.tier === 'pro'}
               upgradeLoading={loading}
               loggedIn={loggedIn}
-              onUpgrade={(p) => startUpgrade({ plan: p.id })}
+              onUpgrade={(p) => startUpgrade({ plan: p.id || p.key })}
             />
           ))}
         </div>
         <div className="mt-8 text-center">
-          <Button variant="link" render={<Link to="/pricing" />}>
+          <Button variant="link" nativeButton={false} render={<Link to="/pricing" />}>
             Compare all features →
           </Button>
         </div>

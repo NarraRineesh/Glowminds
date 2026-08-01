@@ -40,6 +40,7 @@ export default function PlanCard({
       className="w-full"
       variant={ctaVariant}
       size="lg"
+      nativeButton={false}
       render={<Link to={loggedIn ? '/dashboard' : '/signup'} />}
     >
       {plan.ctaLabel || 'Start Free'}

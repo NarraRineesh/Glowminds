@@ -152,7 +152,7 @@ export default function PricingPage() {
                 isProUser={isPro && plan.tier === 'pro'}
                 upgradeLoading={loading}
                 loggedIn={loggedIn}
-                onUpgrade={(p) => startUpgrade({ plan: p.id })}
+                onUpgrade={(p) => startUpgrade({ plan: p.id || p.key })}
               />
             </motion.div>
           ))}
