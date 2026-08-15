@@ -3,6 +3,7 @@ import { adminApi } from '@/services/adminApi'
 import { Button } from '@/components/ui'
 import useAppStore from '@/store/authStore'
 import { AdminBarChart, AdminChartCard } from './AdminCharts'
+import { AdminJsonEditor, AdminPageHeader } from './adminUi'
 
 /**
  * Admin JSON editor for config/pricing — plans[] + creditPolicies[].
@@ -77,33 +78,29 @@ export default function AdminPricing() {
   }, [json])
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold">Pricing config</h1>
-          <p className="text-sm text-muted-foreground">
+    <div className="space-y-5">
+      <AdminPageHeader
+        title="Pricing config"
+        description={(
+          <>
             Firestore <code className="text-xs">config/pricing</code> — <strong>plans[]</strong> (cards) +{' '}
             <strong>creditPolicies[]</strong> (backend access/credits only). Ids are 16 hex digits.
             {planCount ? ` · ${planCount} plans` : null}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={load} disabled={loading || saving}>Reload</Button>
-          <Button size="sm" onClick={save} disabled={loading || saving}>Save</Button>
-        </div>
-      </div>
+          </>
+        )}
+        actions={(
+          <>
+            <Button size="sm" variant="outline" onClick={load} disabled={loading || saving}>Reload</Button>
+            <Button size="sm" onClick={save} disabled={loading || saving}>Save</Button>
+          </>
+        )}
+      />
 
       <AdminChartCard title="Credit costs" subtitle="From creditPolicies (or legacy creditCosts)">
         <AdminBarChart data={creditBars} color="#0f766e" />
       </AdminChartCard>
 
-      <textarea
-        className="min-h-[480px] w-full rounded-lg border border-border/70 bg-background p-3 font-mono text-xs leading-relaxed"
-        value={json}
-        onChange={(e) => setJson(e.target.value)}
-        spellCheck={false}
-        disabled={loading}
-      />
+      <AdminJsonEditor value={json} onChange={setJson} disabled={loading} minHeight="min-h-[480px]" />
     </div>
   )
 }

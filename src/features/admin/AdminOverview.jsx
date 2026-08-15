@@ -3,16 +3,7 @@ import { adminApi } from '@/services/adminApi'
 import { Button } from '@/components/ui'
 import useAppStore from '@/store/authStore'
 import { AdminBarChart, AdminChartCard, AdminDonut } from './AdminCharts'
-
-function Kpi({ label, value, hint }) {
-  return (
-    <div className="rounded-lg border border-border/70 bg-background p-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="mt-1 text-2xl font-semibold tabular-nums">{value ?? '—'}</p>
-      {hint ? <p className="mt-1 text-xs text-muted-foreground">{hint}</p> : null}
-    </div>
-  )
-}
+import { AdminKpi, AdminPageHeader } from './adminUi'
 
 function formatInr(paise) {
   if (paise == null) return '—'
@@ -75,42 +66,42 @@ export default function AdminOverview() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-end justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold">Overview</h1>
-          <p className="text-sm text-muted-foreground">Users, Pro revenue, AI cost, and credit burn.</p>
-        </div>
-        <Button size="sm" variant="outline" onClick={load} disabled={loading}>
-          Refresh
-        </Button>
-      </div>
+      <AdminPageHeader
+        title="Overview"
+        description="Users, Pro revenue, AI cost, and credit burn."
+        actions={(
+          <Button size="sm" variant="outline" onClick={load} disabled={loading}>
+            Refresh
+          </Button>
+        )}
+      />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Kpi label="Users" value={d.users?.toLocaleString?.('en-IN') ?? d.users} />
-        <Kpi label="Active Pro" value={d.activePro?.toLocaleString?.('en-IN') ?? d.activePro} />
-        <Kpi
+        <AdminKpi label="Users" value={d.users?.toLocaleString?.('en-IN') ?? d.users} />
+        <AdminKpi label="Active Pro" value={d.activePro?.toLocaleString?.('en-IN') ?? d.activePro} />
+        <AdminKpi
           label="Pro conversion"
           value={d.proConversionRate != null ? `${d.proConversionRate}%` : '—'}
           hint="Active Pro / users"
         />
-        <Kpi label="Est. MRR" value={formatInr(d.mrrEstimatePaise)} hint="Yearly plans / 12" />
+        <AdminKpi label="Est. MRR" value={formatInr(d.mrrEstimatePaise)} hint="Yearly plans / 12" />
       </div>
 
       {d.costSpike?.alert ? (
-        <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
+        <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
           {d.costSpike.message}
         </div>
       ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Kpi label="AI calls today" value={d.today?.calls ?? 0} />
-        <Kpi label="Tokens today" value={(d.today?.totalTokens ?? 0).toLocaleString('en-IN')} />
-        <Kpi
+        <AdminKpi label="AI calls today" value={d.today?.calls ?? 0} />
+        <AdminKpi label="Tokens today" value={(d.today?.totalTokens ?? 0).toLocaleString('en-IN')} />
+        <AdminKpi
           label="Est. cost today"
           value={`$${(d.today?.estimatedCostUsd ?? 0).toFixed(4)}`}
           hint={d.last30Days?.avgDailyCostUsd != null ? `30d avg $${Number(d.last30Days.avgDailyCostUsd).toFixed(4)}/day` : undefined}
         />
-        <Kpi label="Lifetime paid" value={formatInr(d.totalPaidPaise)} />
+        <AdminKpi label="Lifetime paid" value={formatInr(d.totalPaidPaise)} />
       </div>
 
       <div className="grid gap-3 lg:grid-cols-2">

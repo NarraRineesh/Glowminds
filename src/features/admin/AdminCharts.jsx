@@ -126,10 +126,10 @@ export function AdminDonut({
 
 export function AdminChartCard({ title, subtitle, children, className = '' }) {
   return (
-    <div className={`rounded-lg border border-border/70 bg-background p-4 ${className}`}>
+    <div className={`rounded-xl border border-border bg-card p-4 ${className}`}>
       <div className="mb-3">
-        <h2 className="text-sm font-semibold">{title}</h2>
-        {subtitle ? <p className="text-xs text-muted-foreground">{subtitle}</p> : null}
+        <h2 className="m-0 text-sm font-semibold">{title}</h2>
+        {subtitle ? <p className="mt-0.5 mb-0 text-xs text-muted-foreground">{subtitle}</p> : null}
       </div>
       {children}
     </div>

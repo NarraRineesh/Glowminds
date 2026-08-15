@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { adminApi } from '@/services/adminApi'
 import { Button, Input } from '@/components/ui'
 import useAppStore from '@/store/authStore'
+import { AdminKpi, AdminPageHeader, AdminPanel, AdminTableWrap, adminTableClass, adminTdClass, adminThClass } from './adminUi'
 
 export default function AdminUserDetail() {
   const { uid } = useParams()
@@ -84,44 +85,38 @@ export default function AdminUserDetail() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div>
-        <Link to="/admin/users" className="text-xs text-muted-foreground hover:underline">← Users</Link>
-        <h1 className="mt-1 text-xl font-semibold">{user.displayName || user.email || user.uid}</h1>
-        <p className="text-sm text-muted-foreground">{user.email} · {user.uid}</p>
+        <Link to="/admin/users" className="text-xs text-muted-foreground no-underline hover:underline">← Users</Link>
+        <AdminPageHeader
+          title={user.displayName || user.email || user.uid}
+          description={`${user.email || ''} · ${user.uid}`}
+        />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-lg border border-border/70 bg-background p-4 text-sm">
-          <p className="text-xs uppercase text-muted-foreground">Status</p>
-          <p className="mt-1 font-medium">{user.isPro ? 'Pro' : 'Free'}</p>
-          <p className="text-xs text-muted-foreground mt-1">
-            {user.subscription?.plan || '—'} · ends{' '}
-            {user.subscription?.endDate
+        <AdminKpi
+          label="Status"
+          value={user.isPro ? 'Pro' : 'Free'}
+          hint={`${user.subscription?.plan || '—'} · ends ${
+            user.subscription?.endDate
               ? new Date(user.subscription.endDate).toLocaleDateString('en-IN')
-              : '—'}
-          </p>
-        </div>
-        <div className="rounded-lg border border-border/70 bg-background p-4 text-sm">
-          <p className="text-xs uppercase text-muted-foreground">Credits</p>
-          <p className="mt-1 text-2xl font-semibold tabular-nums">{user.credits?.balance ?? '—'}</p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Used {user.credits?.lifetimeUsed ?? 0} · Granted {user.credits?.lifetimeGranted ?? 0}
-          </p>
-        </div>
-        <div className="rounded-lg border border-border/70 bg-background p-4 text-sm">
-          <p className="text-xs uppercase text-muted-foreground">Token usage</p>
-          <p className="mt-1 font-medium tabular-nums">
-            {(user.entitlements?.tokenUsage?.totalTokens ?? 0).toLocaleString('en-IN')} tokens
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            ~${Number(user.entitlements?.tokenUsage?.estimatedCostUsd || 0).toFixed(4)}
-          </p>
-        </div>
+              : '—'
+          }`}
+        />
+        <AdminKpi
+          label="Credits"
+          value={user.credits?.balance ?? '—'}
+          hint={`Used ${user.credits?.lifetimeUsed ?? 0} · Granted ${user.credits?.lifetimeGranted ?? 0}`}
+        />
+        <AdminKpi
+          label="Token usage"
+          value={(user.entitlements?.tokenUsage?.totalTokens ?? 0).toLocaleString('en-IN')}
+          hint={`~$${Number(user.entitlements?.tokenUsage?.estimatedCostUsd || 0).toFixed(4)}`}
+        />
       </div>
 
-      <div className="rounded-lg border border-border/70 bg-background p-4 space-y-3">
-        <h2 className="text-sm font-semibold">Pro activation</h2>
+      <AdminPanel title="Pro activation">
         <div className="flex flex-wrap gap-2">
           <Button size="sm" disabled={busy} onClick={() => grantPro('yearly')}>Grant yearly</Button>
           <Button size="sm" variant="outline" disabled={busy} onClick={() => grantPro('monthly')}>
@@ -131,14 +126,12 @@ export default function AdminUserDetail() {
             Revoke Pro / Downgrade
           </Button>
         </div>
-      </div>
+      </AdminPanel>
 
-      <div className="rounded-lg border border-border/70 bg-background p-4 space-y-3">
-        <h2 className="text-sm font-semibold">Account</h2>
-        <p className="text-xs text-muted-foreground">
-          Auth status: {user.auth?.disabled ? 'Disabled' : 'Active'}
-          {user.isAdmin ? ' · Admin' : ''}
-        </p>
+      <AdminPanel
+        title="Account"
+        subtitle={`Auth status: ${user.auth?.disabled ? 'Disabled' : 'Active'}${user.isAdmin ? ' · Admin' : ''}`}
+      >
         <div className="flex flex-wrap gap-2">
           <Button
             size="sm"
@@ -178,10 +171,9 @@ export default function AdminUserDetail() {
             Delete user
           </Button>
         </div>
-      </div>
+      </AdminPanel>
 
-      <div className="rounded-lg border border-border/70 bg-background p-4 space-y-3">
-        <h2 className="text-sm font-semibold">Adjust credits</h2>
+      <AdminPanel title="Adjust credits">
         <div className="flex flex-wrap items-end gap-2">
           <div>
             <label className="mb-1 block text-xs text-muted-foreground">Amount</label>
@@ -200,44 +192,43 @@ export default function AdminUserDetail() {
             Debit
           </Button>
         </div>
-      </div>
+      </AdminPanel>
 
-      <div className="rounded-lg border border-border/70 bg-background overflow-hidden">
-        <div className="border-b border-border/60 px-4 py-2 text-sm font-semibold">Credit ledger</div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="text-xs uppercase text-muted-foreground">
+      <AdminPanel title="Credit ledger">
+        <AdminTableWrap className="-mx-4 -mb-4 rounded-none border-0 border-t">
+          <table className={adminTableClass}>
+            <thead>
               <tr>
-                <th className="px-3 py-2">When</th>
-                <th className="px-3 py-2">Feature</th>
-                <th className="px-3 py-2">Amount</th>
-                <th className="px-3 py-2">Balance</th>
+                <th className={adminThClass}>When</th>
+                <th className={adminThClass}>Feature</th>
+                <th className={adminThClass}>Amount</th>
+                <th className={adminThClass}>Balance</th>
               </tr>
             </thead>
             <tbody>
               {(user.ledger || []).map((e) => (
-                <tr key={e.id} className="border-t border-border/40">
-                  <td className="px-3 py-2 text-xs text-muted-foreground">
+                <tr key={e.id} className="hover:bg-muted/40">
+                  <td className={`${adminTdClass} text-xs text-muted-foreground`}>
                     {e.createdAt?.toDate
                       ? e.createdAt.toDate().toLocaleString('en-IN')
                       : e.createdAt?._seconds
                         ? new Date(e.createdAt._seconds * 1000).toLocaleString('en-IN')
                         : '—'}
                   </td>
-                  <td className="px-3 py-2">{e.featureKey}</td>
-                  <td className="px-3 py-2 tabular-nums">{e.amount}</td>
-                  <td className="px-3 py-2 tabular-nums">{e.balanceAfter}</td>
+                  <td className={adminTdClass}>{e.featureKey}</td>
+                  <td className={`${adminTdClass} tabular-nums`}>{e.amount}</td>
+                  <td className={`${adminTdClass} tabular-nums`}>{e.balanceAfter}</td>
                 </tr>
               ))}
               {(user.ledger || []).length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-3 py-6 text-center text-muted-foreground">No ledger entries.</td>
+                  <td colSpan={4} className={`${adminTdClass} py-6 text-center text-muted-foreground`}>No ledger entries.</td>
                 </tr>
               )}
             </tbody>
           </table>
-        </div>
-      </div>
+        </AdminTableWrap>
+      </AdminPanel>
     </div>
   )
 }

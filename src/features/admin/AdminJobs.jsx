@@ -3,6 +3,7 @@ import { adminApi } from '@/services/adminApi'
 import { Button, Input } from '@/components/ui'
 import useAppStore from '@/store/authStore'
 import { AdminBarChart, AdminChartCard, AdminDonut } from './AdminCharts'
+import { AdminKpi, AdminPageHeader, AdminTableWrap, adminTableClass, adminTdClass, adminThClass } from './adminUi'
 
 const PAGE_SIZE = 20
 
@@ -84,41 +85,31 @@ export default function AdminJobs() {
   }, [stats])
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold">Jobs</h1>
-          <p className="text-sm text-muted-foreground">
-            Catalog stats from api.glowminds.in. Hide/boost flags stay in Firestore.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="outline" onClick={() => void loadStats()} disabled={statsLoading}>
-            Refresh counts
-          </Button>
-          {!showTable && (
-            <Button size="sm" onClick={() => void openTable()} disabled={statsLoading}>
-              Show jobs table
+    <div className="space-y-5">
+      <AdminPageHeader
+        title="Jobs"
+        description="Catalog stats from api.glowminds.in. Hide/boost flags stay in Firestore."
+        actions={(
+          <>
+            <Button size="sm" variant="outline" onClick={() => void loadStats()} disabled={statsLoading}>
+              Refresh counts
             </Button>
-          )}
-        </div>
-      </div>
+            {!showTable && (
+              <Button size="sm" onClick={() => void openTable()} disabled={statsLoading}>
+                Show jobs table
+              </Button>
+            )}
+          </>
+        )}
+      />
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-lg border border-border/70 bg-background p-4">
-          <p className="text-xs uppercase text-muted-foreground">Total jobs</p>
-          <p className="mt-1 text-3xl font-semibold tabular-nums">
-            {statsLoading && stats == null ? '…' : (stats?.total ?? 0).toLocaleString('en-IN')}
-          </p>
-        </div>
-        <div className="rounded-lg border border-border/70 bg-background p-4">
-          <p className="text-xs uppercase text-muted-foreground">Hidden</p>
-          <p className="mt-1 text-3xl font-semibold tabular-nums">{stats?.hidden ?? 0}</p>
-        </div>
-        <div className="rounded-lg border border-border/70 bg-background p-4">
-          <p className="text-xs uppercase text-muted-foreground">Boosted</p>
-          <p className="mt-1 text-3xl font-semibold tabular-nums">{stats?.boosted ?? 0}</p>
-        </div>
+        <AdminKpi
+          label="Total jobs"
+          value={statsLoading && stats == null ? '…' : (stats?.total ?? 0).toLocaleString('en-IN')}
+        />
+        <AdminKpi label="Hidden" value={stats?.hidden ?? 0} />
+        <AdminKpi label="Boosted" value={stats?.boosted ?? 0} />
       </div>
 
       <AdminChartCard title="Inventory mix" subtitle="Visible vs hidden vs boosted flags">
@@ -143,43 +134,43 @@ export default function AdminJobs() {
             <Button type="submit" size="sm" disabled={loading}>{loading ? 'Loading…' : 'Search'}</Button>
           </form>
 
-          <div className="overflow-x-auto rounded-lg border border-border/70 bg-background">
-            <table className="w-full min-w-[960px] text-left text-sm">
-              <thead className="border-b border-border/60 text-xs uppercase text-muted-foreground">
+          <AdminTableWrap>
+            <table className={`${adminTableClass} min-w-[960px]`}>
+              <thead>
                 <tr>
-                  <th className="px-3 py-2">Job</th>
-                  <th className="px-3 py-2">Company</th>
-                  <th className="px-3 py-2">Type</th>
-                  <th className="px-3 py-2">Posted</th>
-                  <th className="px-3 py-2">Status</th>
-                  <th className="px-3 py-2 text-right">Actions</th>
+                  <th className={adminThClass}>Job</th>
+                  <th className={adminThClass}>Company</th>
+                  <th className={adminThClass}>Type</th>
+                  <th className={adminThClass}>Posted</th>
+                  <th className={adminThClass}>Status</th>
+                  <th className={`${adminThClass} text-right`}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {loading && !jobs.length ? (
                   <tr>
-                    <td colSpan={6} className="px-3 py-8 text-center text-muted-foreground">Loading…</td>
+                    <td colSpan={6} className={`${adminTdClass} py-8 text-center text-muted-foreground`}>Loading…</td>
                   </tr>
                 ) : null}
                 {jobs.map((j) => {
                   const isHidden = hidden.has(j.id)
                   return (
-                    <tr key={j.id} className="border-b border-border/40">
-                      <td className="px-3 py-2">
-                        <p className="font-medium">{j.title}</p>
-                        <p className="max-w-[280px] truncate text-xs text-muted-foreground">{j.id}</p>
+                    <tr key={j.id} className="hover:bg-muted/40">
+                      <td className={adminTdClass}>
+                        <p className="m-0 font-medium">{j.title}</p>
+                        <p className="m-0 max-w-[280px] truncate text-xs text-muted-foreground">{j.id}</p>
                       </td>
-                      <td className="px-3 py-2 text-xs">{j.company || j.co || '—'}</td>
-                      <td className="px-3 py-2 text-xs">{j.type || '—'}</td>
-                      <td className="px-3 py-2 text-xs text-muted-foreground">{j.posted || j.publishedAt || '—'}</td>
-                      <td className="px-3 py-2">
+                      <td className={`${adminTdClass} text-xs`}>{j.company || j.co || '—'}</td>
+                      <td className={`${adminTdClass} text-xs`}>{j.type || '—'}</td>
+                      <td className={`${adminTdClass} text-xs text-muted-foreground`}>{j.posted || j.publishedAt || '—'}</td>
+                      <td className={adminTdClass}>
                         {isHidden ? (
-                          <span className="rounded bg-destructive/10 px-1.5 py-0.5 text-xs text-destructive">Hidden</span>
+                          <span className="rounded-md bg-destructive/10 px-1.5 py-0.5 text-xs text-destructive">Hidden</span>
                         ) : (
-                          <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-xs text-emerald-700">Visible</span>
+                          <span className="rounded-md bg-emerald-500/15 px-1.5 py-0.5 text-xs text-emerald-700">Visible</span>
                         )}
                       </td>
-                      <td className="px-3 py-2">
+                      <td className={adminTdClass}>
                         <div className="flex flex-wrap justify-end gap-1">
                           <Button
                             size="sm"
@@ -196,12 +187,12 @@ export default function AdminJobs() {
                 })}
                 {!loading && !jobs.length && (
                   <tr>
-                    <td colSpan={6} className="px-3 py-8 text-center text-muted-foreground">No jobs found.</td>
+                    <td colSpan={6} className={`${adminTdClass} py-8 text-center text-muted-foreground`}>No jobs found.</td>
                   </tr>
                 )}
               </tbody>
             </table>
-          </div>
+          </AdminTableWrap>
 
           <div className="flex items-center justify-between gap-3">
             <p className="text-xs text-muted-foreground">

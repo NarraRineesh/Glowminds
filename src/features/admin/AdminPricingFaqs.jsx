@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { adminApi } from '@/services/adminApi'
 import { Button } from '@/components/ui'
 import useAppStore from '@/store/authStore'
+import { AdminJsonEditor, AdminPageHeader } from './adminUi'
 
 /** Admin JSON for config/pricingFaqs */
 export default function AdminPricingFaqs() {
@@ -47,26 +48,22 @@ export default function AdminPricingFaqs() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold">Pricing FAQs</h1>
-          <p className="text-sm text-muted-foreground">
+    <div className="space-y-5">
+      <AdminPageHeader
+        title="Pricing FAQs"
+        description={(
+          <>
             Firestore <code className="text-xs">config/pricingFaqs</code>
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={load} disabled={loading || saving}>Reload</Button>
-          <Button size="sm" onClick={save} disabled={loading || saving}>Save</Button>
-        </div>
-      </div>
-      <textarea
-        className="min-h-[480px] w-full rounded-lg border border-border/70 bg-background p-3 font-mono text-xs leading-relaxed"
-        value={json}
-        onChange={(e) => setJson(e.target.value)}
-        spellCheck={false}
-        disabled={loading}
+          </>
+        )}
+        actions={(
+          <>
+            <Button size="sm" variant="outline" onClick={load} disabled={loading || saving}>Reload</Button>
+            <Button size="sm" onClick={save} disabled={loading || saving}>Save</Button>
+          </>
+        )}
       />
+      <AdminJsonEditor value={json} onChange={setJson} disabled={loading} minHeight="min-h-[480px]" />
     </div>
   )
 }

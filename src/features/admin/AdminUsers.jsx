@@ -4,6 +4,7 @@ import { adminApi } from '@/services/adminApi'
 import { Button, Input } from '@/components/ui'
 import useAppStore from '@/store/authStore'
 import { AdminChartCard, AdminDonut } from './AdminCharts'
+import { AdminKpi, AdminPageHeader, AdminTableWrap, adminTableClass, adminTdClass, adminThClass } from './adminUi'
 
 const PAGE_SIZE = 25
 
@@ -95,32 +96,23 @@ export default function AdminUsers() {
   }, [overview, users])
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-semibold">Users</h1>
-        <p className="text-sm text-muted-foreground">
-          Paginated table with disable, delete, make Pro, and downgrade actions.
-        </p>
-      </div>
+    <div className="space-y-5">
+      <AdminPageHeader
+        title="Users"
+        description="Search, filter, disable, delete, grant Pro, or downgrade."
+      />
 
       <div className="grid gap-3 lg:grid-cols-[1fr_280px]">
         <div className="grid gap-3 sm:grid-cols-3">
-          <div className="rounded-lg border border-border/70 bg-background p-4">
-            <p className="text-xs uppercase text-muted-foreground">Total users</p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums">
-              {(overview?.users ?? '—').toLocaleString?.('en-IN') ?? overview?.users ?? '—'}
-            </p>
-          </div>
-          <div className="rounded-lg border border-border/70 bg-background p-4">
-            <p className="text-xs uppercase text-muted-foreground">Active Pro</p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums">{overview?.activePro ?? '—'}</p>
-          </div>
-          <div className="rounded-lg border border-border/70 bg-background p-4">
-            <p className="text-xs uppercase text-muted-foreground">Conversion</p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums">
-              {overview?.proConversionRate != null ? `${overview.proConversionRate}%` : '—'}
-            </p>
-          </div>
+          <AdminKpi
+            label="Total users"
+            value={(overview?.users ?? '—').toLocaleString?.('en-IN') ?? overview?.users ?? '—'}
+          />
+          <AdminKpi label="Active Pro" value={overview?.activePro ?? '—'} />
+          <AdminKpi
+            label="Conversion"
+            value={overview?.proConversionRate != null ? `${overview.proConversionRate}%` : '—'}
+          />
         </div>
         <AdminChartCard title="Plan mix" subtitle="Pro vs Free">
           <AdminDonut segments={planChart} size={100} />
@@ -146,7 +138,7 @@ export default function AdminUsers() {
         <div>
           <label className="mb-1 block text-xs text-muted-foreground">Filter</label>
           <select
-            className="h-9 rounded-md border border-border bg-background px-2 text-sm"
+            className="h-9 rounded-md border border-border bg-card px-2 text-sm"
             value={filter}
             onChange={(e) => onFilterChange(e.target.value)}
           >
@@ -158,55 +150,55 @@ export default function AdminUsers() {
         <Button type="submit" size="sm" disabled={loading}>Search</Button>
       </form>
 
-      <div className="overflow-x-auto rounded-lg border border-border/70 bg-background">
-        <table className="w-full min-w-[1100px] text-left text-sm">
-          <thead className="border-b border-border/60 text-xs uppercase text-muted-foreground">
+      <AdminTableWrap>
+        <table className={`${adminTableClass} min-w-[1100px]`}>
+          <thead>
             <tr>
-              <th className="px-3 py-2 font-medium">User</th>
-              <th className="px-3 py-2 font-medium">Plan</th>
-              <th className="px-3 py-2 font-medium">Status</th>
-              <th className="px-3 py-2 font-medium">Credits</th>
-              <th className="px-3 py-2 font-medium">Account</th>
-              <th className="px-3 py-2 font-medium text-right">Actions</th>
+              <th className={adminThClass}>User</th>
+              <th className={adminThClass}>Plan</th>
+              <th className={adminThClass}>Status</th>
+              <th className={adminThClass}>Credits</th>
+              <th className={adminThClass}>Account</th>
+              <th className={`${adminThClass} text-right`}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading && users.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-3 py-8 text-center text-muted-foreground">
+                <td colSpan={6} className={`${adminTdClass} py-8 text-center text-muted-foreground`}>
                   Loading…
                 </td>
               </tr>
             ) : null}
             {users.map((u) => (
-              <tr key={u.uid} className="border-b border-border/40 hover:bg-foreground/[0.02]">
-                <td className="px-3 py-2">
+              <tr key={u.uid} className="hover:bg-muted/40">
+                <td className={adminTdClass}>
                   <Link to={`/admin/users/${u.uid}`} className="font-medium hover:underline">
                     {u.displayName || u.email || u.uid}
                   </Link>
                   <div className="text-xs text-muted-foreground">{u.email}</div>
                 </td>
-                <td className="px-3 py-2">
+                <td className={adminTdClass}>
                   {u.isPro ? (
-                    <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-xs font-medium text-emerald-800 dark:text-emerald-300">
+                    <span className="rounded-md bg-emerald-500/15 px-1.5 py-0.5 text-xs font-medium text-emerald-800 dark:text-emerald-300">
                       Pro {u.plan || ''}
                     </span>
                   ) : (
                     <span className="text-xs text-muted-foreground">Free</span>
                   )}
                 </td>
-                <td className="px-3 py-2 text-xs">
+                <td className={`${adminTdClass} text-xs`}>
                   {u.subscriptionStatus || '—'}
                 </td>
-                <td className="px-3 py-2 tabular-nums">{u.creditsBalance ?? '—'}</td>
-                <td className="px-3 py-2">
+                <td className={`${adminTdClass} tabular-nums`}>{u.creditsBalance ?? '—'}</td>
+                <td className={adminTdClass}>
                   {u.disabled ? (
-                    <span className="rounded bg-destructive/10 px-1.5 py-0.5 text-xs text-destructive">Disabled</span>
+                    <span className="rounded-md bg-destructive/10 px-1.5 py-0.5 text-xs text-destructive">Disabled</span>
                   ) : (
-                    <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-xs text-emerald-700">Active</span>
+                    <span className="rounded-md bg-emerald-500/15 px-1.5 py-0.5 text-xs text-emerald-700">Active</span>
                   )}
                 </td>
-                <td className="px-3 py-2">
+                <td className={adminTdClass}>
                   <div className="flex flex-wrap justify-end gap-1">
                     {!u.isPro ? (
                       <Button
@@ -259,14 +251,14 @@ export default function AdminUsers() {
             ))}
             {!loading && users.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-3 py-8 text-center text-muted-foreground">
+                <td colSpan={6} className={`${adminTdClass} py-8 text-center text-muted-foreground`}>
                   No users found.
                 </td>
               </tr>
             )}
           </tbody>
         </table>
-      </div>
+      </AdminTableWrap>
 
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs text-muted-foreground">

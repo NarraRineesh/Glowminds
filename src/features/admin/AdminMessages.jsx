@@ -3,6 +3,7 @@ import { adminApi } from '@/services/adminApi'
 import { Button } from '@/components/ui'
 import useAppStore from '@/store/authStore'
 import { AdminBarChart, AdminChartCard } from './AdminCharts'
+import { AdminPageHeader } from './adminUi'
 
 function messageDay(m) {
   if (m.createdAt?.toDate) return m.createdAt.toDate().toISOString().slice(0, 10)
@@ -33,14 +34,12 @@ export default function AdminMessages() {
   }, [])
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-end justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold">Contact messages</h1>
-          <p className="text-sm text-muted-foreground">Inbox from the public contact form.</p>
-        </div>
-        <Button size="sm" variant="outline" onClick={load} disabled={loading}>Refresh</Button>
-      </div>
+    <div className="space-y-5">
+      <AdminPageHeader
+        title="Contact messages"
+        description="Inbox from the public contact form."
+        actions={<Button size="sm" variant="outline" onClick={load} disabled={loading}>Refresh</Button>}
+      />
 
       <AdminChartCard title="Messages by day" subtitle="Inbox volume from loaded set">
         <AdminBarChart
@@ -58,7 +57,7 @@ export default function AdminMessages() {
 
       <div className="space-y-3">
         {messages.map((m) => (
-          <article key={m.id} className="rounded-lg border border-border/70 bg-background p-4">
+          <article key={m.id} className="rounded-xl border border-border bg-card p-4">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <h2 className="font-medium">{m.subject || '(no subject)'}</h2>
               <time className="text-xs text-muted-foreground">
