@@ -1,13 +1,13 @@
 # Glowminds — AI-Powered Career Platform
 
-All-in-one career assistant for students and early-career professionals in India. Build ATS resumes, discover matched jobs, run AI Apply Kit flows, practice interviews, and track applications — on Firebase + optional Supabase job data.
+All-in-one career assistant for students and early-career professionals in India. Build ATS resumes, discover matched jobs, run AI Apply Kit flows, practice interviews, and track applications — on Firebase + the Glowminds jobs catalog API.
 
 ## Features
 
 | Area | What ships |
 |------|------------|
 | **Auth** | Firebase Auth (email + Google), custom admin claims |
-| **Jobs** | Board search (Supabase preferred, Firestore fallback), Top Matches (Pro), Apply Kit (AI fit + cover letter), admin hide/boost |
+| **Jobs** | Catalog search via `api.glowminds.in`, Apply Kit, admin hide/boost |
 | **Resume** | Embedded Glowminds Resume builder (package), ATS review (Pro), paraphrase enhance |
 | **AI tools** | Career coach (grounded in profile/job), interview MCQs, cover letters + cold email, grammar, paraphrase, profile review, LinkedIn audit, salary negotiate |
 | **Billing** | Razorpay Pro, monthly AI credits, entitlements API |
@@ -20,7 +20,7 @@ All-in-one career assistant for students and early-career professionals in India
 - **Routing**: React Router v7 (lazy public + dashboard routes)
 - **State**: Zustand
 - **Auth / user data**: Firebase Auth + Cloud Firestore
-- **Jobs data**: Supabase (when configured) with Firestore fallback
+- **Jobs data**: `https://api.glowminds.in/v1`
 - **API**: Firebase Cloud Functions Gen 2 — Express `api` + scheduled jobs
 - **AI**: Gemini + OpenRouter failover (`functions/src/services/aiClient.js`)
 - **Payments**: Razorpay
@@ -50,7 +50,6 @@ Vite proxies `/api/*` to the Functions emulator.
    firebase functions:secrets:set OPENROUTER_API_KEY
    firebase functions:secrets:set RAZORPAY_KEY_ID
    firebase functions:secrets:set RAZORPAY_KEY_SECRET
-   firebase functions:secrets:set SUPABASE_SERVICE_ROLE_KEY   # optional but recommended
    ```
 4. Grant admin: `pnpm admin:set -- --email you@example.com` then re-login
 5. Deploy: `pnpm deploy` (or `firebase deploy --only functions,hosting,firestore`)

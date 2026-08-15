@@ -33,13 +33,7 @@ import {
   getJobModeration,
   updateJobModeration,
 } from "../../services/jobModeration.js";
-import { searchBoardJobs } from "../../services/jobSearch.js";
-import {
-  createAdminJob,
-  deleteAdminJob,
-  getAdminJobStats,
-} from "../../services/supabaseJobs.js";
-import { isSupabaseEnabled } from "../../services/supabaseClient.js";
+import { getCatalogStats, searchCatalogJobs } from "../../services/jobsCatalog.js";
 
 const router = Router();
 
@@ -213,9 +207,11 @@ router.get(
   asyncHandler(async (_req, res) => {
     const moderation = await getJobModeration();
     let total = 0;
-    if (isSupabaseEnabled()) {
-      const stats = await getAdminJobStats();
-      total = stats.total || 0;
+    try {
+      const stats = await getCatalogStats();
+      total = Number(stats?.active_jobs || stats?.total_jobs || 0);
+    } catch {
+      total = 0;
     }
     res.json({
       total,
@@ -232,13 +228,10 @@ router.get(
     const search = String(req.query.q || "").trim();
     const page = Math.max(1, Number(req.query.page) || 1);
     const pageSize = Math.min(50, Math.max(1, Number(req.query.limit) || 20));
-    const cursor = req.query.cursor ? String(req.query.cursor) : null;
-    const board = await searchBoardJobs({
-      search,
+    const board = await searchCatalogJobs({
+      q: search,
       page,
-      pageSize,
-      cursor,
-      skipModeration: true,
+      limit: pageSize,
     });
     const moderation = await getJobModeration();
     res.json({
@@ -246,25 +239,6 @@ router.get(
       moderation,
       pagination: board.pagination || null,
     });
-  }),
-);
-
-router.post(
-  "/jobs",
-  asyncHandler(async (req, res) => {
-    if (!isSupabaseEnabled()) {
-      throw new ApiError("failed-precondition", "Supabase jobs store is not configured");
-    }
-    const body = req.body || {};
-    const job = await createAdminJob({
-      title: body.title,
-      company: body.company,
-      location: body.location,
-      applyUrl: body.applyUrl || body.apply_url,
-      employmentType: body.employmentType || body.employment_type || body.type,
-      remote: Boolean(body.remote),
-    });
-    res.status(201).json({ job });
   }),
 );
 
@@ -283,20 +257,6 @@ router.post(
       throw new ApiError("invalid-argument", "Provide hideId, unhideId, boostId, or unboostId");
     }
     res.json(await updateJobModeration({ hideId, unhideId, boostId, unboostId }));
-  }),
-);
-
-router.delete(
-  "/jobs/:id",
-  asyncHandler(async (req, res) => {
-    const id = decodeURIComponent(req.params.id || "");
-    if (!id) throw new ApiError("invalid-argument", "job id required");
-    if (!isSupabaseEnabled()) {
-      throw new ApiError("failed-precondition", "Supabase jobs store is not configured");
-    }
-    await deleteAdminJob(id);
-    await updateJobModeration({ unhideId: id, unboostId: id }).catch(() => null);
-    res.json({ ok: true, id });
   }),
 );
 

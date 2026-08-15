@@ -6,7 +6,6 @@ import { auth } from '@/services/firebase'
 import { apiFetch } from '@/services/apiClient'
 import Loader from '@/components/Loader'
 import SkillSuggestInput from '@/components/SkillSuggestInput'
-import { reportUnknownSkills } from '@/services/skillsApi'
 import useEntitlements from '@/hooks/useEntitlements'
 import { DEFAULT_PRICING_CONFIG } from '@/constants/pricingDefaults'
 import useIsLg from '@/hooks/useIsLg'
@@ -244,9 +243,6 @@ export default function ProfileSection() {
       setLastUpdated(new Date())
       setEditing(null)
       addToast('success', 'Skills saved!')
-      // Queue skills missing from the dictionary for the next enrich pass.
-      const all = [...(skills.technical || []), ...(skills.soft || [])]
-      reportUnknownSkills(all).catch(() => {})
     } catch (e) {
       console.error('Save skills:', e)
       addToast('error', 'Failed to save skills')

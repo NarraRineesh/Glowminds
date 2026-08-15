@@ -23,7 +23,6 @@ const OPENROUTER_API_KEY = defineSecret("OPENROUTER_API_KEY");
 const RAZORPAY_KEY_ID = defineSecret("RAZORPAY_KEY_ID");
 const RAZORPAY_KEY_SECRET = defineSecret("RAZORPAY_KEY_SECRET");
 const RAZORPAY_WEBHOOK_SECRET = defineSecret("RAZORPAY_WEBHOOK_SECRET");
-const SUPABASE_SERVICE_ROLE_KEY = defineSecret("SUPABASE_SERVICE_ROLE_KEY");
 
 // Express app is instantiated once per cold start and reused across warm
 // invocations (Gen 2 supports concurrency, so the same instance handles
@@ -46,7 +45,6 @@ export const api = onRequest(
       RAZORPAY_KEY_ID,
       RAZORPAY_KEY_SECRET,
       RAZORPAY_WEBHOOK_SECRET,
-      SUPABASE_SERVICE_ROLE_KEY,
     ],
   },
   app,
@@ -96,7 +94,6 @@ export const dailyJobAlertDigests = onSchedule(
     region: "asia-south1",
     memory: "512MiB",
     timeoutSeconds: 300,
-    secrets: [SUPABASE_SERVICE_ROLE_KEY],
   },
   async () => {
     const result = await sendJobAlertDigests();

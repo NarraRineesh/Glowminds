@@ -1,5 +1,6 @@
 import { admin, getFirestore } from "../config/firebase.js";
-import { searchBoardJobs } from "../services/jobSearch.js";
+import { buildQueryHeader } from "../services/queryHeader.js";
+import { searchCatalogJobs } from "../services/jobsCatalog.js";
 
 /**
  * Daily digest for users with profile.preferences.jobAlerts.enabled.
@@ -21,14 +22,14 @@ export async function sendJobAlertDigests({ maxUsers = 80 } = {}) {
     processed += 1;
 
     try {
-      const search =
-        String(alerts.query || prefs.jobType || data.profile?.headline || "").trim() || "software engineer";
-      const result = await searchBoardJobs({
-        search,
-        page: 1,
-        pageSize: 5,
-        filters: { postedWithinDays: 2 },
+      const headline = String(
+        alerts.query || prefs.jobType || data.profile?.headline || "",
+      ).trim();
+      const { q } = buildQueryHeader({
+        headline: headline || "software engineer",
+        skills: data.profile?.skills?.technical || [],
       });
+      const result = await searchCatalogJobs({ q, page: 1, limit: 5 });
       const jobs = result?.jobs || [];
       if (!jobs.length) continue;
 
@@ -41,7 +42,7 @@ export async function sendJobAlertDigests({ maxUsers = 80 } = {}) {
         userId: doc.id,
         icon: "jobs",
         title: "Your job alert digest",
-        description: `${jobs.length} fresh match${jobs.length === 1 ? "" : "es"} for “${search}”:\n${lines}`,
+        description: `${jobs.length} fresh match${jobs.length === 1 ? "" : "es"} for “${q}”:\n${lines}`,
         color: "#388bfd",
         type: "job_alert",
         read: false,

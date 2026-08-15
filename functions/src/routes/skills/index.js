@@ -3,10 +3,7 @@ import { requireFeature } from "../../middleware/requireFeature.js";
 import { requireAuth } from "../../middleware/auth.js";
 import { ApiError } from "../../middleware/errors.js";
 import {
-  getPersonalizedSkillTrends,
   getSkillGap,
-  queueUnknownSkills,
-  searchSkills,
 } from "../../services/skillsService.js";
 import {
   activateLearningPath,
@@ -17,65 +14,17 @@ import {
   listLearningPathHistory,
   updateLearningPathProgress,
 } from "../../services/learningPathService.js";
-import { loadProfileContext } from "../../services/jobSearch.js";
-import { isSupabaseEnabled } from "../../services/supabaseClient.js";
+import { loadProfileContext } from "../../services/queryHeader.js";
 import { withCreditDebit } from "../../utils/creditResponse.js";
 
 const router = Router();
 
-router.get("/search", requireAuth, async (req, res, next) => {
-  try {
-    if (!isSupabaseEnabled()) {
-      throw new ApiError("failed-precondition", "Skill database is not configured");
-    }
-    const q = String(req.query.q || "").trim();
-    const limit = Math.min(Math.max(1, Number.parseInt(req.query.limit, 10) || 10), 25);
-    const skills = await searchSkills(q, limit);
-    res.json({ skills, query: q });
-  } catch (err) {
-    next(err instanceof ApiError ? err : new ApiError("internal", err.message));
-  }
-});
-
-router.get("/trends", requireAuth, async (req, res, next) => {
-  try {
-    if (!isSupabaseEnabled()) {
-      throw new ApiError("failed-precondition", "Skill database is not configured");
-    }
-    const limit = Math.min(Math.max(1, Number.parseInt(req.query.limit, 10) || 8), 20);
-    const mode = String(req.query.mode || "demand").toLowerCase();
-    const { profile } = await loadProfileContext(req.user.uid);
-    const { trends, domain } = await getPersonalizedSkillTrends({ profile, limit, mode });
-    res.json({ trends, mode, domain });
-  } catch (err) {
-    next(err instanceof ApiError ? err : new ApiError("internal", err.message));
-  }
-});
-
-/** Free skill-gap analysis vs a target role. */
 router.get("/gap", requireAuth, async (req, res, next) => {
   try {
     const role = String(req.query.role || "").trim();
     const { profile } = await loadProfileContext(req.user.uid);
     const gap = await getSkillGap({ profile, targetRole: role });
     res.json(gap);
-  } catch (err) {
-    next(err instanceof ApiError ? err : new ApiError("internal", err.message));
-  }
-});
-
-/**
- * Queue skills missing from the dictionary into `unknown_skills` for the
- * next enrich pass. Profile still stores free-text; this is fire-and-forget.
- */
-router.post("/unknown", requireAuth, async (req, res, next) => {
-  try {
-    if (!isSupabaseEnabled()) {
-      return res.json({ queued: 0, unknown: [] });
-    }
-    const skills = Array.isArray(req.body?.skills) ? req.body.skills : [];
-    const result = await queueUnknownSkills(skills);
-    res.json(result);
   } catch (err) {
     next(err instanceof ApiError ? err : new ApiError("internal", err.message));
   }

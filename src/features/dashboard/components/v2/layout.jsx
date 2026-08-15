@@ -1,11 +1,15 @@
 import { Button, cn } from '@/components/ui'
 
 /** Main + insight rail — Design Lab SplitRail */
-export function SplitRail({ main, rail, className }) {
+export function SplitRail({ main, rail, className, sticky = true }) {
   return (
-    <div className={cn('grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px] xl:grid-cols-[minmax(0,1fr)_300px]', className)}>
+    <div className={cn('grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_280px] xl:grid-cols-[minmax(0,1fr)_300px]', className)}>
       <div className="min-w-0 space-y-3">{main}</div>
-      {rail ? <aside className="min-w-0 space-y-3 lg:sticky lg:top-20 lg:self-start">{rail}</aside> : null}
+      {rail ? (
+        <aside className={cn('min-w-0 w-full space-y-3', sticky && 'lg:sticky lg:top-20 lg:self-start')}>
+          {rail}
+        </aside>
+      ) : null}
     </div>
   )
 }

@@ -1,23 +1,36 @@
 import { apiFetch } from '@/services/apiClient'
 import { dedupeAsync } from '@/utils/dedupeAsync'
+import { searchCatalogSkills, getTrendingSkills } from '@/services/jobsApi'
 
-/** Autocomplete skills from Supabase skill intelligence DB. */
+/** Autocomplete skills from the jobs catalog. */
 export async function searchSkills(query, limit = 10) {
-  const params = new URLSearchParams()
-  params.set('q', query)
-  if (limit) params.set('limit', String(limit))
-  return apiFetch(`/skills/search?${params.toString()}`, { method: 'GET' })
+  const items = await searchCatalogSkills(query, limit)
+  return {
+    skills: items.map((row) => ({
+      id: row.id || row.normalized_name || row.name,
+      name: row.name || row.normalized_name || '',
+      jobCount: row.active_job_count || 0,
+    })),
+    query,
+  }
 }
 
-/** Top demanded or fastest-growing skills for dashboard. */
-export async function getSkillTrends({ limit = 8, mode = 'demand' } = {}) {
-  const params = new URLSearchParams()
-  if (limit) params.set('limit', String(limit))
-  if (mode) params.set('mode', mode)
-  const qs = params.toString()
-  return dedupeAsync(`skills/trends|${qs}`, () =>
-    apiFetch(`/skills/trends?${qs}`, { method: 'GET' }),
-  )
+/** Top demanded skills from the jobs catalog. */
+export async function getSkillTrends({ limit = 8 } = {}) {
+  return dedupeAsync(`skills/trends|${limit}`, async () => {
+    const items = await getTrendingSkills({ limit })
+    return {
+      trends: items.map((row) => ({
+        name: row.skill_name || row.name,
+        jobCount: row.active_job_count || 0,
+        growth: '',
+        importanceScore: 50,
+        category: 'Catalog',
+      })),
+      mode: 'demand',
+      domain: { label: 'Catalog', categories: [] },
+    }
+  })
 }
 
 /** Free skill-gap analysis for a target role. */
@@ -30,19 +43,8 @@ export async function getSkillGap({ role = '' } = {}) {
   )
 }
 
-/**
- * Queue skills not in the skill DB for the next enrich run.
- * Safe to call fire-and-forget after profile skill save.
- */
-export async function reportUnknownSkills(skills = []) {
-  const list = (Array.isArray(skills) ? skills : [])
-    .map((s) => String(s || '').trim())
-    .filter(Boolean)
-  if (!list.length) return { queued: 0, unknown: [] }
-  return apiFetch('/skills/unknown', {
-    method: 'POST',
-    body: { skills: list },
-  })
+export async function reportUnknownSkills() {
+  return { queued: 0, unknown: [] }
 }
 
 export async function getLearningPath() {

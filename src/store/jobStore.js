@@ -46,14 +46,11 @@ const emptyPagination = () => ({
   nextCursor: null,
   from: 0,
   to: 0,
+  totalExact: true,
 })
 
-function requestCacheKey({ search = '', category = '', page = 1, pageSize = DEFAULT_PAGE_SIZE, filters = {}, cursor = null } = {}) {
-  return `${String(search).trim().toLowerCase()}|${String(category).trim().toLowerCase()}|${page}|${pageSize}|${JSON.stringify(filters)}|${cursor || ''}`
-}
-
-function searchSessionKey({ search = '', category = '', filters = {} } = {}) {
-  return `${String(search).trim().toLowerCase()}|${String(category).trim().toLowerCase()}|${JSON.stringify(filters)}`
+function requestCacheKey({ search = '', page = 1, pageSize = DEFAULT_PAGE_SIZE } = {}) {
+  return `${String(search).trim().toLowerCase()}|${page}|${pageSize}`
 }
 
 let inflightPromise = null
@@ -64,9 +61,6 @@ let topMatchesInflightKey = null
 const useJobStore = create((set, get) => ({
   jobs: [],
   pagination: emptyPagination(),
-  /** Cursors to reach page N: index 0 = page 1 (null), index 1 = cursor after page 1, … */
-  pageCursors: [null],
-  searchSessionKey: null,
   topMatches: [],
   topMatchesLoading: false,
   topMatchesQueryUsed: '',
@@ -81,15 +75,10 @@ const useJobStore = create((set, get) => ({
   lastRequestKey: null,
   searchQuery: '',
   queryUsed: '',
-  skillTerms: [],
-  sources: {},
-  meta: {},
 
   reset: () => set({
     jobs: [],
     pagination: emptyPagination(),
-    pageCursors: [null],
-    searchSessionKey: null,
     topMatches: [],
     topMatchesLoading: false,
     topMatchesQueryUsed: '',
@@ -104,30 +93,16 @@ const useJobStore = create((set, get) => ({
     lastRequestKey: null,
     searchQuery: '',
     queryUsed: '',
-    skillTerms: [],
-    sources: {},
-    meta: {},
   }),
 
   fetchJobs: async ({
     search = '',
-    category = '',
     page = 1,
     pageSize = DEFAULT_PAGE_SIZE,
-    filters = {},
     force = false,
   } = {}) => {
-    const sessionKey = searchSessionKey({ search, category, filters })
-    let { pageCursors, searchSessionKey: prevSessionKey } = get()
-
-    if (prevSessionKey !== sessionKey) {
-      pageCursors = [null]
-      set({ pageCursors, searchSessionKey: sessionKey })
-    }
-
     const safePage = Math.max(1, Math.trunc(page) || 1)
-    const cursor = pageCursors[safePage - 1] ?? null
-    const requestKey = requestCacheKey({ search, category, page: safePage, pageSize, filters, cursor })
+    const requestKey = requestCacheKey({ search, page: safePage, pageSize })
 
     if (
       !force
@@ -148,30 +123,13 @@ const useJobStore = create((set, get) => ({
       try {
         const data = await searchBoardJobs({
           search,
-          category,
           page: safePage,
           pageSize,
-          cursor,
-          filters,
         })
-
-        const pagination = data.pagination || emptyPagination()
-        const nextCursors = [...get().pageCursors]
-        if (pagination.nextCursor) {
-          nextCursors[safePage] = pagination.nextCursor
-        } else {
-          nextCursors.length = safePage
-        }
-
         set({
           jobs: (data.jobs || []).map(normalizeJob),
-          pagination,
-          pageCursors: nextCursors,
-          searchSessionKey: sessionKey,
-          queryUsed: data.queryUsed || '',
-          skillTerms: data.skillTerms || [],
-          sources: data.sources || {},
-          meta: data.meta || {},
+          pagination: data.pagination || emptyPagination(),
+          queryUsed: data.queryUsed || search,
           loading: false,
           lastFetched: Date.now(),
           lastRequestKey: requestKey,
@@ -189,8 +147,8 @@ const useJobStore = create((set, get) => ({
     return inflightPromise
   },
 
-  fetchTopMatches: async ({ limit = 10, category = '', force = false } = {}) => {
-    const requestKey = `top|${limit}|${category}`
+  fetchTopMatches: async ({ limit = 10, force = false } = {}) => {
+    const requestKey = `top|${limit}`
     if (
       !force
       && get().topMatchesRequestKey === requestKey
@@ -209,7 +167,7 @@ const useJobStore = create((set, get) => ({
     topMatchesInflightKey = requestKey
     topMatchesInflight = (async () => {
       try {
-        const data = await getTopMatches({ limit, category })
+        const data = await getTopMatches({ limit })
         set({
           topMatches: (data.jobs || []).map(normalizeJob),
           topMatchesQueryUsed: data.queryUsed || '',

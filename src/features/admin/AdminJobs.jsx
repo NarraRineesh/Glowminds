@@ -6,32 +6,18 @@ import { AdminBarChart, AdminChartCard, AdminDonut } from './AdminCharts'
 
 const PAGE_SIZE = 20
 
-const EMPTY_FORM = {
-  title: '',
-  company: '',
-  location: '',
-  applyUrl: '',
-  employmentType: 'Full-time',
-  remote: false,
-}
-
 export default function AdminJobs() {
   const addToast = useAppStore((s) => s.addToast)
   const [stats, setStats] = useState(null)
   const [statsLoading, setStatsLoading] = useState(true)
   const [showTable, setShowTable] = useState(false)
-
   const [q, setQ] = useState('')
   const [jobs, setJobs] = useState([])
   const [moderation, setModeration] = useState({ hiddenIds: [], boostedIds: [] })
   const [pagination, setPagination] = useState(null)
   const [page, setPage] = useState(1)
-  const [pageCursors, setPageCursors] = useState([null])
   const [loading, setLoading] = useState(false)
   const [busyId, setBusyId] = useState(null)
-  const [showAdd, setShowAdd] = useState(false)
-  const [form, setForm] = useState(EMPTY_FORM)
-  const [saving, setSaving] = useState(false)
 
   const loadStats = useCallback(async () => {
     setStatsLoading(true)
@@ -47,25 +33,18 @@ export default function AdminJobs() {
     void loadStats()
   }, [loadStats])
 
-  const loadPage = useCallback(async (pageNum, cursor, search = q) => {
+  const loadPage = useCallback(async (pageNum, search = q) => {
     setLoading(true)
     try {
       const data = await adminApi.jobs({
         q: search,
         limit: PAGE_SIZE,
         page: pageNum,
-        cursor: cursor || undefined,
       })
       setJobs(data.jobs || [])
       setModeration(data.moderation || { hiddenIds: [], boostedIds: [] })
       setPagination(data.pagination || null)
       setPage(pageNum)
-      setPageCursors((prev) => {
-        const next = prev.slice(0, pageNum)
-        next[pageNum - 1] = cursor ?? null
-        if (data.pagination?.nextCursor) next[pageNum] = data.pagination.nextCursor
-        return next
-      })
     } catch (err) {
       addToast('error', err.message || 'Failed to load jobs')
     }
@@ -74,8 +53,7 @@ export default function AdminJobs() {
 
   const openTable = async () => {
     setShowTable(true)
-    setPageCursors([null])
-    await loadPage(1, null, q)
+    await loadPage(1, q)
   }
 
   const moderate = async (payload) => {
@@ -90,47 +68,6 @@ export default function AdminJobs() {
       addToast('error', err.message || 'Moderation failed')
     }
     setBusyId(null)
-  }
-
-  const onDelete = async (job) => {
-    if (!window.confirm(`Delete job permanently?\n\n${job.title}`)) return
-    setBusyId(job.id)
-    try {
-      await adminApi.deleteJob(job.id)
-      setJobs((prev) => prev.filter((j) => j.id !== job.id))
-      addToast('success', 'Job deleted')
-      await loadStats()
-    } catch (err) {
-      addToast('error', err.message || 'Delete failed')
-    }
-    setBusyId(null)
-  }
-
-  const onCreate = async (e) => {
-    e.preventDefault()
-    if (!form.title.trim()) {
-      addToast('error', 'Title is required')
-      return
-    }
-    setSaving(true)
-    try {
-      await adminApi.createJob(form)
-      addToast('success', 'Job added')
-      setForm(EMPTY_FORM)
-      setShowAdd(false)
-      await loadStats()
-      if (showTable) {
-        setPageCursors([null])
-        await loadPage(1, null, q)
-      } else {
-        setShowTable(true)
-        setPageCursors([null])
-        await loadPage(1, null, '')
-      }
-    } catch (err) {
-      addToast('error', err.message || 'Could not add job')
-    }
-    setSaving(false)
   }
 
   const hidden = useMemo(() => new Set(moderation.hiddenIds || []), [moderation.hiddenIds])
@@ -152,15 +89,12 @@ export default function AdminJobs() {
         <div>
           <h1 className="text-xl font-bold">Jobs</h1>
           <p className="text-sm text-muted-foreground">
-            Counts load first. Open the table to paginate, hide/show, delete, or add listings.
+            Catalog stats from api.glowminds.in. Hide/boost flags stay in Firestore.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="outline" onClick={() => void loadStats()} disabled={statsLoading}>
             Refresh counts
-          </Button>
-          <Button size="sm" onClick={() => setShowAdd((v) => !v)}>
-            {showAdd ? 'Close form' : 'Add job'}
           </Button>
           {!showTable && (
             <Button size="sm" onClick={() => void openTable()} disabled={statsLoading}>
@@ -191,45 +125,13 @@ export default function AdminJobs() {
         <AdminDonut segments={chartSegments} />
       </AdminChartCard>
 
-      {showAdd && (
-        <form onSubmit={onCreate} className="space-y-3 rounded-lg border border-border/70 bg-background p-4">
-          <h2 className="text-sm font-semibold">Add job</h2>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Input placeholder="Title *" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-            <Input placeholder="Company" value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} />
-            <Input placeholder="Location" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
-            <Input placeholder="Apply URL" value={form.applyUrl} onChange={(e) => setForm({ ...form, applyUrl: e.target.value })} />
-            <select
-              className="h-9 rounded-md border border-border bg-background px-2 text-sm"
-              value={form.employmentType}
-              onChange={(e) => setForm({ ...form, employmentType: e.target.value })}
-            >
-              <option>Full-time</option>
-              <option>Contract</option>
-              <option>Internship</option>
-              <option>Part-time</option>
-            </select>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={form.remote}
-                onChange={(e) => setForm({ ...form, remote: e.target.checked })}
-              />
-              Remote
-            </label>
-          </div>
-          <Button type="submit" size="sm" disabled={saving}>{saving ? 'Saving…' : 'Create job'}</Button>
-        </form>
-      )}
-
       {showTable && (
         <>
           <form
             className="flex flex-wrap gap-2"
             onSubmit={(e) => {
               e.preventDefault()
-              setPageCursors([null])
-              void loadPage(1, null, q)
+              void loadPage(1, q)
             }}
           >
             <Input
@@ -269,7 +171,7 @@ export default function AdminJobs() {
                       </td>
                       <td className="px-3 py-2 text-xs">{j.company || j.co || '—'}</td>
                       <td className="px-3 py-2 text-xs">{j.type || '—'}</td>
-                      <td className="px-3 py-2 text-xs text-muted-foreground">{j.posted || '—'}</td>
+                      <td className="px-3 py-2 text-xs text-muted-foreground">{j.posted || j.publishedAt || '—'}</td>
                       <td className="px-3 py-2">
                         {isHidden ? (
                           <span className="rounded bg-destructive/10 px-1.5 py-0.5 text-xs text-destructive">Hidden</span>
@@ -286,14 +188,6 @@ export default function AdminJobs() {
                             onClick={() => void moderate(isHidden ? { unhideId: j.id } : { hideId: j.id })}
                           >
                             {isHidden ? 'Show' : 'Hide'}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={busyId === j.id}
-                            onClick={() => void onDelete(j)}
-                          >
-                            Delete
                           </Button>
                         </div>
                       </td>
@@ -320,7 +214,7 @@ export default function AdminJobs() {
                 size="sm"
                 variant="outline"
                 disabled={loading || page <= 1}
-                onClick={() => void loadPage(page - 1, pageCursors[page - 2] ?? null)}
+                onClick={() => void loadPage(page - 1)}
               >
                 Previous
               </Button>
@@ -328,7 +222,7 @@ export default function AdminJobs() {
                 size="sm"
                 variant="outline"
                 disabled={loading || !pagination?.hasMore}
-                onClick={() => void loadPage(page + 1, pageCursors[page] || pagination?.nextCursor)}
+                onClick={() => void loadPage(page + 1)}
               >
                 Next
               </Button>

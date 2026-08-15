@@ -7,6 +7,7 @@ import useProfileStore from '@/store/profileStore'
 import useEntitlements from '@/hooks/useEntitlements'
 import { apiFetch } from '@/services/apiClient'
 import { getJobById } from '@/services/jobSearch'
+import { trackJobMetric } from '@/services/jobsApi'
 import { buildJobMatchAnalysis } from '@/utils/jobMatchAnalysis'
 import Loader from '@/components/Loader'
 import { APPLICATION_STATUS } from '@/constants/schema'
@@ -122,6 +123,7 @@ export default function JobDetailSection() {
           }
         } else {
           setJob(data.job)
+          trackJobMetric(jobId, 'views')
         }
       } catch (err) {
         if (!cancelled && !cached) setError(err.message || 'Failed to load job')
@@ -144,7 +146,10 @@ export default function JobDetailSection() {
     // Open the apply page synchronously (inside the click gesture) so the
     // browser doesn't block the popup — tracking happens after, async.
     const applyUrl = j.url || j.applyUrl || j.jobUrl || ''
-    if (applyUrl) window.open(applyUrl, '_blank', 'noopener,noreferrer')
+    if (applyUrl) {
+      window.open(applyUrl, '_blank', 'noopener,noreferrer')
+      trackJobMetric(j.id, 'clicks')
+    }
     setApplying(true)
     try {
       const company = j.company || j.co || ''
@@ -166,6 +171,7 @@ export default function JobDetailSection() {
         jobId: j.id,
       })
       if (application) {
+        trackJobMetric(j.id, 'applications')
         addToast('success', `Applied to ${j.title} at ${company}! Added to your tracker.`)
         const uid = user?.uid
         if (uid) {
@@ -481,7 +487,13 @@ export default function JobDetailSection() {
           {descLoading && !(job.descHtml || job.description || job.desc) ? (
             <p className="text-sm text-muted-foreground">Loading description…</p>
           ) : (
-            <JobDescriptionHtml html={job.descHtml} plain={job.description || job.desc} />
+            <JobDescriptionHtml
+              html={job.descHtml}
+              plain={job.description || job.desc}
+              fallback={(job.tags || []).length
+                ? 'Full description is not in the catalog yet. Use skills above and Apply to read the posting.'
+                : 'No description available.'}
+            />
           )}
         </section>
 

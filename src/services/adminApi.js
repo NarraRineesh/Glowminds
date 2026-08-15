@@ -109,16 +109,9 @@ export const adminApi = {
     if (params.q) q.set('q', params.q)
     if (params.limit) q.set('limit', String(params.limit))
     if (params.page) q.set('page', String(params.page))
-    if (params.cursor) q.set('cursor', params.cursor)
     const qs = q.toString()
     return apiFetch(`/admin/jobs${qs ? `?${qs}` : ''}`, { method: 'GET' })
   },
-
-  createJob: (body) =>
-    apiFetch('/admin/jobs', { method: 'POST', body }),
-
-  deleteJob: (id) =>
-    apiFetch(`/admin/jobs/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 
   moderateJob: (body) =>
     apiFetch('/admin/jobs/moderation', { method: 'POST', body }),
