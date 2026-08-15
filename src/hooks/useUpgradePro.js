@@ -72,7 +72,7 @@ export default function useUpgradePro() {
           key: session.key,
           amount: session.amount,
           currency: session.currency,
-          name: 'Glowminds AI',
+          name: 'Glowminds',
           description: session.planLabel
             || (session.planKey ? `Glowminds Pro (${session.planKey})` : 'Glowminds Pro'),
           order_id: session.orderId,

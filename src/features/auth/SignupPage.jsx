@@ -15,7 +15,7 @@ const ease = [0.16, 1, 0.3, 1]
 function getBenefits(stats = {}) {
   return [
     { ico: 'check-circle', title: 'Affordable Plans', desc: 'Powerful career tools at prices that work for students and freshers.' },
-    { ico: 'lightning', title: 'Career OS in minutes', desc: 'Sign up, pick a resume template, sync details, then GLOWMINDS AI analysis.' },
+    { ico: 'lightning', title: 'Career OS in minutes', desc: 'Sign up, pick a resume template, sync details, then Glow (Bot) analysis.' },
     { ico: 'target', title: `${stats.matchRate || '94%'} Match Accuracy`, desc: 'Our AI finds the most relevant jobs for your skills and goals.' },
     { ico: 'lock', title: 'Secure & Private', desc: 'Your data is encrypted. We never sell your information.' },
   ]
@@ -58,8 +58,8 @@ export default function SignupPage() {
     setLoading(true)
     try {
       await doSignup(email, pw, fn, ln)
-      addToast('success', `Welcome, ${fn}! Your account is ready.`)
-      navigate('/dashboard')
+      addToast('success', 'Check your inbox to verify your email.')
+      navigate('/verify-email')
     } catch (err) {
       const msg = err.code === 'auth/email-already-in-use' ? 'This email is already registered. Try logging in.'
         : err.code === 'auth/weak-password' ? 'Password is too weak. Use at least 6 characters.'

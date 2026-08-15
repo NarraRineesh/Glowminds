@@ -13,7 +13,7 @@ export const DESIGN_SCREENS = [
   { id: 'skills', title: 'Skills Intelligence', group: 'Grow' },
   { id: 'learning', title: 'Learning Center', group: 'Grow' },
   { id: 'interview', title: 'Interview Simulator', group: 'Grow' },
-      { id: 'ai-coach', title: 'GLOWMINDS AI', group: 'Grow' },
+      { id: 'ai-coach', title: 'Glow (Bot)', group: 'Grow' },
   { id: 'analytics', title: 'Career Intelligence', group: 'Insights' },
   { id: 'cover-letter', title: 'Cover Letter Generator', group: 'Write' },
   { id: 'grammar', title: 'Grammar Checker', group: 'Write' },
@@ -40,7 +40,7 @@ export const NAV_GROUPS = [
       { id: 'learning', label: 'Learning' },
       { id: 'interview', label: 'Interview' },
       { id: 'linkedin-hub', label: 'LinkedIn Hub' },
-      { id: 'ai-coach', label: 'GLOWMINDS AI' },
+      { id: 'ai-coach', label: 'Glow (Bot)' },
     ],
   },
   {

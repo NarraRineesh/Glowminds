@@ -8,10 +8,10 @@ export const SEO_OG_IMAGE_ALT =
   'Glowminds — AI-Powered Career Operating System for students in India'
 
 export const SEO_DEFAULT_KEYWORDS =
-  'AI career operating system, AI resume builder India, ATS resume for freshers, job search India, GLOWMINDS AI, skill gap analysis, AI upskilling, AI interview prep, cover letter generator, Glowminds'
+  'AI career operating system, AI resume builder India, ATS resume for freshers, job search India, Glow (Bot), skill gap analysis, AI upskilling, AI interview prep, cover letter generator, Glowminds'
 
 export const SEO_DEFAULT_DESCRIPTION =
-  'Glowminds is an AI-Powered Career Operating System: ATS resumes, job matching, upskilling, interviews, GLOWMINDS AI, and application tracking. Free to start for students and freshers in India.'
+  'Glowminds is an AI-Powered Career Operating System: ATS resumes, job matching, upskilling, interviews, Glow (Bot), and application tracking. Free to start for students and freshers in India.'
 
 export const SEO_ORGANIZATION = {
   name: 'Glowminds',
@@ -28,18 +28,18 @@ export const PAGE_SEO = {
   home: {
     title: 'AI-Powered Career Operating System for Freshers',
     description:
-      'Glowminds is an AI-Powered Career Operating System: ATS resumes, job matching, skill-gap upskilling, mock interviews, GLOWMINDS AI, and application tracking. Free to start in India.',
+      'Glowminds is an AI-Powered Career Operating System: ATS resumes, job matching, skill-gap upskilling, mock interviews, Glow (Bot), and application tracking. Free to start in India.',
     path: '/',
     keywords:
-      'AI career operating system, AI resume builder for freshers, job matching India, skill gap analysis, AI learning path, GLOWMINDS AI, mock interview, fresher job search',
+      'AI career operating system, AI resume builder for freshers, job matching India, skill gap analysis, AI learning path, Glow (Bot), mock interview, fresher job search',
   },
   features: {
     title: 'Features — Career OS: Resume, Jobs, AI, Interviews & Tracking',
     description:
-      'Explore Glowminds Career OS: ATS resume builder, smart job matching, skill-gap upskilling, GLOWMINDS AI, mock interviews, cover letters, and Kanban tracking.',
+      'Explore Glowminds Career OS: ATS resume builder, smart job matching, skill-gap upskilling, Glow (Bot), mock interviews, cover letters, and Kanban tracking.',
     path: '/features',
     keywords:
-      'career operating system, resume builder features, AI job matching, GLOWMINDS AI, upskilling platform, mock interview app, cover letter AI',
+      'career operating system, resume builder features, AI job matching, Glow (Bot), upskilling platform, mock interview app, cover letter AI',
   },
   pricing: {
     title: 'Pricing — Free, Monthly, Yearly & Lifetime Plans',
@@ -59,10 +59,10 @@ export const PAGE_SEO = {
   about: {
     title: 'About — AI-Powered Career Operating System',
     description:
-      'Glowminds is an AI-Powered Career Operating System for students and fresh graduates — resumes, jobs, skills, interviews, and GLOWMINDS AI in one workspace.',
+      'Glowminds is an AI-Powered Career Operating System for students and fresh graduates — resumes, jobs, skills, interviews, and Glow (Bot) in one workspace.',
     path: '/about',
     keywords:
-      'about Glowminds, AI career operating system, student career platform India, GLOWMINDS AI',
+      'about Glowminds, AI career operating system, student career platform India, Glow (Bot)',
   },
   contact: {
     title: 'Contact Us — Support & Partnerships',
@@ -104,6 +104,12 @@ export const PAGE_SEO = {
     description:
       'Create your free Glowminds account. Build ATS resumes, get matched to jobs, try AI tools, and track applications — no credit card required.',
     path: '/signup',
+    noIndex: true,
+  },
+  verifyEmail: {
+    title: 'Verify your email',
+    description: 'Confirm your Glowminds email address to open the dashboard.',
+    path: '/verify-email',
     noIndex: true,
   },
   notFound: {
@@ -240,7 +246,7 @@ export function softwareApplicationSchema() {
     featureList: [
       'ATS resume builder',
       'AI job matching',
-      'GLOWMINDS AI career coach',
+      'Glow (Bot) career coach',
       'Skill gap analysis and upskilling paths',
       'AI mock interviews',
       'Cover letter generator',

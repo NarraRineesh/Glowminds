@@ -21,12 +21,12 @@ const FEATURES = [
   },
   {
     key: 'ai-coach',
-    badge: 'GLOWMINDS AI', badgeBg: 'rgba(210,153,34,.08)', badgeColor: 'var(--color-gold)',
-    title: 'GLOWMINDS AI — Your Career Operating System Advisor',
-    desc: 'GLOWMINDS AI is the always-on advisor in your Career OS. Ask about resumes, interviews, salary, skill gaps, and outreach. It keeps context across sessions so you get advice that matches your profile — not a generic chatbot.',
+    badge: 'Glow (Bot)', badgeBg: 'rgba(210,153,34,.08)', badgeColor: 'var(--color-gold)',
+    title: 'Glow — your career bot',
+    desc: 'Glow is the Glowminds career bot. Ask about resumes, interviews, salary, skill gaps, and outreach. It keeps context across sessions so advice matches your profile.',
     bullets: ['Multi-turn conversations with your career context', 'STAR method coaching for behavioral interviews', 'Salary negotiation scripts tailored to your offer', 'Outreach templates for recruiters and hiring managers'],
     image: '/mockups/ai-coach.svg',
-    cta: 'Open GLOWMINDS AI',
+    cta: 'Open Glow (Bot)',
   },
   {
     key: 'interview-prep',
@@ -73,7 +73,7 @@ const HERO = {
   headline: 'Your AI-Powered Career Operating System',
   highlight: 'Career Operating System',
   subheadline:
-    'Not just a resume tool or job board. Glowminds runs the full loop: ATS resumes, matched jobs, GLOWMINDS AI, interviews, skills, and tracking — one OS for getting hired.',
+    'Not just a resume tool or job board. Glowminds runs the full loop: ATS resumes, matched jobs, Glow (Bot), interviews, skills, and tracking — one OS for getting hired.',
   primaryCta: 'Start your Career OS',
   secondaryCta: 'See all features',
   liveBadge: 'LIVE',
@@ -135,7 +135,7 @@ const WHY_GLOWMINDS = {
 
 const EXIT_CTA = {
   title: 'Ready to run your Career OS?',
-  body: 'Build resumes, match jobs, talk to GLOWMINDS AI, and prep interviews — start free.',
+  body: 'Build resumes, match jobs, talk to Glow (Bot), and prep interviews — start free.',
   button: 'Start Free',
 }
 
@@ -149,7 +149,7 @@ const STEPS = [
 const TOOLS = [
   { ico: 'resume', title: 'Resume Builder', desc: 'ATS-optimized resumes with 6 templates, live preview, and one-click PDF export.', bg: 'var(--color-blu3)' },
   { ico: 'target', title: 'Job Matching', desc: 'AI scans 50+ portals hourly and ranks jobs by your personal skill match score.', bg: 'var(--color-grn2)' },
-  { ico: 'robot', title: 'GLOWMINDS AI', desc: '24/7 career advisor with context memory — resumes, interviews, salary, and more.', bg: 'var(--color-gold2)' },
+  { ico: 'robot', title: 'Glow (Bot)', desc: '24/7 career advisor with context memory — resumes, interviews, salary, and more.', bg: 'var(--color-gold2)' },
   { ico: 'microphone', title: 'Interview Prep', desc: 'Practice with AI questions across 12 roles. Get scored on clarity, structure & impact.', bg: 'var(--color-prp2)' },
   { ico: 'dashboard', title: 'App Tracker', desc: 'Visual Kanban board to track every application from applied to offer letter.', bg: 'rgba(248,117,186,.1)' },
   { ico: 'grammar-check', title: 'Grammar Checker', desc: 'Fix grammar, tone & clarity in resumes, cover letters, emails, and SOPs.', bg: 'rgba(20,184,166,.08)' },

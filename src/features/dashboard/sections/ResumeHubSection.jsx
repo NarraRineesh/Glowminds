@@ -191,7 +191,7 @@ export default function ResumeHubSection() {
             ))}
           </div>
           <p className="m-0 text-xs text-muted-foreground">
-            Templates → select → enter or sync details → GLOWMINDS AI analysis
+            Templates → select → enter or sync details → Glow (Bot) analysis
           </p>
         </div>
 
@@ -232,7 +232,7 @@ export default function ResumeHubSection() {
 
       {tab === 'ats' && (
         <div className="grid gap-4 lg:grid-cols-3">
-          <SectionCard title="GLOWMINDS AI analysis" className="lg:col-span-1">
+          <SectionCard title="Glow (Bot) analysis" className="lg:col-span-1">
             <div className="flex flex-col items-center gap-3 py-2">
               <ScoreGauge score={analysis?.overallScore || grammar?.score || 0} size={140} label="/100" />
               <Button type="button" disabled={busy} onClick={runAnalysis}>

@@ -9,6 +9,7 @@ import { PAGE_SEO } from '@/config/seo'
 import BrandLogo, { GlowmindsWordmark } from '@/components/BrandLogo'
 import useLandingConfig from '@/hooks/useLandingConfig'
 import { Badge, Button, Card, CardContent, FormField, Input, Separator, AppIcon } from '@/components/ui'
+import { requiresEmailVerification } from '@/utils/emailVerification'
 
 const fadeUp = { hidden: { opacity: 0, y: 24 }, visible: { opacity: 1, y: 0 } }
 const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.07, delayChildren: 0.1 } } }
@@ -17,7 +18,7 @@ const ease = [0.16, 1, 0.3, 1]
 const PERKS = [
   { ico: 'resume', text: 'AI Resume Builder with ATS scoring' },
   { ico: 'target', text: 'Smart job matching across 50+ portals' },
-  { ico: 'robot', text: 'GLOWMINDS AI — 24/7 career advisor' },
+  { ico: 'robot', text: 'Glow (Bot) — 24/7 career advisor' },
   { ico: 'dashboard', text: 'Application tracker with Kanban board' },
   { ico: 'bell', text: 'Real-time job alerts' },
   { ico: 'lightning', text: 'One-click apply to jobs' },
@@ -51,7 +52,12 @@ export default function LoginPage() {
     if (!email || !password) { addToast('error', 'Please fill in all fields'); return }
     setLoading(true)
     try {
-      await doLogin(email, password)
+      const fbUser = await doLogin(email, password)
+      if (requiresEmailVerification(fbUser)) {
+        addToast('error', 'Verify your email before opening the dashboard.')
+        navigate('/verify-email')
+        return
+      }
       addToast('success', 'Welcome back!')
       navigate('/dashboard')
     } catch (err) {

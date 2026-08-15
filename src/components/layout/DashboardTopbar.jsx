@@ -16,7 +16,7 @@ const TITLE_MAP = [
   { match: /^\/dashboard\/skills/, title: 'Skills', subtitle: 'Gap analysis for your preferred role' },
   { match: /^\/dashboard\/learning/, title: 'Learning', subtitle: 'Paths and daily progress' },
   { match: /^\/dashboard\/interview/, title: 'Interview prep', subtitle: 'Mocks and company prep' },
-  { match: /^\/dashboard\/ai/, title: 'GLOWMINDS AI', subtitle: 'Career guidance with your profile context' },
+  { match: /^\/dashboard\/ai/, title: 'Glow (Bot)', subtitle: 'Career guidance with your profile context' },
   { match: /^\/dashboard\/analytics/, title: 'Analytics', subtitle: 'Last 30 days' },
   { match: /^\/dashboard\/cover-letters/, title: 'Cover letter', subtitle: 'Tailored letters for roles' },
   { match: /^\/dashboard\/grammar-check/, title: 'Grammar', subtitle: 'Polish writing before you send' },

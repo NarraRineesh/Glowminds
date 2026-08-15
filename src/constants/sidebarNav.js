@@ -24,7 +24,7 @@ export const SIDEBAR_GROUPS = [
       { path: '/dashboard/learning', icon: 'graduation', label: 'Learning' },
       { path: '/dashboard/interview', icon: 'interview', label: 'Interview' },
       { path: '/dashboard/linkedin', icon: 'linkedin', label: 'LinkedIn Hub' },
-      { path: '/dashboard/ai', icon: 'ai', label: 'GLOWMINDS AI' },
+      { path: '/dashboard/ai', icon: 'ai', label: 'Glow (Bot)' },
     ],
   },
   {

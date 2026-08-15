@@ -637,7 +637,7 @@ export const metadataSchema = z.object({
 		.nullable()
 		.optional()
 		.catch(null)
-		.describe("Cached ATS analysis from Glowminds AI resume review."),
+		.describe("Cached ATS analysis from Glowminds resume review."),
 	styleRules: styleRulesSchema.describe(
 		"Structured style rules that target semantic resume sections and slots for React PDF rendering.",
 	),

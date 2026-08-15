@@ -10,6 +10,7 @@ function needsAuthUrgently(pathname) {
     pathname.startsWith('/dashboard') ||
     pathname.startsWith('/login') ||
     pathname.startsWith('/signup') ||
+    pathname.startsWith('/verify-email') ||
     pathname.startsWith('/admin')
   )
 }
@@ -99,6 +100,8 @@ export default function useAuthListener() {
           firstName: firebaseUser.displayName?.split(' ')[0] || '',
           lastName: firebaseUser.displayName?.split(' ').slice(1).join(' ') || '',
           isAdmin,
+          emailVerified: firebaseUser.emailVerified === true,
+          providerIds: (firebaseUser.providerData || []).map((p) => p.providerId),
         }
 
         if (userDoc) {

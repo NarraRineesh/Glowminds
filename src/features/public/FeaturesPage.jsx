@@ -93,7 +93,7 @@ const SOCIAL_PROOF = [
 const STEPS = [
   { n: '01', t: 'Pick a template', d: 'Choose an ATS-friendly resume layout that fits your role.', color: 'text-primary' },
   { n: '02', t: 'Enter or sync details', d: 'Fill sections or sync from your Glowminds profile in one click.', color: 'text-emerald-500' },
-  { n: '03', t: 'GLOWMINDS AI analysis', d: 'Grammar, errors, content quality, and stronger bullet descriptions.', color: 'text-amber-500' },
+  { n: '03', t: 'Glow (Bot) analysis', d: 'Grammar, errors, content quality, and stronger bullet descriptions.', color: 'text-amber-500' },
   { n: '04', t: 'Apply & interview', d: 'Match jobs, practice interviews, and track offers in the same OS.', color: 'text-violet-500' },
 ]
 
@@ -204,7 +204,7 @@ const FEATURE_SEO_NAMES = [
   'AI Mock Interviews',
   'Application Tracker',
   'AI Cover Letters',
-  'GLOWMINDS AI',
+  'Glow (Bot)',
   'Grammar Checker',
   'LinkedIn Optimizer',
   'Salary Insights',
@@ -255,7 +255,7 @@ export default function FeaturesPage() {
             transition={{ duration: 0.7, ease: motionEase, delay: 0.2 }}
             className="mx-auto mb-6 max-w-2xl text-muted-foreground"
           >
-            From resume to offer — ATS builder, jobs, GLOWMINDS AI, interviews, skills, cover letters, and tracking in one Career OS.
+            From resume to offer — ATS builder, jobs, Glow (Bot), interviews, skills, cover letters, and tracking in one Career OS.
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 16 }}
@@ -329,7 +329,7 @@ export default function FeaturesPage() {
             badgeClass="border-primary/20 bg-primary/10 text-primary"
             title="Powerful Tools,"
             highlight="One Career OS"
-            description="Templates → details → GLOWMINDS AI analysis. Then jobs, interviews, and tracking."
+            description="Templates → details → Glow (Bot) analysis. Then jobs, interviews, and tracking."
           />
 
           <motion.div
@@ -352,7 +352,7 @@ export default function FeaturesPage() {
                   </div>
                   <CardTitle className="text-2xl md:text-3xl">AI Resume Builder</CardTitle>
                   <CardDescription className="text-base">
-                    Answer a few questions — pick a template, sync your profile, then GLOWMINDS AI checks grammar, quality, and descriptions.
+                    Answer a few questions — pick a template, sync your profile, then Glow (Bot) checks grammar, quality, and descriptions.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="grid gap-6 md:grid-cols-2">
@@ -481,14 +481,14 @@ export default function FeaturesPage() {
               </Card>
             </motion.div>
 
-            {/* 5. GLOWMINDS AI */}
+            {/* 5. Glow (Bot) */}
             <motion.div variants={fadeUp} transition={{ duration: 0.55, ease: motionEase }}>
               <Card>
                 <CardHeader>
                   <div className="mb-2 flex size-10 items-center justify-center rounded-lg bg-amber-500/15">
                     <AppIcon name="robot" className="size-5 text-amber-500" />
                   </div>
-                  <CardTitle>GLOWMINDS AI</CardTitle>
+                  <CardTitle>Glow (Bot)</CardTitle>
                   <CardDescription>
                     The Career OS advisor — resumes, interviews, salary, and skill gaps with your profile context.
                   </CardDescription>
@@ -507,7 +507,7 @@ export default function FeaturesPage() {
                         <AppIcon name="robot" className="size-4 text-primary" />
                       </span>
                       <div>
-                        <div className="text-sm font-bold">GLOWMINDS AI</div>
+                        <div className="text-sm font-bold">Glow (Bot)</div>
                         <div className="text-xs text-emerald-500">Online</div>
                       </div>
                     </div>

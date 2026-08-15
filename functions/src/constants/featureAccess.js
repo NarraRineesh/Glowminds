@@ -18,7 +18,7 @@ export const FREE_CREDIT_FEATURES = new Set([
 ]);
 
 export const PRO_FEATURE_LABELS = {
-  careerChat: "AI Career Coach",
+  careerChat: "Glow (Bot)",
   coverLetter: "AI Cover Letters",
   interviewSession: "AI Mock Interviews",
   resumeReview: "Resume ATS Review",

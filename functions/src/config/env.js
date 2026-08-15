@@ -54,7 +54,7 @@ export const env = {
   openrouterSiteUrl:
     process.env.OPENROUTER_SITE_URL || "https://glowminds-abc84.web.app",
   openrouterAppName:
-    process.env.OPENROUTER_APP_NAME || "Glowminds AI Job Copilot",
+    process.env.OPENROUTER_APP_NAME || "Glowminds",
 
   geminiApiKey: process.env.GEMINI_API_KEY || "",
 

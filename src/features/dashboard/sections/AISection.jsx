@@ -18,7 +18,7 @@ import { apiFetch } from '@/services/apiClient'
 
 const WELCOME_MSG = {
   role: 'assistant',
-  text: "**Hi! I'm GLOWMINDS AI.**\n\nI can help you with:\n• **Resume writing** — structure, wording, ATS tips\n• **Interview prep** — mock Q&A, STAR method\n• **Career paths** — what to learn next\n• **Salary negotiation** — scripts & benchmarks\n• **Cold outreach** — emails that get replies\n\nWhat can I help you with today?",
+  text: "**Hi! I'm Glow.**\n\nI can help you with:\n• **Resume writing** — structure, wording, ATS tips\n• **Interview prep** — mock Q&A, STAR method\n• **Career paths** — what to learn next\n• **Salary negotiation** — scripts & benchmarks\n• **Cold outreach** — emails that get replies\n\nWhat can I help you with today?",
   isWelcome: true,
 }
 
@@ -494,7 +494,7 @@ export default function AISection() {
                     <div className="mx-auto mb-3 flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                       <AppIcon name="robot" className="size-5" />
                     </div>
-                    <h2 className="m-0 text-base font-semibold tracking-tight sm:text-lg">How can I help today?</h2>
+                    <h2 className="m-0 text-base font-semibold tracking-tight sm:text-lg">Glow (Bot)</h2>
                     <p className="mx-auto mt-1.5 mb-0 max-w-md text-sm text-muted-foreground">
                       Resume wording, interview prep, salary scripts, cold outreach, and learning paths.
                     </p>
@@ -590,7 +590,7 @@ export default function AISection() {
                     ? 'No credits left — upgrade or wait for monthly reset'
                     : loading
                       ? 'AI is thinking…'
-                      : 'Ask me anything about your career…'
+                      : 'Ask Glow anything about your career…'
                 }
                 value={input}
                 onChange={(e) => setInput(e.target.value)}

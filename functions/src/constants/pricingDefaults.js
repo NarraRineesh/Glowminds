@@ -152,7 +152,7 @@ export const DEFAULT_PRICING_CONFIG = {
   ],
 
   creditPolicies: [
-    { id: "b5a1c83e0f2947d6", key: "careerChat", label: "AI Career Coach", enabled: true, access: "pro", creditCost: 1, usageLimitPerPeriod: { free: 0, pro: -1 } },
+    { id: "b5a1c83e0f2947d6", key: "careerChat", label: "Glow (Bot)", enabled: true, access: "pro", creditCost: 1, usageLimitPerPeriod: { free: 0, pro: -1 } },
     { id: "c6b2d94f1a3058e7", key: "coverLetter", label: "AI Cover Letters", enabled: true, access: "pro", creditCost: 5, usageLimitPerPeriod: { free: 0, pro: -1 } },
     { id: "d7c3e05a2b4169f8", key: "interviewSession", label: "AI Mock Interviews", enabled: true, access: "pro", creditCost: 10, usageLimitPerPeriod: { free: 0, pro: -1 } },
     { id: "e8d4f16b3c5270a9", key: "resumeReview", label: "Resume ATS Review", enabled: true, access: "pro", creditCost: 5, usageLimitPerPeriod: { free: 0, pro: -1 } },

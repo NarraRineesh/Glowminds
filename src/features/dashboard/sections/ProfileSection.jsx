@@ -1085,7 +1085,7 @@ export default function ProfileSection() {
               {isLg ? <AppIcon name="robot" className="size-10 text-muted-foreground/60" /> : null}
               <p className="text-sm font-semibold text-foreground">Get AI-powered profile feedback</p>
               <p className={cn('text-sm leading-relaxed text-muted-foreground', isLg ? 'max-w-md' : 'text-xs')}>
-                Glowminds AI will analyze your profile and suggest skills to learn, areas to improve, and provide a polished summary you can copy.
+                Glow (Bot) will analyze your profile and suggest skills to learn, areas to improve, and provide a polished summary you can copy.
               </p>
             </div>
           )}

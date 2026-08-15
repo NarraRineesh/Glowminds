@@ -26,7 +26,7 @@ export default function Footer() {
               <GlowmindsWordmark className="text-sm text-foreground" />
             </Link>
             <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
-            AI resume builder, job matching, GLOWMINDS AI, upskilling, and interview prep — a Career Operating System for students and freshers in India.
+            AI resume builder, job matching, Glow (Bot), upskilling, and interview prep — a Career Operating System for students and freshers in India.
             </p>
             <Link to="/signup" className="inline-flex min-h-11 items-center text-sm font-semibold text-primary hover:underline">
               Sign up free

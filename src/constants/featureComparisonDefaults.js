@@ -12,7 +12,7 @@ export const DEFAULT_FEATURE_COMPARISON = {
     { id: 'b12c3d4e5f6789a0', feature: 'Resume Builder', values: { free: '1 Resume', monthly: 'Unlimited Resumes', yearly: 'Unlimited Resumes', lifetime: 'Unlimited Resumes' } },
     { id: 'c23d4e5f6789a01b', feature: 'Application Tracker', values: { free: '10 Applications', monthly: 'Unlimited', yearly: 'Unlimited', lifetime: 'Unlimited' } },
     { id: 'd34e5f6789a01b2c', feature: 'AI Credits', values: { free: '10 / month', monthly: '100 / month', yearly: '100 / month', lifetime: '100 / month' } },
-    { id: 'e45f6789a01b2c3d', feature: 'GLOWMINDS AI', values: { free: '—', monthly: 'Included', yearly: 'Included', lifetime: 'Included' } },
+    { id: 'e45f6789a01b2c3d', feature: 'Glow (Bot)', values: { free: '—', monthly: 'Included', yearly: 'Included', lifetime: 'Included' } },
     { id: 'f56789a01b2c3d4e', feature: 'Interview Prep', values: { free: '—', monthly: 'AI Mock Interviews', yearly: 'AI Mock Interviews', lifetime: 'AI Mock Interviews' } },
     { id: '06789a01b2c3d4e5', feature: 'Cover Letters', values: { free: '—', monthly: 'AI Generated', yearly: 'AI Generated', lifetime: 'AI Generated' } },
     { id: '1789a01b2c3d4e5f', feature: 'Resume ATS & grammar review', values: { free: '—', monthly: 'Included', yearly: 'Included', lifetime: 'Included' } },

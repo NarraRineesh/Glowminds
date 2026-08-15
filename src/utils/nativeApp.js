@@ -43,6 +43,7 @@ export function isAndroidAppPublicPathAllowed(pathname) {
   return (
     pathname.startsWith('/login') ||
     pathname.startsWith('/signup') ||
+    pathname.startsWith('/verify-email') ||
     pathname.startsWith('/privacy') ||
     pathname.startsWith('/terms') ||
     pathname.startsWith('/refund')

@@ -46,7 +46,7 @@ const FLOW_SCENES = [
   {
     id: 'interview',
     src: '/hero/interview-prep.webp',
-    alt: 'Glowminds AI mock interview practice screen with feedback prompts',
+    alt: 'Glowminds mock interview practice screen with feedback prompts',
     duration: 4.5,
     scrollY: [0, 0],
     cursor: {
@@ -59,7 +59,7 @@ const FLOW_SCENES = [
   {
     id: 'coach',
     src: '/hero/ai-coach.webp',
-    alt: 'Glowminds AI career coach chat guiding skill-gap upskilling',
+    alt: 'Glow career bot chat guiding skill-gap upskilling',
     duration: 5,
     scrollY: [0, '-4%'],
     scrollTimes: [0.5, 0.75],

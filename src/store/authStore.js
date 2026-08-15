@@ -1,5 +1,13 @@
 import { create } from 'zustand'
 import { createDefaultUserDoc } from '@/constants/schema'
+import { SITE_URL } from '@/config/site'
+
+function verificationActionCodeSettings() {
+  return {
+    url: `${SITE_URL}/login`,
+    handleCodeInApp: false,
+  }
+}
 
 async function firebaseAuth() {
   const [{ auth, googleProvider, db }, authMod, fsMod] = await Promise.all([
@@ -52,7 +60,37 @@ const useAppStore = create((set) => ({
       updatedAt: serverTimestamp(),
     })
 
+    const { sendEmailVerification } = await import('firebase/auth')
+    await sendEmailVerification(cred.user, verificationActionCodeSettings())
+
     return cred.user
+  },
+
+  resendVerificationEmail: async () => {
+    const { auth } = await firebaseAuth()
+    const user = auth.currentUser
+    if (!user) throw new Error('Not signed in')
+    const { sendEmailVerification } = await import('firebase/auth')
+    await sendEmailVerification(user, verificationActionCodeSettings())
+  },
+
+  refreshEmailVerification: async () => {
+    const { auth, db, doc, setDoc, serverTimestamp } = await firebaseAuth()
+    const user = auth.currentUser
+    if (!user) return false
+    await user.reload()
+    const verified = auth.currentUser?.emailVerified === true
+    if (verified) {
+      await setDoc(
+        doc(db, 'users', user.uid),
+        { emailVerified: true, updatedAt: serverTimestamp() },
+        { merge: true },
+      )
+      set((s) => ({
+        user: s.user ? { ...s.user, emailVerified: true } : s.user,
+      }))
+    }
+    return verified
   },
 
   doGoogleLogin: async () => {

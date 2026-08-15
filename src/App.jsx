@@ -24,6 +24,7 @@ const TermsPage = lazy(() => import('@/features/public/TermsPage'))
 const RefundPage = lazy(() => import('@/features/public/RefundPage'))
 const LoginPage = lazy(() => import('@/features/auth/LoginPage'))
 const SignupPage = lazy(() => import('@/features/auth/SignupPage'))
+const VerifyEmailPage = lazy(() => import('@/features/auth/VerifyEmailPage'))
 const NotFoundPage = lazy(() => import('@/features/public/NotFoundPage'))
 
 const DashboardShell = lazy(() => import('@/features/dashboard/DashboardShell'))
@@ -90,6 +91,7 @@ function AnimatedRoutes() {
       </Route>
       <Route path="/login" element={<Suspense fallback={<PageLoader />}><PublicOnlyRoute><LoginPage /></PublicOnlyRoute></Suspense>} />
       <Route path="/signup" element={<Suspense fallback={<PageLoader />}><PublicOnlyRoute><SignupPage /></PublicOnlyRoute></Suspense>} />
+      <Route path="/verify-email" element={<Suspense fallback={<PageLoader />}><VerifyEmailPage /></Suspense>} />
       {/* Dashboard (protected) */}
       <Route path="/dashboard" element={
         <Suspense fallback={<PageLoader />}>

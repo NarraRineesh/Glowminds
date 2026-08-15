@@ -51,7 +51,7 @@ export const DEFAULT_FEATURE_COMPARISON = {
     },
     {
       id: "e45f6789a01b2c3d",
-      feature: "GLOWMINDS AI",
+      feature: "Glow (Bot)",
       values: { free: "-", monthly: "Included", yearly: "Included", lifetime: "Included" },
     },
     {
