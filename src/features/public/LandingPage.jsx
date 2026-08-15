@@ -8,6 +8,7 @@ import {
   normalizeStructuredData,
   organizationSchema,
   softwareApplicationSchema,
+  siteNavigationSchema,
   webSiteSchema,
 } from '@/config/seo'
 import PublicFaqItem from '@/features/public/components/PublicFaqItem'
@@ -72,6 +73,7 @@ export default function LandingPage() {
         structuredData={normalizeStructuredData([
           organizationSchema(),
           webSiteSchema(),
+          siteNavigationSchema(),
           softwareApplicationSchema(),
           faqPageSchema(faqs),
           breadcrumbSchema([{ label: 'Home', path: '/' }]),

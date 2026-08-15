@@ -40,7 +40,7 @@ const FAQS = [
   { q: 'How does the AI job matching work?', a: 'Our AI scans 50+ job portals daily and compares job requirements with your skills, education, and preferences to generate a personalized match score.' },
   { q: "Can I use Glowminds if I'm not a student?", a: "Absolutely! While we're optimized for students and fresh graduates, anyone early in their career can benefit from our tools." },
   { q: 'How is my data protected?', a: 'We follow industry-standard security practices. Your data is encrypted, never sold to third parties, and you can delete your account anytime.' },
-  { q: 'Do you support international job portals?', a: "Currently we focus on Indian job portals, but we're expanding to international portals including LinkedIn, Indeed, and Glassdoor soon." },
+  { q: 'Do you support jobs outside India?', a: 'Yes. Glowminds lists roles worldwide — including remote and international openings — then you can match, apply, and track them in the same Career OS.' },
 ]
 
 export default function ContactPage() {

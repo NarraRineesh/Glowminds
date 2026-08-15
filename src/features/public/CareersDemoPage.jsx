@@ -35,7 +35,7 @@ export default function CareersDemoPage() {
             Careers & Internships
           </h1>
           <p className="mb-4 max-w-2xl text-sm text-muted-foreground md:text-base">
-            Explore the Glowminds careers board — jobs and internships hosted at careers.glowminds.in.
+            Explore the Glowminds careers board — roles and internships from around the world at careers.glowminds.in.
             Open in a new tab if the embed is blocked by your browser.
           </p>
           <Button

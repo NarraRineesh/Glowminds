@@ -152,7 +152,7 @@ export default function AboutPage() {
                 </p>
                 <p>Job portals were overwhelming. Resume builders were generic. Career advice was locked behind expensive paywalls or campus placement cells that only served the top 10%.</p>
                 <p>
-                  We asked ourselves: <strong className="text-foreground">What if AI could be the great equaliser?</strong> That question became Glowminds. Today, we serve <strong className="text-foreground">{socialProof.storyStudents || '52,000+ students'}</strong> across India.
+                  We asked ourselves: <strong className="text-foreground">What if AI could be the great equaliser?</strong> That question became Glowminds. Today we help students and early-career people worldwide land roles — not only in India.
                 </p>
                 <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-muted/40 p-4">
                   {aboutMetrics.map((metric, i, arr) => (

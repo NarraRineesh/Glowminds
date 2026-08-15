@@ -5,13 +5,13 @@ export const SEO_LOCALE = 'en_IN'
 export const SEO_TWITTER = '@Glowminds'
 export const SEO_OG_IMAGE = '/og-image.png'
 export const SEO_OG_IMAGE_ALT =
-  'Glowminds — AI-Powered Career Operating System for students in India'
+  'Glowminds — Career Operating System for students and early-career professionals worldwide'
 
 export const SEO_DEFAULT_KEYWORDS =
-  'AI career operating system, AI resume builder India, ATS resume for freshers, job search India, Glow (Bot), skill gap analysis, AI upskilling, AI interview prep, cover letter generator, Glowminds'
+  'career operating system, Glowminds, land a job, ATS resume, worldwide jobs, remote jobs, Glow (Bot), mock interviews, skill gap, application tracker, student career OS'
 
 export const SEO_DEFAULT_DESCRIPTION =
-  'Glowminds is an AI-Powered Career Operating System: ATS resumes, job matching, upskilling, interviews, Glow (Bot), and application tracking. Free to start for students and freshers in India.'
+  'Glowminds is a Career Operating System for students and early-career professionals worldwide — ATS resumes, global job matching, Glow (Bot), interviews, skills, cover letters, and tracking in one place so you can land the job. Free to start.'
 
 export const SEO_ORGANIZATION = {
   name: 'Glowminds',
@@ -26,43 +26,43 @@ export const SEO_ORGANIZATION = {
 
 export const PAGE_SEO = {
   home: {
-    title: 'AI-Powered Career Operating System for Freshers',
+    title: 'Career OS to Land Your First Job — Anywhere',
     description:
-      'Glowminds is an AI-Powered Career Operating System: ATS resumes, job matching, skill-gap upskilling, mock interviews, Glow (Bot), and application tracking. Free to start in India.',
+      'Glowminds is a Career Operating System for students and early-career professionals worldwide. One workspace for ATS resumes, jobs from around the world, Glow (Bot), interviews, skills, cover letters, and tracking — built to help you land the job. Free to start.',
     path: '/',
     keywords:
-      'AI career operating system, AI resume builder for freshers, job matching India, skill gap analysis, AI learning path, Glow (Bot), mock interview, fresher job search',
+      'career operating system, land a job worldwide, Glowminds Career OS, remote jobs, ATS resume, Glow (Bot), mock interview, application tracker',
   },
   features: {
-    title: 'Features — Career OS: Resume, Jobs, AI, Interviews & Tracking',
+    title: 'Features — Career OS Tools to Get Hired',
     description:
-      'Explore Glowminds Career OS: ATS resume builder, smart job matching, skill-gap upskilling, Glow (Bot), mock interviews, cover letters, and Kanban tracking.',
+      'See everything in the Glowminds Career OS: ATS resumes, matched jobs, Glow (Bot), mock interviews, skill-gap learning, cover letters, and a Kanban tracker from apply to offer.',
     path: '/features',
     keywords:
-      'career operating system, resume builder features, AI job matching, Glow (Bot), upskilling platform, mock interview app, cover letter AI',
+      'Glowminds features, career OS tools, job search platform, Glow (Bot), mock interviews, resume ATS, application tracker',
   },
   pricing: {
-    title: 'Pricing — Free, Monthly, Yearly & Lifetime Plans',
+    title: 'Pricing — Free, Pro Monthly, Yearly & Lifetime',
     description:
-      'Compare Glowminds plans: Free forever, Pro monthly ₹99, founding yearly ₹599, and Lifetime ₹2,999. Full feature comparison for the Career OS.',
+      'Run your job search on Glowminds. Free forever, then Pro at ₹99/month, founding yearly ₹599, or Lifetime ₹2,999. Compare every Career OS feature before you upgrade.',
     path: '/pricing',
     keywords:
-      'Glowminds pricing, student career OS price, monthly Pro India, yearly Pro ₹599, lifetime plan',
+      'Glowminds pricing, Career OS price, student Pro, yearly ₹599, lifetime plan',
   },
   careers: {
     title: 'Careers & Internships Demo',
     description:
-      'Browse Glowminds careers and internships on the live careers board at careers.glowminds.in.',
+      'Browse Glowminds careers and internships worldwide on the live board at careers.glowminds.in.',
     path: '/careers',
-    keywords: 'Glowminds careers, internships India, careers.glowminds.in, job board demo',
+    keywords: 'Glowminds careers, internships worldwide, remote jobs, careers.glowminds.in, job board',
   },
   about: {
-    title: 'About — AI-Powered Career Operating System',
+    title: 'About — Why We Built a Career OS',
     description:
-      'Glowminds is an AI-Powered Career Operating System for students and fresh graduates — resumes, jobs, skills, interviews, and Glow (Bot) in one workspace.',
+      'Glowminds is a Career Operating System for students and early-career professionals worldwide. We put resumes, global jobs, Glow (Bot), interviews, skills, and tracking in one workspace so you can land the role — wherever you are applying.',
     path: '/about',
     keywords:
-      'about Glowminds, AI career operating system, student career platform India, Glow (Bot)',
+      'about Glowminds, career operating system, student career platform, Glow (Bot), worldwide jobs',
   },
   contact: {
     title: 'Contact Us — Support & Partnerships',
@@ -70,7 +70,7 @@ export const PAGE_SEO = {
       'Contact the Glowminds team at hello@glowminds.in. We reply within 24 hours for support, partnerships, billing, and media inquiries.',
     path: '/contact',
     keywords:
-      'contact Glowminds, Glowminds support, career platform help, partnership inquiry India',
+      'contact Glowminds, Glowminds support, career platform help, partnership inquiry',
   },
   privacy: {
     title: 'Privacy Policy',
@@ -132,7 +132,7 @@ export function ogImageUrl(image = SEO_OG_IMAGE) {
 }
 
 export function buildTitle(pageTitle) {
-  if (!pageTitle) return `${SEO_SITE_NAME} — AI-Powered Career Operating System`
+  if (!pageTitle) return `${SEO_SITE_NAME} — Career OS to Land Your First Job`
   return `${pageTitle} — ${SEO_SITE_NAME}`
 }
 
@@ -178,14 +178,44 @@ export function webSiteSchema() {
     '@type': 'WebSite',
     '@id': `${SITE_URL}/#website`,
     name: SEO_SITE_NAME,
+    alternateName: 'Glowminds Career OS',
     url: SITE_URL,
     description: SEO_DEFAULT_DESCRIPTION,
     publisher: { '@id': `${SITE_URL}/#organization` },
     inLanguage: 'en-IN',
     about: {
       '@type': 'Thing',
-      name: 'AI career tools for students and freshers in India',
+      name: 'Career operating system for students and early-career professionals worldwide',
     },
+    hasPart: [
+      { '@type': 'WebPage', name: 'About', url: pageUrl('/about') },
+      { '@type': 'WebPage', name: 'Features', url: pageUrl('/features') },
+      { '@type': 'WebPage', name: 'Pricing', url: pageUrl('/pricing') },
+      { '@type': 'WebPage', name: 'Careers', url: pageUrl('/careers') },
+      { '@type': 'WebPage', name: 'Contact', url: pageUrl('/contact') },
+    ],
+  }
+}
+
+/** Helps Google understand primary sitelink candidates (About, Features, Pricing). */
+export function siteNavigationSchema() {
+  const links = [
+    { name: 'About', path: '/about' },
+    { name: 'Features', path: '/features' },
+    { name: 'Pricing', path: '/pricing' },
+    { name: 'Careers', path: '/careers' },
+    { name: 'Contact', path: '/contact' },
+  ]
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'Glowminds',
+    itemListElement: links.map((link, index) => ({
+      '@type': 'SiteNavigationElement',
+      position: index + 1,
+      name: link.name,
+      url: pageUrl(link.path),
+    })),
   }
 }
 
@@ -244,13 +274,14 @@ export function softwareApplicationSchema() {
     url: SITE_URL,
     description: SEO_DEFAULT_DESCRIPTION,
     featureList: [
+      'Career operating system for getting hired',
       'ATS resume builder',
-      'AI job matching',
+      'Job matching and careers board',
       'Glow (Bot) career coach',
-      'Skill gap analysis and upskilling paths',
-      'AI mock interviews',
+      'Skill gap analysis and learning paths',
+      'Mock interviews',
       'Cover letter generator',
-      'Application tracker',
+      'Application tracker from apply to offer',
     ],
     offers: {
       '@type': 'Offer',
@@ -260,8 +291,8 @@ export function softwareApplicationSchema() {
     },
     provider: { '@id': `${SITE_URL}/#organization` },
     areaServed: {
-      '@type': 'Country',
-      name: 'India',
+      '@type': 'Place',
+      name: 'Worldwide',
     },
   }
 }

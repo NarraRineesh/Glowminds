@@ -17,16 +17,15 @@ const today = new Date().toISOString().slice(0, 10)
 
 const SITE_NAME = 'Glowminds'
 const DEFAULT_KEYWORDS =
-  'AI resume builder India, ATS resume for freshers, job search India, fresher jobs, skill gap analysis, AI upskilling, learning path, AI interview prep, cover letter generator, job application tracker, career platform India, Glowminds'
+  'career operating system, Glowminds, land a job, ATS resume, worldwide jobs, remote jobs, Glow (Bot), mock interviews, application tracker, student career OS'
 
 const NAV_LINKS = [
   ['/', 'Home'],
+  ['/about/', 'About'],
   ['/features/', 'Features'],
   ['/pricing/', 'Pricing'],
-  ['/about/', 'About'],
+  ['/careers/', 'Careers'],
   ['/contact/', 'Contact'],
-  ['/privacy/', 'Privacy'],
-  ['/terms/', 'Terms'],
   ['/signup', 'Sign up free'],
 ]
 
@@ -34,53 +33,65 @@ const NAV_LINKS = [
 const PAGES = [
   {
     path: '/',
-    title: 'AI Resume Builder & Job Matching for Freshers',
-    h1: 'Get Hired Faster with One AI Career Platform',
+    title: 'Career OS to Land Your First Job — Anywhere',
+    h1: 'Glowminds — the Career OS that helps you land the job, anywhere',
     description:
-      'Build ATS-ready resumes, match to jobs, close skill gaps with AI upskilling, practice interviews, and track applications. Free to start for students and freshers in India.',
+      'Glowminds is a Career Operating System for students and early-career professionals worldwide. One workspace for ATS resumes, jobs from around the world, Glow (Bot), interviews, skills, cover letters, and tracking — built to help you land the job. Free to start.',
     keywords:
-      'AI resume builder for freshers, job matching India, skill gap analysis, AI learning path, AI mock interview, fresher job search, application tracker',
+      'career operating system, land a job worldwide, Glowminds Career OS, remote jobs, ATS resume, Glow (Bot), mock interview, application tracker',
     priority: '1.0',
     changefreq: 'weekly',
     schema: 'home',
     sections: [
       {
-        h2: 'What Glowminds helps you do',
+        h2: 'Not a resume tool. A Career Operating System.',
         paragraphs: [
-          'Glowminds is an AI career platform built for students and fresh graduates in India. Create ATS-friendly resumes, discover matched jobs, follow skill-gap learning paths, practice interviews, and track every application in one place.',
+          'Glowminds runs the full loop from first resume to offer: write and score ATS resumes, match jobs worldwide (including remote), talk to Glow (Bot), practice interviews, close skill gaps, draft cover letters, and track every application in one account. Built for students and early-career professionals wherever they are applying.',
         ],
         list: [
-          'ATS resume builder with live scoring',
-          'AI job matching for fresher roles',
-          'Skill gap analysis and upskilling paths',
-          'AI mock interviews and cover letters',
-          'Application tracker from applied to offer',
+          'ATS resumes with templates, scoring, and PDF export',
+          'Matched jobs and a live careers board',
+          'Glow (Bot) for resume, interview, salary, and outreach help',
+          'Mock interviews and skill-gap learning paths',
+          'Cover letters and a Kanban tracker from applied to offer',
+        ],
+      },
+      {
+        h2: 'Explore Glowminds',
+        paragraphs: [
+          'Use the pages below to see the product, plans, and the team. Sign up free — no credit card.',
+        ],
+        list: [
+          'About — why we built a Career OS',
+          'Features — every tool in the workspace',
+          'Pricing — Free, ₹99/month, ₹599/year, Lifetime ₹2,999',
+          'Careers — live jobs and internships',
         ],
       },
       {
         h2: 'Start free today',
         paragraphs: [
-          'Create a free Glowminds account to build your first resume, explore jobs, and try AI career tools. Upgrade to Pro only when you need more credits and advanced features.',
+          'Create a Glowminds account to open your Career OS. Free includes job search, 1 ATS resume, 10 application tracks, and 10 AI credits a month. Upgrade when you need more.',
         ],
       },
     ],
   },
   {
     path: '/features',
-    title: 'Features — Resume, Jobs, Upskilling & Interviews',
-    h1: 'Everything you need to get hired',
+    title: 'Features — Career OS Tools to Get Hired',
+    h1: 'Every tool you need to land the job — in one Career OS',
     description:
-      'Explore Glowminds features: ATS resume builder, smart job matching, skill-gap upskilling, AI mock interviews, cover letters, and Kanban application tracking.',
+      'See everything in the Glowminds Career OS: ATS resumes, matched jobs, Glow (Bot), mock interviews, skill-gap learning, cover letters, and a Kanban tracker from apply to offer.',
     keywords:
-      'resume builder features, AI job matching, skill gap analysis, upskilling platform, mock interview app, cover letter AI, application tracker India',
+      'Glowminds features, career OS tools, job search platform, Glow (Bot), mock interviews, resume ATS, application tracker',
     priority: '0.9',
     changefreq: 'weekly',
     schema: 'webpage',
     sections: [
       {
-        h2: 'Career tools in one workspace',
+        h2: 'Inside the Career OS',
         paragraphs: [
-          'Glowminds brings resume building, job discovery, upskilling, interview prep, and application tracking together so students do not bounce between disconnected apps.',
+          'Glowminds is not a single-purpose resume site. Features cover the whole search: write, match, coach, practice, learn, apply, and track until you have an offer.',
         ],
         list: [
           'Resume Studio with ATS checks',
@@ -95,12 +106,12 @@ const PAGES = [
   },
   {
     path: '/pricing',
-    title: 'Pricing — Free Plan & Pro from ₹599/year',
-    h1: 'Simple pricing for students and freshers',
+    title: 'Pricing — Free, Pro Monthly, Yearly & Lifetime',
+    h1: 'Plans for your Career OS',
     description:
-      'Start free with job search, 1 ATS resume, 10 application tracks, and 10 AI credits/month. Glowminds Pro founding offer: ₹599/year for AI career tools.',
+      'Run your job search on Glowminds. Free forever, then Pro at ₹99/month, founding yearly ₹599, or Lifetime ₹2,999. Compare every Career OS feature before you upgrade.',
     keywords:
-      'Glowminds pricing, student career tools price, affordable resume builder India, AI interview prep cost, Pro plan India',
+      'Glowminds pricing, Career OS price, student Pro, yearly ₹599, lifetime plan',
     priority: '0.9',
     changefreq: 'monthly',
     schema: 'webpage',
@@ -120,12 +131,12 @@ const PAGES = [
   },
   {
     path: '/about',
-    title: 'About Glowminds — Career Platform for Students',
+    title: 'About — Why We Built a Career OS',
     h1: 'About Glowminds',
     description:
-      'Glowminds helps students and fresh graduates land jobs with AI resumes, job matching, upskilling paths, and interview prep — affordable tools that level the playing field.',
+      'Glowminds is a Career Operating System for students and early-career professionals worldwide. We put resumes, global jobs, Glow (Bot), interviews, skills, and tracking in one workspace so you can land the role — wherever you are applying.',
     keywords:
-      'about Glowminds, student career platform India, AI career tools mission, fresher job help, skill gap India',
+      'about Glowminds, career operating system, student career platform, Glow (Bot), worldwide jobs',
     priority: '0.7',
     changefreq: 'monthly',
     schema: 'webpage',
@@ -133,7 +144,26 @@ const PAGES = [
       {
         h2: 'Our mission',
         paragraphs: [
-          'We build affordable AI career tools so students and freshers in India can compete with confidence — from the first resume draft to the final interview.',
+          'We build affordable career tools so students and early-career professionals worldwide can compete with confidence — from the first resume draft to the final interview.',
+        ],
+      },
+    ],
+  },
+  {
+    path: '/careers',
+    title: 'Careers & Internships',
+    h1: 'Careers and internships on Glowminds',
+    description:
+      'Browse live jobs and internships on the Glowminds careers board. Part of the Career OS — then match, apply, and track in the same account.',
+    keywords: 'Glowminds careers, internships worldwide, remote jobs, careers.glowminds.in, fresher jobs',
+    priority: '0.8',
+    changefreq: 'daily',
+    schema: 'webpage',
+    sections: [
+      {
+        h2: 'Live job board',
+        paragraphs: [
+          'Open careers.glowminds.in for current roles worldwide, or sign in to Glowminds to match jobs against your profile and track applications.',
         ],
       },
     ],
@@ -272,38 +302,59 @@ function buildJsonLd(page) {
           url: siteUrl,
           logo: `${siteUrl}/logo-mark.png`,
           email: 'hello@glowminds.in',
-          areaServed: { '@type': 'Country', name: 'India' },
+          areaServed: { '@type': 'Place', name: 'Worldwide' },
         },
         {
           '@type': 'WebSite',
           '@id': websiteId,
           name: SITE_NAME,
+          alternateName: 'Glowminds Career OS',
           url: siteUrl,
+          description:
+            'Career Operating System for students and early-career professionals worldwide — resumes, global jobs, Glow (Bot), interviews, skills, and tracking to land the job.',
           publisher: { '@id': orgId },
           inLanguage: 'en-IN',
-          potentialAction: {
-            '@type': 'SearchAction',
-            target: `${siteUrl}/features/`,
-            'query-input': 'required name=search_term_string',
-          },
+          hasPart: [
+            { '@type': 'WebPage', name: 'About', url: `${siteUrl}/about/` },
+            { '@type': 'WebPage', name: 'Features', url: `${siteUrl}/features/` },
+            { '@type': 'WebPage', name: 'Pricing', url: `${siteUrl}/pricing/` },
+            { '@type': 'WebPage', name: 'Careers', url: `${siteUrl}/careers/` },
+            { '@type': 'WebPage', name: 'Contact', url: `${siteUrl}/contact/` },
+          ],
+        },
+        {
+          '@type': 'ItemList',
+          name: 'Glowminds',
+          itemListElement: [
+            { '@type': 'SiteNavigationElement', position: 1, name: 'About', url: `${siteUrl}/about/` },
+            { '@type': 'SiteNavigationElement', position: 2, name: 'Features', url: `${siteUrl}/features/` },
+            { '@type': 'SiteNavigationElement', position: 3, name: 'Pricing', url: `${siteUrl}/pricing/` },
+            { '@type': 'SiteNavigationElement', position: 4, name: 'Careers', url: `${siteUrl}/careers/` },
+            { '@type': 'SiteNavigationElement', position: 5, name: 'Contact', url: `${siteUrl}/contact/` },
+          ],
         },
         {
           '@type': 'SoftwareApplication',
           name: SITE_NAME,
           applicationCategory: 'BusinessApplication',
+          applicationSubCategory: 'Career Development',
           operatingSystem: 'Web',
           url: siteUrl,
+          description:
+            'Career Operating System for students and early-career professionals worldwide to land a job.',
           offers: { '@type': 'Offer', price: '0', priceCurrency: 'INR' },
           featureList: [
+            'Career operating system for getting hired',
             'ATS resume builder',
-            'AI job matching',
-            'Skill gap analysis and upskilling paths',
-            'AI mock interviews',
+            'Job matching and careers board',
+            'Glow (Bot) career coach',
+            'Skill gap analysis and learning paths',
+            'Mock interviews',
             'Cover letter generator',
-            'Application tracker',
+            'Application tracker from apply to offer',
           ],
           provider: { '@id': orgId },
-          areaServed: { '@type': 'Country', name: 'India' },
+          areaServed: { '@type': 'Place', name: 'Worldwide' },
         },
       ],
     }
@@ -355,14 +406,14 @@ function bodyHtml(page) {
 
   return `<main id="seo-static">
         <header>
-          <p><strong>${escapeHtml(SITE_NAME)}</strong> — AI resume, jobs, and upskilling for students in India</p>
+          <p><strong>${escapeHtml(SITE_NAME)}</strong> — Career OS for students and early-career professionals worldwide. About · Features · Pricing</p>
           ${navHtml()}
         </header>
         <article>
           <h1>${escapeHtml(page.h1)}</h1>
           <p>${escapeHtml(page.description)}</p>
           ${sections}
-          <p><a href="/signup">Create your free Glowminds account</a> · <a href="/features/">Explore features</a> · <a href="/pricing/">See pricing</a></p>
+          <p><a href="/about/">About</a> · <a href="/features/">Features</a> · <a href="/pricing/">Pricing</a> · <a href="/signup">Sign up free</a></p>
         </article>
       </main>`
 }

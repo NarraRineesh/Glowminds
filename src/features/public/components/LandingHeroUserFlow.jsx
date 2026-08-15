@@ -32,7 +32,7 @@ const FLOW_SCENES = [
   {
     id: 'jobs',
     src: '/hero/job-board.webp',
-    alt: 'Glowminds job board showing matched roles for freshers in India',
+    alt: 'Glowminds job board showing matched roles worldwide',
     duration: 5,
     scrollY: [0, '-6%'],
     scrollTimes: [0.4, 0.65],
