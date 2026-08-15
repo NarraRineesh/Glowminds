@@ -22,8 +22,8 @@ export default function ScoreSparkCard({
 
   return (
     <div
-      className="flex min-w-0 flex-col gap-1.5 rounded-xl border border-border bg-card px-3 py-3"
-      style={{ boxShadow: `inset 3px 0 0 0 ${stroke}` }}
+      className="flex h-full min-h-[6.5rem] min-w-0 flex-col gap-1.5 rounded-xl border border-border bg-card px-3 py-3"
+      style={{ borderLeftWidth: 3, borderLeftColor: stroke }}
     >
       <div className="flex items-center justify-between gap-1.5">
         <span className="text-[11px] text-muted-foreground">{label}</span>

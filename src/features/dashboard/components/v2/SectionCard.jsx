@@ -3,14 +3,14 @@ import { AppIcon, Card, CardContent, CardHeader, CardTitle, cn } from '@/compone
 /** [v2] Section card wrapper */
 export function SectionCard({ title, action, children, className }) {
   return (
-    <Card className={cn('overflow-hidden', className)}>
+    <Card className={cn('flex h-full flex-col overflow-hidden', className)}>
       {(title || action) && (
         <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
           {title ? <CardTitle className="text-sm font-bold">{title}</CardTitle> : <span />}
           {action}
         </CardHeader>
       )}
-      <CardContent className={title || action ? 'pt-0' : undefined}>{children}</CardContent>
+      <CardContent className={title || action ? 'min-h-0 flex-1 pt-0' : 'min-h-0 flex-1'}>{children}</CardContent>
     </Card>
   )
 }

@@ -275,6 +275,7 @@ export default function OverviewSection() {
 
       {/* Application pipeline stats */}
       <StatStrip
+        className="gap-2.5 sm:grid-cols-4"
         stats={[
           ['Applied', String(appStats.applied)],
           ['In review', String(appStats.review)],
@@ -283,10 +284,8 @@ export default function OverviewSection() {
         ]}
       />
 
-      {/* 3. Work cards — flat list so mobile order can lift Suggested after Action plan */}
-      <div className="flex flex-col gap-3 lg:grid lg:grid-cols-[1.35fr_1fr] lg:items-start lg:gap-3">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         <SectionCard
-          className="order-1 min-w-0 lg:col-start-1 lg:row-start-1"
           title="Action plan"
           action={<span className="text-xs text-muted-foreground">{actionPlan.filter((i) => i.done).length} / {actionPlan.length || 0}</span>}
         >
@@ -294,7 +293,6 @@ export default function OverviewSection() {
         </SectionCard>
 
         <SectionCard
-          className="order-2 min-w-0 lg:col-start-2 lg:row-start-1"
           title="Suggested"
           action={<span className="rounded-md bg-ai/15 px-1.5 py-0.5 text-[10px] font-medium text-ai">AI</span>}
         >
@@ -310,7 +308,6 @@ export default function OverviewSection() {
         </SectionCard>
 
         <SectionCard
-          className="order-3 min-w-0 lg:col-start-1 lg:row-start-2"
           title="Upcoming interviews"
           action={<Link to="/dashboard/applications" className="text-xs font-medium text-primary">CRM</Link>}
         >
@@ -347,7 +344,6 @@ export default function OverviewSection() {
         </SectionCard>
 
         <SectionCard
-          className="order-4 min-w-0 lg:col-start-2 lg:row-start-2"
           title="Job matches"
           action={<Link to="/dashboard/jobs" className="text-xs font-medium text-primary">See all</Link>}
         >
@@ -377,7 +373,7 @@ export default function OverviewSection() {
           )}
         </SectionCard>
 
-        <SectionCard className="order-5 min-w-0 lg:col-start-1 lg:row-start-3" title="Goals & activity">
+        <SectionCard title="Goals & activity">
           <div className="mb-3 space-y-2">
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0 flex-1">
@@ -393,7 +389,6 @@ export default function OverviewSection() {
         </SectionCard>
 
         <SectionCard
-          className="order-6 min-w-0 lg:col-start-2 lg:row-start-3"
           title="Learning"
           action={(
             <Button type="button" size="sm" variant="outline" onClick={() => navigate('/dashboard/learning')}>
@@ -424,7 +419,7 @@ export default function OverviewSection() {
 
         {showStreak && (
           <SectionCard
-            className="order-7 min-w-0 lg:col-start-2 lg:row-start-4"
+            className="lg:col-span-2"
             title="Streak & rewards"
             action={<span className="rounded-md border border-border px-1.5 py-0.5 text-[10px]">Level {gamification.level}</span>}
           >
