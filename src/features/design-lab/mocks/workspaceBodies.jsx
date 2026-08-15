@@ -763,7 +763,7 @@ export function workspaceBody(id, isWire) {
       <SplitRail
         ratio="8-4"
         main={(
-          <Panel title="Career Copilot">
+          <Panel title="GLOWMINDS AI">
             <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
               <span className="dl-badge-ai dl-badge">Context · Vercel Staff FE</span>
               <span className="dl-muted">1 credit / message</span>
@@ -779,7 +779,7 @@ export function workspaceBody(id, isWire) {
               </li>
             </ul>
             <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-              <div className="os-search" style={{ flex: 1, maxWidth: 'none' }}>Ask Copilot anything about your career…</div>
+              <div className="os-search" style={{ flex: 1, maxWidth: 'none' }}>Ask GLOWMINDS AI anything about your career…</div>
               <button type="button" className="dl-btn dl-btn-ai">Send · 1 cr</button>
             </div>
           </Panel>

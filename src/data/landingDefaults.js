@@ -21,11 +21,12 @@ const FEATURES = [
   },
   {
     key: 'ai-coach',
-    badge: 'AI CAREER COACH', badgeBg: 'rgba(210,153,34,.08)', badgeColor: 'var(--color-gold)',
-    title: 'Your Personal Career Strategist, Available 24/7',
-    desc: 'Powered by Gemini AI and trained on career coaching best practices, our AI Coach gives expert-level advice on resume writing, interview preparation, salary negotiation, career pivots, and cold outreach. It remembers your conversation context across sessions — like having a career mentor in your pocket.',
-    bullets: ['Multi-turn conversations — remembers your context', 'STAR method coaching for behavioral interviews', 'Salary negotiation scripts tailored to your offer', 'Cold outreach templates for recruiters & hiring managers'],
+    badge: 'GLOWMINDS AI', badgeBg: 'rgba(210,153,34,.08)', badgeColor: 'var(--color-gold)',
+    title: 'GLOWMINDS AI — Your Career Operating System Advisor',
+    desc: 'GLOWMINDS AI is the always-on advisor in your Career OS. Ask about resumes, interviews, salary, skill gaps, and outreach. It keeps context across sessions so you get advice that matches your profile — not a generic chatbot.',
+    bullets: ['Multi-turn conversations with your career context', 'STAR method coaching for behavioral interviews', 'Salary negotiation scripts tailored to your offer', 'Outreach templates for recruiters and hiring managers'],
     image: '/mockups/ai-coach.svg',
+    cta: 'Open GLOWMINDS AI',
   },
   {
     key: 'interview-prep',
@@ -65,16 +66,16 @@ const FEATURES = [
 ]
 
 /** Homepage feature story order (excludes AI Coach). */
-const HOME_FEATURE_KEYS = ['resume-builder', 'job-matching', 'cover-letter', 'interview-prep', 'app-tracker']
+const HOME_FEATURE_KEYS = ['resume-builder', 'job-matching', 'ai-coach', 'cover-letter', 'interview-prep', 'app-tracker']
 
 const HERO = {
-  positioning: 'We help you get hired.',
-  headline: 'Get Hired Faster with One AI Career Platform',
-  highlight: 'Get Hired Faster',
+  positioning: 'AI-Powered Career Operating System',
+  headline: 'Your AI-Powered Career Operating System',
+  highlight: 'Career Operating System',
   subheadline:
-    'Build an ATS-ready resume, discover matched jobs, close skill gaps with AI upskilling paths, apply with tailored cover letters, practice interviews, and track every application — all in one place.',
-  primaryCta: 'Build Your Resume',
-  secondaryCta: 'Explore Tools',
+    'Not just a resume tool or job board. Glowminds runs the full loop: ATS resumes, matched jobs, GLOWMINDS AI, interviews, skills, and tracking — one OS for getting hired.',
+  primaryCta: 'Start your Career OS',
+  secondaryCta: 'See all features',
   liveBadge: 'LIVE',
 }
 
@@ -129,12 +130,12 @@ const WHY_GLOWMINDS = {
     { feature: 'Job Tracking' },
     { feature: 'One Dashboard' },
   ],
-  closing: 'Stop switching between websites. Manage your entire job search in one place.',
+  closing: 'Stop switching between websites. Run your entire career search in one Career OS.',
 }
 
 const EXIT_CTA = {
-  title: 'Ready to Land Your Next Job?',
-  body: 'Build your resume, discover opportunities, and prepare for interviews — all for free.',
+  title: 'Ready to run your Career OS?',
+  body: 'Build resumes, match jobs, talk to GLOWMINDS AI, and prep interviews — start free.',
   button: 'Start Free',
 }
 
@@ -148,7 +149,7 @@ const STEPS = [
 const TOOLS = [
   { ico: 'resume', title: 'Resume Builder', desc: 'ATS-optimized resumes with 6 templates, live preview, and one-click PDF export.', bg: 'var(--color-blu3)' },
   { ico: 'target', title: 'Job Matching', desc: 'AI scans 50+ portals hourly and ranks jobs by your personal skill match score.', bg: 'var(--color-grn2)' },
-  { ico: 'robot', title: 'AI Career Coach', desc: '24/7 career coaching with context memory — resumes, interviews, salary, and more.', bg: 'var(--color-gold2)' },
+  { ico: 'robot', title: 'GLOWMINDS AI', desc: '24/7 career advisor with context memory — resumes, interviews, salary, and more.', bg: 'var(--color-gold2)' },
   { ico: 'microphone', title: 'Interview Prep', desc: 'Practice with AI questions across 12 roles. Get scored on clarity, structure & impact.', bg: 'var(--color-prp2)' },
   { ico: 'dashboard', title: 'App Tracker', desc: 'Visual Kanban board to track every application from applied to offer letter.', bg: 'rgba(248,117,186,.1)' },
   { ico: 'grammar-check', title: 'Grammar Checker', desc: 'Fix grammar, tone & clarity in resumes, cover letters, emails, and SOPs.', bg: 'rgba(20,184,166,.08)' },
@@ -169,7 +170,7 @@ const TESTIMONIALS = [
 const TRUST_LOGOS = ['IIT Delhi', 'IIT Bombay', 'BITS Pilani', 'NIT Trichy', 'VIT', 'SRM', 'Manipal', 'IIIT Hyderabad', 'DTU', 'NSUT', 'PES University', 'Amity']
 
 const FAQS = [
-  { q: 'Is Glowminds free to use?', a: 'Yes! Glowminds offers a generous free tier with job search, 1 ATS resume, 10 application tracks, and 10 AI credits/month. Pro is available for ₹599/year (founding offer).' },
+  { q: 'Is Glowminds free to use?', a: 'Yes. Free includes job search, 1 ATS resume, 10 application tracks, and 10 AI credits/month. Pro is ₹99/month, founding yearly ₹599, or Lifetime ₹2,999.' },
   { q: 'How does the AI job matching work?', a: 'Our AI compares job requirements with your skills, education, and preferences to generate a personalized match score from 0-100%, then helps you filter and prioritize the best-fit roles.' },
   { q: 'What makes the resume builder ATS-optimized?', a: 'We follow industry-standard ATS formatting rules — clean structure, keyword optimization, proper headings, machine-readable layouts, and we check against 200+ ATS systems.' },
   { q: 'How does upskilling / skill-gap analysis work?', a: 'Pick a target role, and Glowminds compares your profile skills against what the role typically needs. You get a clear skill gap plus an AI learning path you can save, resume, and update over time.' },

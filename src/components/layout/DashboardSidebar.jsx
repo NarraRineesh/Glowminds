@@ -2,9 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import useAppStore from '@/store/authStore'
 import useNotifStore from '@/store/notifStore'
-import useUpgradePro from '@/hooks/useUpgradePro'
 import useEntitlements from '@/hooks/useEntitlements'
-import { useYearlyPriceLabel } from '@/hooks/usePricingConfig'
 import SidebarProfileMenu from '@/components/layout/SidebarProfileMenu'
 import BrandLogo, { GlowmindsWordmark } from '@/components/BrandLogo'
 import AppIcon from '@/components/icons/AppIcon'
@@ -55,9 +53,7 @@ export default function DashboardSidebar() {
   const { pathname } = useLocation()
   const { user } = useAppStore()
   const { loadNotifs, reset: resetNotifs } = useNotifStore()
-  const { startUpgrade, loading: upgradeLoading } = useUpgradePro()
   const { isPro, loading: entitlementsLoading } = useEntitlements()
-  const yearlyPriceLabel = useYearlyPriceLabel()
   const { setOpenMobile, state } = useSidebarState()
   const iconCollapsed = state === 'collapsed'
 
@@ -248,11 +244,8 @@ export default function DashboardSidebar() {
         <Button
           type="button"
           variant="default"
-          disabled={upgradeLoading}
-          onClick={() => {
-            closeDrawer()
-            startUpgrade({ plan: 'yearly' })
-          }}
+          nativeButton={false}
+          render={<Link to="/dashboard/plans" onClick={closeDrawer} />}
           className={cn(
             'h-auto w-full justify-start gap-3 p-2.5 text-left',
             iconCollapsed && 'justify-center px-2',
@@ -261,11 +254,9 @@ export default function DashboardSidebar() {
           <AppIcon name="sparkle" className="size-5 shrink-0" />
           {!iconCollapsed && (
             <span className="min-w-0 flex-1">
-              <span className="block text-[0.82rem] font-bold">
-                {upgradeLoading ? 'Processing...' : 'Upgrade to Pro'}
-              </span>
+              <span className="block text-[0.82rem] font-bold">Upgrade</span>
               <span className="block text-[10.5px] font-normal opacity-90">
-                {upgradeLoading ? 'Opening checkout' : `${yearlyPriceLabel} · Pro plan`}
+                Compare plans & choose
               </span>
             </span>
           )}

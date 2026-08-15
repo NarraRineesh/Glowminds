@@ -9,6 +9,7 @@ import PublicOnlyRoute from '@/components/PublicOnlyRoute'
 import AdminRoute from '@/components/AdminRoute'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import { PageLoader } from '@/components/Loader'
+import AndroidAppAuthGate from '@/components/AndroidAppAuthGate'
 import PublicLayout from '@/features/public/PublicLayout'
 
 // Landing is eager so `/` does not blank on Suspense while the chunk downloads.
@@ -17,6 +18,7 @@ const AboutPage = lazy(() => import('@/features/public/AboutPage'))
 const FeaturesPage = lazy(() => import('@/features/public/FeaturesPage'))
 const ContactPage = lazy(() => import('@/features/public/ContactPage'))
 const PricingPage = lazy(() => import('@/features/public/PricingPage'))
+const CareersDemoPage = lazy(() => import('@/features/public/CareersDemoPage'))
 const PrivacyPage = lazy(() => import('@/features/public/PrivacyPage'))
 const TermsPage = lazy(() => import('@/features/public/TermsPage'))
 const RefundPage = lazy(() => import('@/features/public/RefundPage'))
@@ -38,6 +40,7 @@ const CoverLettersSection = lazy(() => import('@/features/dashboard/sections/Cov
 const LinkedInOptimizerSection = lazy(() => import('@/features/dashboard/sections/LinkedInOptimizerSection'))
 const SalaryInsightsSection = lazy(() => import('@/features/dashboard/sections/SalaryInsightsSection'))
 const SettingsSection = lazy(() => import('@/features/dashboard/sections/SettingsSection'))
+const PlansSection = lazy(() => import('@/features/dashboard/sections/PlansSection'))
 const GrammarCheckSection = lazy(() => import('@/features/dashboard/sections/GrammarCheckSection'))
 const ParaphrasingSection = lazy(() => import('@/features/dashboard/sections/ParaphrasingSection'))
 const LearningSection = lazy(() => import('@/features/dashboard/sections/LearningSection'))
@@ -71,6 +74,7 @@ function AnimatedRoutes() {
   }, [location.pathname])
   
   return (
+    <AndroidAppAuthGate>
     <Routes location={location}>
       {/* Public marketing pages — no auth gate so crawlers see content without waiting on Firebase Auth */}
       <Route element={<PublicLayout />}>
@@ -79,6 +83,7 @@ function AnimatedRoutes() {
         <Route path="features" element={<Suspense fallback={<PageLoader />}><FeaturesPage /></Suspense>} />
         <Route path="contact" element={<Suspense fallback={<PageLoader />}><ContactPage /></Suspense>} />
         <Route path="pricing" element={<Suspense fallback={<PageLoader />}><PricingPage /></Suspense>} />
+        <Route path="careers" element={<Suspense fallback={<PageLoader />}><CareersDemoPage /></Suspense>} />
         <Route path="privacy" element={<Suspense fallback={<PageLoader />}><PrivacyPage /></Suspense>} />
         <Route path="terms" element={<Suspense fallback={<PageLoader />}><TermsPage /></Suspense>} />
         <Route path="refund" element={<Suspense fallback={<PageLoader />}><RefundPage /></Suspense>} />
@@ -157,6 +162,11 @@ function AnimatedRoutes() {
             <SettingsSection />
           </Suspense>
         } />
+        <Route path="plans" element={
+          <Suspense fallback={<PageLoader />}>
+            <PlansSection />
+          </Suspense>
+        } />
         <Route path="grammar-check" element={
           <Suspense fallback={<PageLoader />}>
             <GrammarCheckSection />
@@ -231,6 +241,7 @@ function AnimatedRoutes() {
         <Route path="*" element={<Suspense fallback={<PageLoader />}><NotFoundPage /></Suspense>} />
       </Route>
     </Routes>
+    </AndroidAppAuthGate>
   )
 }
 

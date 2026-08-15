@@ -58,3 +58,10 @@ export const COMPARISON_HEADER_CLASS =
 
 export const COMPARISON_ROW_CLASS =
   'grid grid-cols-[minmax(0,1fr)_4.5rem_4.5rem] items-center gap-2 border-b border-border px-3 py-3 text-xs last:border-0 sm:grid-cols-[minmax(0,1fr)_5rem_5rem] sm:gap-4 sm:px-6 sm:text-sm'
+
+/** Use with inline gridTemplateColumns for 3+ plan columns. */
+export const COMPARISON_FLEX_HEADER_CLASS =
+  'grid gap-2 border-b border-border bg-muted/40 px-3 py-3 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:gap-4 sm:px-6 sm:text-xs'
+
+export const COMPARISON_FLEX_ROW_CLASS =
+  'grid items-center gap-2 border-b border-border px-3 py-3 text-xs last:border-0 sm:gap-4 sm:px-6 sm:text-sm'

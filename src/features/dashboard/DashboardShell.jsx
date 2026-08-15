@@ -13,7 +13,7 @@ export default function DashboardShell() {
   // The full-screen builder editor (/dashboard/resume/<id>) has its own chrome,
   // so hide the dashboard topbar there.
   const isResumeBuilder = /^\/dashboard\/resume\/.+/.test(location.pathname)
-  // Copilot needs a locked viewport so the message list can scroll inside.
+  // GLOWMINDS AI needs a locked viewport so the message list can scroll inside.
   const isAiRoute = /^\/dashboard\/ai(\/|$)/.test(location.pathname)
   // Panels that own their own scroll (no outer outlet scroller).
   const isPanelScroll = isResumeRoute || isAiRoute

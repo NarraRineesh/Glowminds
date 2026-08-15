@@ -18,7 +18,7 @@ import { apiFetch } from '@/services/apiClient'
 
 const WELCOME_MSG = {
   role: 'assistant',
-  text: "**Hi! I'm your AI Career Coach.**\n\nI can help you with:\n• **Resume writing** — structure, wording, ATS tips\n• **Interview prep** — mock Q&A, STAR method\n• **Career paths** — what to learn next\n• **Salary negotiation** — scripts & benchmarks\n• **Cold outreach** — emails that get replies\n\nWhat can I help you with today?",
+  text: "**Hi! I'm GLOWMINDS AI.**\n\nI can help you with:\n• **Resume writing** — structure, wording, ATS tips\n• **Interview prep** — mock Q&A, STAR method\n• **Career paths** — what to learn next\n• **Salary negotiation** — scripts & benchmarks\n• **Cold outreach** — emails that get replies\n\nWhat can I help you with today?",
   isWelcome: true,
 }
 

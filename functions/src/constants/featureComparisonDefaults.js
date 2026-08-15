@@ -1,7 +1,7 @@
 /** Default Feature Comparison — Firestore `config/featureComparison`. */
 
 export const DEFAULT_FEATURE_COMPARISON = {
-  title: "Feature Comparison",
+          title: 'Plans Comparison',
   columns: [
     { id: "8f3a1c2e9b0d4e57", key: "free", label: "Free", planKey: "free" },
     { id: "9a4b2d3f0c1e5f68", key: "monthly", label: "Monthly", planKey: "monthly" },
@@ -51,7 +51,7 @@ export const DEFAULT_FEATURE_COMPARISON = {
     },
     {
       id: "e45f6789a01b2c3d",
-      feature: "AI Career Coach",
+      feature: "GLOWMINDS AI",
       values: { free: "-", monthly: "Included", yearly: "Included", lifetime: "Included" },
     },
     {

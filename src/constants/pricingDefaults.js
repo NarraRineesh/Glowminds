@@ -42,7 +42,7 @@ export const DEFAULT_PRICING_CONFIG = {
         cf("a100000000000004", "10 Application Tracks", true),
         cf("a100000000000005", "10 AI Credits / Month", true),
         cf("a100000000000006", "Basic Job Alerts", true),
-        cf("a100000000000007", "AI Career Coach", false),
+        cf("a100000000000007", "GLOWMINDS AI", false),
         cf("a100000000000008", "AI Interview Prep", false),
         cf("a100000000000009", "AI Cover Letters", false),
         cf("a10000000000000a", "Salary Insights", false),
@@ -74,7 +74,7 @@ export const DEFAULT_PRICING_CONFIG = {
         cf("a200000000000002", "100 AI Credits / Month", true, "AI"),
         cf("a200000000000003", "AI Mock Interviews", true, "AI"),
         cf("a200000000000004", "AI Cover Letters", true, "AI"),
-        cf("a200000000000005", "AI Career Coach Chat", true, "AI"),
+        cf("a200000000000005", "GLOWMINDS AI chat", true, "AI"),
         cf("a200000000000006", "Resume ATS Reviews", true, "AI"),
         cf("a200000000000007", "Unlimited Applications", true),
         cf("a200000000000008", "Unlimited Resumes", true),
@@ -94,7 +94,7 @@ export const DEFAULT_PRICING_CONFIG = {
       period: "/year",
       monthlyEquivalent: "Only ₹50/month when billed annually",
       dailyEquivalent: "Less than ₹2/day",
-      desc: "100 AI credits/month, AI mock interviews, cover letters, career coach, and resume ATS reviews.",
+      desc: "100 AI credits/month, AI mock interviews, cover letters, GLOWMINDS AI, and resume ATS reviews.",
       ctaLabel: "Get Pro — ₹599/year",
       ctaVariant: "primary",
       amountPaise: 59900,
@@ -110,7 +110,7 @@ export const DEFAULT_PRICING_CONFIG = {
         cf("a300000000000002", "100 AI Credits / Month", true, "AI"),
         cf("a300000000000003", "AI Mock Interviews", true, "AI"),
         cf("a300000000000004", "AI Cover Letters", true, "AI"),
-        cf("a300000000000005", "AI Career Coach Chat", true, "AI"),
+        cf("a300000000000005", "GLOWMINDS AI chat", true, "AI"),
         cf("a300000000000006", "Resume ATS Reviews", true, "AI"),
         cf("a300000000000007", "Unlimited Applications", true),
         cf("a300000000000008", "Unlimited Resumes", true),
@@ -152,7 +152,7 @@ export const DEFAULT_PRICING_CONFIG = {
   ],
 
   creditPolicies: [
-    { id: "b5a1c83e0f2947d6", key: "careerChat", label: "AI Career Coach", enabled: true, access: "pro", creditCost: 1, usageLimitPerPeriod: { free: 0, pro: -1 } },
+    { id: "b5a1c83e0f2947d6", key: "careerChat", label: "GLOWMINDS AI", enabled: true, access: "pro", creditCost: 1, usageLimitPerPeriod: { free: 0, pro: -1 } },
     { id: "c6b2d94f1a3058e7", key: "coverLetter", label: "AI Cover Letters", enabled: true, access: "pro", creditCost: 5, usageLimitPerPeriod: { free: 0, pro: -1 } },
     { id: "d7c3e05a2b4169f8", key: "interviewSession", label: "AI Mock Interviews", enabled: true, access: "pro", creditCost: 10, usageLimitPerPeriod: { free: 0, pro: -1 } },
     { id: "e8d4f16b3c5270a9", key: "resumeReview", label: "Resume ATS Review", enabled: true, access: "pro", creditCost: 5, usageLimitPerPeriod: { free: 0, pro: -1 } },
@@ -196,7 +196,7 @@ export const DEFAULT_PRICING_CONFIG = {
 
   marketing: {
     heroDescription:
-      "Build ATS-friendly resumes, discover relevant jobs, generate AI cover letters, practice interviews, and track applications — all in one platform.",
+      "An AI-Powered Career Operating System — resumes, jobs, interviews, skills, and tracking in one workspace.",
     guaranteeText: "7-day money-back guarantee — try Pro risk-free.",
     socialProof: "Built for students and early-career professionals across India.",
   },
@@ -204,11 +204,15 @@ export const DEFAULT_PRICING_CONFIG = {
 
 /** Visible plans sorted for pricing cards. */
 export function visiblePlans(config) {
-  const plans = Array.isArray(config?.plans) ? config.plans : [];
-  return plans
-    .filter((p) => p && p.visible !== false)
+  const merged = mergePricingConfig(config);
+  const plans = Array.isArray(merged.plans) ? merged.plans : [];
+  const sorted = plans
+    .filter(Boolean)
     .slice()
     .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  const vis = sorted.filter((p) => p.visible !== false);
+  if (vis.length >= 3) return vis;
+  return sorted.filter((p) => ["free", "monthly", "yearly", "lifetime"].includes(p.key));
 }
 
 export function findPlanByIdOrKey(config, idOrKey) {
@@ -292,12 +296,38 @@ export function yearlySeoPrice(config = DEFAULT_PRICING_CONFIG) {
   return String(plan.displayPrice).replace(/[^\d]/g, "") || "599";
 }
 
-/** Shallow client merge — server is source of truth; keep array plans/creditPolicies. */
+/** Merge remote pricing with defaults so Free / Monthly / Yearly / Lifetime always exist. */
 export function mergePricingConfig(data) {
   const base = structuredClone(DEFAULT_PRICING_CONFIG);
   if (!data || typeof data !== "object") return base;
 
-  const plans = Array.isArray(data.plans) && data.plans.length ? data.plans : base.plans;
+  let remotePlans = [];
+  if (Array.isArray(data.plans) && data.plans.length) {
+    remotePlans = data.plans;
+  } else if (data.plans && typeof data.plans === "object") {
+    remotePlans = Object.entries(data.plans).map(([key, plan]) => ({ key, ...plan }));
+  }
+
+  const byKey = new Map();
+  for (const p of remotePlans) {
+    if (p?.key) byKey.set(p.key, p);
+  }
+  const plans = base.plans.map((def) => {
+    const remote = byKey.get(def.key);
+    if (!remote) return def;
+    return {
+      ...def,
+      ...remote,
+      cardFeatures: Array.isArray(remote.cardFeatures) && remote.cardFeatures.length
+        ? remote.cardFeatures
+        : def.cardFeatures,
+    };
+  });
+  for (const p of remotePlans) {
+    if (p?.key && !plans.some((x) => x.key === p.key)) plans.push(p);
+  }
+  plans.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+
   const creditPolicies =
     Array.isArray(data.creditPolicies) && data.creditPolicies.length
       ? data.creditPolicies

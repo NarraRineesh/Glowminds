@@ -314,8 +314,14 @@ export async function getPricingConfig({ fresh = false } = {}) {
     config = mergeWithDefaults(fields);
     const legacyPlansMap = fields.plans && !Array.isArray(fields.plans);
     const missingPolicies = !Array.isArray(fields.creditPolicies);
-    // Persist migrated array shape so hashed ids stay stable.
-    if (legacyPlansMap || missingPolicies || (isPricingEncryptionEnabled() && raw?.encrypted !== true)) {
+    const remotePlanKeys = new Set();
+    if (Array.isArray(fields.plans)) {
+      for (const p of fields.plans) if (p?.key) remotePlanKeys.add(p.key);
+    } else if (fields.plans && typeof fields.plans === "object") {
+      for (const [k, p] of Object.entries(fields.plans)) remotePlanKeys.add(p?.key || k);
+    }
+    const missingDefaultPlans = DEFAULT_PRICING_CONFIG.plans.some((p) => !remotePlanKeys.has(p.key));
+    if (legacyPlansMap || missingPolicies || missingDefaultPlans || (isPricingEncryptionEnabled() && raw?.encrypted !== true)) {
       await ref.set(buildStoredPricingDoc(config, { uid: raw?.updatedBy || null }));
     }
   }

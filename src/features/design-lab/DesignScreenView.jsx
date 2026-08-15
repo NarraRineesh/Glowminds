@@ -28,7 +28,7 @@ const NAV = [
       { id: 'learning', label: 'Learning' },
       { id: 'interview', label: 'Interview' },
       { id: 'linkedin-hub', label: 'LinkedIn Hub' },
-      { id: 'ai-coach', label: 'Copilot' },
+      { id: 'ai-coach', label: 'GLOWMINDS AI' },
     ],
   },
   {
@@ -133,7 +133,7 @@ const META = {
     primaryAi: true,
   },
   'ai-coach': {
-    title: 'Copilot',
+    title: 'GLOWMINDS AI',
     subtitle: null,
     primary: null,
     secondary: 'New chat',

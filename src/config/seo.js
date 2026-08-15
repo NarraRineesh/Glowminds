@@ -5,13 +5,13 @@ export const SEO_LOCALE = 'en_IN'
 export const SEO_TWITTER = '@Glowminds'
 export const SEO_OG_IMAGE = '/og-image.png'
 export const SEO_OG_IMAGE_ALT =
-  'Glowminds — AI resume builder, job matching, upskilling, and interview prep for students in India'
+  'Glowminds — AI-Powered Career Operating System for students in India'
 
 export const SEO_DEFAULT_KEYWORDS =
-  'AI resume builder India, ATS resume for freshers, job search India, fresher jobs, skill gap analysis, AI upskilling, learning path, AI interview prep, cover letter generator, job application tracker, career platform India, Glowminds'
+  'AI career operating system, AI resume builder India, ATS resume for freshers, job search India, GLOWMINDS AI, skill gap analysis, AI upskilling, AI interview prep, cover letter generator, Glowminds'
 
 export const SEO_DEFAULT_DESCRIPTION =
-  'Build ATS-ready resumes, match to jobs, close skill gaps with AI upskilling paths, practice interviews, and track applications. Free to start — built for students and freshers in India.'
+  'Glowminds is an AI-Powered Career Operating System: ATS resumes, job matching, upskilling, interviews, GLOWMINDS AI, and application tracking. Free to start for students and freshers in India.'
 
 export const SEO_ORGANIZATION = {
   name: 'Glowminds',
@@ -26,36 +26,43 @@ export const SEO_ORGANIZATION = {
 
 export const PAGE_SEO = {
   home: {
-    title: 'AI Resume Builder, Job Matching & Upskilling for Freshers',
+    title: 'AI-Powered Career Operating System for Freshers',
     description:
-      'Get hired faster with ATS resumes, AI job matching, skill-gap upskilling paths, mock interviews, and application tracking. Free tier for students and freshers in India.',
+      'Glowminds is an AI-Powered Career Operating System: ATS resumes, job matching, skill-gap upskilling, mock interviews, GLOWMINDS AI, and application tracking. Free to start in India.',
     path: '/',
     keywords:
-      'AI resume builder for freshers, job matching India, skill gap analysis, AI learning path, AI mock interview, fresher job search, application tracker',
+      'AI career operating system, AI resume builder for freshers, job matching India, skill gap analysis, AI learning path, GLOWMINDS AI, mock interview, fresher job search',
   },
   features: {
-    title: 'Features — Resume, Jobs, Upskilling, Interviews & Tracking',
+    title: 'Features — Career OS: Resume, Jobs, AI, Interviews & Tracking',
     description:
-      'Explore Glowminds: ATS resume builder, smart job matching, skill-gap upskilling, AI mock interviews, cover letters, and Kanban application tracking in one career platform.',
+      'Explore Glowminds Career OS: ATS resume builder, smart job matching, skill-gap upskilling, GLOWMINDS AI, mock interviews, cover letters, and Kanban tracking.',
     path: '/features',
     keywords:
-      'resume builder features, AI job matching, skill gap analysis, upskilling platform, mock interview app, cover letter AI, application tracker India',
+      'career operating system, resume builder features, AI job matching, GLOWMINDS AI, upskilling platform, mock interview app, cover letter AI',
   },
   pricing: {
-    title: 'Pricing — Free Plan & Pro from ₹599/year',
+    title: 'Pricing — Free, Monthly, Yearly & Lifetime Plans',
     description:
-      'Start free with job search, 1 ATS resume, 10 application tracks, and 10 AI credits/month. Glowminds Pro founding offer: ₹599/year for AI career tools.',
+      'Compare Glowminds plans: Free forever, Pro monthly ₹99, founding yearly ₹599, and Lifetime ₹2,999. Full feature comparison for the Career OS.',
     path: '/pricing',
     keywords:
-      'Glowminds pricing, student career tools price, affordable resume builder India, AI interview prep cost, Pro plan India',
+      'Glowminds pricing, student career OS price, monthly Pro India, yearly Pro ₹599, lifetime plan',
+  },
+  careers: {
+    title: 'Careers & Internships Demo',
+    description:
+      'Browse Glowminds careers and internships on the live careers board at careers.glowminds.in.',
+    path: '/careers',
+    keywords: 'Glowminds careers, internships India, careers.glowminds.in, job board demo',
   },
   about: {
-    title: 'About — AI Career Platform for Indian Students',
+    title: 'About — AI-Powered Career Operating System',
     description:
-      'Glowminds helps students and fresh graduates land jobs with AI resumes, job matching, upskilling paths, and interview prep — affordable tools that level the playing field.',
+      'Glowminds is an AI-Powered Career Operating System for students and fresh graduates — resumes, jobs, skills, interviews, and GLOWMINDS AI in one workspace.',
     path: '/about',
     keywords:
-      'about Glowminds, student career platform India, AI career tools mission, fresher job help, skill gap India',
+      'about Glowminds, AI career operating system, student career platform India, GLOWMINDS AI',
   },
   contact: {
     title: 'Contact Us — Support & Partnerships',
@@ -119,7 +126,7 @@ export function ogImageUrl(image = SEO_OG_IMAGE) {
 }
 
 export function buildTitle(pageTitle) {
-  if (!pageTitle) return `${SEO_SITE_NAME} — AI Career Platform for Students & Job Seekers`
+  if (!pageTitle) return `${SEO_SITE_NAME} — AI-Powered Career Operating System`
   return `${pageTitle} — ${SEO_SITE_NAME}`
 }
 
@@ -233,6 +240,7 @@ export function softwareApplicationSchema() {
     featureList: [
       'ATS resume builder',
       'AI job matching',
+      'GLOWMINDS AI career coach',
       'Skill gap analysis and upskilling paths',
       'AI mock interviews',
       'Cover letter generator',

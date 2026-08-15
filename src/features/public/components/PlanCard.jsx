@@ -12,9 +12,39 @@ import {
   cn,
 } from '@/components/ui'
 
-/**
- * Generic pricing plan card — all copy/features from admin plan JSON.
- */
+function planBadgeTone(label) {
+  const t = String(label || '').toLowerCase()
+  if (t.includes('founding') || t.includes('offer') || t.includes('launch')) {
+    return {
+      icon: 'crown',
+      bar: 'bg-gradient-to-r from-amber-500 via-orange-400 to-amber-500 text-white',
+      glow: 'shadow-[0_8px_24px_-12px_rgba(245,158,11,0.85)]',
+    }
+  }
+  if (t.includes('best') || t.includes('value') || t.includes('lifetime')) {
+    return {
+      icon: 'trophy',
+      bar: 'bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-600 text-white',
+      glow: 'shadow-[0_8px_24px_-12px_rgba(16,185,129,0.85)]',
+    }
+  }
+  return {
+    icon: 'star',
+    bar: 'bg-gradient-to-r from-primary to-emerald-500 text-primary-foreground',
+    glow: 'shadow-[0_8px_24px_-12px_color-mix(in_oklab,var(--primary)_70%,transparent)]',
+  }
+}
+
+function PlanOfferBadge({ label }) {
+  if (!label) return null
+  const tone = planBadgeTone(label)
+  return (
+    <div className={cn('relative z-10 flex items-center justify-center gap-1.5 px-3 py-2 text-center', tone.bar, tone.glow)}>
+      <AppIcon name={tone.icon} className="size-3.5 shrink-0" weight="fill" />
+      <span className="text-[0.68rem] font-bold uppercase tracking-[0.14em]">{label}</span>
+    </div>
+  )
+}
 export default function PlanCard({
   plan,
   isProUser = false,
@@ -64,20 +94,16 @@ export default function PlanCard({
   return (
     <Card
       className={cn(
-        'relative h-full overflow-hidden',
-        isHighlighted && 'border-primary/40 shadow-md shadow-primary/10',
+        'relative flex h-full min-h-[28rem] flex-col overflow-hidden py-0',
+        isHighlighted && 'border-primary/40 shadow-md shadow-primary/10 ring-1 ring-primary/20',
         className,
       )}
     >
       {isHighlighted && (
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_70%_0%,color-mix(in_oklab,var(--primary)_14%,transparent),transparent)]" />
       )}
-      {plan.badge ? (
-        <Badge className="absolute right-3 top-3 z-10 border-0 bg-primary text-primary-foreground">
-          {plan.badge}
-        </Badge>
-      ) : null}
-      <CardHeader className="relative">
+      <PlanOfferBadge label={plan.badge} />
+      <CardHeader className={cn('relative space-y-3 px-6 pb-2', plan.badge ? 'pt-5' : 'pt-6')}>
         <CardDescription className="text-xs font-bold uppercase tracking-wider text-primary">
           {plan.label}
         </CardDescription>
@@ -88,20 +114,20 @@ export default function PlanCard({
               {plan.period || ''}
             </span>
           ) : null}
-          <CardTitle className="text-4xl font-black">{plan.displayPrice || '—'}</CardTitle>
-          {plan.period ? <span className="text-muted-foreground">{plan.period}</span> : null}
+          <CardTitle className="text-3xl font-black tracking-tight xl:text-4xl">{plan.displayPrice || '—'}</CardTitle>
+          {plan.period ? <span className="text-sm text-muted-foreground">{plan.period}</span> : null}
         </div>
         {plan.monthlyEquivalent ? (
-          <p className="text-sm font-medium text-primary">{plan.monthlyEquivalent}</p>
+          <p className="m-0 text-sm font-medium text-primary">{plan.monthlyEquivalent}</p>
         ) : null}
         {plan.dailyEquivalent ? (
-          <p className="text-xs text-muted-foreground">{plan.dailyEquivalent}</p>
+          <p className="m-0 text-xs text-muted-foreground">{plan.dailyEquivalent}</p>
         ) : null}
-        {plan.desc ? <CardDescription className="pt-1">{plan.desc}</CardDescription> : null}
+        {plan.desc ? <CardDescription className="text-sm leading-relaxed">{plan.desc}</CardDescription> : null}
       </CardHeader>
-      <CardContent className="relative space-y-2.5">
+      <CardContent className="relative flex-1 space-y-3 px-6 py-5">
         {features.map((f) => (
-          <div key={f.id || f.text} className="flex items-start gap-2 text-sm">
+          <div key={f.id || f.text} className="flex items-start gap-2.5 text-sm leading-snug">
             {f.included !== false ? (
               <AppIcon name="check" className="mt-0.5 size-4 shrink-0 text-emerald-500" />
             ) : (
@@ -118,7 +144,7 @@ export default function PlanCard({
           </div>
         ))}
       </CardContent>
-      <CardFooter className="relative">{cta}</CardFooter>
+      <CardFooter className="relative mt-auto px-6 pb-6 pt-2">{cta}</CardFooter>
     </Card>
   )
 }

@@ -89,10 +89,10 @@ export default function LandingPage() {
       <LandingSection>
         <LandingReveal>
           <LandingSectionTitle
-            eyebrow="Your job search journey"
-            title="From resume to offer"
-            highlight="in one place"
-            subtitle="Build, apply, prepare, and track — a clear path designed for how job seekers actually work."
+            eyebrow="AI-Powered Career Operating System"
+            title="From first resume to offer"
+            highlight="in one OS"
+            subtitle="Build, apply, prepare, and track — a Career Operating System designed for how job seekers actually work."
           />
         </LandingReveal>
         <div className="space-y-16 md:space-y-20">

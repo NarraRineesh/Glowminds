@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import useAppStore from '@/store/authStore'
 import useIsLg from '@/hooks/useIsLg'
 import useTrackerStore from '@/store/trackerStore'
@@ -167,9 +168,9 @@ export default function ApplicationsSection() {
         {!entitlementsLoading && atAppLimit && (
           <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-muted-foreground">
             You&apos;ve reached the free plan limit of {appLimit} tracked applications.{' '}
-            <button type="button" className="font-semibold text-primary underline-offset-2 hover:underline" onClick={() => { window.location.href = '/pricing' }}>
-              Upgrade to Pro
-            </button>
+            <Link to="/dashboard/plans" className="font-semibold text-primary underline-offset-2 hover:underline">
+              Compare plans
+            </Link>
             {' '}for unlimited tracking.
           </div>
         )}

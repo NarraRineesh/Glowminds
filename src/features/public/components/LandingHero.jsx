@@ -14,8 +14,8 @@ import { Badge, Button } from '@/components/ui'
 export default function LandingHero({ hero, heroMetrics, trustBadges, stats }) {
   const reducedMotion = useReducedMotion()
 
-  const headline = hero?.headline || 'Get Hired Faster with One AI Career Platform'
-  const highlight = hero?.highlight || 'Get Hired Faster'
+    const headline = hero?.headline || 'Your AI-Powered Career Operating System'
+  const highlight = hero?.highlight || 'Career Operating System'
   const headlineParts = headline.split(highlight)
   const hasHighlight = headlineParts.length > 1
 

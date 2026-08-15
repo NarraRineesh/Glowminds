@@ -1,8 +1,8 @@
 
 export const PRO_FEATURE_COPY = {
   'AI Career Coach': {
-    title: 'AI Career Coach',
-    description: 'Get personalized resume, interview, and career advice powered by AI. Included with Glowminds Pro.',
+    title: 'GLOWMINDS AI',
+    description: 'Get personalized resume, interview, and career advice from GLOWMINDS AI. Included with Glowminds Pro.',
     highlights: ['Unlimited coaching sessions', '100 AI credits every month', 'Interview & cover letter tools'],
   },
   'AI Mock Interviews': {

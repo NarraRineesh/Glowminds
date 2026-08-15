@@ -15,12 +15,9 @@ import {
   webPageSchema,
 } from '@/config/seo'
 import PublicFaqItem from '@/features/public/components/PublicFaqItem'
-import PlanCard from '@/features/public/components/PlanCard'
-import { fadeUp, motionEase, staggerFast } from '@/features/public/motionVariants'
+import PlansCatalog, { useFeatureComparison } from '@/features/public/components/PlansCatalog'
+import { motionEase } from '@/features/public/motionVariants'
 import {
-  COMPARISON_HEADER_CLASS,
-  COMPARISON_ROW_CLASS,
-  ComparisonTableShell,
   PublicPageContainer,
   PublicPageHeroBackdrop,
   PUBLIC_CONTAINER,
@@ -71,25 +68,17 @@ export default function PricingPage() {
   const { config, marketing } = usePricingConfig()
   const plans = visiblePlans(config) || []
   const highlight = highlightedPlan(config)
+  const comparison = useFeatureComparison()
 
-  const [featureComparison, setFeatureComparison] = useState(null)
   const [faqs, setFaqs] = useState([])
 
   useEffect(() => {
     let cancelled = false
-    ;(async () => {
-      try {
-        const [comp, faqRes] = await Promise.all([
-          apiFetch('/config/feature-comparison', { method: 'GET', auth: false }),
-          apiFetch('/config/pricing-faqs', { method: 'GET', auth: false }),
-        ])
-        if (cancelled) return
-        setFeatureComparison(comp?.featureComparison || null)
-        setFaqs(Array.isArray(faqRes?.faqs) ? faqRes.faqs : [])
-      } catch (err) {
-        console.warn('PricingPage extras:', err)
-      }
-    })()
+    apiFetch('/config/pricing-faqs', { method: 'GET', auth: false })
+      .then((faqRes) => {
+        if (!cancelled) setFaqs(Array.isArray(faqRes?.faqs) ? faqRes.faqs : [])
+      })
+      .catch((err) => console.warn('PricingPage extras:', err))
     return () => {
       cancelled = true
     }
@@ -97,8 +86,6 @@ export default function PricingPage() {
 
   const seoPrice = yearlySeoPrice(config)
   const seoDescription = PAGE_SEO.pricing.description
-  const columns = Array.isArray(featureComparison?.columns) ? featureComparison.columns : []
-  const rows = Array.isArray(featureComparison?.rows) ? featureComparison.rows : []
 
   return (
     <div>
@@ -125,80 +112,32 @@ export default function PricingPage() {
       />
 
       <PageHero
-        eyebrow={highlight?.badge || marketing?.launchOfferText || 'Pricing'}
-        title="Land More Interviews."
-        highlight="Pay Less."
+        eyebrow={highlight?.badge || marketing?.launchOfferText || 'Plans'}
+        title="Plans for every stage of"
+        highlight="your career OS"
         description={
           marketing?.heroDescription ||
-          'AI-powered resumes, interview prep, and job matching — built for students and early-career professionals.'
+          'Free forever, Pro monthly, founding yearly, and lifetime. Compare every feature before you upgrade.'
         }
       />
 
       <section className="pb-12 md:pb-16">
         <motion.div
-          variants={staggerFast}
-          initial="hidden"
-          animate="visible"
-          className={cn(
-            PUBLIC_CONTAINER,
-            'grid gap-4',
-            plans.length >= 4 ? 'lg:grid-cols-4 md:grid-cols-2' : plans.length === 3 ? 'lg:grid-cols-3 md:grid-cols-2' : 'md:grid-cols-2',
-          )}
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.55, ease: motionEase }}
+          className={cn(PUBLIC_CONTAINER, 'max-w-7xl')}
         >
-          {plans.map((plan) => (
-            <motion.div key={plan.id} variants={fadeUp} transition={{ duration: 0.55, ease: motionEase }}>
-              <PlanCard
-                plan={plan}
-                isProUser={isPro && plan.tier === 'pro'}
-                upgradeLoading={loading}
-                loggedIn={loggedIn}
-                onUpgrade={(p) => startUpgrade({ plan: p.id || p.key })}
-              />
-            </motion.div>
-          ))}
+          <PlansCatalog
+            plans={plans}
+            isPro={isPro}
+            loggedIn={loggedIn}
+            upgradeLoading={loading}
+            onUpgrade={(p) => startUpgrade({ plan: p.id || p.key })}
+            comparison={comparison}
+          />
         </motion.div>
       </section>
-
-      {rows.length > 0 && (
-        <section className="pb-12 md:pb-16">
-          <div className={PUBLIC_CONTAINER}>
-            <h2 className="mb-6 text-center text-2xl font-black text-foreground md:text-3xl">
-              {featureComparison?.title || 'Feature Comparison'}
-            </h2>
-            <ComparisonTableShell>
-              <div
-                className={COMPARISON_HEADER_CLASS}
-                style={{ gridTemplateColumns: `minmax(140px,1.4fr) repeat(${columns.length}, minmax(80px,1fr))` }}
-              >
-                <div className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground">Feature</div>
-                {columns.map((col) => (
-                  <div key={col.id || col.key} className="text-center text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                    {col.label}
-                  </div>
-                ))}
-              </div>
-              {rows.map((row) => (
-                <div
-                  key={row.id || row.feature}
-                  className={COMPARISON_ROW_CLASS}
-                  style={{ gridTemplateColumns: `minmax(140px,1.4fr) repeat(${columns.length}, minmax(80px,1fr))` }}
-                >
-                  <div className="text-sm font-medium text-foreground">{row.feature}</div>
-                  {columns.map((col) => {
-                    const val = row.values?.[col.key] ?? '—'
-                    const empty = !val || val === '-' || val === '—'
-                    return (
-                      <div key={col.key} className={cn('text-center text-xs', empty ? 'text-muted-foreground/50' : 'text-muted-foreground')}>
-                        {val}
-                      </div>
-                    )
-                  })}
-                </div>
-              ))}
-            </ComparisonTableShell>
-          </div>
-        </section>
-      )}
 
       {faqs.length > 0 && (
         <section className="pb-16 md:pb-20">

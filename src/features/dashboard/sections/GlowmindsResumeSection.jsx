@@ -124,7 +124,7 @@ export default function GlowmindsResumeSection() {
     seedFromProfile: false,
     isPro,
     allowLocalMigration: cloudResumes !== null && cloudResumes.length === 0 && !loadError,
-    onUpgrade: () => navigate('/dashboard/settings'),
+            onUpgrade: () => navigate('/dashboard/plans'),
     onResumeSave,
     onResumeDelete,
     onStorePdf,

@@ -134,7 +134,7 @@ function BillingDetail({ label, value }) {
   )
 }
 
-function SettingsUpgradeBanner({ upgradeLoading, startUpgrade, upgradePlan, onGoToBilling }) {
+function SettingsUpgradeBanner({ upgradePlan, onChoosePlan, onGoToBilling }) {
   const price = planPriceLabel(upgradePlan) || 'Pro'
   const highlight = (upgradePlan?.cardFeatures || []).find((f) => f.badge)?.text
   return (
@@ -145,12 +145,11 @@ function SettingsUpgradeBanner({ upgradeLoading, startUpgrade, upgradePlan, onGo
         </span>
         <div className="min-w-0">
           <p className="text-sm font-semibold text-foreground">
-            Unlock {upgradePlan?.label || 'Glowminds Pro'}
+            Unlock Glowminds Pro
           </p>
           <p className="text-xs text-muted-foreground">
-            {upgradeLoading
-              ? 'Opening checkout…'
-              : `${price}${highlight ? ` · ${highlight}` : upgradePlan?.desc ? ` · ${upgradePlan.desc}` : ''}`}
+            Compare monthly, yearly, and lifetime — choose the plan that fits you.
+            {highlight ? ` ${highlight}` : price ? ` From ${price}` : ''}
           </p>
         </div>
       </div>
@@ -159,10 +158,9 @@ function SettingsUpgradeBanner({ upgradeLoading, startUpgrade, upgradePlan, onGo
           type="button"
           size="sm"
           className="min-h-10 w-full sm:min-h-8 sm:w-auto"
-          disabled={upgradeLoading || !upgradePlan}
-          onClick={() => void startUpgrade({ plan: upgradePlan?.id || upgradePlan?.key || 'yearly' })}
+          onClick={onChoosePlan}
         >
-          {upgradeLoading ? 'Processing…' : 'Upgrade'}
+          Compare plans
         </Button>
         <Button type="button" variant="outline" size="sm" className="min-h-10 w-full sm:min-h-8 sm:w-auto" onClick={onGoToBilling}>
           View billing
@@ -655,9 +653,8 @@ export default function SettingsSection() {
       <Tabs value={active} onValueChange={setActive} className="flex w-full min-w-0 max-w-full flex-1 flex-col gap-3">
         {!isPro && (
           <SettingsUpgradeBanner
-            upgradeLoading={upgradeLoading}
-            startUpgrade={startUpgrade}
             upgradePlan={upgradePlan}
+            onChoosePlan={() => navigate('/dashboard/plans')}
             onGoToBilling={() => setActive('billing')}
           />
         )}

@@ -15,7 +15,7 @@ const ease = [0.16, 1, 0.3, 1]
 function getBenefits(stats = {}) {
   return [
     { ico: 'check-circle', title: 'Affordable Plans', desc: 'Powerful career tools at prices that work for students and freshers.' },
-    { ico: 'lightning', title: 'Ready in 2 Minutes', desc: 'Sign up, build your resume, and start applying — all in minutes.' },
+    { ico: 'lightning', title: 'Career OS in minutes', desc: 'Sign up, pick a resume template, sync details, then GLOWMINDS AI analysis.' },
     { ico: 'target', title: `${stats.matchRate || '94%'} Match Accuracy`, desc: 'Our AI finds the most relevant jobs for your skills and goals.' },
     { ico: 'lock', title: 'Secure & Private', desc: 'Your data is encrypted. We never sell your information.' },
   ]

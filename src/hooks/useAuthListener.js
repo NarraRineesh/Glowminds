@@ -1,10 +1,12 @@
 import { useEffect, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 import useAppStore from '@/store/authStore'
+import { detectAndroidApp } from '@/utils/nativeApp'
 
 /** Routes that need auth state before first interactive paint. */
 function needsAuthUrgently(pathname) {
   return (
+    detectAndroidApp() ||
     pathname.startsWith('/dashboard') ||
     pathname.startsWith('/login') ||
     pathname.startsWith('/signup') ||

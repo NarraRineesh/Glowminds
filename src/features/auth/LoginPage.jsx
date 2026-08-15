@@ -17,7 +17,7 @@ const ease = [0.16, 1, 0.3, 1]
 const PERKS = [
   { ico: 'resume', text: 'AI Resume Builder with ATS scoring' },
   { ico: 'target', text: 'Smart job matching across 50+ portals' },
-  { ico: 'robot', text: '24/7 AI career coach' },
+  { ico: 'robot', text: 'GLOWMINDS AI — 24/7 career advisor' },
   { ico: 'dashboard', text: 'Application tracker with Kanban board' },
   { ico: 'bell', text: 'Real-time job alerts' },
   { ico: 'lightning', text: 'One-click apply to jobs' },

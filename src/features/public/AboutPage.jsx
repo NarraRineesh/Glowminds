@@ -92,9 +92,9 @@ export default function AboutPage() {
 
       <PageHero
         badge="✦ ABOUT US"
-        title="We're Building the Future of"
-        highlight="Student Careers"
-        description="Glowminds was born from a simple idea: every student deserves smart tools to launch their career, not just those from top colleges."
+        title="We're Building the"
+        highlight="Career Operating System"
+        description="Glowminds is an AI-Powered Career Operating System — not just a resume site. Every student gets professional-grade tools: resumes, jobs, GLOWMINDS AI, interviews, and tracking."
       />
 
       <section className="pb-12 md:pb-16">
@@ -109,7 +109,7 @@ export default function AboutPage() {
               </CardHeader>
               <CardContent className="space-y-3 text-sm leading-relaxed text-muted-foreground">
                 <p>
-                  We believe a student&apos;s potential shouldn&apos;t be limited by their college tier or network. Glowminds levels the playing field with AI-powered tools that give every student access to professional-grade career resources.
+                  We believe a student&apos;s potential shouldn&apos;t be limited by their college tier or network. Glowminds is an AI-Powered Career Operating System that levels the playing field with GLOWMINDS AI and professional-grade career tools.
                 </p>
                 <p>
                   Our goal is ambitious but simple: <strong className="text-foreground">ensure no talented student gets left behind</strong> because they didn&apos;t know how to write a resume, couldn&apos;t find the right job listing, or lacked the confidence to ace an interview.
