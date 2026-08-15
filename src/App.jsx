@@ -32,7 +32,6 @@ const OverviewSection = lazy(() => import('@/features/dashboard/sections/Overvie
 const JobsSection = lazy(() => import('@/features/dashboard/sections/JobsSection'))
 const JobDetailSection = lazy(() => import('@/features/dashboard/sections/JobDetailSection'))
 const GlowmindsResumeSection = lazy(() => import('@/features/dashboard/sections/GlowmindsResumeSection'))
-const ResumeHubSection = lazy(() => import('@/features/dashboard/sections/ResumeHubSection'))
 const AISection = lazy(() => import('@/features/dashboard/sections/AISection'))
 const ApplicationsSection = lazy(() => import('@/features/dashboard/sections/ApplicationsSection'))
 const ProfileSection = lazy(() => import('@/features/dashboard/sections/ProfileSection'))
@@ -115,7 +114,7 @@ function AnimatedRoutes() {
         } />
         <Route path="resume" element={
           <Suspense fallback={<PageLoader />}>
-            <ResumeHubSection />
+            <GlowmindsResumeSection />
           </Suspense>
         } />
         <Route path="resume/:resumeId" element={

@@ -59,7 +59,7 @@ export function buildActionPlan({ profile, apps = [], scores = {}, readyForMatch
       hint: 'Score your active resume',
       est: '5 min',
       icon: 'resume',
-      to: '/dashboard/resume?tab=ats',
+      to: '/dashboard/resume',
     })
   }
   if (readyForMatches && apps.length < 3) {

@@ -50,7 +50,7 @@ function eventTime(a) {
 
 function jumpFor(type) {
   const t = String(type || '').toLowerCase()
-  if (t.includes('ats')) return { label: 'ATS Report', to: '/dashboard/resume?tab=ats' }
+  if (t.includes('ats')) return { label: 'ATS Report', to: '/dashboard/resume' }
   if (t.includes('linkedin')) return { label: 'LinkedIn Hub', to: '/dashboard/linkedin' }
   if (t.includes('vault')) return { label: 'Vault', to: '/dashboard/vault' }
   if (t.includes('interview')) return { label: 'Interview', to: '/dashboard/interview' }

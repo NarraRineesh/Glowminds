@@ -5,8 +5,8 @@ const FEATURES = [
     key: 'resume-builder',
     badge: 'AI RESUME BUILDER', badgeBg: 'rgba(56,139,253,.08)', badgeColor: 'var(--color-blu)',
     title: 'Build Resumes That Actually Get Past ATS',
-    desc: 'Stop getting auto-rejected. Our Gemini-powered AI analyzes job descriptions, identifies critical keywords, and builds perfectly formatted resumes that score 90+ on ATS systems. Upload an existing resume to enhance it, or start from scratch with 6 professional templates and real-time scoring.',
-    bullets: ['ATS compatibility tested against 200+ systems', 'Upload existing resume — AI enhances it instantly', '6 professional templates with live preview & PDF export', 'Smart keyword optimization matched to job descriptions'],
+    desc: 'Stop getting auto-rejected. Our Gemini-powered AI analyzes job descriptions, identifies critical keywords, and builds perfectly formatted resumes that score 90+ on ATS systems. Upload an existing resume to enhance it, or start from scratch with 15 professional templates and real-time scoring.',
+    bullets: ['ATS compatibility tested against 200+ systems', 'Upload existing resume — AI enhances it instantly', '15 professional templates with live preview & PDF export', 'Smart keyword optimization matched to job descriptions'],
     image: '/mockups/resume-builder.svg',
     cta: 'Try resume builder free',
   },
@@ -147,7 +147,7 @@ const STEPS = [
 ]
 
 const TOOLS = [
-  { ico: 'resume', title: 'Resume Builder', desc: 'ATS-optimized resumes with 6 templates, live preview, and one-click PDF export.', bg: 'var(--color-blu3)' },
+  { ico: 'resume', title: 'Resume Builder', desc: 'ATS-optimized resumes with 15 templates, live preview, and one-click PDF export.', bg: 'var(--color-blu3)' },
   { ico: 'target', title: 'Job Matching', desc: 'AI scans 50+ portals hourly and ranks jobs by your personal skill match score.', bg: 'var(--color-grn2)' },
   { ico: 'robot', title: 'Glow (Bot)', desc: '24/7 career advisor with context memory — resumes, interviews, salary, and more.', bg: 'var(--color-gold2)' },
   { ico: 'microphone', title: 'Interview Prep', desc: 'Practice with AI questions across 12 roles. Get scored on clarity, structure & impact.', bg: 'var(--color-prp2)' },
