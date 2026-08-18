@@ -104,6 +104,12 @@ export default function JobsSection() {
   }, [searchParams])
 
   useEffect(() => {
+    if (!profileLoaded || seededMatchFilter.current) return
+    seededMatchFilter.current = true
+    if (jobMatchAlerts) setActiveF('Best Match')
+  }, [profileLoaded, jobMatchAlerts])
+
+  useEffect(() => {
     loadSavedJobs()
     loadApps()
     loadProfile().catch(() => {})

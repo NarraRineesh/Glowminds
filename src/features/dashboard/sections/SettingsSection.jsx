@@ -515,10 +515,12 @@ export default function SettingsSection() {
 
   const [searchParams, setSearchParams] = useSearchParams()
   const tabFromUrl = searchParams.get('tab')
-  const [active, setActive] = useState(() => (SECTIONS.some((s) => s.id === tabFromUrl) ? tabFromUrl : 'account'))
+  const resolvedTab = tabFromUrl === 'usage' ? 'billing' : tabFromUrl
+  const [active, setActive] = useState(() => (SECTIONS.some((s) => s.id === resolvedTab) ? resolvedTab : 'account'))
 
   useEffect(() => {
-    const next = searchParams.get('tab')
+    const raw = searchParams.get('tab')
+    const next = raw === 'usage' ? 'billing' : raw
     if (next && SECTIONS.some((s) => s.id === next) && next !== active) setActive(next)
   }, [searchParams, active])
 
@@ -537,6 +539,7 @@ export default function SettingsSection() {
   const [deleting, setDeleting] = useState(false)
   const [emailNotifs, setEmailNotifs] = useState(true)
   const [pushNotifs, setPushNotifs] = useState(false)
+  const [jobMatchAlerts, setJobMatchAlerts] = useState(true)
   const [reducedMotion, setReducedMotion] = useState(false)
   const [compact, setCompact] = useState(false)
   const [jobAlertsEnabled, setJobAlertsEnabled] = useState(false)
@@ -547,6 +550,7 @@ export default function SettingsSection() {
     const s = userDoc?.settings || {}
     setEmailNotifs(s.emailNotifications !== false)
     setPushNotifs(!!s.pushNotifications)
+    setJobMatchAlerts(s.jobMatchAlerts !== false)
     setReducedMotion(!!s.reducedMotion)
     setCompact(!!s.compactDensity)
     const alerts = profile?.preferences?.jobAlerts || {}
@@ -567,6 +571,7 @@ export default function SettingsSection() {
 
   const onToggleEmail = (v) => { setEmailNotifs(v); persistSettings({ emailNotifications: v }) }
   const onTogglePush = (v) => { setPushNotifs(v); persistSettings({ pushNotifications: v }) }
+  const onToggleMatchAlerts = (v) => { setJobMatchAlerts(v); persistSettings({ jobMatchAlerts: v }) }
   const onToggleMotion = (v) => { setReducedMotion(v); persistSettings({ reducedMotion: v }) }
   const onToggleCompact = (v) => { setCompact(v); persistSettings({ compactDensity: v }) }
   const onToggleTheme = (checked) => {
@@ -817,6 +822,7 @@ export default function SettingsSection() {
 
         <TabsContent value="billing" className="mt-1 w-full min-w-0 max-w-full outline-none">
           <SettingsTabPanel activeSection={SECTION_BY_ID.billing}>
+            <PlanUsageSummary />
             <BillingPanel
               subscription={subscription}
               proActive={proActive}

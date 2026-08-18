@@ -197,6 +197,20 @@ function syncDerivedPricingFields(config) {
   return deriveLegacyViews(config);
 }
 
+
+function rewriteStaleTemplateCount(value) {
+  if (typeof value === "string") {
+    return value.replace(/\b6(\s+resume)?\s+templates\b/gi, "15$1 templates");
+  }
+  if (Array.isArray(value)) return value.map(rewriteStaleTemplateCount);
+  if (value && typeof value === "object") {
+    const out = { ...value };
+    for (const [k, v] of Object.entries(out)) out[k] = rewriteStaleTemplateCount(v);
+    return out;
+  }
+  return value;
+}
+
 export function mergeWithDefaults(data) {
   const base = cloneDefaults();
   if (!data || typeof data !== "object") return syncDerivedPricingFields(base);
@@ -226,7 +240,7 @@ export function mergeWithDefaults(data) {
     marketing: { ...base.marketing, ...(data.marketing || {}) },
   };
 
-  return syncDerivedPricingFields(merged);
+  return syncDerivedPricingFields(normalizeTemplateCountCopy(merged));
 }
 
 export function invalidatePricingCache() {
@@ -311,7 +325,7 @@ export async function getPricingConfig({ fresh = false } = {}) {
   } else {
     const raw = snap.data();
     const fields = pricingFieldsFromDoc(raw);
-    config = mergeWithDefaults(fields);
+    config = rewriteStaleTemplateCount(mergeWithDefaults(fields));
     const legacyPlansMap = fields.plans && !Array.isArray(fields.plans);
     const missingPolicies = !Array.isArray(fields.creditPolicies);
     const remotePlanKeys = new Set();
@@ -321,7 +335,8 @@ export async function getPricingConfig({ fresh = false } = {}) {
       for (const [k, p] of Object.entries(fields.plans)) remotePlanKeys.add(p?.key || k);
     }
     const missingDefaultPlans = DEFAULT_PRICING_CONFIG.plans.some((p) => !remotePlanKeys.has(p.key));
-    if (legacyPlansMap || missingPolicies || missingDefaultPlans || (isPricingEncryptionEnabled() && raw?.encrypted !== true)) {
+    const staleTemplates = /\b6(\s+resume)?\s+templates\b/i.test(JSON.stringify(fields || {}));
+    if (legacyPlansMap || missingPolicies || missingDefaultPlans || staleTemplates || (isPricingEncryptionEnabled() && raw?.encrypted !== true)) {
       await ref.set(buildStoredPricingDoc(config, { uid: raw?.updatedBy || null }));
     }
   }

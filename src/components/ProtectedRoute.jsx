@@ -11,12 +11,18 @@ export default function ProtectedRoute({ children }) {
   const flagsLoaded = useProfileStore((s) => s.loaded)
   const profileLoading = useProfileStore((s) => s.loading)
 
-  if (authLoading || (loggedIn && profileLoading && !flagsLoaded)) {
+  // Keep the dashboard shell mounted after login. Only block first paint
+  // while auth is unknown or the user doc has not arrived yet.
+  if (!loggedIn && authLoading) {
     return <Loader variant="page" />
   }
 
   if (!loggedIn) {
     return <Navigate to="/login" replace />
+  }
+
+  if (loggedIn && profileLoading && !flagsLoaded) {
+    return children
   }
 
   if (requiresEmailVerification(user)) {
