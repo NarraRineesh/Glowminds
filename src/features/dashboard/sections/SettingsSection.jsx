@@ -27,7 +27,7 @@ import { formatSubscriptionEndDate, isActiveProSubscription } from '@/constants/
 import { FREE_LIMITS as DEFAULT_FREE_LIMITS } from '@/constants/plans'
 import { sendPasswordResetEmail } from 'firebase/auth'
 import { auth } from '@/services/firebase'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import LevelProgress from '@/components/dashboard/LevelProgress'
 import StreakCard from '@/components/dashboard/StreakCard'
 import { computeXpProgress } from '@/utils/gamification'
@@ -523,7 +523,24 @@ export default function SettingsSection() {
   const profileLoaded = useProfileStore((s) => s.loaded)
   const patchUserDoc = useProfileStore((s) => s.patchUserDoc)
 
-  const [active, setActive] = useState('account')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tabFromUrl = searchParams.get('tab')
+  const [active, setActive] = useState(() => (SECTIONS.some((s) => s.id === tabFromUrl) ? tabFromUrl : 'account'))
+
+  useEffect(() => {
+    const next = searchParams.get('tab')
+    if (next && SECTIONS.some((s) => s.id === next) && next !== active) setActive(next)
+  }, [searchParams, active])
+
+  const selectSection = (id) => {
+    setActive(id)
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      if (id === 'account') next.delete('tab')
+      else next.set('tab', id)
+      return next
+    }, { replace: true })
+  }
   const [resettingPassword, setResettingPassword] = useState(false)
   const [emailNotifs, setEmailNotifs] = useState(true)
   const [pushNotifs, setPushNotifs] = useState(false)
@@ -627,13 +644,13 @@ export default function SettingsSection() {
         subtitle="Account, appearance, and notification controls — everything you can fine-tune."
       />
 
-      <Tabs value={active} onValueChange={setActive} className="min-h-0 flex-1 gap-4">
+      <Tabs value={active} onValueChange={selectSection} className="min-h-0 flex-1 gap-4">
         {!isPro && (
           <SettingsUpgradeBanner
             upgradeLoading={upgradeLoading}
             startUpgrade={startUpgrade}
             yearlyPriceLabel={yearlyPriceLabel}
-            onGoToBilling={() => setActive('billing')}
+            onGoToBilling={() => selectSection('billing')}
           />
         )}
 

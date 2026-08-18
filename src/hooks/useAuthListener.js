@@ -27,6 +27,7 @@ export default function useAuthListener() {
           firstName: firebaseUser.displayName?.split(' ')[0] || '',
           lastName: firebaseUser.displayName?.split(' ').slice(1).join(' ') || '',
           isAdmin: false,
+          emailVerified: !!firebaseUser.emailVerified,
         }
 
         // Read the `admin` custom claim from the ID token. Granted via

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { searchBoardJobs, getTopMatches } from '@/services/jobSearch'
+import { filterJobTags } from '@/utils/jobFilters'
 import { doc, setDoc, deleteDoc, collection, getDocs, serverTimestamp } from 'firebase/firestore'
 import { db, auth } from '@/services/firebase'
 
@@ -14,7 +15,7 @@ function buildJobSnapshot(job) {
     type: job.type || '',
     salary: job.salary || job.sal || '',
     description: job.description || job.desc || '',
-    tags: Array.isArray(job.tags) ? job.tags : [],
+    tags: filterJobTags(Array.isArray(job.tags) ? job.tags : []),
     url: job.url || '',
     publishedAt: job.publishedAt || null,
     source: job.source || 'ats',

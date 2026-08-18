@@ -5,8 +5,8 @@ const FEATURES = [
     key: 'resume-builder',
     badge: 'AI RESUME BUILDER', badgeBg: 'rgba(56,139,253,.08)', badgeColor: 'var(--color-blu)',
     title: 'Build Resumes That Actually Get Past ATS',
-    desc: 'Stop getting auto-rejected. Our Gemini-powered AI analyzes job descriptions, identifies critical keywords, and builds perfectly formatted resumes that score 90+ on ATS systems. Upload an existing resume to enhance it, or start from scratch with 6 professional templates and real-time scoring.',
-    bullets: ['ATS compatibility tested against 200+ systems', 'Upload existing resume — AI enhances it instantly', '6 professional templates with live preview & PDF export', 'Smart keyword optimization matched to job descriptions'],
+    desc: 'Stop getting auto-rejected. Our Gemini-powered AI analyzes job descriptions, identifies critical keywords, and builds perfectly formatted resumes that score 90+ on ATS systems. Upload an existing resume to enhance it, or start from scratch with 15 professional templates and real-time scoring.',
+    bullets: ['ATS compatibility tested against 200+ systems', 'Upload existing resume — AI enhances it instantly', '15 professional templates with live preview & PDF export', 'Smart keyword optimization matched to job descriptions'],
     image: '/mockups/resume-builder.svg',
     cta: 'Try resume builder free',
   },
@@ -14,8 +14,8 @@ const FEATURES = [
     key: 'job-matching',
     badge: 'SMART JOB MATCHING', badgeBg: 'rgba(63,185,80,.08)', badgeColor: 'var(--color-grn)',
     title: 'Stop Scrolling. Start Getting Matched.',
-    desc: 'Our AI scans 50+ job portals every hour — Naukri, LinkedIn, Internshala, AngelList, and more — then ranks every opportunity against your skills, experience, and preferences. 94% of our matches result in relevant applications. Filter by remote/hybrid/on-site, salary range, or company size.',
-    bullets: ['50+ portals scanned automatically every hour', '94% match accuracy — only relevant jobs, zero noise', 'Filter by location, salary, remote/hybrid/on-site', 'Real-time alerts when dream jobs appear'],
+    desc: 'Our AI scans 50+ job portals every hour — Naukri, LinkedIn, Internshala, AngelList, and more — then ranks every opportunity against your skills, experience, and preferences. Filter by remote/hybrid/on-site, salary range, or company size.',
+    bullets: ['50+ portals scanned automatically every hour', 'Ranked by your skills — only relevant jobs, zero noise', 'Filter by location, salary, remote/hybrid/on-site', 'Real-time alerts when dream jobs appear'],
     image: '/mockups/job-matching.svg', reverse: true,
     cta: 'Find matched jobs',
   },
@@ -75,13 +75,13 @@ const HERO = {
     'Build an ATS-ready resume, discover matched jobs, apply with tailored cover letters, practice interviews, and track every application — all in one place.',
   primaryCta: 'Build Your Resume',
   secondaryCta: 'Explore Tools',
-  liveBadge: 'LIVE',
+  liveBadge: 'FREE TO START',
 }
 
 const HERO_METRICS = [
-  { value: '5,000+', label: 'Resumes Created' },
-  { value: '2,000+', label: 'Cover Letters Generated' },
-  { value: '1,200+', label: 'Interviews Practiced' },
+  { value: '15', label: 'Resume templates' },
+  { value: 'ATS', label: 'Resume scoring' },
+  { value: '1', label: 'Dashboard for the whole search' },
 ]
 
 const TRUST_BADGES = [
@@ -146,7 +146,7 @@ const STEPS = [
 ]
 
 const TOOLS = [
-  { ico: 'resume', title: 'Resume Builder', desc: 'ATS-optimized resumes with 6 templates, live preview, and one-click PDF export.', bg: 'var(--color-blu3)' },
+  { ico: 'resume', title: 'Resume Builder', desc: 'ATS-optimized resumes with 15 templates, live preview, and one-click PDF export.', bg: 'var(--color-blu3)' },
   { ico: 'target', title: 'Job Matching', desc: 'AI scans 50+ portals hourly and ranks jobs by your personal skill match score.', bg: 'var(--color-grn2)' },
   { ico: 'robot', title: 'AI Career Coach', desc: '24/7 career coaching with context memory — resumes, interviews, salary, and more.', bg: 'var(--color-gold2)' },
   { ico: 'microphone', title: 'Interview Prep', desc: 'Practice with AI questions across 12 roles. Get scored on clarity, structure & impact.', bg: 'var(--color-prp2)' },
@@ -161,9 +161,9 @@ const TOOLS = [
 ]
 
 const TESTIMONIALS = [
-  { name: 'Aditi Verma', role: 'SDE Intern @ Google', avatar: 'code', text: 'Glowminds matched me with my dream internship. The AI resume builder got me a 96 ATS score — I got 3 interview calls in the first week!' },
-  { name: 'Rahul Gupta', role: 'Frontend Dev @ Swiggy', avatar: 'code', text: 'The AI career coach helped me prepare for 3 rounds of interviews. Got the offer in 2 weeks. This platform is a game-changer for freshers.' },
-  { name: 'Karthik R', role: 'Full Stack @ Razorpay', avatar: 'code', text: 'Best platform for freshers. Period. The job matching accuracy is insane — 94% relevant. Saved me hours of scrolling through job boards.' },
+  { name: 'Aditi Verma', role: 'SDE intern track', avatar: 'AV', example: true, text: 'Example: build an ATS-ready resume, then apply to matched internships from one dashboard.' },
+  { name: 'Rahul Gupta', role: 'Frontend track', avatar: 'RG', example: true, text: 'Example: use the AI coach and mock interviews to prepare for early-career rounds.' },
+  { name: 'Karthik R', role: 'Full-stack track', avatar: 'KR', example: true, text: 'Example: ranked job matches beat scrolling generic boards when you have a target role and skills.' },
 ]
 
 const TRUST_LOGOS = ['IIT Delhi', 'IIT Bombay', 'BITS Pilani', 'NIT Trichy', 'VIT', 'SRM', 'Manipal', 'IIIT Hyderabad', 'DTU', 'NSUT', 'PES University', 'Amity']
@@ -178,10 +178,11 @@ const FAQS = [
 ]
 
 const STATS = {
-  students: '5,000+',
-  dailyJobs: '12K+',
-  matchRate: '94%',
-  rating: '4.9/5',
+  students: 'Students & freshers',
+  dailyJobs: 'Live job board',
+  matchRate: 'Skill-ranked matches',
+  rating: 'Free to start',
+  badgeLine: 'ATS resume, jobs & interview prep',
 }
 
 const HERO_IMAGES = [
@@ -212,7 +213,7 @@ const PRICING = {
       'Smart Job Matching',
       'Application Tracking',
     ],
-    features: ['100 AI credits/month (fair usage applies)', 'All 6 resume templates', 'Unlimited application tracking', 'AI Mock Interviews (10 credits/session)', 'AI Cover Letters (5 credits each)', 'AI Coach Chat (1 credit/message)', 'Smart job matching & alerts', 'Salary insights & analytics'],
+    features: ['100 AI credits/month (fair usage applies)', 'All 15 resume templates', 'Unlimited application tracking', 'AI Mock Interviews (10 credits/session)', 'AI Cover Letters (5 credits each)', 'AI Coach Chat (1 credit/message)', 'Smart job matching & alerts', 'Salary insights & analytics'],
   },
 }
 
@@ -261,7 +262,7 @@ const PRO_FEATURES = [
   { text: 'AI Mock Interviews (10 credits/session)', included: true, highlight: true },
   { text: 'AI Cover Letters (5 credits each)', included: true, highlight: true },
   { text: 'AI Coach Chat (1 credit/message)', included: true, highlight: true },
-  { text: 'All 6 Resume Templates', included: true, highlight: false },
+  { text: 'All 15 Resume Templates', included: true, highlight: false },
   { text: 'Unlimited Applications', included: true, highlight: false },
   { text: 'Unlimited Resumes', included: true, highlight: false },
   { text: 'Salary Insights & Analytics', included: true, highlight: false },

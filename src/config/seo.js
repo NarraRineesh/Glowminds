@@ -1,4 +1,5 @@
 import { pageUrl, SITE_URL } from '@/config/site'
+import { LEGAL_ADDRESS, LEGAL_CIN, LEGAL_NAME } from '@/config/legal'
 
 export const SEO_SITE_NAME = 'Glowminds'
 export const SEO_LOCALE = 'en_IN'
@@ -15,7 +16,8 @@ export const SEO_DEFAULT_DESCRIPTION =
 
 export const SEO_ORGANIZATION = {
   name: 'Glowminds',
-  legalName: 'KNR Tech Solutions',
+  legalName: LEGAL_NAME,
+  cin: LEGAL_CIN,
   email: 'hello@glowminds.in',
   supportEmail: 'support@glowminds.in',
   privacyEmail: 'privacy@glowminds.in',
@@ -148,6 +150,14 @@ export function organizationSchema(overrides = {}) {
     url: SITE_URL,
     logo: `${SITE_URL}/favicon/favicon-96x96.png`,
     email: SEO_ORGANIZATION.email,
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: `${LEGAL_ADDRESS.line1}, ${LEGAL_ADDRESS.line2}`,
+      addressLocality: LEGAL_ADDRESS.city,
+      addressRegion: LEGAL_ADDRESS.region,
+      postalCode: LEGAL_ADDRESS.postalCode,
+      addressCountry: LEGAL_ADDRESS.country,
+    },
     contactPoint: {
       '@type': 'ContactPoint',
       contactType: 'customer support',
@@ -300,4 +310,31 @@ export function pageStructuredData(key, breadcrumbs, extra = []) {
     ...extra,
   ]
   return normalizeStructuredData(base.filter(Boolean))
+}
+
+export const DASHBOARD_PAGE_SEO = {
+  '/dashboard': { title: 'Dashboard', description: 'Your Glowminds career dashboard.' },
+  '/dashboard/jobs': { title: 'Job Board', description: 'Matched jobs for your target role.' },
+  '/dashboard/resume': { title: 'Resume Builder', description: 'Build an ATS-ready Glowminds resume.' },
+  '/dashboard/applications': { title: 'Application Tracker', description: 'Track every application on a Kanban board.' },
+  '/dashboard/profile': { title: 'Profile', description: 'Your Glowminds career profile.' },
+  '/dashboard/ai': { title: 'AI Coach', description: 'Career coaching in Glowminds.' },
+  '/dashboard/interview': { title: 'Interview Prep', description: 'Practice interviews with Glowminds.' },
+  '/dashboard/cover-letters': { title: 'Cover Letters', description: 'Draft cover letters in Glowminds.' },
+  '/dashboard/linkedin': { title: 'LinkedIn Optimizer', description: 'Audit your LinkedIn profile.' },
+  '/dashboard/salary': { title: 'Salary Insights', description: 'India salary ranges for early-career roles.' },
+  '/dashboard/settings': { title: 'Settings', description: 'Account, billing, and preferences.' },
+  '/dashboard/grammar-check': { title: 'Grammar Check', description: 'Polish career documents.' },
+  '/dashboard/paraphrase': { title: 'Paraphrasing Tool', description: 'Rewrite bullets and paragraphs.' },
+  '/dashboard/quiz': { title: 'Daily Quiz', description: 'Daily career quiz.' },
+  '/dashboard/badges': { title: 'Badges', description: 'Your Glowminds badges.' },
+  '/dashboard/admin': { title: 'Admin', description: 'Glowminds admin console.', noIndex: true },
+}
+
+export function dashboardSeo(pathname) {
+  if (DASHBOARD_PAGE_SEO[pathname]) return DASHBOARD_PAGE_SEO[pathname]
+  if (pathname.startsWith('/dashboard/jobs/')) {
+    return { title: 'Job Detail', description: 'Job details on Glowminds.' }
+  }
+  return PAGE_SEO.dashboard
 }

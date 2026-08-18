@@ -21,13 +21,9 @@ import useProfileStore from '@/store/profileStore'
 import { CAREER_LEVELS, CAREER_LEVEL_LABEL, normalizeSkills } from '@/constants/schema'
 
 const STEP_IDS = [
-  'name',
   'career',
   'contact',
   'skills',
-  'preferences',
-  'links',
-  'summary',
   'done',
 ]
 
@@ -40,9 +36,9 @@ const STEP_META = {
   },
   career: {
     badge: 'Step 2 · Career level',
-    title: 'Where are you in your career?',
-    accent: 'in your career',
-    desc: 'We use this to tune jobs, AI questions and resume templates for you.',
+    title: 'What role are you targeting?',
+    accent: 'targeting',
+    desc: 'Default is student / fresher. Add a short target role so we can seed job search.',
   },
   contact: {
     badge: 'Step 3 · Contact',
@@ -104,7 +100,7 @@ function emptyDraft({ user, profile }) {
   return {
     firstName: user?.firstName || (user?.displayName || '').split(' ')[0] || '',
     lastName: user?.lastName || (user?.displayName || '').split(' ').slice(1).join(' ') || '',
-    careerLevel: profile?.careerLevel || (profile?.isFresher ? CAREER_LEVELS.FRESHER : ''),
+    careerLevel: profile?.careerLevel || CAREER_LEVELS.FRESHER,
     personal: {
       phone: profile?.personal?.phone || '',
       location: profile?.personal?.location || '',
@@ -148,7 +144,7 @@ function StepTitle({ title, accent, firstName, stepId }) {
   return title
 }
 
-export default function OnboardingModal({ open, onClose, onPickAction, initialStepId = 'name' }) {
+export default function OnboardingModal({ open, onClose, onPickAction, initialStepId = 'career' }) {
   const { user, updateDisplayName, addToast } = useAppStore()
   const profile = useProfileStore((s) => s.profile)
   const updateProfile = useProfileStore((s) => s.updateProfile)
@@ -176,6 +172,7 @@ export default function OnboardingModal({ open, onClose, onPickAction, initialSt
   const progressValue = Math.round(((stepIdx + 1) / STEP_IDS.length) * 100)
 
   const [saving, setSaving] = useState(false)
+  const [stepError, setStepError] = useState('')
   const [skillInput, setSkillInput] = useState('')
 
   const firstName = draft.firstName?.trim() || user?.firstName || 'there'
@@ -212,6 +209,11 @@ export default function OnboardingModal({ open, onClose, onPickAction, initialSt
     }
     if (id === 'career') {
       if (!draft.careerLevel) return 'Pick the option that fits you best'
+      if (!draft.headline.trim()) return 'Add a short target role (for example: SDE intern)'
+      return null
+    }
+    if (id === 'contact') {
+      if (!draft.personal.location.trim()) return 'Add your city so we can match local roles'
       return null
     }
     if (id === 'skills') {
@@ -232,6 +234,7 @@ export default function OnboardingModal({ open, onClose, onPickAction, initialSt
       await updateProfile({
         careerLevel: draft.careerLevel,
         isFresher: draft.careerLevel === CAREER_LEVELS.FRESHER,
+        headline: draft.headline.trim(),
       })
       return
     }
@@ -301,9 +304,11 @@ export default function OnboardingModal({ open, onClose, onPickAction, initialSt
   const handleNext = async () => {
     const err = validateStep(stepId)
     if (err) {
+      setStepError(err)
       addToast?.('error', err)
       return
     }
+    setStepError('')
     setSaving(true)
     try {
       await persistStep(stepId)
@@ -398,6 +403,8 @@ export default function OnboardingModal({ open, onClose, onPickAction, initialSt
           <Progress value={progressValue} className="gap-0 [&_[data-slot=progress-track]]:h-1.5" />
         </div>
 
+        {stepError ? <p className="text-xs text-destructive">{stepError}</p> : null}
+
         {stepId === 'name' && (
           <div className="flex flex-col gap-3">
             <Alert>
@@ -419,6 +426,14 @@ export default function OnboardingModal({ open, onClose, onPickAction, initialSt
         )}
 
         {stepId === 'career' && (
+          <div className="flex flex-col gap-3">
+            <FormField label="Target role *">
+              <Input
+                placeholder="SDE intern, Frontend engineer…"
+                value={draft.headline}
+                onChange={(e) => update('headline', e.target.value)}
+              />
+            </FormField>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {CAREER_OPTIONS.map((opt) => {
               const active = draft.careerLevel === opt.id
@@ -443,13 +458,14 @@ export default function OnboardingModal({ open, onClose, onPickAction, initialSt
               )
             })}
           </div>
+          </div>
         )}
 
         {stepId === 'contact' && (
           <div className="flex flex-col gap-3">
             <FormRow>
               <FormField label="Phone">
-                <Input placeholder="+91 98765 43210" value={draft.personal.phone} onChange={(e) => update('personal.phone', e.target.value)} />
+                <Input placeholder="Phone (optional)" value={draft.personal.phone} onChange={(e) => update('personal.phone', e.target.value)} />
               </FormField>
               <FormField label="Location">
                 <Input placeholder="Bangalore, India" value={draft.personal.location} onChange={(e) => update('personal.location', e.target.value)} />
@@ -609,8 +625,8 @@ export default function OnboardingModal({ open, onClose, onPickAction, initialSt
             </Card>
             <div className="flex flex-col gap-2">
               {[
-                { id: '/dashboard/jobs', icon: 'jobs', label: 'Browse matched jobs', hint: 'See live roles ranked to your skills', primary: true },
-                { id: '/dashboard/resume', icon: 'resume', label: 'Build your resume', hint: 'ATS-ready templates pre-filled with your data' },
+                { id: '/dashboard/resume', icon: 'resume', label: 'Build your first resume', hint: 'ATS-ready templates pre-filled with your data', primary: true },
+                { id: '/dashboard/jobs', icon: 'jobs', label: 'Browse matched jobs', hint: 'See live roles ranked to your skills' },
                 { id: '/dashboard/profile', icon: 'user', label: 'Polish my profile', hint: 'Add projects, internships, certifications' },
               ].map((a) => (
                 <Button

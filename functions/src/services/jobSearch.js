@@ -101,8 +101,20 @@ function tsToIso(value) {
 
 // Maps a Firestore `jobs/{docId}` document into the unified job shape the
 // frontend already consumes (id, title, company, tags, posted, ...).
+function isJunkLabel(value) {
+  const s = String(value || "").trim();
+  if (!s || s.length < 2) return true;
+  if (/^[a-z]$/i.test(s)) return true;
+  if (/\.(com|io|net|org|cloud)$/i.test(s)) return true;
+  if (/oraclecloud/i.test(s) || /^www\./i.test(s)) return true;
+  return false;
+}
+
 function mapFirestoreJob(docId, data) {
-  const tags = Array.isArray(data.skills) ? data.skills.slice(0, 6) : [];
+  const tags = (Array.isArray(data.skills) ? data.skills : [])
+    .map((s) => String(s).trim())
+    .filter((s) => s && !isJunkLabel(s))
+    .slice(0, 6);
   const descPlain = stripHtml(data.descriptionHtml || "");
   const postedAtIso = data.postedAt || tsToIso(data.indexedAt);
   const posted = timeAgo(postedAtIso);
@@ -284,7 +296,11 @@ export function buildSearchParams(profile, overrides = {}) {
     if (!skillList.length && technical.length) skillList = technical;
 
     if (!titleStr) {
-      titleStr = String(profile.headline || "").trim();
+      const headline = String(profile.headline || "").trim();
+      const first = headline.split(/\s*[·|,—–]\s*/)[0].trim();
+      const stop = new Set(["the","and","for","with","from","seeking","looking","aspiring","passionate","motivated","experienced","results","driven"]);
+      const words = first.split(/\s+/).map((w) => w.replace(/[^a-zA-Z0-9+#]/g, "")).filter((w) => w.length >= 2 && !stop.has(w.toLowerCase()));
+      titleStr = words.slice(0, 4).join(" ").trim();
       if (!titleStr && profile.isFresher) titleStr = "fresher internship";
       else if (!titleStr) titleStr = "software engineer";
     }

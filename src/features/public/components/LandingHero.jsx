@@ -43,7 +43,7 @@ export default function LandingHero({ hero, heroMetrics, trustBadges, stats, onS
 
           <motion.div variants={heroFadeUp} transition={motionTransition(reducedMotion, { duration: 0.65, delay: 0.2 })}>
             <Badge variant="outline" className="border-emerald-500/20 bg-emerald-500/10 text-emerald-500">
-              {hero?.liveBadge || 'LIVE'} · {stats?.dailyJobs || '12,400+'} jobs today
+              {hero?.liveBadge || 'FREE TO START'} · {stats?.badgeLine || 'ATS resume, jobs & interview prep'}
             </Badge>
           </motion.div>
 

@@ -69,7 +69,7 @@ export const DEFAULT_PRICING_CONFIG = {
       ],
       features: [
         "100 AI credits/month (fair usage applies)",
-        "All 6 resume templates",
+        "All 15 resume templates",
         "Unlimited application tracking",
         "AI Mock Interviews (10 credits/session)",
         "AI Cover Letters (5 credits each)",
@@ -100,7 +100,7 @@ export const DEFAULT_PRICING_CONFIG = {
     { text: "AI Mock Interviews (10 credits/session)", included: true, highlight: true },
     { text: "AI Cover Letters (5 credits each)", included: true, highlight: true },
     { text: "AI Coach Chat (1 credit/message)", included: true, highlight: true },
-    { text: "All 6 Resume Templates", included: true, highlight: false },
+    { text: "All 15 Resume Templates", included: true, highlight: false },
     { text: "Unlimited Applications", included: true, highlight: false },
     { text: "Unlimited Resumes", included: true, highlight: false },
     { text: "Salary Insights & Analytics", included: true, highlight: false },

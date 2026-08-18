@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, signOut, updateProfile } from 'firebase/auth'
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, signOut, updateProfile, sendEmailVerification } from 'firebase/auth'
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
 import { auth, googleProvider, db } from '@/services/firebase'
 import { createDefaultUserDoc } from '@/constants/schema'
@@ -42,6 +42,12 @@ const useAppStore = create((set) => ({
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     })
+
+    try {
+      await sendEmailVerification(cred.user)
+    } catch (err) {
+      console.warn('sendEmailVerification:', err?.message || err)
+    }
 
     return cred.user
   },

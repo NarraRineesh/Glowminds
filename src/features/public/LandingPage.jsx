@@ -185,7 +185,7 @@ export default function LandingPage() {
           <LandingSectionTitle
             title="What our users"
             highlight="say"
-            subtitle="Real stories from students who landed their dream jobs."
+            subtitle="Example outcomes — illustrative, not verified reviews."
           />
         </LandingReveal>
         <LandingRevealStagger className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -202,11 +202,11 @@ export default function LandingPage() {
                   <Separator />
                   <div className="flex items-center gap-3">
                     <Avatar>
-                      <AvatarFallback>{item.avatar}</AvatarFallback>
+                      <AvatarFallback>{item.avatar || item.name.split(' ').map((n) => n[0]).join('').slice(0, 2)}</AvatarFallback>
                     </Avatar>
                     <div>
                       <p className="text-sm font-semibold">{item.name}</p>
-                      <p className="text-xs text-muted-foreground">{item.role}</p>
+                      <p className="text-xs text-muted-foreground">{item.example ? 'Example · ' : ''}{item.role}</p>
                     </div>
                   </div>
                 </CardContent>

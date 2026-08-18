@@ -33,10 +33,11 @@ import { AppIcon,
   Textarea,
 } from '@/components/ui'
 
+import { LEGAL_ADDRESS_ONE_LINE, LEGAL_EMAIL, LEGAL_NAME } from '@/config/legal'
+
 const CONTACT_INFO = [
-  { ico: 'envelope', title: 'Email Us', value: 'hello@glowminds.in', desc: 'We reply within 24 hours' },
-  { ico: 'phone', title: 'Call Us', value: '+91 98765 43210', desc: 'Mon-Fri, 9 AM - 6 PM IST' },
-  { ico: 'map-pin', title: 'Visit Us', value: 'Bangalore, India', desc: 'HSR Layout, Sector 1' },
+  { ico: 'envelope', title: 'Email Us', value: LEGAL_EMAIL, desc: 'We reply within 24 hours' },
+  { ico: 'map-pin', title: 'Registered office', value: LEGAL_NAME, desc: LEGAL_ADDRESS_ONE_LINE },
   { ico: 'chat', title: 'Live Chat', value: 'In-app AI assistant', desc: 'Available 24/7' },
 ]
 
@@ -135,7 +136,7 @@ export default function ContactPage() {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: '-40px' }}
-            className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
+            className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
           >
             {CONTACT_INFO.map((c) => (
               <motion.div key={c.title} variants={fadeUp} transition={{ duration: 0.5, ease: motionEase }}>
@@ -202,7 +203,7 @@ export default function ContactPage() {
                         autoComplete="tel"
                         aria-invalid={errors.mobile ? true : undefined}
                         className={errors.mobile ? 'border-destructive' : undefined}
-                        placeholder="+91 98765 43210"
+                        placeholder="10-digit mobile (optional)"
                         value={form.mobile}
                         onChange={(e) => {
                           setForm({ ...form, mobile: e.target.value })

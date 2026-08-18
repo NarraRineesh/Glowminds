@@ -47,7 +47,7 @@ export default function JobDetailSection() {
   const profile = useProfileStore((s) => s.profile)
   const { addApp, loadApps, apps } = useTrackerStore()
   const freeAppLimit = entitlements?.freeLimits?.applications ?? 10
-  const appCount = entitlements?.entitlements?.applicationCount ?? apps.length
+  const appCount = apps.length
   const canTrackMore = isPro || appCount < freeAppLimit
 
   const [job, setJob] = useState(null)

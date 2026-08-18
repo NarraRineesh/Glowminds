@@ -3,7 +3,7 @@ import SectionHeader from '@/components/dashboard/SectionHeader'
 import UpgradeGate from '@/components/UpgradeGate'
 import { ToolPage, ToolSidebarLayout } from '@/features/dashboard/components/toolSectionLayout'
 import AppIcon from '@/components/icons/AppIcon'
-import { Badge, Button, Checkbox, DashboardCard, Input, Progress, cn } from '@/components/ui'
+import { Badge, Button, Checkbox, DashboardCard, Input, Progress, Textarea, cn } from '@/components/ui'
 import useAppStore from '@/store/authStore'
 import useProfileStore from '@/store/profileStore'
 import { auth } from '@/services/firebase'
@@ -55,6 +55,9 @@ export default function LinkedInOptimizerSection() {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState('')
   const [saving, setSaving] = useState(false)
+  const [mode, setMode] = useState('paste')
+  const [pasted, setPasted] = useState('')
+  const [showAdvanced, setShowAdvanced] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -64,9 +67,12 @@ export default function LinkedInOptimizerSection() {
       try {
         await useProfileStore.getState().load({ force: false })
         if (cancelled) return
-        const url = useProfileStore.getState().profile?.links?.linkedin || ''
+        const snap = useProfileStore.getState().profile
+        const url = snap?.links?.linkedin || ''
         setProfileUrl(url)
-        setEditing(!url)
+        setPasted(snap?.linkedinPaste || '')
+        setMode(url && !snap?.linkedinPaste ? 'url' : 'paste')
+        setEditing(!url && !snap?.linkedinPaste)
         setDraft(url)
       } catch (e) {
         console.error('LinkedIn load:', e)
@@ -189,30 +195,75 @@ export default function LinkedInOptimizerSection() {
           </div>
         ) : (
           <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              {profileUrl
-                ? 'Update your LinkedIn URL — we\'ll save it back to your profile.'
-                : 'No LinkedIn URL on your profile yet. Add it once and the optimizer will use it everywhere.'}
-            </p>
-            <div className="flex flex-wrap items-center gap-2">
-              <Input
-                className="min-w-[220px] flex-1"
-                type="url"
-                inputMode="url"
-                placeholder="https://linkedin.com/in/yourname"
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter' && !saving) handleSaveUrl() }}
-              />
-              <Button size="sm" disabled={saving || !draft.trim()} onClick={handleSaveUrl}>
-                {saving ? 'Saving…' : 'Save to profile'}
-              </Button>
-              {profileUrl && (
-                <Button variant="ghost" size="sm" disabled={saving} onClick={() => { setDraft(profileUrl); setEditing(false) }}>
-                  Cancel
-                </Button>
-              )}
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" size="sm" variant={mode === 'paste' ? 'default' : 'outline'} onClick={() => setMode('paste')}>Paste profile</Button>
+              <Button type="button" size="sm" variant={mode === 'url' ? 'default' : 'outline'} onClick={() => setMode('url')}>Profile URL</Button>
             </div>
+            {mode === 'paste' ? (
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">Paste your LinkedIn About / experience text. We use it for the checklist — no Chrome extension required.</p>
+                <Textarea
+                  className="min-h-[140px]"
+                  placeholder="Paste your headline, About, and recent roles…"
+                  value={pasted}
+                  onChange={(e) => setPasted(e.target.value)}
+                />
+                <Button
+                  size="sm"
+                  disabled={saving || !pasted.trim()}
+                  onClick={async () => {
+                    const uid = auth.currentUser?.uid
+                    if (!uid) { addToast?.('error', 'You must be signed in'); return }
+                    setSaving(true)
+                    try {
+                      await useProfileStore.getState().updateProfile({ linkedinPaste: pasted.trim() })
+                      setEditing(false)
+                      addToast?.('success', 'Profile text saved')
+                    } catch {
+                      addToast?.('error', 'Failed to save')
+                    }
+                    setSaving(false)
+                  }}
+                >
+                  {saving ? 'Saving…' : 'Save pasted profile'}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  {profileUrl
+                    ? 'Update your LinkedIn URL — we\'ll save it back to your profile.'
+                    : 'Paste a linkedin.com/in/… URL. We\'ll save it to your profile.'}
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Input
+                    className="min-w-[220px] flex-1"
+                    type="url"
+                    inputMode="url"
+                    placeholder="https://linkedin.com/in/yourname"
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && !saving) handleSaveUrl() }}
+                  />
+                  <Button size="sm" disabled={saving || !draft.trim()} onClick={handleSaveUrl}>
+                    {saving ? 'Saving…' : 'Save to profile'}
+                  </Button>
+                  {profileUrl && (
+                    <Button variant="ghost" size="sm" disabled={saving} onClick={() => { setDraft(profileUrl); setEditing(false) }}>
+                      Cancel
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+            <button type="button" className="text-xs text-muted-foreground underline-offset-2 hover:underline" onClick={() => setShowAdvanced((v) => !v)}>
+              {showAdvanced ? 'Hide advanced' : 'Advanced'}
+            </button>
+            {showAdvanced && (
+              <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                Chrome extension is optional and not required. Paste your profile or save a LinkedIn URL — that is the default path.
+              </p>
+            )}
           </div>
         )}
       </DashboardCard>

@@ -264,9 +264,11 @@ export default function DashboardSidebar() {
         {!isPro && (
           <>
             {typeof creditBalance === 'number' && (
-              <div
+              <Link
+                to="/dashboard/settings?tab=billing"
+                onClick={closeDrawer}
                 className={cn(
-                  'rounded-lg border border-primary/20 bg-primary/5 px-2.5 py-2 text-left',
+                  'block rounded-lg border border-primary/20 bg-primary/5 px-2.5 py-2 text-left transition-colors hover:border-primary/40',
                   iconCollapsed && 'px-2 text-center',
                 )}
               >
@@ -274,12 +276,12 @@ export default function DashboardSidebar() {
                   <>
                     <p className="text-[10.5px] font-bold uppercase tracking-wide text-primary">AI credits</p>
                     <p className="text-sm font-black tabular-nums text-foreground">{creditBalance} left</p>
-                    <p className="text-[10px] text-muted-foreground">Try AI Coach, cover letters & more</p>
+                    <p className="text-[10px] text-muted-foreground">Usage & billing</p>
                   </>
                 ) : (
                   <AppIcon name="sparkle" className="mx-auto size-4 text-primary" aria-label={`${creditBalance} AI credits`} />
                 )}
-              </div>
+              </Link>
             )}
             <Button
             type="button"
@@ -310,10 +312,10 @@ export default function DashboardSidebar() {
         )}
 
         {isPro && typeof creditBalance === 'number' && !iconCollapsed && (
-          <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-2.5 py-2">
+          <Link to="/dashboard/settings?tab=billing" onClick={closeDrawer} className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-2.5 py-2 transition-colors hover:border-emerald-500/40">
             <p className="text-[10.5px] font-bold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">Pro credits</p>
             <p className="text-sm font-black tabular-nums text-foreground">{creditBalance} remaining</p>
-          </div>
+          </Link>
         )}
 
         <SidebarProfileMenu

@@ -1,6 +1,15 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useJobStore from '@/store/jobStore'
+import useAppStore from '@/store/authStore'
+import useTrackerStore from '@/store/trackerStore'
+import useProfileStore from '@/store/profileStore'
+import useEntitlements from '@/hooks/useEntitlements'
+import useIsPro from '@/hooks/useIsPro'
+import { APPLICATION_STATUS } from '@/constants/schema'
+import { buildJobMatchAnalysis } from '@/utils/jobMatchAnalysis'
+import { cleanTargetRole, hasUsableProfile } from '@/utils/targetRole'
+import { filterJobTags } from '@/utils/jobFilters'
 import Loader from '@/components/Loader'
 import { JobGridSkeleton } from '@/features/dashboard/components/JobCardSkeleton'
 import { JobMetaItem, JobMetaRow } from '@/features/dashboard/components/JobMeta'
@@ -40,12 +49,20 @@ function matchTone(match) {
 
 export default function JobsSection() {
   const navigate = useNavigate()
+  const { addToast } = useAppStore()
   const { jobs, pagination, loading, error, fetchJobs, saveJob, unsaveJob, isJobSaved, loadSavedJobs, queryUsed } = useJobStore()
+  const profile = useProfileStore((s) => s.profile)
+  const loadProfile = useProfileStore((s) => s.load)
+  const { addApp, loadApps, apps } = useTrackerStore()
+  const { entitlements } = useEntitlements()
+  const isPro = useIsPro()
   const [activeF, setActiveF] = useState('All')
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
   const [searchInput, setSearchInput] = useState('')
   const [page, setPage] = useState(1)
+  const [applyingId, setApplyingId] = useState(null)
+  const seeded = useRef(false)
 
   const filters = useMemo(() => buildFilters(activeF, typeFilter), [activeF, typeFilter])
   const filterSig = useMemo(
@@ -66,7 +83,19 @@ export default function JobsSection() {
 
   useEffect(() => {
     loadSavedJobs()
-  }, [loadSavedJobs])
+    loadApps()
+    loadProfile().catch(() => {})
+  }, [loadSavedJobs, loadApps, loadProfile])
+
+  useEffect(() => {
+    if (seeded.current) return
+    if (!profile) return
+    const role = cleanTargetRole(profile)
+    if (!role) return
+    seeded.current = true
+    setSearchInput(role)
+    setSearch(role)
+  }, [profile])
 
   useEffect(() => {
     fetchJobs({ search, page, pageSize: PER_PAGE, filters })
@@ -92,6 +121,48 @@ export default function JobsSection() {
   const subtitleQuery = hasActiveSearch ? search.trim() : queryUsed
 
   const openJob = (j) => navigate(`/dashboard/jobs/${encodeURIComponent(j.id)}`)
+  const canUseProfileMatch = hasUsableProfile(profile)
+  const jobMatch = (j) => (canUseProfileMatch ? buildJobMatchAnalysis(j, profile).score : j.match)
+  const alreadyApplied = (j) => apps.some((a) => a.jobId === j.id)
+  const freeAppLimit = entitlements?.freeLimits?.applications ?? 10
+  const canTrackMore = isPro || apps.length < freeAppLimit
+
+  const handleApply = async (j, e) => {
+    e?.stopPropagation?.()
+    if (applyingId || alreadyApplied(j)) {
+      if (j.url) window.open(j.url, '_blank', 'noopener,noreferrer')
+      return
+    }
+    if (!canTrackMore) {
+      addToast('info', `Free plan allows ${freeAppLimit} tracked applications. Upgrade for unlimited tracking.`)
+      navigate('/pricing')
+      return
+    }
+    setApplyingId(j.id)
+    try {
+      const company = j.company || j.co || ''
+      const application = await addApp({
+        company,
+        role: j.title,
+        status: APPLICATION_STATUS.APPLIED,
+        appliedDate: new Date().toISOString().split('T')[0],
+        salary: j.salary || j.sal || '',
+        notes: 'Applied via Glowminds',
+        logo: j.logo,
+        source: j.source || 'ats',
+        jobUrl: j.url,
+        jobId: j.id,
+      })
+      if (application) {
+        addToast('success', `Applied to ${j.title}${company ? ` at ${company}` : ''}. Added to your tracker.`)
+        if (j.url) window.open(j.url, '_blank', 'noopener,noreferrer')
+      }
+    } catch {
+      addToast('error', 'Could not track application — you may have reached the free limit.')
+    } finally {
+      setApplyingId(null)
+    }
+  }
 
   const toggleSave = async (j, e) => {
     e?.stopPropagation?.()
@@ -232,12 +303,12 @@ export default function JobsSection() {
 
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <AppIcon name="target" className="size-3.5" />
-                      Match: <strong className={matchTone(j.match)}>{j.match}%</strong>
+                      Match: <strong className={matchTone(jobMatch(j))}>{jobMatch(j)}%</strong>
                     </div>
-                    <Progress value={j.match} className="gap-0 [&_[data-slot=progress-track]]:h-1.5" />
+                    <Progress value={jobMatch(j)} className="gap-0 [&_[data-slot=progress-track]]:h-1.5" />
 
                     <div className="flex flex-wrap gap-1.5">
-                      {j.tags.slice(0, 3).map(t => (
+                      {filterJobTags(j.tags).slice(0, 3).map(t => (
                         <StatusBadge key={t} tone="default" className="text-xs">{t}</StatusBadge>
                       ))}
                     </div>
@@ -253,7 +324,10 @@ export default function JobsSection() {
                         <Button variant="ghost" size="icon-sm" onClick={(e) => toggleSave(j, e)} aria-label={isJobSaved(j.id) ? 'Unsave job' : 'Save job'}>
                           {isJobSaved(j.id) ? <AppIcon name="heart" className="size-3.5" weight="fill" /> : <AppIcon name="heart-outline" className="size-3.5" />}
                         </Button>
-                        <Button size="sm" onClick={(e) => { e.stopPropagation(); openJob(j) }}>View</Button>
+                        <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); openJob(j) }}>View</Button>
+                        <Button size="sm" disabled={applyingId === j.id} onClick={(e) => handleApply(j, e)}>
+                          {alreadyApplied(j) ? 'Applied' : applyingId === j.id ? 'Applying…' : 'Apply'}
+                        </Button>
                       </div>
                     </div>
                   </CardContent>

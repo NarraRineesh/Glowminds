@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import BrandLogo, { GlowmindsWordmark } from '@/components/BrandLogo'
+import { LEGAL_CIN, LEGAL_NAME } from '@/config/legal'
 
 const footerLink = 'text-xs text-muted-foreground transition-colors hover:text-foreground'
 
@@ -37,6 +38,7 @@ export default function Footer() {
           <FooterGroup title="Company">
             <Link to="/about" className={footerLink}>About</Link>
             <Link to="/contact" className={footerLink}>Contact</Link>
+            <Link to="/careers" className={footerLink}>We&apos;re hiring</Link>
           </FooterGroup>
 
           <FooterGroup title="Legal">
@@ -47,7 +49,7 @@ export default function Footer() {
         </div>
 
         <p className="mt-8 border-t border-border pt-6 text-xs text-muted-foreground">
-          © {year} Glowminds. All rights reserved.
+          © {year} {LEGAL_NAME}. CIN {LEGAL_CIN}. All rights reserved.
         </p>
       </div>
     </footer>

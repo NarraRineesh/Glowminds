@@ -159,14 +159,14 @@ export default function AboutPage() {
                 </p>
                 <p>Job portals were overwhelming. Resume builders were generic. Career advice was locked behind expensive paywalls or campus placement cells that only served the top 10%.</p>
                 <p>
-                  We asked ourselves: <strong className="text-foreground">What if AI could be the great equaliser?</strong> That question became Glowminds. Today, we serve <strong className="text-foreground">52,000+ students</strong> across India.
+                  We asked ourselves: <strong className="text-foreground">What if AI could be the great equaliser?</strong> That question became Glowminds. Today we build for students and early-career professionals across India — starting with honest tools, not vanity counts.
                 </p>
                 <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-muted/40 p-4">
                   {[
-                    ['52K+', 'Students'],
-                    ['12K+', 'Daily Jobs'],
-                    ['94%', 'Match Rate'],
-                    ['500+', 'Companies'],
+                    ['15', 'Resume templates'],
+                    ['ATS', 'Resume scoring'],
+                    ['50+', 'Job portals'],
+                    ['₹0', 'Free to start'],
                   ].map(([v, l], i, arr) => (
                     <div key={l} className="flex items-center gap-4">
                       <div className="text-center">
@@ -236,7 +236,7 @@ export default function AboutPage() {
           <Card className="relative overflow-hidden border-primary/20 bg-gradient-to-br from-card to-muted text-center">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,color-mix(in_oklab,var(--primary)_10%,transparent),transparent)]" />
             <CardContent className="relative py-10 md:py-12">
-              <h2 className="mb-3 text-2xl font-black text-foreground md:text-3xl">Join 52,000+ Students</h2>
+              <h2 className="mb-3 text-2xl font-black text-foreground md:text-3xl">Join students getting hired</h2>
               <p className="mx-auto mb-6 max-w-md text-base text-muted-foreground">Start building your career today — completely free.</p>
               <div className="mb-3 flex flex-wrap justify-center gap-3">
                 <Button size="lg" onClick={() => navigate('/signup')}>

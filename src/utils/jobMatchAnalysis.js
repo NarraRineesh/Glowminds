@@ -77,7 +77,6 @@ function buildRecommendations(missingSkills, score) {
 export function buildJobMatchAnalysis(job, profile) {
   const tags = Array.isArray(job?.tags) ? job.tags.map((t) => String(t).trim()).filter(Boolean) : []
   const userSkills = parseUserSkills(profile)
-  const score = Math.round(Number(job?.match) || 0)
 
   const matchedSkills = []
   const missingSkills = []
@@ -89,6 +88,10 @@ export function buildJobMatchAnalysis(job, profile) {
       missingSkills.push(tag)
     }
   }
+
+  const overlap = tags.length ? Math.round((matchedSkills.length / tags.length) * 100) : 0
+  const backend = Math.round(Number(job?.match) || 0)
+  const score = userSkills.length ? Math.max(backend, overlap) : backend
 
   return {
     score,

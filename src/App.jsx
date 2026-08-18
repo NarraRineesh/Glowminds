@@ -21,6 +21,8 @@ import LoginPage from '@/features/auth/LoginPage'
 import SignupPage from '@/features/auth/SignupPage'
 import NotFoundPage from '@/features/public/NotFoundPage'
 import PublicLayout from '@/features/public/PublicLayout'
+import CareersPage from '@/features/public/CareersPage'
+import VerifyEmailPage from '@/features/auth/VerifyEmailPage'
 
 const DashboardShell = lazy(() => import('@/features/dashboard/DashboardShell'))
 const OverviewSection = lazy(() => import('@/features/dashboard/sections/OverviewSection'))
@@ -61,9 +63,12 @@ function AnimatedRoutes() {
         <Route path="privacy" element={<PrivacyPage />} />
         <Route path="terms" element={<TermsPage />} />
         <Route path="refund" element={<RefundPage />} />
+        <Route path="careers" element={<CareersPage />} />
       </Route>
       <Route path="/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
       <Route path="/signup" element={<PublicOnlyRoute><SignupPage /></PublicOnlyRoute>} />
+      <Route path="/verify-email" element={<VerifyEmailPage />} />
+      <Route path="/jobs" element={<Navigate to="/dashboard/jobs" replace />} />
       {/* Dashboard (protected) */}
       <Route path="/dashboard" element={
         <Suspense fallback={<PageLoader />}>

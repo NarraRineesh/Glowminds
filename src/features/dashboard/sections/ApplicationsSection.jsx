@@ -55,8 +55,8 @@ export default function ApplicationsSection() {
   const isPro = useIsPro()
   const { entitlements } = useEntitlements()
   const freeAppLimit = entitlements?.freeLimits?.applications ?? 10
-  const appCount = entitlements?.entitlements?.applicationCount ?? apps.length
   const { apps, loading, addApp, updateStatus, deleteApp, loadApps } = useTrackerStore()
+  const appCount = apps.length
   const isLg = useIsLg()
   const [modal, setModal] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
@@ -120,8 +120,9 @@ export default function ApplicationsSection() {
         ) : (
           <div
             className={cn(
-              'grid gap-4 [&>*]:min-h-0 [&>*]:min-w-0',
-              isLg ? 'grid-cols-5' : 'grid-cols-1',
+              isLg
+                ? 'flex gap-4 overflow-x-auto pb-2 [&>*]:min-h-0 [&>*]:w-[min(260px,80vw)] [&>*]:shrink-0'
+                : 'grid grid-cols-1 gap-4 [&>*]:min-h-0 [&>*]:min-w-0',
             )}
           >
             {APPLICATION_STATUSES.map(col => {

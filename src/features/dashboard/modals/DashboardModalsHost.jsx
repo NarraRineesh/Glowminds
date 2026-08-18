@@ -7,6 +7,7 @@ import useProfileStore from '@/store/profileStore'
 import useGamificationStore from '@/store/gamificationStore'
 import { todayKey as quizTodayKey } from '@/utils/dateKeys'
 import { getTodayKey } from '@/features/dashboard/data/quizQuestions'
+import { hasUsableProfile } from '@/utils/targetRole'
 
 /**
  * Mounted inside DashboardShell. Decides which modal (if any) should appear:
@@ -30,7 +31,7 @@ export default function DashboardModalsHost() {
 
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [showQuiz, setShowQuiz] = useState(false)
-  const [resumeStepId, setResumeStepId] = useState('name')
+  const [resumeStepId, setResumeStepId] = useState('career')
 
   const onDashboardRoot = pathname === '/dashboard' || pathname === '/dashboard/'
 
@@ -43,14 +44,14 @@ export default function DashboardModalsHost() {
     const quizPromptSeenToday = userDoc?.flags?.quizPromptSeenAt === getTodayKey()
     const answeredToday = quizLastAnsweredDate === quizTodayKey()
 
-    if (!onboardingDone) {
+    if (!onboardingDone && !hasUsableProfile(profile)) {
       // Resume at the last persisted step (stored as the visible-array index
       // when it was saved). We translate that back to a step id below.
       const savedIdx = Number.isFinite(userDoc?.flags?.onboardingStep)
         ? Math.max(0, userDoc.flags.onboardingStep)
         : 0
-      const ORDER = ['name', 'career', 'contact', 'skills', 'preferences', 'links', 'summary', 'done']
-      setResumeStepId(ORDER[Math.min(savedIdx, ORDER.length - 1)] || 'name')
+      const ORDER = ['career', 'contact', 'skills', 'done']
+      setResumeStepId(ORDER[Math.min(savedIdx, ORDER.length - 1)] || 'career')
       const t = setTimeout(() => setShowOnboarding(true), 600)
       return () => clearTimeout(t)
     }

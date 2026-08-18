@@ -85,7 +85,7 @@ const DAILY_TIPS = [
   { ico: 'chart', tip: 'Quantify your achievements — "Increased sales by 25%" beats "Improved sales performance".' },
   { ico: 'graduation', tip: 'List relevant certifications prominently — they can compensate for less experience.' },
   { ico: 'lightning', tip: 'Lead with your strongest projects on your resume — recruiters spend ~7 seconds on the first screen.' },
-  { ico: 'brain', tip: 'Prepare 3 stories for behavioral rounds: conflict, failure, and leadership — reuse them across questions.' },
+  { ico: 'brain', tip: 'Prepare 3 stories from internships or projects: a challenge, a mistake you fixed, and a result you owned.' },
   { ico: 'jobs', tip: 'Keep your resume to one page if you have under 3 years of experience — clarity beats length.' },
   { ico: 'globe', tip: 'Mirror keywords from the job description in your skills and summary — without keyword stuffing.' },
   { ico: 'envelope', tip: 'Use a professional email (firstname.lastname@) — avoid nicknames and numbers when possible.' },
@@ -98,11 +98,11 @@ const DAILY_TIPS = [
   { ico: 'wrench', tip: 'List tools you have actually used in projects — "familiar with" skills get tested in interviews.' },
   { ico: 'resume', tip: 'Export your resume as PDF with embedded fonts — avoids layout breaks on recruiter screens.' },
   { ico: 'microphone', tip: 'Practice answers out loud, not just in your head — it reduces filler words under pressure.' },
-  { ico: 'salary', tip: 'Research salary ranges before HR calls — use levels.fyi, AmbitionBox, or peer networks.' },
+  { ico: 'salary', tip: 'For internships and first jobs, check campus placement reports and AmbitionBox before you name a number.' },
   { ico: 'puzzle', tip: 'For coding rounds, talk through your approach before typing — communication matters as much as code.' },
   { ico: 'cover-letters', tip: 'Personalize the first line of outreach emails — mention a specific post or product, not "Dear Sir/Madam".' },
   { ico: 'paraphrase', tip: 'Track every application in one place — follow-ups are easier when you know dates and contacts.' },
-  { ico: 'star', tip: 'Ask teammates or professors for a one-line recommendation you can quote on LinkedIn or your resume.' },
+  { ico: 'star', tip: 'Ask a professor or internship mentor for a one-line recommendation you can quote on LinkedIn or your resume.' },
   { ico: 'calendar', tip: 'Schedule interviews when you are alert — morning slots often beat back-to-back evening slots.' },
   { ico: 'leaf', tip: 'After a rejection, request brief feedback — many recruiters will share one actionable improvement.' },
   { ico: 'trophy', tip: 'Put hackathons, open source, or club leadership in a dedicated section — they signal initiative.' },
@@ -376,7 +376,7 @@ export default function OverviewSection() {
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         <KpiCard icon="jobs" label="Job Matches" value={topMatchesLoading ? '…' : topMatches.length} sub="Matched to your profile" accent={1} onClick={() => navigate('/dashboard/jobs')} />
         <KpiCard icon="applications" label="Applications" value={apps.length} sub={apps.length === 0 ? 'Start applying!' : inReview > 0 ? `${inReview} in review` : 'Track every apply'} accent={2} onClick={() => navigate('/dashboard/applications')} />
-        <KpiCard icon="sparkle" label="AI Credits" value={creditBalance ?? '…'} sub={entitlementsPro ? 'Pro · monthly pool' : 'Free · lifetime pool'} accent={3} onClick={() => navigate('/dashboard/settings')} />
+        <KpiCard icon="sparkle" label="AI Credits" value={creditBalance ?? '…'} sub={entitlementsPro ? 'Pro · monthly pool' : 'Free · lifetime pool'} accent={3} onClick={() => navigate('/dashboard/settings?tab=billing')} />
         <KpiCard icon="bookmark" label="Saved Jobs" value={savedJobs.length} sub={savedJobs.length > 0 ? 'Ready to apply' : 'Bookmark roles you like'} accent={4} onClick={() => navigate('/dashboard/jobs')} />
         <KpiCard icon="microphone" label="Interviews" value={interviews} sub={interviews > 0 ? `${interviews} scheduled · prep with AI` : 'None yet — keep applying!'} accent={1} onClick={() => navigate('/dashboard/applications')} />
       </div>
@@ -439,6 +439,26 @@ export default function OverviewSection() {
               </li>
             ))}
           </ul>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {profileData?.aiReview?.score != null ? (
+              <Button variant="outline" size="sm" onClick={() => navigate('/dashboard/resume')}>
+                Resume score {profileData.aiReview.score}
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" onClick={() => navigate('/dashboard/resume')}>
+                Score your resume
+              </Button>
+            )}
+            {profileData?.linkedinAudit?.score != null ? (
+              <Button variant="outline" size="sm" onClick={() => navigate('/dashboard/linkedin')}>
+                LinkedIn {profileData.linkedinAudit.score}
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" onClick={() => navigate('/dashboard/linkedin')}>
+                Audit LinkedIn
+              </Button>
+            )}
+          </div>
           <Button variant="outline" size="sm" className="w-full" onClick={() => navigate('/dashboard/profile')}>
             Complete profile
           </Button>
