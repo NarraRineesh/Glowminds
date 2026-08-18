@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import useAppStore from '@/store/authStore'
 import useInterviewStore from '@/store/interviewStore'
 import UpgradeGate from '@/components/UpgradeGate'
@@ -61,6 +61,40 @@ export default function InterviewSection() {
   const saveStoredAnswer = useInterviewStore((s) => s.saveAnswer)
   const appendStoredQuestions = useInterviewStore((s) => s.appendQuestions)
   const completeStoredSession = useInterviewStore((s) => s.completeSession)
+  const sessions = useInterviewStore((s) => s.sessions)
+  const loadHistory = useInterviewStore((s) => s.loadHistory)
+
+  useEffect(() => {
+    loadHistory().catch(() => {})
+  }, [loadHistory])
+
+  const latestSession = sessions[0] || null
+
+  const openSession = (session) => {
+    if (!session) return
+    const qs = Array.isArray(session.questions) ? session.questions : []
+    setSessionId(session.id)
+    setRole(session.role || '')
+    setType(session.type || 'mixed')
+    setQuestions(qs)
+    const nextPicks = {}
+    qs.forEach((q, idx) => {
+      if (Number.isInteger(q.selectedIndex) && q.selectedIndex >= 0) nextPicks[idx] = q.selectedIndex
+    })
+    setPicks(nextPicks)
+    if (session.status === 'completed') {
+      setEvaluations(qs.map((q) => q.evaluation || { isCorrect: !!q.isCorrect, selectedIndex: q.selectedIndex ?? -1 }))
+      setSessionSummary({
+        total: qs.length,
+        score: session.totalScore ?? qs.filter((q) => q.isCorrect).length,
+        percent: qs.length ? Math.round(((session.totalScore ?? qs.filter((q) => q.isCorrect).length) / qs.length) * 100) : 0,
+      })
+      setPhase('summary')
+    } else {
+      setCurrentIdx(0)
+      setPhase('practicing')
+    }
+  }
 
   const [phase, setPhase] = useState('setup')
   const [role, setRole] = useState('')
@@ -288,6 +322,56 @@ export default function InterviewSection() {
             </Button>
           </CardContent>
         </Card>
+
+        {latestSession && (
+          <Card className="mt-4 border-primary/20">
+            <CardHeader>
+              <CardTitle className="text-base">Continue where you left off</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                {latestSession.role || 'Mock interview'}
+                {latestSession.status === 'completed' ? ' · completed' : ' · in progress'}
+                {Array.isArray(latestSession.questions) ? ` · ${latestSession.questions.length} questions` : ''}
+              </p>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-2">
+              <Button size="sm" onClick={() => openSession(latestSession)}>
+                {latestSession.status === 'completed' ? 'Review session' : 'Resume session'}
+              </Button>
+              <Button size="sm" variant="outline" onClick={startSession} disabled={generating || !role.trim()}>
+                Start new
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {sessions.length > 0 && (
+          <Card className="mt-4">
+            <CardHeader>
+              <CardTitle className="text-base">Recent sessions</CardTitle>
+            </CardHeader>
+            <CardContent className="divide-y divide-border p-0">
+              {sessions.slice(0, 5).map((session) => (
+                <button
+                  key={session.id}
+                  type="button"
+                  className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-muted/50"
+                  onClick={() => openSession(session)}
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-semibold">{session.role || 'Interview'}</span>
+                    <span className="block text-xs text-muted-foreground">
+                      {session.status === 'completed' ? 'Completed' : 'In progress'}
+                      {Number.isFinite(Number(session.totalScore)) ? ` · ${session.totalScore} correct` : ''}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-xs font-medium text-primary">
+                    {session.status === 'completed' ? 'Review' : 'Resume'}
+                  </span>
+                </button>
+              ))}
+            </CardContent>
+          </Card>
+        )}
       </UpgradeGate>
     )
   }

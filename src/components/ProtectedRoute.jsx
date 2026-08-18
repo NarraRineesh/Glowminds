@@ -11,10 +11,9 @@ export default function ProtectedRoute({ children }) {
   const profile = useProfileStore((s) => s.profile)
   const userDoc = useProfileStore((s) => s.user)
   const flagsLoaded = useProfileStore((s) => s.loaded)
-  const profileLoading = useProfileStore((s) => s.loading)
   const location = useLocation()
 
-  if (authLoading || (loggedIn && profileLoading && !flagsLoaded)) {
+  if (!loggedIn && authLoading) {
     return <Loader variant="page" />
   }
 
@@ -22,8 +21,10 @@ export default function ProtectedRoute({ children }) {
     return <Navigate to="/login" replace />
   }
 
+  // Keep the dashboard shell mounted while the user doc finishes loading.
+  // Only redirect unverified users after we know whether they already have a profile.
   const existing = hasUsableProfile(profile) || !!userDoc?.flags?.onboardingCompleted
-  if (user?.emailVerified === false && !existing && location.pathname !== '/verify-email') {
+  if (flagsLoaded && user?.emailVerified === false && !existing && location.pathname !== '/verify-email') {
     return <Navigate to="/verify-email" replace />
   }
 

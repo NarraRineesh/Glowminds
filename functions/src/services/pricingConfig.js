@@ -57,6 +57,32 @@ function syncDerivedPricingFields(config) {
   return config;
 }
 
+
+function rewriteStaleTemplateCount(value) {
+  if (typeof value === "string") {
+    return value.replace(/\b6(\s+resume)?\s+templates\b/gi, "15$1 templates");
+  }
+  if (Array.isArray(value)) return value.map(rewriteStaleTemplateCount);
+  if (value && typeof value === "object") {
+    const out = { ...value };
+    for (const [k, v] of Object.entries(out)) out[k] = rewriteStaleTemplateCount(v);
+    return out;
+  }
+  return value;
+}
+
+function normalizeTemplateCountCopy(config) {
+  if (!config || typeof config !== "object") return config;
+  return {
+    ...config,
+    pricing: rewriteStaleTemplateCount(config.pricing),
+    freeFeatures: rewriteStaleTemplateCount(config.freeFeatures),
+    proFeatures: rewriteStaleTemplateCount(config.proFeatures),
+    pricingComparison: rewriteStaleTemplateCount(config.pricingComparison),
+    pricingFaqs: rewriteStaleTemplateCount(config.pricingFaqs),
+  };
+}
+
 function mergeWithDefaults(data) {
   const base = cloneDefaults();
   if (!data || typeof data !== "object") return syncDerivedPricingFields(base);
@@ -93,7 +119,7 @@ function mergeWithDefaults(data) {
     merged.plans.monthly = { ...merged.plans.monthly, ...base.plans.monthly };
   }
 
-  return syncDerivedPricingFields(merged);
+  return syncDerivedPricingFields(normalizeTemplateCountCopy(merged));
 }
 
 export function invalidatePricingCache() {
@@ -178,9 +204,12 @@ export async function getPricingConfig({ fresh = false } = {}) {
     await ref.set(buildStoredPricingDoc(config, { seeded: true }));
   } else {
     const raw = snap.data();
-    config = mergeWithDefaults(pricingFieldsFromDoc(raw));
-    // Re-write plaintext docs as encrypted once a key is configured.
-    if (isPricingEncryptionEnabled() && raw?.encrypted !== true) {
+    const fields = pricingFieldsFromDoc(raw);
+    config = mergeWithDefaults(fields);
+    const staleTemplates = /\b6(\s+resume)?\s+templates\b/i.test(JSON.stringify(fields || {}));
+    // Re-write plaintext docs as encrypted once a key is configured,
+    // or persist the 15-template default over leftover "6 templates" copy.
+    if ((isPricingEncryptionEnabled() && raw?.encrypted !== true) || staleTemplates) {
       await ref.set(buildStoredPricingDoc(config, { uid: raw?.updatedBy || null }));
     }
   }

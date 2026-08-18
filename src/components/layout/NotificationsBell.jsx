@@ -58,7 +58,10 @@ export function NotificationsPanel({ className, scrollClassName }) {
         {notifs.length === 0 ? (
           <div className="px-4 py-8 text-center text-muted-foreground">
             <AppIcon name="bell-slash" className="mx-auto mb-2 size-8 opacity-50" />
-            <div className="text-xs">No notifications</div>
+            <div className="text-xs">No notifications yet</div>
+            <div className="mx-auto mt-1 max-w-[220px] text-[11px] leading-relaxed">
+              Turn on Job matches ≥85% in Settings to be notified when a role hits that match score.
+            </div>
           </div>
         ) : (
           <ul className="divide-y divide-border">

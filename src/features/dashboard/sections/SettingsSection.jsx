@@ -29,13 +29,14 @@ import { sendPasswordResetEmail } from 'firebase/auth'
 import { auth } from '@/services/firebase'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import LevelProgress from '@/components/dashboard/LevelProgress'
+import PlanUsageSummary from '@/components/dashboard/PlanUsageSummary'
 import StreakCard from '@/components/dashboard/StreakCard'
 import { computeXpProgress } from '@/utils/gamification'
 import { badgeXp } from '@/constants/badgesCatalog'
 
 const SECTIONS = [
   { id: 'account', icon: 'user', title: 'Account', desc: 'Level, badges & security' },
-  { id: 'billing', icon: 'credit-card', title: 'Billing', desc: 'Plan, renewal, upgrade' },
+  { id: 'billing', icon: 'credit-card', title: 'Usage & billing', desc: 'Credits, plan, renewal' },
   { id: 'appearance', icon: 'palette', title: 'Appearance', desc: 'Theme, density, motion' },
   { id: 'notifications', icon: 'bell', title: 'Notifications', desc: 'Email & in-app alerts' },
   { id: 'privacy', icon: 'lock', title: 'Privacy & Data', desc: 'Export, delete, visibility' },
@@ -525,10 +526,12 @@ export default function SettingsSection() {
 
   const [searchParams, setSearchParams] = useSearchParams()
   const tabFromUrl = searchParams.get('tab')
-  const [active, setActive] = useState(() => (SECTIONS.some((s) => s.id === tabFromUrl) ? tabFromUrl : 'account'))
+  const resolvedTab = tabFromUrl === 'usage' ? 'billing' : tabFromUrl
+  const [active, setActive] = useState(() => (SECTIONS.some((s) => s.id === resolvedTab) ? resolvedTab : 'account'))
 
   useEffect(() => {
-    const next = searchParams.get('tab')
+    const raw = searchParams.get('tab')
+    const next = raw === 'usage' ? 'billing' : raw
     if (next && SECTIONS.some((s) => s.id === next) && next !== active) setActive(next)
   }, [searchParams, active])
 
@@ -544,6 +547,7 @@ export default function SettingsSection() {
   const [resettingPassword, setResettingPassword] = useState(false)
   const [emailNotifs, setEmailNotifs] = useState(true)
   const [pushNotifs, setPushNotifs] = useState(false)
+  const [jobMatchAlerts, setJobMatchAlerts] = useState(true)
   const [reducedMotion, setReducedMotion] = useState(false)
   const [compact, setCompact] = useState(false)
 
@@ -552,6 +556,7 @@ export default function SettingsSection() {
     const s = userDoc?.settings || {}
     setEmailNotifs(s.emailNotifications !== false)
     setPushNotifs(!!s.pushNotifications)
+    setJobMatchAlerts(s.jobMatchAlerts !== false)
     setReducedMotion(!!s.reducedMotion)
     setCompact(!!s.compactDensity)
   }, [profileLoaded, userDoc])
@@ -569,6 +574,7 @@ export default function SettingsSection() {
 
   const onToggleEmail = (v) => { setEmailNotifs(v); persistSettings({ emailNotifications: v }) }
   const onTogglePush = (v) => { setPushNotifs(v); persistSettings({ pushNotifications: v }) }
+  const onToggleMatchAlerts = (v) => { setJobMatchAlerts(v); persistSettings({ jobMatchAlerts: v }) }
   const onToggleMotion = (v) => { setReducedMotion(v); persistSettings({ reducedMotion: v }) }
   const onToggleCompact = (v) => { setCompact(v); persistSettings({ compactDensity: v }) }
   const onToggleTheme = (checked) => {
@@ -705,6 +711,7 @@ export default function SettingsSection() {
 
         <TabsContent value="billing" className="mt-1 outline-none">
           <SettingsTabPanel activeSection={SECTION_BY_ID.billing}>
+            <PlanUsageSummary />
             <BillingPanel
               subscription={subscription}
               proActive={proActive}
@@ -779,7 +786,13 @@ export default function SettingsSection() {
                 checked={pushNotifs}
                 onChange={onTogglePush}
                 label="In-app notifications"
-                hint="Badges and toasts inside Glowminds: new job matches, streak reminders, and gamification nudges while you’re active."
+                hint="Badges and toasts inside Glowminds: streak reminders and gamification nudges while you’re active."
+              />
+              <Toggle
+                checked={jobMatchAlerts}
+                onChange={onToggleMatchAlerts}
+                label="Job matches ≥85%"
+                hint="Highlight and filter Best Match jobs at 85% profile match or higher — same threshold as the job board match %."
               />
               <div className="mt-2 border-t border-border pt-3">
                 <p className="mb-2 text-sm text-muted-foreground">

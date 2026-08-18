@@ -251,6 +251,7 @@ function createDefaultSettings() {
     theme: 'system',
     emailNotifications: true,
     pushNotifications: false,
+    jobMatchAlerts: true,
     reducedMotion: false,
     compactDensity: false,
     locale: 'en-IN',

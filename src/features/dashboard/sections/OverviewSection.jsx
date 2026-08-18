@@ -5,8 +5,16 @@ import useJobStore from '@/store/jobStore'
 import useTrackerStore from '@/store/trackerStore'
 import useProfileStore from '@/store/profileStore'
 import useGamificationStore from '@/store/gamificationStore'
+import useInterviewStore from '@/store/interviewStore'
 import { computeXpProgress } from '@/utils/gamification'
-import { profileHasEducation } from '@/utils/educationEntries'
+import { parseDate } from '@/utils/parseDate'
+import {
+  computeProfileScore,
+  getLinkedInScore,
+  getResumeScore,
+  profileCompletionChecks,
+} from '@/utils/profileScore'
+import { buildActivityEvents } from '@/utils/activityTimeline'
 import { auth } from '@/services/firebase'
 import StreakCard from '@/components/dashboard/StreakCard'
 import LevelProgress from '@/components/dashboard/LevelProgress'
@@ -118,6 +126,10 @@ const TRENDING_SKILLS = [
   { name: 'Next.js', growth: '+42%' },
 ]
 
+function appDate(a) {
+  return parseDate(a.createdAt) || parseDate(a.appliedDate)
+}
+
 function getGreeting() {
   const h = new Date().getHours()
   if (h < 12) return 'Good Morning'
@@ -137,7 +149,10 @@ export default function OverviewSection() {
   const loadProfileForJobs = useProfileStore((s) => s.load)
   const { apps, loadApps } = useTrackerStore()
   const profileData = useProfileStore((s) => s.profile)
+  const profileLoaded = useProfileStore((s) => s.loaded)
   const loadProfileStore = useProfileStore((s) => s.load)
+  const interviewSessions = useInterviewStore((s) => s.sessions)
+  const loadInterviewHistory = useInterviewStore((s) => s.loadHistory)
   const gamification = useGamificationStore((s) => s.gamification)
   const loadGamificationCatalog = useGamificationStore((s) => s.loadCatalog)
   const savedJobs = useJobStore((s) => s.savedJobs)
@@ -174,9 +189,10 @@ export default function OverviewSection() {
       loadApps()
       loadSavedJobs()
       loadGamificationCatalog()
+      loadInterviewHistory()
     })
     return () => cancelAnimationFrame(id)
-  }, [fetchTopMatches, loadApps, loadProfileData, loadProfileForJobs, loadSavedJobs, loadGamificationCatalog])
+  }, [fetchTopMatches, loadApps, loadProfileData, loadProfileForJobs, loadSavedJobs, loadGamificationCatalog, loadInterviewHistory])
 
   const streak = gamification?.streak || {}
   const streakCurrent = streak.current || 0
@@ -185,25 +201,13 @@ export default function OverviewSection() {
   const inReview = apps.filter(a => a.status === APPLICATION_STATUS.IN_REVIEW).length
   const interviews = apps.filter(a => a.status === APPLICATION_STATUS.INTERVIEW).length
 
-  const pSkillsTechnical = profileData?.skills?.technical || []
-  const pEduHas = profileHasEducation(profileData || {})
-  const pExps = Array.isArray(profileData?.experience) ? profileData.experience : []
-  const pPrefs = profileData?.preferences || {}
-  const pLinks = profileData?.links || {}
-  const pSummary = profileData?.summary || ''
-  const isFresher = profileData?.isFresher || false
-
-  const tips = [
-    [!!user?.displayName, 'Complete your profile'],
-    [pSkillsTechnical.length >= 3, 'Add your skills'],
-    [pEduHas, 'Add education'],
-    [isFresher || pExps.some((e) => e.company || e.role), 'Add experience'],
-    [!!pPrefs.expectedCTC, 'Set salary expectations'],
-    [!!pLinks.github || !!pLinks.linkedin, 'Add GitHub or LinkedIn'],
-    [!!pSummary, 'Write a summary'],
-    [!!user?.photoURL, 'Add profile photo'],
-  ]
-  const profileScore = Math.round((tips.filter(([d]) => d).length / tips.length) * 100)
+  const tips = useMemo(
+    () => profileCompletionChecks({ profile: profileData, user }),
+    [profileData, user],
+  )
+  const profileScore = profileLoaded ? computeProfileScore({ profile: profileData, user }) : null
+  const resumeScore = profileLoaded ? getResumeScore(profileData) : null
+  const linkedInScore = profileLoaded ? getLinkedInScore(profileData) : null
 
   const [dailyTip] = useState(() => {
     const dayIdx = Math.floor(Date.now() / 86400000) % DAILY_TIPS.length
@@ -224,10 +228,15 @@ export default function OverviewSection() {
 
   const appsInWindow = useMemo(() => {
     return apps.filter((a) => {
-      const ad = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || a.appliedDate)
-      return ad >= windowStart
+      const ad = appDate(a)
+      return ad && ad >= windowStart
     })
   }, [apps, windowStart])
+
+  const activityEvents = useMemo(
+    () => buildActivityEvents({ apps, interviews: interviewSessions, profile: profileData }),
+    [apps, interviewSessions, profileData],
+  )
 
   // ── Analytics computations (driven by windowed apps) ──
   const trendBuckets = useMemo(() => {
@@ -249,8 +258,8 @@ export default function OverviewSection() {
         ? b.start.toLocaleDateString('en-IN', { weekday: 'short' })
         : b.start.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
       b.count = apps.filter((a) => {
-        const ad = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || a.appliedDate)
-        return ad >= b.start && ad < end
+        const ad = appDate(a)
+        return ad && ad >= b.start && ad < end
       }).length
     })
     return buckets
@@ -268,8 +277,9 @@ export default function OverviewSection() {
     const responded = appsInWindow.filter((a) => a.status !== APPLICATION_STATUS.APPLIED)
     if (responded.length === 0) return null
     const days = responded.map((a) => {
-      const created = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || a.appliedDate)
-      const updated = a.updatedAt?.toDate ? a.updatedAt.toDate() : new Date(a.updatedAt || a.appliedDate)
+      const created = parseDate(a.createdAt) || parseDate(a.appliedDate)
+      const updated = parseDate(a.updatedAt) || created
+      if (!created || !updated) return 1
       return Math.max(1, Math.round((updated - created) / 86400000))
     })
     return Math.round(days.reduce((s, d) => s + d, 0) / days.length)
@@ -294,11 +304,13 @@ export default function OverviewSection() {
         tone: 'prp',
       }
     }
-    if (profileScore < 60) {
+    if (profileScore == null || profileScore < 60) {
       return {
         icon: 'user',
         label: 'Finish your profile first',
-        body: `You're at ${profileScore}% — every other tool gets sharper once we know your skills, experience and preferences.`,
+        body: profileScore == null
+          ? 'Every other tool gets sharper once we know your skills, experience and preferences.'
+          : `You're at ${profileScore}% — every other tool gets sharper once we know your skills, experience and preferences.`,
         cta: 'Complete Profile',
         href: '/dashboard/profile',
         tone: 'blu',
@@ -420,11 +432,11 @@ export default function OverviewSection() {
             <div className="w-full space-y-1">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Completion</span>
-                <span className={cn('font-bold tabular-nums', profileScore >= 80 ? 'text-emerald-500' : 'text-primary')}>
-                  {profileScore}%
+                <span className={cn('font-bold tabular-nums', (profileScore ?? 0) >= 80 ? 'text-emerald-500' : 'text-primary')}>
+                  {profileScore == null ? '…' : `${profileScore}%`}
                 </span>
               </div>
-              <Progress value={profileScore} className="gap-0 [&_[data-slot=progress-track]]:h-2" />
+              <Progress value={profileScore ?? 0} className="gap-0 [&_[data-slot=progress-track]]:h-2" />
             </div>
           </div>
           <ul className="space-y-2">
@@ -440,22 +452,22 @@ export default function OverviewSection() {
             ))}
           </ul>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {profileData?.aiReview?.score != null ? (
+            {resumeScore != null ? (
               <Button variant="outline" size="sm" onClick={() => navigate('/dashboard/resume')}>
-                Resume score {profileData.aiReview.score}
+                Resume score {resumeScore}
               </Button>
             ) : (
               <Button variant="outline" size="sm" onClick={() => navigate('/dashboard/resume')}>
-                Score your resume
+                Create resume
               </Button>
             )}
-            {profileData?.linkedinAudit?.score != null ? (
+            {linkedInScore != null ? (
               <Button variant="outline" size="sm" onClick={() => navigate('/dashboard/linkedin')}>
-                LinkedIn {profileData.linkedinAudit.score}
+                LinkedIn {linkedInScore}
               </Button>
             ) : (
               <Button variant="outline" size="sm" onClick={() => navigate('/dashboard/linkedin')}>
-                Audit LinkedIn
+                Import LinkedIn
               </Button>
             )}
           </div>
@@ -563,25 +575,51 @@ export default function OverviewSection() {
         <DashboardCard
           className="h-full"
           titleIcon="trend-up"
-          title="Application timeline"
+          title="Activity timeline"
           action={<span className="text-xs text-muted-foreground">Last {windowDays} days</span>}
           contentClassName="px-4 pb-4"
         >
-          {appsInWindow.length === 0 ? (
+          {activityEvents.length === 0 && appsInWindow.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
-              No applications in this window — try {windowDays === 7 ? '30' : '7'} days or start applying.
+              No activity yet — apply to a job, upload a resume, or finish an interview to see events here.
             </p>
           ) : (
-            <div className="flex h-28 items-end gap-2">
-              {trendBuckets.map((w, i) => (
-                <div key={i} className="flex min-w-0 flex-1 flex-col items-center gap-1">
-                  <span className={cn('text-xs font-medium tabular-nums', w.count > 0 ? 'text-primary' : 'text-muted-foreground')}>
-                    {w.count || ''}
-                  </span>
-                  <div className={cn('w-full max-w-8 rounded-t bg-primary', bucketBarHeight(w.count, maxBucket), !w.count && 'bg-muted')} />
-                  <span className="truncate text-[10px] text-muted-foreground">{w.label}</span>
+            <div className="space-y-4">
+              {appsInWindow.length > 0 && (
+                <div className="flex h-28 items-end gap-2">
+                  {trendBuckets.map((w, i) => (
+                    <div key={i} className="flex min-w-0 flex-1 flex-col items-center gap-1">
+                      <span className={cn('text-xs font-medium tabular-nums', w.count > 0 ? 'text-primary' : 'text-muted-foreground')}>
+                        {w.count || ''}
+                      </span>
+                      <div className={cn('w-full max-w-8 rounded-t bg-primary', bucketBarHeight(w.count, maxBucket), !w.count && 'bg-muted')} />
+                      <span className="truncate text-[10px] text-muted-foreground">{w.label}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
+              {activityEvents.length > 0 && (
+                <ul className="divide-y divide-border">
+                  {activityEvents.slice(0, 6).map((ev) => (
+                    <li key={ev.id}>
+                      <button
+                        type="button"
+                        className="flex w-full items-start gap-3 py-2.5 text-left hover:bg-muted/40"
+                        onClick={() => navigate(ev.href)}
+                      >
+                        <AppIcon name={ev.icon} className="mt-0.5 size-4 shrink-0 text-primary" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-medium text-foreground">{ev.title}</span>
+                          {ev.body ? <span className="block truncate text-xs text-muted-foreground">{ev.body}</span> : null}
+                        </span>
+                        <span className="shrink-0 text-[10px] text-muted-foreground">
+                          {ev.at.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           )}
         </DashboardCard>

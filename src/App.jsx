@@ -24,8 +24,8 @@ import PublicLayout from '@/features/public/PublicLayout'
 import CareersPage from '@/features/public/CareersPage'
 import VerifyEmailPage from '@/features/auth/VerifyEmailPage'
 
-const DashboardShell = lazy(() => import('@/features/dashboard/DashboardShell'))
-const OverviewSection = lazy(() => import('@/features/dashboard/sections/OverviewSection'))
+import DashboardShell from '@/features/dashboard/DashboardShell'
+import OverviewSection from '@/features/dashboard/sections/OverviewSection'
 const JobsSection = lazy(() => import('@/features/dashboard/sections/JobsSection'))
 const JobDetailSection = lazy(() => import('@/features/dashboard/sections/JobDetailSection'))
 const GlowmindsResumeSection = lazy(() => import('@/features/dashboard/sections/GlowmindsResumeSection'))
@@ -71,15 +71,9 @@ function AnimatedRoutes() {
       <Route path="/jobs" element={<Navigate to="/dashboard/jobs" replace />} />
       {/* Dashboard (protected) */}
       <Route path="/dashboard" element={
-        <Suspense fallback={<PageLoader />}>
-          <ProtectedRoute><DashboardShell /></ProtectedRoute>
-        </Suspense>
+        <ProtectedRoute><DashboardShell /></ProtectedRoute>
       }>
-        <Route index element={
-          <Suspense fallback={<PageLoader />}>
-            <OverviewSection />
-          </Suspense>
-        } />
+        <Route index element={<OverviewSection />} />
         <Route path="jobs" element={
           <Suspense fallback={<PageLoader />}>
             <JobsSection />

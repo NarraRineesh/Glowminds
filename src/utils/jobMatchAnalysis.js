@@ -22,6 +22,8 @@ function parseUserSkills(profile) {
   return technical.map((s) => String(s).trim()).filter(Boolean)
 }
 
+export const HIGH_MATCH_THRESHOLD = 85
+
 function verdictForScore(score) {
   if (score >= 80) return 'Strong Match'
   if (score >= 60) return 'Good Match'

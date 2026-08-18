@@ -38,6 +38,7 @@ import {
 } from '@/features/dashboard/sections/profile/profileSectionUi'
 import { createDefaultProfile, normalizeProfile, normalizeSkills, stampAiReview } from '@/constants/schema'
 import { formatDateRange, formatYearOrMonthDisplay, toMonthInputValue } from '@/utils/profileDates'
+import { computeProfileScore, profileCompletionChecks } from '@/utils/profileScore'
 import EducationModal from '@/features/dashboard/sections/profile/EducationModal'
 import ExperienceModal from '@/features/dashboard/sections/profile/ExperienceModal'
 import ExperienceDetailModal from '@/features/dashboard/sections/profile/ExperienceDetailModal'
@@ -51,7 +52,6 @@ import {
   getPrimaryEducationEntry,
   educationEntryTitle,
   educationEntrySubtitle,
-  profileHasEducation,
   entryHasContent as educationEntryHasContent,
 } from '@/utils/educationEntries'
 import {
@@ -62,7 +62,6 @@ import {
   experienceHasDetails,
   finalizeExperienceEntry,
   entryHasContent as experienceEntryHasContent,
-  profileHasExperience,
 } from '@/utils/experienceEntries'
 import {
   normalizeInternshipList,
@@ -311,17 +310,8 @@ export default function ProfileSection() {
   const isFresher = !!profile.isFresher
   const aiReview = profile.aiReview || null
 
-  const checks = [
-    !!name && name !== 'User',
-    skillsTechnical.length >= 3,
-    profileHasEducation(profile),
-    profileHasExperience(profile),
-    !!prefs.expectedCTC,
-    !!links.github || !!links.linkedin,
-    !!summary,
-    !!user?.photoURL,
-  ]
-  const profileScore = Math.round((checks.filter(Boolean).length / checks.length) * 100)
+  const checks = profileCompletionChecks({ profile, user }).map(([done]) => done)
+  const profileScore = computeProfileScore({ profile, user })
   const nextTip = !checks[0] ? 'Add your name'
     : !checks[1] ? 'Add at least 3 skills'
     : !checks[2] ? 'Add your education'

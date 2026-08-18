@@ -7,7 +7,7 @@ import useProfileStore from '@/store/profileStore'
 import useEntitlements from '@/hooks/useEntitlements'
 import useIsPro from '@/hooks/useIsPro'
 import { APPLICATION_STATUS } from '@/constants/schema'
-import { buildJobMatchAnalysis } from '@/utils/jobMatchAnalysis'
+import { buildJobMatchAnalysis, HIGH_MATCH_THRESHOLD } from '@/utils/jobMatchAnalysis'
 import { cleanTargetRole, hasUsableProfile } from '@/utils/targetRole'
 import { filterJobTags } from '@/utils/jobFilters'
 import Loader from '@/components/Loader'
@@ -33,7 +33,7 @@ const PER_PAGE = 10
 
 function buildFilters(activeF, typeFilter) {
   const filters = {}
-  if (activeF === 'Best Match') filters.minMatch = 80
+  if (activeF === 'Best Match') filters.minMatch = HIGH_MATCH_THRESHOLD
   else if (activeF === 'Full-time') filters.type = 'Full-time'
   else if (activeF === 'Contract') filters.type = 'Contract'
   else if (activeF === 'New Today') filters.newToday = true
@@ -53,10 +53,13 @@ export default function JobsSection() {
   const { jobs, pagination, loading, error, fetchJobs, saveJob, unsaveJob, isJobSaved, loadSavedJobs, queryUsed } = useJobStore()
   const profile = useProfileStore((s) => s.profile)
   const loadProfile = useProfileStore((s) => s.load)
+  const profileLoaded = useProfileStore((s) => s.loaded)
+  const jobMatchAlerts = useProfileStore((s) => s.user?.settings?.jobMatchAlerts !== false)
   const { addApp, loadApps, apps } = useTrackerStore()
   const { entitlements } = useEntitlements()
   const isPro = useIsPro()
   const [activeF, setActiveF] = useState('All')
+  const seededMatchFilter = useRef(false)
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
   const [searchInput, setSearchInput] = useState('')
@@ -80,6 +83,12 @@ export default function JobsSection() {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [page])
+
+  useEffect(() => {
+    if (!profileLoaded || seededMatchFilter.current) return
+    seededMatchFilter.current = true
+    if (jobMatchAlerts) setActiveF('Best Match')
+  }, [profileLoaded, jobMatchAlerts])
 
   useEffect(() => {
     loadSavedJobs()
