@@ -1,11 +1,27 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import useJobStore from '@/store/jobStore'
+import useAppStore from '@/store/authStore'
+import useTrackerStore from '@/store/trackerStore'
+import useProfileStore from '@/store/profileStore'
+import useEntitlements from '@/hooks/useEntitlements'
+import useIsPro from '@/hooks/useIsPro'
 import { getQueryHeader } from '@/services/jobSearch'
 import {
   getTopCompanies,
   getTrendingSkills,
 } from '@/services/jobsApi'
+import { APPLICATION_STATUS } from '@/constants/schema'
+import { buildJobMatchAnalysis, canShowJobMatch, HIGH_MATCH_THRESHOLD, matchScoreTone } from '@/utils/jobMatchAnalysis'
+import { cleanTargetRole } from '@/utils/targetRole'
+import {
+  filterJobTags,
+  inferCountryFromProfile,
+  jobMatchesCountry,
+  JOB_COUNTRY_OPTIONS,
+  persistJobCountry,
+  readStoredJobCountry,
+} from '@/utils/jobFilters'
 import Loader from '@/components/Loader'
 import { JobGridSkeleton } from '@/features/dashboard/components/JobCardSkeleton'
 import {
@@ -18,6 +34,7 @@ import {
   Card,
   CardContent,
   Input,
+  Select,
   StatusBadge,
   cn,
 } from '@/components/ui'
@@ -57,6 +74,11 @@ function CompanyMark({ name, logo, tone = 0 }) {
       </div>
     )
   }
+  if (logo && /^https?:\/\//.test(logo)) {
+    return (
+      <img src={logo} alt="" className="size-11 shrink-0 rounded-xl object-cover" />
+    )
+  }
   const letter = (name || '?').slice(0, 1).toUpperCase()
   const h = CO_HUES[tone % CO_HUES.length]
   return (
@@ -76,7 +98,15 @@ function CompanyMark({ name, logo, tone = 0 }) {
 export default function JobsSection() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
+  const { addToast } = useAppStore()
   const { jobs, pagination, loading, error, fetchJobs, saveJob, unsaveJob, isJobSaved, loadSavedJobs, savedJobs } = useJobStore()
+  const profile = useProfileStore((s) => s.profile)
+  const loadProfile = useProfileStore((s) => s.load)
+  const profileLoaded = useProfileStore((s) => s.loaded)
+  const jobMatchAlerts = useProfileStore((s) => s.user?.settings?.jobMatchAlerts !== false)
+  const { addApp, loadApps, apps } = useTrackerStore()
+  const { entitlements } = useEntitlements()
+  const isPro = useIsPro()
 
   const initialQ = searchParams.get('q') || ''
   const [boardTab, setBoardTab] = useState('browse')
@@ -86,6 +116,12 @@ export default function JobsSection() {
   const [headerReady, setHeaderReady] = useState(Boolean(initialQ))
   const [companies, setCompanies] = useState([])
   const [skills, setSkills] = useState([])
+  const [country, setCountry] = useState(() => readStoredJobCountry() ?? 'India')
+  const [bestMatchOnly, setBestMatchOnly] = useState(false)
+  const [applyingId, setApplyingId] = useState(null)
+  const seeded = useRef(Boolean(initialQ))
+  const seededCountry = useRef(readStoredJobCountry() != null)
+  const seededMatchFilter = useRef(false)
 
   const syncQ = (next) => {
     const trimmed = (next || '').trim()
@@ -106,7 +142,7 @@ export default function JobsSection() {
   useEffect(() => {
     if (!profileLoaded || seededMatchFilter.current) return
     seededMatchFilter.current = true
-    if (jobMatchAlerts) setActiveF('Best Match')
+    if (jobMatchAlerts) setBestMatchOnly(true)
   }, [profileLoaded, jobMatchAlerts])
 
   useEffect(() => {
@@ -123,11 +159,21 @@ export default function JobsSection() {
     seeded.current = true
     setSearchInput(role)
     setSearch(role)
+    syncQ(role)
   }, [profile])
+
+  useEffect(() => {
+    if (seededCountry.current || !profileLoaded) return
+    seededCountry.current = true
+    const inferred = inferCountryFromProfile(profile)
+    setCountry(inferred)
+    persistJobCountry(inferred)
+  }, [profile, profileLoaded])
 
   useEffect(() => {
     const urlQ = (new URLSearchParams(window.location.search).get('q') || '').trim()
     if (urlQ) {
+      seeded.current = true
       setHeaderReady(true)
       return
     }
@@ -137,6 +183,7 @@ export default function JobsSection() {
         if (cancelled) return
         const q = String(header?.q || '').trim()
         if (q) {
+          seeded.current = true
           setSearch(q)
           setSearchInput(q)
           syncQ(q)
@@ -178,11 +225,26 @@ export default function JobsSection() {
     fetchJobs({ search, page, pageSize: PER_PAGE })
   }, [fetchJobs, search, page, boardTab, headerReady])
 
-  const displayJobs = boardTab === 'saved' ? (savedJobs || []) : jobs
+  const canShowMatch = canShowJobMatch(profile)
+  const scoredJobs = useMemo(() => {
+    const source = boardTab === 'saved' ? (savedJobs || []) : jobs
+    return source
+      .filter((j) => jobMatchesCountry(j, country))
+      .map((j) => ({ job: j, analysis: buildJobMatchAnalysis(j, profile) }))
+  }, [boardTab, savedJobs, jobs, country, profile])
+
+  const visibleJobs = useMemo(() => {
+    if (!bestMatchOnly || !canShowMatch) return scoredJobs
+    return scoredJobs
+      .filter(({ analysis }) => analysis.available && analysis.score >= HIGH_MATCH_THRESHOLD)
+      .sort((a, b) => (b.analysis.score ?? 0) - (a.analysis.score ?? 0))
+  }, [scoredJobs, bestMatchOnly, canShowMatch])
+
   const isSavedBoard = boardTab === 'saved'
 
   const applySearch = (next) => {
     const q = String(next || '').trim()
+    seeded.current = true
     setSearchInput(q)
     setSearch(q)
     syncQ(q)
@@ -197,18 +259,11 @@ export default function JobsSection() {
 
   const clearSearch = () => applySearch('')
 
-  const isInitialLoad = (!headerReady || loading) && jobs.length === 0 && !isSavedBoard
-  const isRefreshing = loading && jobs.length > 0
-  const totalResults = pagination.total ?? jobs.length
-  const canGoNext = pagination.hasMore && !loading
-  const hasActiveSearch = Boolean(search.trim())
-
-  const openJob = (j) => navigate(`/dashboard/jobs/${encodeURIComponent(j.id)}`)
-  const canUseProfileMatch = hasUsableProfile(profile)
-  const jobMatch = (j) => (canUseProfileMatch ? buildJobMatchAnalysis(j, profile).score : j.match)
-  const alreadyApplied = (j) => apps.some((a) => a.jobId === j.id)
-  const freeAppLimit = entitlements?.freeLimits?.applications ?? 10
-  const canTrackMore = isPro || apps.length < freeAppLimit
+  const handleCountryChange = (next) => {
+    setCountry(next)
+    persistJobCountry(next)
+    setPage(1)
+  }
 
   const handleApply = async (j, e) => {
     e?.stopPropagation?.()
@@ -218,7 +273,7 @@ export default function JobsSection() {
     }
     if (!canTrackMore) {
       addToast('info', `Free plan allows ${freeAppLimit} tracked applications. Upgrade for unlimited tracking.`)
-      navigate('/pricing')
+      navigate('/dashboard/plans')
       return
     }
     setApplyingId(j.id)
@@ -247,13 +302,23 @@ export default function JobsSection() {
     }
   }
 
+  const alreadyApplied = (j) => apps.some((a) => a.jobId === j.id)
+  const freeAppLimit = entitlements?.freeLimits?.applications ?? 10
+  const canTrackMore = isPro || apps.length < freeAppLimit
+
   const toggleSave = async (j, e) => {
     e?.stopPropagation?.()
     if (isJobSaved(j.id)) await unsaveJob(j.id)
     else await saveJob(j)
   }
 
+  const isInitialLoad = (!headerReady || loading) && jobs.length === 0 && !isSavedBoard
+  const isRefreshing = loading && jobs.length > 0
+  const totalResults = pagination.total ?? jobs.length
+  const canGoNext = pagination.hasMore && !loading
+  const hasActiveSearch = Boolean(search.trim())
   const pageCount = pagination.totalPages || (totalResults ? Math.max(1, Math.ceil(totalResults / PER_PAGE)) : 1)
+  const openJob = (j) => navigate(`/dashboard/jobs/${encodeURIComponent(j.id)}`)
 
   return (
     <div className="w-full min-w-0 max-w-full space-y-3 sm:space-y-4">
@@ -279,7 +344,7 @@ export default function JobsSection() {
           ))}
         </div>
         {!isSavedBoard && (
-          <form onSubmit={handleSearch} className="flex min-w-0 flex-1 gap-2">
+          <form onSubmit={handleSearch} className="flex min-w-0 flex-1 flex-wrap gap-2">
             <div className="relative min-w-0 flex-1">
               <AppIcon name="search" className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 opacity-50" />
               <Input
@@ -290,8 +355,28 @@ export default function JobsSection() {
                 aria-label="Search jobs"
               />
             </div>
+            <Select
+              className="h-9 w-[158px] shrink-0 text-sm"
+              value={country}
+              disabled={loading}
+              onChange={(e) => handleCountryChange(e.target.value)}
+              aria-label="Country"
+            >
+              {JOB_COUNTRY_OPTIONS.map((opt) => (
+                <option key={opt.label} value={opt.value}>{opt.label}</option>
+              ))}
+            </Select>
             <Button type="submit" size="sm" className="h-9 shrink-0">
               Search
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={bestMatchOnly ? 'default' : 'outline'}
+              className="h-9 shrink-0"
+              onClick={() => setBestMatchOnly((v) => !v)}
+            >
+              Best Match
             </Button>
             {hasActiveSearch ? (
               <Button type="button" variant="ghost" size="sm" className="h-9 shrink-0" onClick={clearSearch}>
@@ -331,7 +416,7 @@ export default function JobsSection() {
               )}
 
               <div className={cn('transition-opacity duration-200', isRefreshing && !isSavedBoard && 'pointer-events-none opacity-60')}>
-                {displayJobs.length === 0 ? (
+                {visibleJobs.length === 0 ? (
                   <div className="flex flex-col items-center px-2 py-8 text-center sm:px-4 sm:py-12">
                     <AppIcon name="search" className="mb-3 size-8 opacity-40 sm:size-10" />
                     <h3 className="text-base font-bold text-foreground sm:text-lg">
@@ -340,13 +425,17 @@ export default function JobsSection() {
                     <p className="mt-2 max-w-md text-sm text-muted-foreground">
                       {isSavedBoard
                         ? 'Save jobs from Browse to revisit them here.'
-                        : hasActiveSearch
-                          ? `Nothing matched “${search.trim()}”. Try a shorter keyword.`
-                          : 'Try a role, skill, or company name.'}
+                        : bestMatchOnly
+                          ? 'No roles hit 85% match on this page. Turn off Best Match or add skills.'
+                          : hasActiveSearch
+                            ? `Nothing matched “${search.trim()}”. Try a shorter keyword.`
+                            : 'Try a role, skill, or company name.'}
                     </p>
                     <div className="mt-4 flex flex-wrap justify-center gap-2">
                       {isSavedBoard ? (
                         <Button size="sm" onClick={() => setBoardTab('browse')}>Browse jobs</Button>
+                      ) : bestMatchOnly ? (
+                        <Button variant="outline" size="sm" onClick={() => setBestMatchOnly(false)}>Show all</Button>
                       ) : hasActiveSearch ? (
                         <Button variant="outline" size="sm" onClick={clearSearch}>Clear search</Button>
                       ) : null}
@@ -354,10 +443,10 @@ export default function JobsSection() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 gap-2.5 xl:grid-cols-2">
-                    {displayJobs.map((j, idx) => {
+                    {visibleJobs.map(({ job: j, analysis }, idx) => {
                       const companyName = j.company || j.co || ''
                       const location = j.location || j.loc || ''
-                      const tags = (j.tags || []).filter((t) => String(t).trim().length > 1).slice(0, 2)
+                      const tags = filterJobTags(j.tags).slice(0, 2)
                       return (
                         <Card
                           key={j.id}
@@ -390,6 +479,13 @@ export default function JobsSection() {
                                 <p className="mt-0.5 mb-0 truncate text-xs text-muted-foreground">
                                   {[companyName, location, j.posted].filter(Boolean).join(' · ')}
                                 </p>
+                                {analysis.available ? (
+                                  <p className={cn('mt-1 mb-0 text-xs font-semibold', matchScoreTone(analysis.score))}>
+                                    {analysis.score}% match
+                                  </p>
+                                ) : (
+                                  <p className="mt-1 mb-0 text-xs text-muted-foreground">Add skills to see match</p>
+                                )}
                                 {(j.type || tags.length > 0) && (
                                   <div className="mt-2 flex flex-wrap gap-1">
                                     {j.type && (
@@ -400,6 +496,16 @@ export default function JobsSection() {
                                     ))}
                                   </div>
                                 )}
+                                <div className="mt-2 flex items-center gap-1.5">
+                                  <Button
+                                    size="sm"
+                                    className="h-7 px-2.5 text-xs"
+                                    disabled={applyingId === j.id}
+                                    onClick={(e) => handleApply(j, e)}
+                                  >
+                                    {alreadyApplied(j) ? 'Applied' : applyingId === j.id ? 'Applying…' : 'Apply'}
+                                  </Button>
+                                </div>
                               </div>
                             </div>
                           </CardContent>
@@ -417,6 +523,7 @@ export default function JobsSection() {
                       ? `${pagination.from}–${pagination.to} of ${totalResults.toLocaleString()}`
                       : `${totalResults.toLocaleString()} roles`}
                     {` · page ${page} of ${pageCount}`}
+                    {country ? ` · ${country}` : ''}
                   </p>
                   <div className="flex items-center gap-2">
                     <Button variant="ghost" size="sm" disabled={page <= 1 || loading} onClick={() => setPage((p) => Math.max(1, p - 1))}>
