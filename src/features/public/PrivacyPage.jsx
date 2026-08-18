@@ -10,6 +10,7 @@ import {
   PublicPageHeroBackdrop,
   PublicPageSection,
 } from '@/features/public/components/publicPageUi'
+import { LEGAL_ADDRESS_ONE_LINE, LEGAL_NAME, LEGAL_PRIVACY_EMAIL } from '@/config/legal'
 import { Badge, Card, CardContent } from '@/components/ui'
 
 function LegalSection({ title, children }) {
@@ -150,7 +151,8 @@ export default function PrivacyPage() {
               <div className="rounded-xl border border-border bg-muted/50 p-5">
                 <h3 className="mb-2 text-lg font-extrabold text-foreground">Contact Us</h3>
                 <LegalP>If you have questions about this privacy policy or our data practices, please contact us at:</LegalP>
-                <p className="mt-2 text-sm text-primary">privacy@glowminds.in</p>
+                <p className="mt-2 text-sm text-primary">{LEGAL_PRIVACY_EMAIL}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{LEGAL_NAME}<br />{LEGAL_ADDRESS_ONE_LINE}</p>
               </div>
             </CardContent>
           </Card>

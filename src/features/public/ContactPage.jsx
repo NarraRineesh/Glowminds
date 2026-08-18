@@ -35,6 +35,8 @@ import { AppIcon,
   Textarea,
 } from '@/components/ui'
 
+import { LEGAL_ADDRESS_ONE_LINE, LEGAL_EMAIL, LEGAL_NAME } from '@/config/legal'
+
 const FAQS = [
   { q: 'Is Glowminds affordable?', a: 'Absolutely! Glowminds offers affordable plans designed for students and fresh graduates. All core features — resume builder, job matching, AI coach, and application tracker — are available at student-friendly prices.' },
   { q: 'How does the AI job matching work?', a: 'Our AI scans 50+ job portals daily and compares job requirements with your skills, education, and preferences to generate a personalized match score.' },
@@ -46,7 +48,15 @@ const FAQS = [
 export default function ContactPage() {
   const { addToast } = useAppStore()
   const { config: landingConfig } = useLandingConfig()
-  const contactInfo = landingConfig.contactInfo || []
+  const legalContact = [
+    { ico: 'envelope', title: 'Email Us', value: LEGAL_EMAIL, desc: 'We reply within 24 hours' },
+    { ico: 'map-pin', title: 'Registered office', value: LEGAL_NAME, desc: LEGAL_ADDRESS_ONE_LINE },
+    { ico: 'chat', title: 'Live Chat', value: 'In-app Glow (Bot)', desc: 'Available in the dashboard' },
+  ]
+  const rawContact = landingConfig.contactInfo || []
+  const contactInfo = rawContact.some((c) => /98765 43210|HSR Layout/i.test(`${c.value || ''} ${c.desc || ''}`))
+    ? legalContact
+    : (rawContact.length ? rawContact : legalContact)
   const [form, setForm] = useState({ name: '', email: '', mobile: '', subject: '', message: '' })
   const [sending, setSending] = useState(false)
   const [errors, setErrors] = useState({})
@@ -133,7 +143,7 @@ export default function ContactPage() {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: '-40px' }}
-            className="grid grid-cols-1 gap-4 sm:grid-cols-3"
+            className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
           >
             {contactInfo.map((c) => (
               <motion.div key={c.title} variants={fadeUp} transition={{ duration: 0.5, ease: motionEase }}>
@@ -200,7 +210,7 @@ export default function ContactPage() {
                         autoComplete="tel"
                         aria-invalid={errors.mobile ? true : undefined}
                         className={errors.mobile ? 'border-destructive' : undefined}
-                        placeholder="+91 98765 43210"
+                        placeholder="10-digit mobile (optional)"
                         value={form.mobile}
                         onChange={(e) => {
                           setForm({ ...form, mobile: e.target.value })

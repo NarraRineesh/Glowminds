@@ -4,6 +4,7 @@ import { setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
 import { auth } from '@/services/firebase'
 import { savedJobRef, loadSavedJobs } from '@/utils/firestoreCollections'
 import { formatCompanyDisplayName } from '@/utils/companyName'
+import { filterJobTags } from '@/utils/jobFilters'
 
 function normalizeJob(job) {
   if (!job) return job
@@ -27,7 +28,7 @@ function buildJobSnapshot(job) {
     type: job.type || '',
     salary: job.salary || job.sal || '',
     description: job.description || job.desc || '',
-    tags: Array.isArray(job.tags) ? job.tags : [],
+    tags: filterJobTags(Array.isArray(job.tags) ? job.tags : []),
     url: job.url || '',
     publishedAt: job.publishedAt || null,
     source: job.source || 'ats',

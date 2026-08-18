@@ -1,7 +1,8 @@
 import { Outlet, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import SEO from '@/components/SEO'
-import { PAGE_SEO } from '@/config/seo'
+import { PAGE_SEO, dashboardSeo } from '@/config/seo'
+import FirstRunHost from '@/features/dashboard/modals/FirstRunHost'
 import DashboardSidebar from '@/components/layout/DashboardSidebar'
 import DashboardTopbar from '@/components/layout/DashboardTopbar'
 import ThemeSync from '@/components/ThemeSync'
@@ -28,7 +29,7 @@ export default function DashboardShell() {
             : 'dashboard-shell h-dvh max-h-dvh overflow-hidden bg-background font-sans'
         }
       >
-        <SEO {...PAGE_SEO.dashboard} path={location.pathname} />
+        <SEO {...PAGE_SEO.dashboard} {...dashboardSeo(location.pathname)} path={location.pathname} />
         <ThemeSync />
         <DashboardSidebar />
 
@@ -76,6 +77,7 @@ export default function DashboardShell() {
               <Outlet />
             </motion.div>
           </div>
+          <FirstRunHost />
         </SidebarInset>
       </SidebarProvider>
     </TooltipProvider>

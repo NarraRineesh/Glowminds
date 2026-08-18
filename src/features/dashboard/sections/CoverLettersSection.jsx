@@ -25,16 +25,21 @@ const TEMPLATE_TONE = {
   purple: 'border-purple-500/30 bg-purple-500/10 text-purple-500',
 }
 
+function greeting(company) {
+  const name = String(company || '').trim()
+  return name ? `Dear Hiring Manager at ${name},` : 'Dear Hiring Manager,'
+}
+
 const MODES = [
   { id: 'cover_letter', label: 'Cover letter', desc: 'Formal application letter' },
   { id: 'cold_email', label: 'Cold email', desc: 'Short recruiter outreach' },
 ]
 
 function buildLetter(template, vars) {
-  const { yourName = 'Your Name', role = 'the role', company = 'the company', skill = 'your top skill' } = vars
+  const { yourName = 'Your Name', role = 'the role', company = '', skill = 'your top skill' } = vars
   switch (template) {
     case 'story':
-      return `Dear Hiring Manager at ${company},
+      return `${greeting(company)}
 
 When I built my first project around ${skill}, I learned the most important lesson of my career: ship before it's perfect. That's the mindset I'd bring to ${role}.
 
@@ -45,7 +50,7 @@ Could we set up a 15-minute chat next week?
 Warmly,
 ${yourName}`
     case 'referral':
-      return `Dear Hiring Manager at ${company},
+      return `${greeting(company)}
 
 A mutual connection suggested I reach out about ${role}. Their description of the team's bar for craft matched what I look for in my next role.
 
@@ -55,7 +60,7 @@ Happy to send my resume and a short writeup. Thanks for your time!
 
 — ${yourName}`
     case 'fresher':
-      return `Dear Hiring Manager at ${company},
+      return `${greeting(company)}
 
 I'm a final-year student deeply interested in ${role}. I've spent the last 6 months building projects with ${skill}, including a headline project I'm proud to demo.
 
@@ -65,7 +70,7 @@ Best,
 ${yourName}`
     case 'concise':
     default:
-      return `Dear Hiring Manager at ${company},
+      return `${greeting(company)}
 
 I'm applying for ${role}. My experience with ${skill} maps directly to what your team is building — most recently I delivered outcomes I'd be glad to detail in an interview.
 

@@ -14,8 +14,8 @@ const FEATURES = [
     key: 'job-matching',
     badge: 'SMART JOB MATCHING', badgeBg: 'rgba(63,185,80,.08)', badgeColor: 'var(--color-grn)',
     title: 'Stop Scrolling. Start Getting Matched.',
-    desc: 'Our AI scans 50+ job portals every hour — Naukri, LinkedIn, Internshala, AngelList, and more — then ranks every opportunity against your skills, experience, and preferences. 94% of our matches result in relevant applications. Filter by remote/hybrid/on-site, salary range, or company size.',
-    bullets: ['50+ portals scanned automatically every hour', '94% match accuracy — only relevant jobs, zero noise', 'Filter by location, salary, remote/hybrid/on-site', 'Real-time alerts when dream jobs appear'],
+    desc: 'Our AI scans 50+ job portals every hour — Naukri, LinkedIn, Internshala, AngelList, and more — then ranks every opportunity against your skills, experience, and preferences. Filter by remote/hybrid/on-site, salary range, or company size.',
+    bullets: ['50+ portals scanned automatically every hour', 'Ranked by your skills — only relevant jobs, zero noise', 'Filter by location, salary, remote/hybrid/on-site', 'Real-time alerts when dream jobs appear'],
     image: '/mockups/job-matching.svg', reverse: true,
     cta: 'Find matched jobs',
   },
@@ -80,9 +80,9 @@ const HERO = {
 }
 
 const HERO_METRICS = [
-  { value: '5,000+', label: 'Resumes Created' },
-  { value: '2,000+', label: 'Cover Letters Generated' },
-  { value: '1,200+', label: 'Interviews Practiced' },
+  { value: '15', label: 'Resume templates' },
+  { value: 'ATS', label: 'Resume scoring' },
+  { value: '1', label: 'Dashboard for the whole search' },
 ]
 
 const TRUST_BADGES = [
@@ -162,9 +162,9 @@ const TOOLS = [
 ]
 
 const TESTIMONIALS = [
-  { name: 'Aditi Verma', role: 'SDE Intern @ Google', avatar: 'code', text: 'Glowminds matched me with my dream internship. The AI resume builder got me a 96 ATS score — I got 3 interview calls in the first week!' },
-  { name: 'Rahul Gupta', role: 'Frontend Dev @ Swiggy', avatar: 'code', text: 'The AI career coach helped me prepare for 3 rounds of interviews. Got the offer in 2 weeks. This platform is a game-changer for freshers.' },
-  { name: 'Karthik R', role: 'Full Stack @ Razorpay', avatar: 'code', text: 'Best platform for freshers. Period. The job matching accuracy is insane — 94% relevant. Saved me hours of scrolling through job boards.' },
+  { name: 'Aditi Verma', role: 'SDE intern track', avatar: 'AV', example: true, text: 'Example: build an ATS-ready resume, then apply to matched internships from one dashboard.' },
+  { name: 'Rahul Gupta', role: 'Frontend track', avatar: 'RG', example: true, text: 'Example: use the AI coach and mock interviews to prepare for early-career rounds.' },
+  { name: 'Karthik R', role: 'Full-stack track', avatar: 'KR', example: true, text: 'Example: ranked job matches beat scrolling generic boards when you have a target role and skills.' },
 ]
 
 const TRUST_LOGOS = ['IIT Delhi', 'IIT Bombay', 'BITS Pilani', 'NIT Trichy', 'VIT', 'SRM', 'Manipal', 'IIIT Hyderabad', 'DTU', 'NSUT', 'PES University', 'Amity']
@@ -180,32 +180,31 @@ const FAQS = [
 ]
 
 const STATS = {
-  students: '52K+',
-  studentsFull: '52,000+',
-  dailyJobs: '12K+',
-  matchRate: '94%',
-  companies: '500+',
-  rating: '4.9/5',
+  students: 'Students & freshers',
+  dailyJobs: 'Live job board',
+  matchRate: 'Skill-ranked matches',
+  rating: 'Free to start',
+  badgeLine: 'ATS resume, jobs & interview prep',
 }
 
 const ABOUT_METRICS = [
-  { value: '52K+', label: 'Students' },
-  { value: '12K+', label: 'Daily Jobs' },
-  { value: '94%', label: 'Match Rate' },
-  { value: '500+', label: 'Companies' },
+  { value: '15', label: 'Resume templates' },
+  { value: 'ATS', label: 'Resume scoring' },
+  { value: '50+', label: 'Job portals' },
+  { value: '₹0', label: 'Free to start' },
 ]
 
 const SOCIAL_PROOF = {
-  signupBadge: '✦ JOIN 52,000+ STUDENTS',
-  loginStudents: '52,000+ students',
-  storyStudents: '52,000+ students',
-  joinStudentsTitle: 'Join 52,000+ Students',
+  signupBadge: '✦ FREE TO START',
+  loginStudents: 'Students & freshers',
+  storyStudents: 'students and early-career professionals',
+  joinStudentsTitle: 'Join students getting hired',
 }
 
 const CONTACT_INFO = [
   { ico: 'envelope', title: 'Email Us', value: 'hello@glowminds.in', desc: 'We reply within 24 hours' },
-  { ico: 'phone', title: 'Call Us', value: '+91 98765 43210', desc: 'Mon-Fri, 9 AM - 6 PM IST' },
-  { ico: 'map-pin', title: 'Visit Us', value: 'Bangalore, India', desc: 'HSR Layout, Sector 1' },
+  { ico: 'map-pin', title: 'Registered office', value: 'Glowminds AI Technologies Private Limited', desc: 'No. 472/7, Balaji Arcade AVS Compound, Koramangala VI Block, Bangalore 560095' },
+  { ico: 'chat', title: 'Live Chat', value: 'In-app Glow (Bot)', desc: 'Available in the dashboard' },
 ]
 
 const HERO_IMAGES = [

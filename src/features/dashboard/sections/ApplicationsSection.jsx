@@ -178,7 +178,7 @@ export default function ApplicationsSection() {
         {loading ? (
           <Loader variant="section" label="Loading your applications…" />
         ) : isLg ? (
-          <div className="grid grid-cols-5 gap-4 [&>*]:min-h-0 [&>*]:min-w-0">
+          <div className="flex gap-4 overflow-x-auto pb-2 [&>*]:min-h-0 [&>*]:w-[min(260px,80vw)] [&>*]:shrink-0">
             {APPLICATION_STATUSES.map((col) => {
               const items = apps.filter((a) => a.status === col)
               const colStyle = COLUMN_STYLE[col]

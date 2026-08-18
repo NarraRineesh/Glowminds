@@ -105,7 +105,19 @@ export default function JobsSection() {
 
   useEffect(() => {
     loadSavedJobs()
-  }, [loadSavedJobs])
+    loadApps()
+    loadProfile().catch(() => {})
+  }, [loadSavedJobs, loadApps, loadProfile])
+
+  useEffect(() => {
+    if (seeded.current) return
+    if (!profile) return
+    const role = cleanTargetRole(profile)
+    if (!role) return
+    seeded.current = true
+    setSearchInput(role)
+    setSearch(role)
+  }, [profile])
 
   useEffect(() => {
     const urlQ = (new URLSearchParams(window.location.search).get('q') || '').trim()
@@ -186,6 +198,48 @@ export default function JobsSection() {
   const hasActiveSearch = Boolean(search.trim())
 
   const openJob = (j) => navigate(`/dashboard/jobs/${encodeURIComponent(j.id)}`)
+  const canUseProfileMatch = hasUsableProfile(profile)
+  const jobMatch = (j) => (canUseProfileMatch ? buildJobMatchAnalysis(j, profile).score : j.match)
+  const alreadyApplied = (j) => apps.some((a) => a.jobId === j.id)
+  const freeAppLimit = entitlements?.freeLimits?.applications ?? 10
+  const canTrackMore = isPro || apps.length < freeAppLimit
+
+  const handleApply = async (j, e) => {
+    e?.stopPropagation?.()
+    if (applyingId || alreadyApplied(j)) {
+      if (j.url) window.open(j.url, '_blank', 'noopener,noreferrer')
+      return
+    }
+    if (!canTrackMore) {
+      addToast('info', `Free plan allows ${freeAppLimit} tracked applications. Upgrade for unlimited tracking.`)
+      navigate('/pricing')
+      return
+    }
+    setApplyingId(j.id)
+    try {
+      const company = j.company || j.co || ''
+      const application = await addApp({
+        company,
+        role: j.title,
+        status: APPLICATION_STATUS.APPLIED,
+        appliedDate: new Date().toISOString().split('T')[0],
+        salary: j.salary || j.sal || '',
+        notes: 'Applied via Glowminds',
+        logo: j.logo,
+        source: j.source || 'ats',
+        jobUrl: j.url,
+        jobId: j.id,
+      })
+      if (application) {
+        addToast('success', `Applied to ${j.title}${company ? ` at ${company}` : ''}. Added to your tracker.`)
+        if (j.url) window.open(j.url, '_blank', 'noopener,noreferrer')
+      }
+    } catch {
+      addToast('error', 'Could not track application — you may have reached the free limit.')
+    } finally {
+      setApplyingId(null)
+    }
+  }
 
   const toggleSave = async (j, e) => {
     e?.stopPropagation?.()

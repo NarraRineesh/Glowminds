@@ -1208,7 +1208,7 @@ export default function ProfileSection() {
       >
         <FormRow>
           <FormField label="Phone">
-            <Input placeholder="+91 98765 43210" value={form.phone || ''} onChange={e => setForm({ ...form, phone: e.target.value })} />
+            <Input placeholder="Phone (optional)" value={form.phone || ''} onChange={e => setForm({ ...form, phone: e.target.value })} />
           </FormField>
           <FormField label="Location">
             <Input placeholder="Bangalore, India" value={form.location || ''} onChange={e => setForm({ ...form, location: e.target.value })} />

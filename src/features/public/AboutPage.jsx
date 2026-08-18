@@ -182,7 +182,7 @@ export default function AboutPage() {
           <Card className="relative overflow-hidden border-primary/20 bg-gradient-to-br from-card to-muted text-center">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,color-mix(in_oklab,var(--primary)_10%,transparent),transparent)]" />
             <CardContent className="relative py-10 md:py-12">
-              <h2 className="mb-3 text-2xl font-black text-foreground md:text-3xl">{socialProof.joinStudentsTitle || 'Join 52,000+ Students'}</h2>
+              <h2 className="mb-3 text-2xl font-black text-foreground md:text-3xl">{socialProof.joinStudentsTitle || 'Join students getting hired'}</h2>
               <p className="mx-auto mb-6 max-w-md text-base text-muted-foreground">Start building your career today — completely free.</p>
               <div className="mb-3 flex flex-wrap justify-center gap-3">
                 <Button size="lg" render={<Link to="/signup" />}>

@@ -33,7 +33,7 @@ import { sendPasswordResetEmail } from 'firebase/auth'
 import { auth } from '@/services/firebase'
 import { loadUserUsage } from '@/utils/firestoreCollections'
 import { apiFetch } from '@/services/apiClient'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { normalizeGamification } from '@/constants/schema'
 import { updateGamificationPrefs, xpToNextLevel } from '@/services/gamification'
 import { StreakCard } from '@/features/dashboard/components/v2'
@@ -513,7 +513,24 @@ export default function SettingsSection() {
   const patchUserDoc = useProfileStore((s) => s.patchUserDoc)
   const updateProfile = useProfileStore((s) => s.updateProfile)
 
-  const [active, setActive] = useState('account')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tabFromUrl = searchParams.get('tab')
+  const [active, setActive] = useState(() => (SECTIONS.some((s) => s.id === tabFromUrl) ? tabFromUrl : 'account'))
+
+  useEffect(() => {
+    const next = searchParams.get('tab')
+    if (next && SECTIONS.some((s) => s.id === next) && next !== active) setActive(next)
+  }, [searchParams, active])
+
+  const selectSection = (id) => {
+    setActive(id)
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      if (id === 'account') next.delete('tab')
+      else next.set('tab', id)
+      return next
+    }, { replace: true })
+  }
   const [resettingPassword, setResettingPassword] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const [exporting, setExporting] = useState(false)

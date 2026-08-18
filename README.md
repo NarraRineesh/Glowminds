@@ -79,4 +79,4 @@ Free 10 / Pro 100 per month. Costs include career chat 1, LinkedIn audit 2, job 
 
 ## License
 
-Private project. Design and developed by KNR Tech Solutions.
+Private project. Glowminds AI Technologies Private Limited (CIN U62012KA2026PTC223290).

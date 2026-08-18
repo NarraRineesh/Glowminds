@@ -105,6 +105,10 @@ export function buildJobMatchAnalysis(job, profile) {
     }
   }
 
+  const overlap = tags.length ? Math.round((matchedSkills.length / tags.length) * 100) : 0
+  const backend = Math.round(Number(job?.match) || 0)
+  const score = userSkills.length ? Math.max(backend, overlap) : backend
+
   return {
     score,
     verdict: verdictForScore(score),
