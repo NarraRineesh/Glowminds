@@ -28,6 +28,8 @@ function filtersFromRequest(src = {}) {
     if (Number.isFinite(n)) filters.minMatch = n;
   }
   if (src.newToday === true || src.newToday === "true") filters.newToday = true;
+  const location = src.location || src.country;
+  if (location) filters.location = String(location).trim();
   return filters;
 }
 
@@ -56,13 +58,15 @@ async function handleBoardSearch(req, res, next) {
       type,
       minMatch,
       newToday,
+      location,
+      country,
     } = req.body || {};
 
     const safePage = clampInt(page, { min: 1, max: 10_000, fallback: 1 });
     const safePageSize = clampInt(pageSize, { min: 1, max: 50, fallback: DEFAULT_PAGE_SIZE });
     const filters = {
       ...filtersFromRequest(bodyFilters),
-      ...filtersFromRequest({ type, minMatch, newToday }),
+      ...filtersFromRequest({ type, minMatch, newToday, location, country }),
     };
 
     const { jobs, pagination, sources, partialErrors, meta } = await searchBoardJobs({

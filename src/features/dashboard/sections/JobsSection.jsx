@@ -7,9 +7,16 @@ import useProfileStore from '@/store/profileStore'
 import useEntitlements from '@/hooks/useEntitlements'
 import useIsPro from '@/hooks/useIsPro'
 import { APPLICATION_STATUS } from '@/constants/schema'
-import { buildJobMatchAnalysis, HIGH_MATCH_THRESHOLD } from '@/utils/jobMatchAnalysis'
-import { cleanTargetRole, hasUsableProfile } from '@/utils/targetRole'
-import { filterJobTags } from '@/utils/jobFilters'
+import { buildJobMatchAnalysis, canShowJobMatch, HIGH_MATCH_THRESHOLD, matchScoreTone } from '@/utils/jobMatchAnalysis'
+import { cleanTargetRole } from '@/utils/targetRole'
+import {
+  filterJobTags,
+  inferCountryFromProfile,
+  jobMatchesCountry,
+  JOB_COUNTRY_OPTIONS,
+  persistJobCountry,
+  readStoredJobCountry,
+} from '@/utils/jobFilters'
 import Loader from '@/components/Loader'
 import { JobGridSkeleton } from '@/features/dashboard/components/JobCardSkeleton'
 import { JobMetaItem, JobMetaRow } from '@/features/dashboard/components/JobMeta'
@@ -31,20 +38,14 @@ import {
 const JF = ['All', 'Best Match', 'Full-time', 'Contract', 'New Today']
 const PER_PAGE = 10
 
-function buildFilters(activeF, typeFilter) {
+function buildFilters(activeF, typeFilter, country) {
   const filters = {}
-  if (activeF === 'Best Match') filters.minMatch = HIGH_MATCH_THRESHOLD
-  else if (activeF === 'Full-time') filters.type = 'Full-time'
+  if (activeF === 'Full-time') filters.type = 'Full-time'
   else if (activeF === 'Contract') filters.type = 'Contract'
   else if (activeF === 'New Today') filters.newToday = true
   if (typeFilter) filters.type = typeFilter
+  if (country) filters.location = country
   return filters
-}
-
-function matchTone(match) {
-  if (match >= 90) return 'text-emerald-500'
-  if (match >= 80) return 'text-primary'
-  return 'text-amber-500'
 }
 
 export default function JobsSection() {
@@ -62,12 +63,14 @@ export default function JobsSection() {
   const seededMatchFilter = useRef(false)
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
+  const [country, setCountry] = useState(() => readStoredJobCountry() ?? 'India')
   const [searchInput, setSearchInput] = useState('')
   const [page, setPage] = useState(1)
   const [applyingId, setApplyingId] = useState(null)
   const seeded = useRef(false)
+  const seededCountry = useRef(readStoredJobCountry() != null)
 
-  const filters = useMemo(() => buildFilters(activeF, typeFilter), [activeF, typeFilter])
+  const filters = useMemo(() => buildFilters(activeF, typeFilter, country), [activeF, typeFilter, country])
   const filterSig = useMemo(
     () => JSON.stringify({ search, filters }),
     [search, filters],
@@ -107,6 +110,14 @@ export default function JobsSection() {
   }, [profile])
 
   useEffect(() => {
+    if (seededCountry.current || !profileLoaded) return
+    seededCountry.current = true
+    const inferred = inferCountryFromProfile(profile)
+    setCountry(inferred)
+    persistJobCountry(inferred)
+  }, [profile, profileLoaded])
+
+  useEffect(() => {
     fetchJobs({ search, page, pageSize: PER_PAGE, filters })
   }, [fetchJobs, search, page, filters])
 
@@ -122,6 +133,12 @@ export default function JobsSection() {
     setPage(1)
   }
 
+  const handleCountryChange = (next) => {
+    setCountry(next)
+    persistJobCountry(next)
+    setPage(1)
+  }
+
   const isInitialLoad = loading && jobs.length === 0
   const isRefreshing = loading && jobs.length > 0
   const totalResults = pagination.total ?? jobs.length
@@ -130,11 +147,23 @@ export default function JobsSection() {
   const subtitleQuery = hasActiveSearch ? search.trim() : queryUsed
 
   const openJob = (j) => navigate(`/dashboard/jobs/${encodeURIComponent(j.id)}`)
-  const canUseProfileMatch = hasUsableProfile(profile)
-  const jobMatch = (j) => (canUseProfileMatch ? buildJobMatchAnalysis(j, profile).score : j.match)
+  const canShowMatch = canShowJobMatch(profile)
   const alreadyApplied = (j) => apps.some((a) => a.jobId === j.id)
   const freeAppLimit = entitlements?.freeLimits?.applications ?? 10
   const canTrackMore = isPro || apps.length < freeAppLimit
+
+  const scoredJobs = useMemo(() => {
+    return jobs
+      .filter((j) => jobMatchesCountry(j, country))
+      .map((j) => ({ job: j, analysis: buildJobMatchAnalysis(j, profile) }))
+  }, [jobs, country, profile])
+
+  const visibleJobs = useMemo(() => {
+    if (activeF !== 'Best Match' || !canShowMatch) return scoredJobs
+    return scoredJobs
+      .filter(({ analysis }) => analysis.available && analysis.score >= HIGH_MATCH_THRESHOLD)
+      .sort((a, b) => (b.analysis.score ?? 0) - (a.analysis.score ?? 0))
+  }, [scoredJobs, activeF, canShowMatch])
 
   const handleApply = async (j, e) => {
     e?.stopPropagation?.()
@@ -200,6 +229,7 @@ export default function JobsSection() {
               <>
                 {totalResults} {totalResults === 1 ? 'result' : 'results'}
                 {pagination.from ? ` · showing ${pagination.from}–${pagination.to}` : ''}
+                {country ? ` · ${country}` : ''}
               </>
             )}
           </>
@@ -223,6 +253,17 @@ export default function JobsSection() {
               </Button>
             )}
           </div>
+          <Select
+            className="h-9 w-[158px] shrink-0 text-sm"
+            value={country}
+            disabled={loading}
+            onChange={(e) => handleCountryChange(e.target.value)}
+            aria-label="Country"
+          >
+            {JOB_COUNTRY_OPTIONS.map((opt) => (
+              <option key={opt.label} value={opt.value}>{opt.label}</option>
+            ))}
+          </Select>
           <Button type="submit" size="sm" disabled={loading} className="h-9 min-w-[72px] shrink-0">
             {loading ? <Loader variant="spinner" size={14} /> : 'Search'}
           </Button>
@@ -264,7 +305,7 @@ export default function JobsSection() {
 
           <div className={cn('transition-opacity duration-200', isRefreshing && 'pointer-events-none opacity-60')}>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-3">
-              {jobs.length === 0 && (
+              {visibleJobs.length === 0 && (
                 <div className="col-span-full flex flex-col items-center rounded-2xl border border-dashed border-border bg-muted/30 px-6 py-12 text-center">
                   <AppIcon name="search" className="mb-3 size-10 opacity-40" />
                   <h3 className="text-lg font-bold text-foreground">No jobs found</h3>
@@ -277,13 +318,13 @@ export default function JobsSection() {
                     {hasActiveSearch && (
                       <Button variant="outline" size="sm" onClick={clearSearch}>Clear search</Button>
                     )}
-                    {(activeF !== 'All' || typeFilter) && (
-                      <Button variant="ghost" size="sm" onClick={() => { setActiveF('All'); setTypeFilter('') }}>Reset filters</Button>
+                    {(activeF !== 'All' || typeFilter || country) && (
+                      <Button variant="ghost" size="sm" onClick={() => { setActiveF('All'); setTypeFilter(''); handleCountryChange('') }}>Reset filters</Button>
                     )}
                   </div>
                 </div>
               )}
-              {jobs.map(j => (
+              {visibleJobs.map(({ job: j, analysis }) => (
                 <Card
                   key={j.id}
                   className={cn(
@@ -310,11 +351,17 @@ export default function JobsSection() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <AppIcon name="target" className="size-3.5" />
-                      Match: <strong className={matchTone(jobMatch(j))}>{jobMatch(j)}%</strong>
-                    </div>
-                    <Progress value={jobMatch(j)} className="gap-0 [&_[data-slot=progress-track]]:h-1.5" />
+                    {analysis.available ? (
+                      <>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <AppIcon name="target" className="size-3.5" />
+                          <strong className={matchScoreTone(analysis.score)}>{analysis.score}% match</strong>
+                        </div>
+                        <Progress value={analysis.score} className="gap-0 [&_[data-slot=progress-track]]:h-1.5" />
+                      </>
+                    ) : (
+                      <div className="text-xs text-muted-foreground">Add skills to see match</div>
+                    )}
 
                     <div className="flex flex-wrap gap-1.5">
                       {filterJobTags(j.tags).slice(0, 3).map(t => (

@@ -9,7 +9,7 @@ import useEntitlements from '@/hooks/useEntitlements'
 import useUpgradePro from '@/hooks/useUpgradePro'
 import { apiFetch } from '@/services/apiClient'
 import { getJobById } from '@/services/jobSearch'
-import { buildJobMatchAnalysis } from '@/utils/jobMatchAnalysis'
+import { buildJobMatchAnalysis, matchScoreTone } from '@/utils/jobMatchAnalysis'
 import Loader from '@/components/Loader'
 import { APPLICATION_STATUS } from '@/constants/schema'
 import { formatDateRange } from '@/utils/profileDates'
@@ -27,12 +27,6 @@ import {
   cn,
 } from '@/components/ui'
 import JobDescriptionHtml from '@/features/dashboard/components/JobDescriptionHtml'
-
-function scoreTone(score) {
-  if (score >= 80) return 'text-emerald-500'
-  if (score >= 60) return 'text-amber-500'
-  return 'text-destructive'
-}
 
 export default function JobDetailSection() {
   const { jobId: rawJobId } = useParams()
@@ -219,8 +213,6 @@ export default function JobDetailSection() {
     )
   }
 
-  const matchScore = job.match || 0
-
   return (
     <div className="w-full min-w-0">
       <Button variant="ghost" size="sm" className="mb-3 -ml-2" onClick={() => navigate(-1)}>
@@ -251,15 +243,21 @@ export default function JobDetailSection() {
             </JobMetaRow>
           </div>
           <div className="shrink-0 text-center">
-            <div className={cn('text-2xl font-black tabular-nums', scoreTone(matchScore))}>{matchScore}%</div>
-            <div className="flex items-center justify-center gap-1 text-[0.68rem] text-muted-foreground">
-              <AppIcon name="target" className="size-3" />
-              profile match
-            </div>
+            {matchAnalysis?.available ? (
+              <>
+                <div className={cn('text-2xl font-black tabular-nums', matchScoreTone(matchAnalysis.score))}>{matchAnalysis.score}%</div>
+                <div className="flex items-center justify-center gap-1 text-[0.68rem] text-muted-foreground">
+                  <AppIcon name="target" className="size-3" />
+                  profile match
+                </div>
+              </>
+            ) : (
+              <div className="max-w-[8.5rem] text-[0.68rem] leading-snug text-muted-foreground">Add skills to see match</div>
+            )}
           </div>
         </div>
 
-        <Progress value={matchScore} className="h-1.5" />
+        {matchAnalysis?.available && <Progress value={matchAnalysis.score} className="h-1.5" />}
 
         <div className="flex flex-wrap gap-1.5">
           {job.tags.map((t) => <StatusBadge key={t} tone="default">{t}</StatusBadge>)}
@@ -323,15 +321,27 @@ export default function JobDetailSection() {
               Match Analysis
             </h2>
             <div className="space-y-4">
+              {matchAnalysis.available ? (
               <div className="flex items-start gap-4">
-                <div className={cn('text-3xl font-black tabular-nums', scoreTone(matchAnalysis.score))}>
+                <div className={cn('text-3xl font-black tabular-nums', matchScoreTone(matchAnalysis.score))}>
                   {matchAnalysis.score}%
                 </div>
                 <div>
                   <div className="font-bold text-foreground">{matchAnalysis.verdict}</div>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {matchAnalysis.skillTotal > 0
+                      ? `${matchAnalysis.skillMatchCount} of ${matchAnalysis.skillTotal} skills match`
+                      : 'No listed job skills to compare'}
+                    {matchAnalysis.matchedKeywords?.length > 0
+                      ? ` · keywords: ${matchAnalysis.matchedKeywords.slice(0, 3).join(', ')}`
+                      : ''}
+                  </p>
                   <p className="mt-1 text-sm text-muted-foreground">{matchAnalysis.summary}</p>
                 </div>
               </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">{matchAnalysis.summary}</p>
+              )}
               <div className="grid gap-4 sm:grid-cols-2">
                 {matchAnalysis.matchedSkills?.length > 0 && (
                   <div>

@@ -338,15 +338,80 @@ function normalizeLocation(value) {
     .replace(/\bbanglore\b/g, "bangalore");
 }
 
+const COUNTRY_ALIASES = {
+  India: ["india", "bharat", "bengaluru", "bangalore", "banglore", "hyderabad", "mumbai", "delhi", "new delhi", "pune", "chennai", "noida", "gurgaon", "gurugram", "kolkata", "ahmedabad", "kochi", "jaipur"],
+  "United States": ["united states", "usa", "u.s.", "u.s.a", "america", "united states of america"],
+  "United Kingdom": ["united kingdom", "uk", "u.k.", "england", "britain", "great britain", "scotland", "wales"],
+  Canada: ["canada"],
+  Germany: ["germany", "deutschland"],
+  Singapore: ["singapore"],
+  Australia: ["australia"],
+  UAE: ["uae", "u.a.e", "united arab emirates", "dubai", "abu dhabi"],
+  Netherlands: ["netherlands", "holland"],
+  Ireland: ["ireland"],
+  Remote: ["remote", "anywhere", "worldwide", "work from home", "wfh"],
+};
+
+function mentionsAlias(text, aliases) {
+  const loc = normalizeLocation(text);
+  if (!loc) return false;
+  return aliases.some((alias) => {
+    if (alias.length <= 3) {
+      const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      return new RegExp(`(?:^|[^a-z])${escaped}(?:[^a-z]|$)`).test(loc);
+    }
+    return loc.includes(alias);
+  });
+}
+
+function resolveCountryKey(location) {
+  const loc = normalizeLocation(location);
+  if (!loc) return "";
+  if (loc === "remote" || loc === "anywhere") return "Remote";
+  for (const [country, aliases] of Object.entries(COUNTRY_ALIASES)) {
+    if (country === "Remote") continue;
+    if (loc === normalizeLocation(country) || aliases.some((alias) => loc === alias || loc.includes(alias))) {
+      return country;
+    }
+  }
+  if (mentionsAlias(loc, COUNTRY_ALIASES.Remote)) return "Remote";
+  return "";
+}
+
+function mentionsOtherCountry(locationText, selected) {
+  const loc = normalizeLocation(locationText);
+  if (!loc) return false;
+  return Object.entries(COUNTRY_ALIASES).some(([country, aliases]) => {
+    if (country === selected || country === "Remote") return false;
+    return aliases.some((alias) => loc.includes(alias));
+  });
+}
+
 function jobMatchesLocation(job, location) {
   if (!location) return true;
   const loc = normalizeLocation(location);
-  // The ATS sync filters jobs to India already, so a generic "India" or
-  // empty location passes everything through.
-  if (!loc || loc === "india") return true;
-  if (job.remote) return true;
-  const jobLoc = normalizeLocation(job.location);
-  return jobLoc.includes(loc) || loc.includes(jobLoc);
+  if (!loc) return true;
+
+  const country = resolveCountryKey(location);
+  const jobLoc = job.location || job.loc || "";
+  const remote = !!job.remote || mentionsAlias(jobLoc, COUNTRY_ALIASES.Remote);
+
+  if (country === "Remote" || loc === "remote") return remote;
+
+  if (country) {
+    const aliases = COUNTRY_ALIASES[country] || [loc];
+    if (mentionsAlias(jobLoc, aliases)) return true;
+    if (country === "India") {
+      if (!normalizeLocation(jobLoc)) return true;
+      if (remote && !mentionsOtherCountry(jobLoc, "India")) return true;
+    }
+    return false;
+  }
+
+  // Free-text location from a profile ("Bangalore, India"): substring match.
+  const hay = normalizeLocation(jobLoc);
+  if (hay && (hay.includes(loc) || loc.includes(hay))) return true;
+  return false;
 }
 
 function dedupeJobs(jobs) {
@@ -370,6 +435,9 @@ function applyJobFilters(jobs, filters = {}) {
   }
   if (filters.newToday) {
     out = out.filter((j) => j.isNew);
+  }
+  if (filters.location) {
+    out = out.filter((j) => jobMatchesLocation(j, filters.location));
   }
   return out;
 }
