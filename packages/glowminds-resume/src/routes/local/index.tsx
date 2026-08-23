@@ -35,7 +35,7 @@ import { cn } from "@/lib/utils/style";
 export const Route = createFileRoute("/local/")({
 	component: RouteComponent,
 	head: () => ({
-		meta: [{ title: "Local Resume Builder" }, createNoindexFollowMeta()],
+		meta: [{ title: "Glowminds Resume Builder" }, createNoindexFollowMeta()],
 	}),
 });
 

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { AppAuthLink } from '@/components/HostLinks'
 import { motion } from 'framer-motion'
 import SEO from '@/components/SEO'
 import {
@@ -24,7 +25,7 @@ const MISSION_HIGHLIGHTS = [
   'Bridge the gap between tier-1 and tier-2/3 colleges',
   'Replace expensive career coaches with free AI tools',
   'Make job discovery effortless and personalised',
-  'Help 1 million students land jobs by 2026',
+  'Give every student the same career tools as a well-funded placement cell',
 ]
 
 const VALUE_BADGES = [
@@ -148,7 +149,7 @@ export default function AboutPage() {
               </CardHeader>
               <CardContent className="space-y-3 text-sm leading-relaxed text-muted-foreground">
                 <p>
-                  In 2024, our founding team — all first-generation graduates from small-town colleges — noticed a painful pattern: talented students from tier-2 and tier-3 colleges were missing out on great opportunities simply because they lacked the right tools and guidance.
+                  Glowminds started because talented students from tier-2 and tier-3 colleges were missing out on good roles — not for lack of ability, but because resume help, job matching, and interview practice were scattered or expensive.
                 </p>
                 <p>Job portals were overwhelming. Resume builders were generic. Career advice was locked behind expensive paywalls or campus placement cells that only served the top 10%.</p>
                 <p>
@@ -182,10 +183,10 @@ export default function AboutPage() {
           <Card className="relative overflow-hidden border-primary/20 bg-gradient-to-br from-card to-muted text-center">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,color-mix(in_oklab,var(--primary)_10%,transparent),transparent)]" />
             <CardContent className="relative py-10 md:py-12">
-              <h2 className="mb-3 text-2xl font-black text-foreground md:text-3xl">{socialProof.joinStudentsTitle || 'Join 52,000+ Students'}</h2>
+              <h2 className="mb-3 text-2xl font-black text-foreground md:text-3xl">{socialProof.joinStudentsTitle || 'Join students getting hired'}</h2>
               <p className="mx-auto mb-6 max-w-md text-base text-muted-foreground">Start building your career today — completely free.</p>
               <div className="mb-3 flex flex-wrap justify-center gap-3">
-                <Button size="lg" render={<Link to="/signup" />}>
+                <Button size="lg" nativeButton={false} render={<AppAuthLink to="/signup" />}>
                   Get Started Now
                 </Button>
                 <Button size="lg" variant="outline" render={<Link to="/contact" />}>

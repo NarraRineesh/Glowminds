@@ -2153,8 +2153,8 @@ msgid "Loading…"
 msgstr "Loading…"
 
 #: src/routes/local/index.tsx
-#~ msgid "Local Resume Builder"
-#~ msgstr "Local Resume Builder"
+#~ msgid "Glowminds Resume Builder"
+#~ msgstr "Glowminds Resume Builder"
 
 #: src/dialogs/resume/sections/education.tsx
 #: src/dialogs/resume/sections/experience.tsx

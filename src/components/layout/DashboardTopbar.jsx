@@ -75,7 +75,7 @@ export default function DashboardTopbar() {
         </div>
         {typeof balance === 'number' ? (
           <Link
-            to="/dashboard/settings"
+            to="/dashboard/settings?tab=usage"
             className="inline-flex h-9 shrink-0 items-center gap-1 rounded-full border border-border/80 bg-muted/50 px-2.5 text-xs font-medium text-foreground no-underline shadow-sm backdrop-blur-sm hover:bg-muted"
             title="AI credits"
           >

@@ -53,7 +53,7 @@ export default function DashboardSidebar() {
   const { pathname } = useLocation()
   const { user } = useAppStore()
   const { loadNotifs, reset: resetNotifs } = useNotifStore()
-  const { isPro, loading: entitlementsLoading } = useEntitlements()
+  const { isPro, loading: entitlementsLoading, entitlements } = useEntitlements()
   const { setOpenMobile, state } = useSidebarState()
   const iconCollapsed = state === 'collapsed'
 
@@ -262,6 +262,27 @@ export default function DashboardSidebar() {
           )}
         </Button>
         ) : null}
+
+        {typeof entitlements?.credits?.balance === 'number' && (
+          <Link
+            to="/dashboard/settings?tab=usage"
+            onClick={closeDrawer}
+            className={cn(
+              'block rounded-lg border border-primary/20 bg-primary/5 px-2.5 py-2 text-left transition-colors hover:border-primary/40',
+              iconCollapsed && 'px-2 text-center',
+            )}
+          >
+            {!iconCollapsed ? (
+              <>
+                <p className="text-[10.5px] font-bold uppercase tracking-wide text-primary">AI credits</p>
+                <p className="text-sm font-black tabular-nums text-foreground">{entitlements.credits.balance} left</p>
+                <p className="text-[10px] text-muted-foreground">Usage & billing</p>
+              </>
+            ) : (
+              <AppIcon name="sparkle" className="mx-auto size-4 text-primary" aria-label={`${entitlements.credits.balance} AI credits`} />
+            )}
+          </Link>
+        )}
 
         <SidebarProfileMenu
           user={user}

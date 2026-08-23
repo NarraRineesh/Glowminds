@@ -5,6 +5,8 @@ import AppIcon from '@/components/icons/AppIcon'
 import useTheme from '@/hooks/useTheme'
 import useIsLg from '@/hooks/useIsLg'
 import { PUBLIC_NAV_LINKS } from '@/constants/publicNav'
+import { AppAuthLink } from '@/components/HostLinks'
+import { appHref, isLocalHost } from '@/config/hosts'
 import {
   Button,
   Sheet,
@@ -32,9 +34,10 @@ export default function PublicHeader() {
     if (isLg) setOpen(false)
   }, [isLg])
 
-  const closeAndGo = (path) => {
+  const closeAndGoApp = (path) => {
     setOpen(false)
-    navigate(path)
+    if (isLocalHost()) navigate(path)
+    else window.location.assign(appHref(path))
   }
 
   return (
@@ -69,10 +72,10 @@ export default function PublicHeader() {
 
           {isLg ? (
             <>
-              <Button type="button" variant="ghost" size="sm" onClick={() => navigate('/login')}>
+              <Button type="button" variant="ghost" size="sm" nativeButton={false} render={<AppAuthLink to="/login" />}>
                 Log in
               </Button>
-              <Button type="button" size="sm" onClick={() => navigate('/signup')}>
+              <Button type="button" size="sm" nativeButton={false} render={<AppAuthLink to="/signup" />}>
                 Get started
               </Button>
             </>
@@ -108,8 +111,8 @@ export default function PublicHeader() {
                   ))}
                 </nav>
                 <div className="mt-6 flex flex-col gap-2 border-t border-border pt-6">
-                  <Button variant="outline" onClick={() => closeAndGo('/login')}>Log in</Button>
-                  <Button onClick={() => closeAndGo('/signup')}>Get started free</Button>
+                  <Button variant="outline" onClick={() => closeAndGoApp('/login')}>Log in</Button>
+                  <Button onClick={() => closeAndGoApp('/signup')}>Get started free</Button>
                 </div>
               </SheetContent>
             </Sheet>

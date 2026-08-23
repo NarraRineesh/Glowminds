@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
+import { SiteLink } from '@/components/HostLinks'
 import { motion } from 'framer-motion'
 import { sendPasswordResetEmail } from 'firebase/auth'
 import { auth } from '@/services/firebase'
@@ -46,10 +47,15 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [showPw, setShowPw] = useState(false)
   const [resetSent, setResetSent] = useState(false)
+  const [errors, setErrors] = useState({})
 
   const handleLogin = async (e) => {
     e?.preventDefault?.()
-    if (!email || !password) { addToast('error', 'Please fill in all fields'); return }
+    const next = {}
+    if (!email.trim()) next.email = 'Email is required'
+    if (!password) next.password = 'Password is required'
+    setErrors(next)
+    if (Object.keys(next).length) return
     setLoading(true)
     try {
       const fbUser = await doLogin(email, password)
@@ -70,16 +76,21 @@ export default function LoginPage() {
   }
 
   const handleForgotPassword = async () => {
-    if (!email) { addToast('error', 'Enter your email above first'); return }
+    if (!email.trim()) {
+      setErrors((e) => ({ ...e, email: 'Enter your email above first' }))
+      return
+    }
     setLoading(true)
     try {
       await sendPasswordResetEmail(auth, email)
       setResetSent(true)
+      setErrors((e) => ({ ...e, email: '' }))
       addToast('success', 'Password reset email sent! Check your inbox.')
     } catch (err) {
       const msg = err.code === 'auth/user-not-found' ? 'No account found with this email'
         : err.code === 'auth/invalid-email' ? 'Please enter a valid email'
         : err.message
+      setErrors((e) => ({ ...e, email: msg }))
       addToast('error', msg)
     } finally { setLoading(false) }
   }
@@ -111,13 +122,13 @@ export default function LoginPage() {
           className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,color-mix(in_srgb,var(--border)_40%,transparent)_1px,transparent_1px),linear-gradient(to_bottom,color-mix(in_srgb,var(--border)_40%,transparent)_1px,transparent_1px)] bg-size-[48px_48px] [mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_75%)]"
         />
 
-        <Link
+        <SiteLink
           to="/"
           className="absolute left-4 top-4 z-20 inline-flex items-center gap-2 rounded-lg px-1 py-1 transition-colors hover:bg-muted/60 md:left-8 md:top-6"
         >
           <BrandLogo variant="full" size={28} forceDark alt="" aria-hidden />
           <GlowmindsWordmark className="hidden text-sm text-foreground sm:inline" />
-        </Link>
+        </SiteLink>
 
         <div className="relative z-10 mx-auto grid w-full max-w-6xl flex-1 items-center gap-8 px-4 py-10 pb-12 md:grid-cols-2 md:gap-12 md:px-8 md:py-8 lg:gap-16">
 
@@ -158,8 +169,8 @@ export default function LoginPage() {
                 ))}
               </div>
               <div>
-                <div className="text-sm font-bold">{socialProof.loginStudents || '52,000+ students'}</div>
-                <div className="text-xs text-muted-foreground">already building their careers</div>
+                <div className="text-sm font-bold">Students & freshers</div>
+                <div className="text-xs text-muted-foreground">building careers on Glowminds</div>
               </div>
             </motion.div>
           </motion.div>
@@ -175,29 +186,32 @@ export default function LoginPage() {
               <CardContent className="p-6 sm:p-7">
                 <div className="mb-6 text-center">
                   <div className="mb-4 flex justify-center">
-                    <Link to="/" className="rounded-lg transition-opacity hover:opacity-80" aria-label="Back to home">
+                    <SiteLink to="/" className="rounded-lg transition-opacity hover:opacity-80" aria-label="Back to home">
                       <BrandLogo variant="full" size={48} forceDark alt="Glowminds" />
-                    </Link>
+                    </SiteLink>
                   </div>
                   <h1 className="text-xl font-black">Welcome Back!</h1>
                   <p className="mt-1 text-sm text-muted-foreground">Log in to your Glowminds account</p>
                 </div>
 
                 <form onSubmit={handleLogin} className="flex flex-col gap-3.5">
-                  <FormField label="Email" htmlFor="login-email">
-                    <Input id="login-email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+                  <FormField label="Email" htmlFor="login-email" error={errors.email}>
+                    <Input id="login-email" type="email" placeholder="you@example.com" value={email} onChange={(e) => { setEmail(e.target.value); if (errors.email) setErrors({ ...errors, email: '' }) }} aria-invalid={errors.email ? true : undefined} className={errors.email ? 'border-destructive' : undefined} />
                   </FormField>
-                  <FormField label="Password" htmlFor="login-password">
+                  <FormField label="Password" htmlFor="login-password" error={errors.password}>
                     <div className="relative">
-                      <Input id="login-password" type={showPw ? 'text' : 'password'} placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} className="pr-10" />
+                      <Input id="login-password" type={showPw ? 'text' : 'password'} placeholder="Enter your password" value={password} onChange={(e) => { setPassword(e.target.value); if (errors.password) setErrors({ ...errors, password: '' }) }} className={errors.password ? 'pr-10 border-destructive' : 'pr-10'} aria-invalid={errors.password ? true : undefined} />
                       <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-muted-foreground select-none" aria-label={showPw ? 'Hide password' : 'Show password'}>
                         <AppIcon name={showPw ? 'eye-slash' : 'eye'} className="size-4" />
                       </button>
                     </div>
                   </FormField>
-                  <div className="flex justify-end">
+                  <div className="flex items-center justify-end gap-2">
+                    {resetSent && (
+                      <span className="text-xs text-muted-foreground">Check your inbox.</span>
+                    )}
                     <Button type="button" variant="link" size="sm" onClick={handleForgotPassword} className="h-auto px-0 text-xs">
-                      {resetSent ? 'Check your inbox' : 'Forgot password?'}
+                      {resetSent ? 'Send again' : 'Forgot password?'}
                     </Button>
                   </div>
                   <Button className="w-full" size="lg" type="submit" disabled={loading}>

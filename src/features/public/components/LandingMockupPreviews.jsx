@@ -20,7 +20,7 @@ function DashboardPreview({ stats }) {
     <MockupShell className="space-y-4">
       <div className="grid grid-cols-3 gap-2">
         {[
-          { label: 'Match rate', value: stats?.matchRate || '94%', tone: 'text-emerald-500' },
+          { label: 'Templates', value: '15', tone: 'text-emerald-500' },
           { label: 'Applications', value: '12', tone: 'text-primary' },
           { label: 'Interviews', value: '3', tone: 'text-violet-500' },
         ].map((stat) => (

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { AppAuthLink } from '@/components/HostLinks'
 import { motion } from 'framer-motion'
 import SEO from '@/components/SEO'
 import {
@@ -652,7 +653,7 @@ export default function FeaturesPage() {
                 <p className="mx-auto mb-6 max-w-lg text-muted-foreground">
                   Build your resume, discover jobs, and practice interviews — all for free.
                 </p>
-                <Button size="lg" render={<Link to="/signup" />}>Start Free</Button>
+                <Button size="lg" nativeButton={false} render={<AppAuthLink to="/signup" />}>Start Free</Button>
                 <p className="mt-3 text-xs text-muted-foreground">No credit card required · Free tier forever</p>
               </CardContent>
             </Card>

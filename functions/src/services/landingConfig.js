@@ -24,6 +24,24 @@ function cloneDefaults() {
   return structuredClone(DEFAULT_LANDING_CONFIG);
 }
 
+function isStaleLandingCopy(value) {
+  return /98765\s*43210|HSR Layout|52,?000|52K\+|94%/.test(JSON.stringify(value || {}));
+}
+
+function rewriteStaleLanding(config) {
+  if (!isStaleLandingCopy(config)) return config;
+  const defaults = cloneDefaults();
+  return {
+    ...config,
+    heroMetrics: defaults.heroMetrics,
+    stats: defaults.stats,
+    aboutMetrics: defaults.aboutMetrics,
+    socialProof: defaults.socialProof,
+    contactInfo: defaults.contactInfo,
+  };
+}
+
+
 function mergeWithDefaults(data) {
   const base = cloneDefaults();
   if (!data || typeof data !== "object") return base;
@@ -109,9 +127,10 @@ export async function getLandingConfig({ fresh = false } = {}) {
     const fields = landingFieldsFromDoc(raw);
     const shouldBackfillDefaults =
       !fields.stats || !fields.aboutMetrics || !fields.socialProof || !fields.contactInfo;
-    config = mergeWithDefaults(fields);
+    config = rewriteStaleLanding(mergeWithDefaults(fields));
     if (
       shouldBackfillDefaults ||
+      isStaleLandingCopy(fields) ||
       (isPricingEncryptionEnabled() && raw?.encrypted !== true)
     ) {
       await ref.set(buildStoredLandingDoc(config, { uid: raw?.updatedBy || null }));

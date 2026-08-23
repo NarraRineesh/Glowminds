@@ -8,7 +8,8 @@ import useEntitlements from '@/hooks/useEntitlements'
 import { apiFetch } from '@/services/apiClient'
 import { getJobById } from '@/services/jobSearch'
 import { trackJobMetric } from '@/services/jobsApi'
-import { buildJobMatchAnalysis } from '@/utils/jobMatchAnalysis'
+import { buildJobMatchAnalysis, matchScoreTone } from '@/utils/jobMatchAnalysis'
+import { filterJobTags } from '@/utils/jobFilters'
 import Loader from '@/components/Loader'
 import { APPLICATION_STATUS } from '@/constants/schema'
 import { formatDateRange } from '@/utils/profileDates'
@@ -142,7 +143,12 @@ export default function JobDetailSection() {
   }, [jobId, loadSavedJobs, loadApps])
 
   const handleApply = async (j, notesExtra = '') => {
-    if (applying || applied) return
+    if (applying) return
+    if (applied) {
+      const applyUrl = j.url || j.applyUrl || j.jobUrl || ''
+      if (applyUrl) window.open(applyUrl, '_blank', 'noopener,noreferrer')
+      return
+    }
     // Open the apply page synchronously (inside the click gesture) so the
     // browser doesn't block the popup — tracking happens after, async.
     const applyUrl = j.url || j.applyUrl || j.jobUrl || ''
@@ -334,11 +340,11 @@ export default function JobDetailSection() {
     )
   }
 
-  const displayScore = aiFit?.score ?? (typeof job.match === 'number' && job.match > 0 ? job.match : null)
-    ?? (typeof matchAnalysis?.score === 'number' && matchAnalysis.score > 0 ? matchAnalysis.score : null)
+  const displayScore = aiFit?.score
+    ?? (matchAnalysis?.available ? matchAnalysis.score : null)
   const hasMatchScore = typeof displayScore === 'number' && displayScore > 0
-  const hits = matchAnalysis?.matches || matchAnalysis?.strengths || aiFit?.strengths || []
-  const misses = matchAnalysis?.gaps || aiFit?.gaps || []
+  const hits = matchAnalysis?.matchedSkills || matchAnalysis?.matches || matchAnalysis?.strengths || aiFit?.strengths || []
+  const misses = matchAnalysis?.missingSkills || matchAnalysis?.gaps || aiFit?.gaps || []
 
   return (
     <div className="w-full min-w-0 space-y-4">
@@ -361,11 +367,14 @@ export default function JobDetailSection() {
         </div>
       </div>
 
-      {hasMatchScore && (
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-card px-4 py-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-card px-4 py-3.5">
           <div>
             <div className="mb-2 flex flex-wrap gap-1.5">
-              <Badge variant="secondary" className="text-success">{displayScore}% match</Badge>
+              {hasMatchScore ? (
+                <Badge variant="secondary" className="text-success">{displayScore}% match</Badge>
+              ) : (
+                <Badge variant="outline">Add skills to see match</Badge>
+              )}
               {(job.remote || job.location) && <Badge variant="outline">{job.remote ? 'Remote' : job.location}</Badge>}
               {misses.length > 0 && <Badge variant="outline" className="text-warning">{misses.length} skill gap{misses.length > 1 ? 's' : ''}</Badge>}
             </div>
@@ -376,10 +385,9 @@ export default function JobDetailSection() {
           </div>
           <div className="flex flex-col items-center gap-1">
             <div className={cn('font-mono text-3xl font-bold', scoreTone(displayScore))}>{displayScore}</div>
-            <span className="text-[11px] text-muted-foreground">Fit score</span>
+            <span className="text-[11px] text-muted-foreground">{hasMatchScore ? 'Fit score' : 'Add skills'}</span>
           </div>
         </div>
-      )}
 
       <DashboardCard contentClassName="space-y-5 p-5">
         <div className="flex flex-wrap items-start gap-4">
@@ -404,15 +412,27 @@ export default function JobDetailSection() {
               </JobMetaItem>
             </JobMetaRow>
           </div>
-          {hasMatchScore && (
-            <div className="shrink-0 text-center">
-              <div className={cn('text-2xl font-black tabular-nums', scoreTone(displayScore))}>{displayScore}%</div>
-              <div className="flex items-center justify-center gap-1 text-[0.68rem] text-muted-foreground">
-                <AppIcon name="target" className="size-3" />
-                {aiFit ? 'AI fit' : 'profile match'}
-              </div>
-            </div>
-          )}
+          <div className="shrink-0 text-center">
+            {hasMatchScore ? (
+              <>
+                <div className={cn('text-2xl font-black tabular-nums', (aiFit ? scoreTone : matchScoreTone)(displayScore))}>{displayScore}%</div>
+                <div className="flex items-center justify-center gap-1 text-[0.68rem] text-muted-foreground">
+                  <AppIcon name="target" className="size-3" />
+                  {aiFit ? 'AI fit' : 'profile match'}
+                </div>
+                {matchAnalysis?.available && !aiFit && matchAnalysis.skillTotal > 0 && (
+                  <p className="mt-1 max-w-[9rem] text-[0.68rem] leading-snug text-muted-foreground">
+                    {matchAnalysis.skillMatchCount} of {matchAnalysis.skillTotal} skills match
+                    {matchAnalysis.matchedKeywords?.length
+                      ? ` · ${matchAnalysis.matchedKeywords.slice(0, 3).join(', ')}`
+                      : ''}
+                  </p>
+                )}
+              </>
+            ) : (
+              <div className="max-w-[8.5rem] text-[0.68rem] leading-snug text-muted-foreground">Add skills to see match</div>
+            )}
+          </div>
         </div>
 
         {hasMatchScore && <Progress value={displayScore} className="h-1.5" />}
@@ -447,7 +467,7 @@ export default function JobDetailSection() {
         )}
 
         <div className="flex flex-wrap gap-1.5">
-          {(job.tags || []).map((t) => <StatusBadge key={t} tone="default">{t}</StatusBadge>)}
+          {filterJobTags(job.tags).map((t) => <StatusBadge key={t} tone="default">{t}</StatusBadge>)}
           {job.type && <StatusBadge tone="success">{job.type}</StatusBadge>}
         </div>
 

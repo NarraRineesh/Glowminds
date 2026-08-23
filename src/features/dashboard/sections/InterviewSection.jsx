@@ -80,6 +80,34 @@ function InterviewSectionContent() {
   const sessions = useInterviewStore((s) => s.sessions)
   const historyLoading = useInterviewStore((s) => s.loading)
 
+  const latestSession = sessions[0] || null
+
+  const openSession = (session) => {
+    if (!session) return
+    const qs = Array.isArray(session.questions) ? session.questions : []
+    setSessionId(session.id)
+    setRole(session.role || '')
+    setType(session.type || 'mixed')
+    setQuestions(qs)
+    const nextPicks = {}
+    qs.forEach((q, idx) => {
+      if (Number.isInteger(q.selectedIndex) && q.selectedIndex >= 0) nextPicks[idx] = q.selectedIndex
+    })
+    setPicks(nextPicks)
+    if (session.status === 'completed') {
+      setEvaluations(qs.map((q) => q.evaluation || { isCorrect: !!q.isCorrect, selectedIndex: q.selectedIndex ?? -1 }))
+      setSessionSummary({
+        total: qs.length,
+        score: session.totalScore ?? qs.filter((q) => q.isCorrect).length,
+        percent: qs.length ? Math.round(((session.totalScore ?? qs.filter((q) => q.isCorrect).length) / qs.length) * 100) : 0,
+      })
+      setPhase('summary')
+    } else {
+      setCurrentIdx(0)
+      setPhase('practicing')
+    }
+  }
+
   const [phase, setPhase] = useState('setup')
   const [role, setRole] = useState('')
   const [type, setType] = useState('mixed')
@@ -364,7 +392,7 @@ function InterviewSectionContent() {
             </div>
           </DashboardCard>
 
-          <DashboardCard titleIcon="clock" title="Recent sessions" contentClassName="space-y-3">
+          <DashboardCard titleIcon="clock" title="Recent sessions" action={sessions.length ? <Button size="sm" variant="outline" onClick={startSession} disabled={generating || !role.trim()}>Start new</Button> : null} contentClassName="space-y-3">
             {historyLoading && !sessions.length ? (
               <p className="text-sm text-muted-foreground">Loading history…</p>
             ) : !sessions.length ? (
@@ -391,16 +419,8 @@ function InterviewSectionContent() {
                           {score != null ? ` · ${score}%` : ''}
                         </p>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          if (s.role) setRole(s.role)
-                          if (s.type) setType(s.type)
-                          addToast('success', `Prefill: ${s.role || 'role'}`)
-                        }}
-                      >
-                        Reuse
+                      <Button variant="outline" size="sm" onClick={() => openSession(s)}>
+                        {s.status === 'completed' ? 'Review' : 'Resume'}
                       </Button>
                     </li>
                   )

@@ -75,7 +75,7 @@ export default function VerifyEmailPage() {
               </Badge>
               <h1 className="text-xl font-black">Verify your email</h1>
               <p className="mt-2 text-sm text-muted-foreground">
-                We sent a link to <strong className="text-foreground">{user?.email}</strong>. Open it, then come back here. Google sign-in skips this step.
+                We sent a link to <strong className="text-foreground">{user?.email}</strong>. Verify it, then continue to set your target role and build your first resume. Google sign-in skips this step.
               </p>
             </div>
             <div className="flex flex-col gap-3">

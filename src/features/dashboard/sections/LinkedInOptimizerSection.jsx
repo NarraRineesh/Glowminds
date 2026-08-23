@@ -118,6 +118,9 @@ export default function LinkedInOptimizerSection() {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState('')
   const [saving, setSaving] = useState(false)
+  const [mode, setMode] = useState('paste')
+  const [pasted, setPasted] = useState('')
+  const [showAdvanced, setShowAdvanced] = useState(false)
 
   const hasImport = !!(headline.trim() || about.trim() || experience.trim())
   const audited = typeof aiScore === 'number'
@@ -134,7 +137,9 @@ export default function LinkedInOptimizerSection() {
         const profile = useProfileStore.getState().profile || {}
         const url = profile.links?.linkedin || ''
         setProfileUrl(url)
-        setEditing(!url)
+        setPasted(profile.linkedinPaste || '')
+        setMode(url && !profile.linkedinPaste ? 'url' : 'paste')
+        setEditing(!url && !profile.linkedinPaste)
         setDraft(url)
 
         const audit = profile.linkedinAudit
@@ -365,33 +370,60 @@ export default function LinkedInOptimizerSection() {
       {step === 0 && (
         <SplitRail
           main={(
-            <SectionCard title="1 · Get data with LinkedIn Assist" action={<Badge variant="outline">Required</Badge>}>
-              <ol className="mb-4 list-decimal space-y-3 pl-5 text-sm">
-                <li>
-                  <strong className="text-foreground">Add the extension</strong>
-                  <p className="m-0 mt-1 text-muted-foreground">
-                    Load <code className="rounded bg-muted px-1 text-xs">extensions/linkedin-assist</code> unpacked in Chrome (Developer mode).
-                  </p>
-                </li>
-                <li>
-                  <strong className="text-foreground">Open your LinkedIn profile</strong>
-                  <p className="m-0 mt-1 text-muted-foreground">Click Assist → Copy profile JSON to clipboard.</p>
-                </li>
-                <li>
-                  <strong className="text-foreground">Import here</strong>
-                  <p className="m-0 mt-1 text-muted-foreground">Paste from clipboard, or fill fields manually / from GlowMinds profile.</p>
-                </li>
-              </ol>
+            <SectionCard title="1 · Add your LinkedIn" action={<Badge variant="outline">Paste or URL</Badge>}>
+              <p className="mb-3 text-sm text-muted-foreground">
+                Paste your LinkedIn About / experience or save a profile URL. The Chrome extension is optional under Advanced.
+              </p>
+              <div className="mb-4 flex flex-wrap gap-2">
+                <Button type="button" size="sm" variant={mode === 'paste' ? 'default' : 'outline'} onClick={() => setMode('paste')}>Paste profile</Button>
+                <Button type="button" size="sm" variant={mode === 'url' ? 'default' : 'outline'} onClick={() => setMode('url')}>Profile URL</Button>
+              </div>
+              {mode === 'paste' && (
+                <div className="mb-4 space-y-2">
+                  <Textarea
+                    className="min-h-[140px]"
+                    placeholder="Paste your headline, About, and recent roles…"
+                    value={pasted}
+                    onChange={(e) => setPasted(e.target.value)}
+                  />
+                  <Button
+                    size="sm"
+                    disabled={saving || !pasted.trim()}
+                    onClick={async () => {
+                      const uid = auth.currentUser?.uid
+                      if (!uid) { addToast?.('error', 'You must be signed in'); return }
+                      setSaving(true)
+                      try {
+                        await useProfileStore.getState().updateProfile({ linkedinPaste: pasted.trim() })
+                        setEditing(false)
+                        addToast?.('success', 'Profile text saved')
+                      } catch {
+                        addToast?.('error', 'Failed to save')
+                      }
+                      setSaving(false)
+                    }}
+                  >
+                    {saving ? 'Saving…' : 'Save pasted profile'}
+                  </Button>
+                </div>
+              )}
 
+              <div className="mb-3">
+                <button type="button" className="text-xs text-muted-foreground underline-offset-2 hover:underline" onClick={() => setShowAdvanced((v) => !v)}>
+                  {showAdvanced ? 'Hide advanced' : 'Advanced · Chrome extension'}
+                </button>
+              </div>
+              {showAdvanced && (
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-muted/40 px-3 py-3">
                 <div>
-                  <p className="m-0 text-sm font-semibold">Paste Assist JSON</p>
-                  <p className="m-0 mt-0.5 text-xs text-muted-foreground">Clipboard must contain GlowMinds LinkedIn Assist data.</p>
+                  <p className="m-0 text-sm font-semibold">Optional: Paste Assist JSON</p>
+                  <p className="m-0 mt-0.5 text-xs text-muted-foreground">Chrome extension is Advanced-only. Clipboard must contain GlowMinds LinkedIn Assist data.</p>
                 </div>
                 <Button type="button" size="sm" onClick={() => void importFromExtension()}>
                   Import from clipboard
                 </Button>
               </div>
+              )}
 
               <div className="mb-3 space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Your LinkedIn URL</p>

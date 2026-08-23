@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { SiteLink } from '@/components/HostLinks'
 import { motion } from 'framer-motion'
 import useAppStore from '@/store/authStore'
 import SEO from '@/components/SEO'
@@ -7,19 +8,18 @@ import { PAGE_SEO } from '@/config/seo'
 import BrandLogo, { GlowmindsWordmark } from '@/components/BrandLogo'
 import useLandingConfig from '@/hooks/useLandingConfig'
 import { Badge, Button, Card, CardContent, FormField, FormRow, Input, Separator, AppIcon } from '@/components/ui'
+import { MIN_PASSWORD_LENGTH, PASSWORD_RULE_HINT, PASSWORD_TOO_SHORT } from '@/constants/auth'
 
 const fadeUp = { hidden: { opacity: 0, y: 24 }, visible: { opacity: 1, y: 0 } }
 const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.08, delayChildren: 0.1 } } }
 const ease = [0.16, 1, 0.3, 1]
 
-function getBenefits(stats = {}) {
-  return [
-    { ico: 'check-circle', title: 'Affordable Plans', desc: 'Powerful career tools at prices that work for students and freshers.' },
-    { ico: 'lightning', title: 'Career OS in minutes', desc: 'Sign up, pick a resume template, sync details, then Glow (Bot) analysis.' },
-    { ico: 'target', title: `${stats.matchRate || '94%'} Match Accuracy`, desc: 'Our AI finds the most relevant jobs for your skills and goals.' },
-    { ico: 'lock', title: 'Secure & Private', desc: 'Your data is encrypted. We never sell your information.' },
-  ]
-}
+const BENEFITS = [
+  { ico: 'check-circle', title: 'Affordable Plans', desc: 'Powerful career tools at prices that work for students and freshers.' },
+  { ico: 'lightning', title: 'Career OS in minutes', desc: 'Sign up, pick a resume template, sync details, then Glow (Bot) analysis.' },
+  { ico: 'target', title: 'Skill-ranked jobs', desc: 'Our AI ranks jobs against your skills and target role.' },
+  { ico: 'lock', title: 'Secure & Private', desc: 'Your data is encrypted. We never sell your information.' },
+]
 
 function AuthDivider({ label }) {
   return (
@@ -37,13 +37,14 @@ export default function SignupPage() {
   const { doSignup, doGoogleLogin, addToast } = useAppStore()
   const { config: landingConfig } = useLandingConfig()
   const socialProof = landingConfig.socialProof || {}
-  const benefits = getBenefits(landingConfig.stats)
+  const benefits = BENEFITS
   const [fn, setFn] = useState('')
   const [ln, setLn] = useState('')
   const [email, setEmail] = useState('')
   const [pw, setPw] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPw, setShowPw] = useState(false)
+  const [errors, setErrors] = useState({})
 
   useEffect(() => {
     const prefill = searchParams.get('email')?.trim()
@@ -52,19 +53,26 @@ export default function SignupPage() {
 
   const handleSignup = async (e) => {
     e?.preventDefault?.()
-    if (!fn) { addToast('error', 'Please fill in your name'); return }
-    if (!email) { addToast('error', 'Email is required'); return }
-    if (pw.length < 8) { addToast('error', 'Password must be 8+ characters'); return }
+    const next = {}
+    if (!fn.trim()) next.fn = 'First name is required'
+    if (!email.trim()) next.email = 'Email is required'
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) next.email = 'Enter a valid email'
+    if (pw.length < MIN_PASSWORD_LENGTH) next.pw = PASSWORD_TOO_SHORT
+    setErrors(next)
+    if (Object.keys(next).length) return
     setLoading(true)
     try {
       await doSignup(email, pw, fn, ln)
-      addToast('success', 'Check your inbox to verify your email.')
+      addToast('success', `Welcome, ${fn}! Check your inbox to verify your email.`)
       navigate('/verify-email')
     } catch (err) {
       const msg = err.code === 'auth/email-already-in-use' ? 'This email is already registered. Try logging in.'
-        : err.code === 'auth/weak-password' ? 'Password is too weak. Use at least 6 characters.'
+        : err.code === 'auth/weak-password' ? PASSWORD_TOO_SHORT
         : err.code === 'auth/invalid-email' ? 'Please enter a valid email address.'
         : err.message
+      if (err.code === 'auth/invalid-email') setErrors({ email: msg })
+      else if (err.code === 'auth/weak-password') setErrors({ pw: msg })
+      else if (err.code === 'auth/email-already-in-use') setErrors({ email: msg })
       addToast('error', msg)
     } finally { setLoading(false) }
   }
@@ -96,13 +104,13 @@ export default function SignupPage() {
           className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,color-mix(in_srgb,var(--border)_40%,transparent)_1px,transparent_1px),linear-gradient(to_bottom,color-mix(in_srgb,var(--border)_40%,transparent)_1px,transparent_1px)] bg-size-[48px_48px] [mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_75%)]"
         />
 
-        <Link
+        <SiteLink
           to="/"
           className="absolute left-4 top-4 z-20 inline-flex items-center gap-2 rounded-lg px-1 py-1 transition-colors hover:bg-muted/60 md:left-8 md:top-6"
         >
           <BrandLogo variant="full" size={28} forceDark alt="" aria-hidden />
           <GlowmindsWordmark className="hidden text-sm text-foreground sm:inline" />
-        </Link>
+        </SiteLink>
 
         <div className="relative z-10 mx-auto grid w-full max-w-6xl flex-1 items-center gap-8 px-4 py-10 pb-12 md:grid-cols-2 md:gap-12 md:px-8 md:py-8 lg:gap-16">
 
@@ -110,7 +118,7 @@ export default function SignupPage() {
           <motion.div className="hidden flex-col gap-7 md:flex" variants={stagger} initial="hidden" animate="visible">
             <motion.div variants={fadeUp} transition={{ duration: .6, ease }}>
               <Badge variant="outline" className="mb-4 border-emerald-500/20 bg-emerald-500/10 text-emerald-500">
-                {socialProof.signupBadge || '✦ JOIN 52,000+ STUDENTS'}
+                ✦ FREE TO START
               </Badge>
               <h2 className="mb-3 text-[clamp(1.6rem,3vw,2.4rem)] font-black leading-tight tracking-tight">
                 Launch Your Career<br />
@@ -144,7 +152,7 @@ export default function SignupPage() {
                 </div>
                 <div>
                   <div className="text-[0.78rem] font-bold">Aditi Verma</div>
-                  <div className="text-[0.68rem] text-primary">SDE Intern @ Google</div>
+                  <div className="text-[0.68rem] text-primary">Example · SDE intern track</div>
                 </div>
               </div>
             </motion.div>
@@ -161,9 +169,9 @@ export default function SignupPage() {
               <CardContent className="p-6 sm:p-7">
                 <div className="mb-6 text-center">
                   <div className="mb-4 flex justify-center">
-                    <Link to="/" className="rounded-lg transition-opacity hover:opacity-80" aria-label="Back to home">
+                    <SiteLink to="/" className="rounded-lg transition-opacity hover:opacity-80" aria-label="Back to home">
                       <BrandLogo variant="full" size={48} forceDark alt="Glowminds" />
-                    </Link>
+                    </SiteLink>
                   </div>
                   <h1 className="text-xl font-black">Create Your Account</h1>
                   <p className="mt-1 text-sm text-muted-foreground">Smart tools for your career journey</p>
@@ -171,19 +179,19 @@ export default function SignupPage() {
 
                 <form onSubmit={handleSignup} className="flex flex-col gap-3.5">
                   <FormRow>
-                    <FormField label="First Name *" htmlFor="signup-fn">
-                      <Input id="signup-fn" placeholder="John" value={fn} onChange={e => setFn(e.target.value)} />
+                    <FormField label="First Name *" htmlFor="signup-fn" error={errors.fn}>
+                      <Input id="signup-fn" placeholder="John" value={fn} onChange={e => { setFn(e.target.value); if (errors.fn) setErrors({ ...errors, fn: '' }) }} aria-invalid={errors.fn ? true : undefined} className={errors.fn ? 'border-destructive' : undefined} />
                     </FormField>
                     <FormField label="Last Name" htmlFor="signup-ln">
                       <Input id="signup-ln" placeholder="Doe" value={ln} onChange={e => setLn(e.target.value)} />
                     </FormField>
                   </FormRow>
-                  <FormField label="Email *" htmlFor="signup-email">
-                    <Input id="signup-email" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} />
+                  <FormField label="Email *" htmlFor="signup-email" error={errors.email}>
+                    <Input id="signup-email" type="email" placeholder="you@example.com" value={email} onChange={e => { setEmail(e.target.value); if (errors.email) setErrors({ ...errors, email: '' }) }} aria-invalid={errors.email ? true : undefined} className={errors.email ? 'border-destructive' : undefined} />
                   </FormField>
-                  <FormField label="Password *" htmlFor="signup-pw">
+                  <FormField label="Password *" htmlFor="signup-pw" hint={PASSWORD_RULE_HINT} error={errors.pw}>
                     <div className="relative">
-                      <Input id="signup-pw" type={showPw ? 'text' : 'password'} placeholder="Min 8 characters" value={pw} onChange={e => setPw(e.target.value)} className="pr-10" />
+                      <Input id="signup-pw" type={showPw ? 'text' : 'password'} placeholder={PASSWORD_RULE_HINT} value={pw} onChange={e => { setPw(e.target.value); if (errors.pw) setErrors({ ...errors, pw: '' }) }} className={errors.pw ? 'pr-10 border-destructive' : 'pr-10'} aria-invalid={errors.pw ? true : undefined} />
                       <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-muted-foreground select-none" aria-label={showPw ? 'Hide password' : 'Show password'}>
                         <AppIcon name={showPw ? 'eye-slash' : 'eye'} className="size-4" />
                       </button>
@@ -192,7 +200,7 @@ export default function SignupPage() {
                   <Button className="w-full" size="lg" type="submit" disabled={loading}>
                     {loading ? 'Creating account...' : 'Create Account →'}
                   </Button>
-                  <p className="text-center text-[0.72rem] text-muted-foreground">By signing up you agree to our Terms &amp; Privacy Policy</p>
+                  <p className="text-center text-[0.72rem] text-muted-foreground">By signing up you agree to our <SiteLink className="font-semibold text-primary underline-offset-2 hover:underline" to="/terms">Terms</SiteLink> and <SiteLink className="font-semibold text-primary underline-offset-2 hover:underline" to="/privacy">Privacy Policy</SiteLink></p>
                 </form>
 
                 <AuthDivider label="or" />

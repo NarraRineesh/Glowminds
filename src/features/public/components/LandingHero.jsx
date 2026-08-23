@@ -1,5 +1,6 @@
 import { motion, useReducedMotion } from 'framer-motion'
 import { Link } from 'react-router-dom'
+import { AppAuthLink } from '@/components/HostLinks'
 import AppIcon from '@/components/icons/AppIcon'
 import LandingHeroVideo from '@/features/public/components/LandingHeroVideo'
 import LandingHeroMetrics from '@/features/public/components/LandingHeroMetrics'
@@ -42,7 +43,7 @@ export default function LandingHero({ hero, heroMetrics, trustBadges, stats }) {
 
           <motion.div variants={heroFadeUp} transition={motionTransition(reducedMotion, { duration: 0.65, delay: 0.2 })}>
             <Badge variant="outline" className="border-emerald-500/20 bg-emerald-500/10 text-emerald-500">
-              {hero?.liveBadge || 'LIVE'} · {stats?.dailyJobs || '12,400+'} jobs today
+              {hero?.liveBadge || 'FREE TO START'} · {stats?.badgeLine || 'ATS resume, jobs & interview prep'}
             </Badge>
           </motion.div>
 
@@ -83,7 +84,7 @@ export default function LandingHero({ hero, heroMetrics, trustBadges, stats }) {
             className="flex flex-wrap items-center gap-2"
           >
             <motion.div whileHover={reducedMotion ? {} : { y: -2, scale: 1.01 }} whileTap={reducedMotion ? {} : { y: 1 }}>
-              <Button size="lg" render={<Link to="/signup" />} className="gap-2">
+              <Button size="lg" nativeButton={false} render={<AppAuthLink to="/signup" />} className="gap-2">
                 {hero?.primaryCta || 'Build Your Resume'}
                 <AppIcon name="send" className="size-4" />
               </Button>

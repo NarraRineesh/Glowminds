@@ -1,67 +1,139 @@
 {
-  "hosting": {
-    "public": "dist",
-    "trailingSlash": true,
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-    "headers": [
-      {
-        "source": "**",
-        "headers": [
-          { "key": "X-Content-Type-Options", "value": "nosniff" },
-          { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-          { "key": "X-Frame-Options", "value": "SAMEORIGIN" }
-        ]
-      },
-      {
-        "source": "/",
-        "headers": [
-          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
-        ]
-      },
-      {
-        "source": "**/*.html",
-        "headers": [
-          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
-        ]
-      },
-      {
-        "source": "/sitemap.xml",
-        "headers": [
-          { "key": "Cache-Control", "value": "public, max-age=3600" },
-          { "key": "Content-Type", "value": "application/xml; charset=utf-8" }
-        ]
-      },
-      {
-        "source": "/robots.txt",
-        "headers": [
-          { "key": "Cache-Control", "value": "public, max-age=3600" }
-        ]
-      },
-      {
-        "source": "/assets/**",
-        "headers": [
-          { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-        ]
-      },
-      {
-        "source": "**/*.@(woff2|png|jpg|jpeg|svg|webp|ico)",
-        "headers": [
-          { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-        ]
-      }
-    ],
-    "rewrites": [
-      {
-        "source": "/api/**",
-        "function": { "functionId": "api", "region": "asia-south1" }
-      },
-      {
-        "source": "/assets/**",
-        "function": { "functionId": "assetNotFound", "region": "asia-south1" }
-      },
-      { "source": "**", "destination": "/index.html" }
-    ]
-  },
+  "hosting": [
+    {
+      "target": "www",
+      "public": "dist",
+      "trailingSlash": true,
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "headers": [
+        {
+          "source": "**",
+          "headers": [
+            { "key": "X-Content-Type-Options", "value": "nosniff" },
+            { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+            { "key": "X-Frame-Options", "value": "SAMEORIGIN" }
+          ]
+        },
+        {
+          "source": "/",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+          ]
+        },
+        {
+          "source": "**/*.html",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+          ]
+        },
+        {
+          "source": "/sitemap.xml",
+          "headers": [
+            { "key": "Cache-Control", "value": "public, max-age=3600" },
+            { "key": "Content-Type", "value": "application/xml; charset=utf-8" }
+          ]
+        },
+        {
+          "source": "/robots.txt",
+          "headers": [
+            { "key": "Cache-Control", "value": "public, max-age=3600" }
+          ]
+        },
+        {
+          "source": "/assets/**",
+          "headers": [
+            { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+          ]
+        },
+        {
+          "source": "**/*.@(woff2|png|jpg|jpeg|svg|webp|ico)",
+          "headers": [
+            { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+          ]
+        }
+      ],
+      "rewrites": [
+        {
+          "source": "/api/**",
+          "function": { "functionId": "api", "region": "asia-south1" }
+        },
+        {
+          "source": "/assets/**",
+          "function": { "functionId": "assetNotFound", "region": "asia-south1" }
+        },
+        { "source": "**", "destination": "/index.html" }
+      ]
+    },
+    {
+      "target": "app",
+      "public": "dist",
+      "trailingSlash": true,
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "headers": [
+        {
+          "source": "**",
+          "headers": [
+            { "key": "X-Content-Type-Options", "value": "nosniff" },
+            { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+            { "key": "X-Frame-Options", "value": "SAMEORIGIN" }
+          ]
+        },
+        {
+          "source": "/",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+          ]
+        },
+        {
+          "source": "**/*.html",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+          ]
+        },
+        {
+          "source": "/assets/**",
+          "headers": [
+            { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+          ]
+        },
+        {
+          "source": "**/*.@(woff2|png|jpg|jpeg|svg|webp|ico)",
+          "headers": [
+            { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+          ]
+        }
+      ],
+      "redirects": [
+        { "source": "/about", "destination": "https://glowminds.in/about/", "type": 302 },
+        { "source": "/about/**", "destination": "https://glowminds.in/about/:path*", "type": 302 },
+        { "source": "/features", "destination": "https://glowminds.in/features/", "type": 302 },
+        { "source": "/features/**", "destination": "https://glowminds.in/features/:path*", "type": 302 },
+        { "source": "/contact", "destination": "https://glowminds.in/contact/", "type": 302 },
+        { "source": "/contact/**", "destination": "https://glowminds.in/contact/:path*", "type": 302 },
+        { "source": "/pricing", "destination": "https://glowminds.in/pricing/", "type": 302 },
+        { "source": "/pricing/**", "destination": "https://glowminds.in/pricing/:path*", "type": 302 },
+        { "source": "/careers", "destination": "https://glowminds.in/careers/", "type": 302 },
+        { "source": "/careers/**", "destination": "https://glowminds.in/careers/:path*", "type": 302 },
+        { "source": "/privacy", "destination": "https://glowminds.in/privacy/", "type": 302 },
+        { "source": "/privacy/**", "destination": "https://glowminds.in/privacy/:path*", "type": 302 },
+        { "source": "/terms", "destination": "https://glowminds.in/terms/", "type": 302 },
+        { "source": "/terms/**", "destination": "https://glowminds.in/terms/:path*", "type": 302 },
+        { "source": "/refund", "destination": "https://glowminds.in/refund/", "type": 302 },
+        { "source": "/refund/**", "destination": "https://glowminds.in/refund/:path*", "type": 302 }
+      ],
+      "rewrites": [
+        {
+          "source": "/api/**",
+          "function": { "functionId": "api", "region": "asia-south1" }
+        },
+        {
+          "source": "/assets/**",
+          "function": { "functionId": "assetNotFound", "region": "asia-south1" }
+        },
+        { "source": "**", "destination": "/index.html" }
+      ]
+    }
+  ],
   "functions": [
     {
       "source": "functions",

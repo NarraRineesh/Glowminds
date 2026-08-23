@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom'
 import BrandLogo, { GlowmindsWordmark } from '@/components/BrandLogo'
+import { LEGAL_ADDRESS_ONE_LINE, LEGAL_CIN, LEGAL_NAME } from '@/config/legal'
+import { AppAuthLink } from '@/components/HostLinks'
 
 const footerLink =
   'inline-flex min-h-11 items-center text-sm text-muted-foreground transition-colors hover:text-foreground'
@@ -28,21 +30,22 @@ export default function Footer() {
             <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
             AI resume builder, job matching worldwide, Glow (Bot), upskilling, and interview prep — a Career Operating System for students and early-career professionals.
             </p>
-            <Link to="/signup" className="inline-flex min-h-11 items-center text-sm font-semibold text-primary hover:underline">
+            <AppAuthLink to="/signup" className="inline-flex min-h-11 items-center text-sm font-semibold text-primary hover:underline">
               Sign up free
-            </Link>
+            </AppAuthLink>
           </div>
 
           <FooterGroup title="Product">
             <Link to="/features" className={footerLink}>Features</Link>
-            <Link to="/careers" className={footerLink}>Careers & Internships</Link>
+            <Link to="/careers" className={footerLink}>We're hiring</Link>
             <Link to="/pricing" className={footerLink}>Pricing</Link>
-            <Link to="/signup" className={footerLink}>Get started</Link>
+            <AppAuthLink to="/signup" className={footerLink}>Get started</AppAuthLink>
           </FooterGroup>
 
           <FooterGroup title="Company">
             <Link to="/about" className={footerLink}>About</Link>
             <Link to="/contact" className={footerLink}>Contact</Link>
+            <Link to="/careers" className={footerLink}>We&apos;re hiring</Link>
           </FooterGroup>
 
           <FooterGroup title="Legal">
@@ -53,7 +56,7 @@ export default function Footer() {
         </div>
 
         <p className="mt-8 border-t border-border pt-6 text-xs text-muted-foreground">
-          © {year} Glowminds. All rights reserved.
+          © {year} {LEGAL_NAME}. CIN {LEGAL_CIN}. {LEGAL_ADDRESS_ONE_LINE}. All rights reserved.
         </p>
       </div>
     </footer>

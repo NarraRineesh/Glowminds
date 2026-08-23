@@ -7,6 +7,8 @@ import useProfileStore from '@/store/profileStore'
 import useInterviewStore from '@/store/interviewStore'
 import { profileReadyForJobMatches } from '@/utils/jobMatchProfile'
 import { APPLICATION_STATUS, getPreferredRole, normalizeGamification } from '@/constants/schema'
+import { computeProfileScore, getLinkedInScore, getResumeScore } from '@/utils/profileScore'
+import { buildActivityEvents } from '@/utils/activityTimeline'
 import JobMiniRow from '@/features/dashboard/components/JobMiniRow'
 import { getSkillGap } from '@/services/skillsApi'
 import { loadActivity } from '@/services/activityLog'
@@ -77,16 +79,22 @@ export default function OverviewSection() {
     return Math.round(sum / scored.length)
   }, [sessions])
 
-  const scores = useMemo(
-    () =>
-      buildCareerScores({
-        profile,
-        resumeAnalysis: profile?.resumeAnalysis || null,
-        interviewAvg,
-        skillCoverage: gap?.coverage,
-      }),
-    [profile, interviewAvg, gap],
-  )
+  const profileLoaded = useProfileStore((s) => s.loaded)
+  const scores = useMemo(() => {
+    const built = buildCareerScores({
+      profile,
+      resumeAnalysis: profile?.resumeAnalysis || null,
+      interviewAvg,
+      skillCoverage: gap?.coverage,
+    })
+    if (!profileLoaded) return { ...built, careerScore: 0, resumeScore: 0, linkedInScore: 0 }
+    return {
+      ...built,
+      careerScore: computeProfileScore({ profile, user }),
+      resumeScore: getResumeScore(profile) || built.resumeScore || 0,
+      linkedInScore: getLinkedInScore(profile) || built.linkedInScore || 0,
+    }
+  }, [profile, interviewAvg, gap, profileLoaded, user])
 
   const gamification = useMemo(
     () => normalizeGamification(profile?.gamification),
@@ -174,12 +182,24 @@ export default function OverviewSection() {
     return () => clearTimeout(t)
   }, [scores.careerScore, scores.resumeScore, scores.linkedInScore, scores.interviewReady, scores.profileReview])
 
-  const activityItems = activity.map((a) => ({
-    id: a.id,
-    title: a.title,
-    type: a.type,
-    when: timeAgo(a.createdAt),
-  }))
+  const derivedEvents = useMemo(
+    () => buildActivityEvents({ apps, interviews: sessions, profile }),
+    [apps, sessions, profile],
+  )
+  const activityItems = [
+    ...activity.map((a) => ({
+      id: a.id,
+      title: a.title,
+      type: a.type,
+      when: timeAgo(a.createdAt),
+    })),
+    ...derivedEvents.map((e) => ({
+      id: e.id,
+      title: e.title,
+      type: e.icon,
+      when: timeAgo(e.at),
+    })),
+  ].filter((item, idx, arr) => arr.findIndex((x) => x.id === item.id) === idx)
 
   const unlockedBadges = (gamification.badges || []).map((b) => ({
     id: b.id,
@@ -247,30 +267,38 @@ export default function OverviewSection() {
 
       {/* 2. Score sparklines */}
       <div className="grid min-w-0 grid-cols-2 gap-2.5 lg:grid-cols-4 [&>*]:min-w-0">
-        <ScoreSparkCard
-          label="Career"
-          value={scores.careerScore || '—'}
-          color="primary"
-          trend={trendFromHistory(scoreHistory, 'career', scores.careerScore)}
-        />
-        <ScoreSparkCard
-          label="Resume"
-          value={scores.resumeScore || '—'}
-          color="ai"
-          trend={trendFromHistory(scoreHistory, 'resume', scores.resumeScore)}
-        />
-        <ScoreSparkCard
-          label="LinkedIn"
-          value={scores.linkedInScore || '—'}
-          color="success"
-          trend={trendFromHistory(scoreHistory, 'linkedin', scores.linkedInScore)}
-        />
-        <ScoreSparkCard
-          label="Interview"
-          value={scores.interviewReady || '—'}
-          color="warning"
-          trend={trendFromHistory(scoreHistory, 'interview', scores.interviewReady)}
-        />
+        <button type="button" className="min-w-0 text-left" onClick={() => navigate('/dashboard/profile')}>
+          <ScoreSparkCard
+            label="Career"
+            value={!profileLoaded ? '…' : (scores.careerScore || 'Complete')}
+            color="primary"
+            trend={trendFromHistory(scoreHistory, 'career', scores.careerScore)}
+          />
+        </button>
+        <button type="button" className="min-w-0 text-left" onClick={() => navigate('/dashboard/resume')}>
+          <ScoreSparkCard
+            label="Resume"
+            value={!profileLoaded ? '…' : (scores.resumeScore || 'Score it')}
+            color="ai"
+            trend={trendFromHistory(scoreHistory, 'resume', scores.resumeScore)}
+          />
+        </button>
+        <button type="button" className="min-w-0 text-left" onClick={() => navigate('/dashboard/linkedin')}>
+          <ScoreSparkCard
+            label="LinkedIn"
+            value={!profileLoaded ? '…' : (scores.linkedInScore || 'Audit')}
+            color="success"
+            trend={trendFromHistory(scoreHistory, 'linkedin', scores.linkedInScore)}
+          />
+        </button>
+        <button type="button" className="min-w-0 text-left" onClick={() => navigate('/dashboard/interview')}>
+          <ScoreSparkCard
+            label="Interview"
+            value={scores.interviewReady || 'Practice'}
+            color="warning"
+            trend={trendFromHistory(scoreHistory, 'interview', scores.interviewReady)}
+          />
+        </button>
       </div>
 
       {/* Application pipeline stats */}
@@ -361,7 +389,29 @@ export default function OverviewSection() {
                   <JobMiniRow job={j} onClick={() => navigate(`/dashboard/jobs/${encodeURIComponent(j.id)}`)} />
                   {j.matchScore != null && <MatchBar value={j.matchScore} />}
                 </div>
-              ))}
+              )}
+              {activityEvents.length > 0 && (
+                <ul className="divide-y divide-border">
+                  {activityEvents.slice(0, 6).map((ev) => (
+                    <li key={ev.id}>
+                      <button
+                        type="button"
+                        className="flex w-full items-start gap-3 py-2.5 text-left hover:bg-muted/40"
+                        onClick={() => navigate(ev.href)}
+                      >
+                        <AppIcon name={ev.icon} className="mt-0.5 size-4 shrink-0 text-primary" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-medium text-foreground">{ev.title}</span>
+                          {ev.body ? <span className="block truncate text-xs text-muted-foreground">{ev.body}</span> : null}
+                        </span>
+                        <span className="shrink-0 text-[10px] text-muted-foreground">
+                          {ev.at.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           ) : (
             <div className="space-y-3">

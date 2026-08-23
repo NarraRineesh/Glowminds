@@ -68,7 +68,7 @@ export default function LandingHeroVideo() {
               <span className="size-2 rounded-full bg-emerald-500/80" />
             </div>
             <div className="mx-auto hidden max-w-md flex-1 truncate rounded-md border border-border/80 bg-background/80 px-2 py-0.5 text-center text-[10px] text-muted-foreground sm:block">
-              app.glowminds.in/dashboard
+              glowminds.in/dashboard
             </div>
           </div>
 

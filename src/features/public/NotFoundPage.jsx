@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { AppAuthLink, SiteLink } from '@/components/HostLinks'
 import SEO from '@/components/SEO'
 import { PAGE_SEO } from '@/config/seo'
 import { Button, Card, CardContent } from '@/components/ui'
@@ -16,8 +17,8 @@ export default function NotFoundPage() {
               That link may be broken or the page was removed. Head home or open your dashboard if you are signed in.
             </p>
             <div className="flex flex-wrap justify-center gap-2">
-              <Button render={<Link to="/" />}>Back home</Button>
-              <Button variant="outline" render={<Link to="/dashboard" />}>Dashboard</Button>
+              <Button nativeButton={false} render={<SiteLink to="/" />}>Back home</Button>
+              <Button variant="outline" nativeButton={false} render={<AppAuthLink to="/dashboard" />}>Dashboard</Button>
             </div>
           </CardContent>
         </Card>

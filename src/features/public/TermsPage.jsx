@@ -11,6 +11,7 @@ import {
   PublicPageHeroBackdrop,
   PublicPageSection,
 } from '@/features/public/components/publicPageUi'
+import { LEGAL_ADDRESS_ONE_LINE, LEGAL_LEGAL_EMAIL, LEGAL_NAME } from '@/config/legal'
 import { AppIcon, Badge, Card, CardContent } from '@/components/ui'
 
 function LegalSection({ title, children }) {
@@ -151,7 +152,8 @@ export default function TermsPage() {
               <div className="rounded-xl border border-border bg-muted/50 p-5">
                 <h3 className="mb-2 text-lg font-extrabold text-foreground">Contact Us</h3>
                 <LegalP>Questions about these terms? Contact us at:</LegalP>
-                <p className="mt-2 text-sm text-primary">legal@glowminds.in</p>
+                <p className="mt-2 text-sm text-primary">{LEGAL_LEGAL_EMAIL}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{LEGAL_NAME}<br />{LEGAL_ADDRESS_ONE_LINE}</p>
               </div>
             </CardContent>
           </Card>
