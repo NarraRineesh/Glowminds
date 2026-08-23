@@ -32,6 +32,12 @@ export function detectAndroidApp() {
     persist()
   }
 
+  try {
+    if (window.Capacitor?.isNativePlatform?.()) persist()
+  } catch {
+    /* ignore */
+  }
+
   const ua = typeof navigator !== 'undefined' ? navigator.userAgent || '' : ''
   if (/GlowmindsAndroid|Glowminds\/[\d.]+.*Android/i.test(ua)) persist()
   if (/Android.+; wv\).*(Glowminds|in.glowminds)/i.test(ua)) persist()

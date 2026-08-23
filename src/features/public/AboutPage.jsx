@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { AppAuthLink } from '@/components/HostLinks'
 import { motion } from 'framer-motion'
 import SEO from '@/components/SEO'
 import {
@@ -185,7 +186,7 @@ export default function AboutPage() {
               <h2 className="mb-3 text-2xl font-black text-foreground md:text-3xl">{socialProof.joinStudentsTitle || 'Join students getting hired'}</h2>
               <p className="mx-auto mb-6 max-w-md text-base text-muted-foreground">Start building your career today — completely free.</p>
               <div className="mb-3 flex flex-wrap justify-center gap-3">
-                <Button size="lg" render={<Link to="/signup" />}>
+                <Button size="lg" nativeButton={false} render={<AppAuthLink to="/signup" />}>
                   Get Started Now
                 </Button>
                 <Button size="lg" variant="outline" render={<Link to="/contact" />}>

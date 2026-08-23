@@ -1,8 +1,16 @@
 {
   "projects": {
+    "default": "glowminds-abc84",
     "staging": "glowminds-abc84"
   },
-  "targets": {},
+  "targets": {
+    "glowminds-abc84": {
+      "hosting": {
+        "www": ["glowminds-abc84"],
+        "app": ["glowminds-app"]
+      }
+    }
+  },
   "etags": {},
   "dataconnectEmulatorConfig": {}
 }

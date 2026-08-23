@@ -10,6 +10,8 @@ import AdminRoute from '@/components/AdminRoute'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import { PageLoader } from '@/components/Loader'
 import AndroidAppAuthGate from '@/components/AndroidAppAuthGate'
+import HostSplit from '@/components/HostSplit'
+import { isAppHost } from '@/config/hosts'
 import PublicLayout from '@/features/public/PublicLayout'
 // Landing is eager so `/` does not blank on Suspense while the chunk downloads.
 import LandingPage from '@/features/public/LandingPage'
@@ -65,6 +67,23 @@ const DesignSystemGallery = lazy(() => import('@/features/design-lab/DesignSyste
 const DesignScreenView = lazy(() => import('@/features/design-lab/DesignScreenView'))
 
 
+function HomeRoute() {
+  if (isAppHost()) {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <PublicOnlyRoute>
+          <LoginPage />
+        </PublicOnlyRoute>
+      </Suspense>
+    )
+  }
+  return (
+    <PublicLayout>
+      <LandingPage />
+    </PublicLayout>
+  )
+}
+
 function AnimatedRoutes() {
   const location = useLocation()
   
@@ -73,11 +92,12 @@ function AnimatedRoutes() {
   }, [location.pathname])
   
   return (
+    <HostSplit>
     <AndroidAppAuthGate>
     <Routes location={location}>
       {/* Public marketing pages — no auth gate so crawlers see content without waiting on Firebase Auth */}
+      <Route index element={<HomeRoute />} />
       <Route element={<PublicLayout />}>
-        <Route index element={<LandingPage />} />
         <Route path="about" element={<Suspense fallback={<PageLoader />}><AboutPage /></Suspense>} />
         <Route path="features" element={<Suspense fallback={<PageLoader />}><FeaturesPage /></Suspense>} />
         <Route path="contact" element={<Suspense fallback={<PageLoader />}><ContactPage /></Suspense>} />
@@ -237,6 +257,7 @@ function AnimatedRoutes() {
       </Route>
     </Routes>
     </AndroidAppAuthGate>
+    </HostSplit>
   )
 }
 

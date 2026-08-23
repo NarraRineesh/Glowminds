@@ -26,6 +26,8 @@ function isAllowedCorsOrigin(origin) {
     // Local dev (Vite picks 5173, 5174, … when ports are busy)
     if (hostname === "localhost" || hostname === "127.0.0.1") return true;
 
+    if (hostname === "glowminds.in" || hostname === "www.glowminds.in" || hostname === "app.glowminds.in") return true;
+    if (hostname === "glowminds-app.web.app" || hostname === "glowminds-app.firebaseapp.com") return true;
     if (!projectId) return false;
     if (hostname === `${projectId}.web.app`) return true;
     if (hostname === `${projectId}.firebaseapp.com`) return true;
@@ -41,6 +43,10 @@ export const env = {
     "https://glowminds-abc84.web.app",
     "https://glowminds-abc84.firebaseapp.com",
     "https://glowminds.in",
+    "https://www.glowminds.in",
+    "https://app.glowminds.in",
+    "https://glowminds-app.web.app",
+    "https://glowminds-app.firebaseapp.com",
     "http://localhost:5173",
     "http://localhost:4173",
     "http://127.0.0.1:5000",

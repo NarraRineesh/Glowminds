@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { AppAuthLink } from '@/components/HostLinks'
 import AppIcon from '@/components/icons/AppIcon'
 import {
   Badge,
@@ -71,7 +72,7 @@ export default function PlanCard({
       variant={ctaVariant}
       size="lg"
       nativeButton={false}
-      render={<Link to={loggedIn ? '/dashboard' : '/signup'} />}
+      render={loggedIn ? <Link to="/dashboard" /> : <AppAuthLink to="/signup" />}
     >
       {plan.ctaLabel || 'Start Free'}
     </Button>

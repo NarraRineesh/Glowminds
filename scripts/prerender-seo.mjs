@@ -13,6 +13,7 @@ const root = path.resolve(__dirname, '..')
 const distDir = path.join(root, 'dist')
 const publicDir = path.join(root, 'public')
 const siteUrl = (process.env.VITE_PUBLIC_SITE_URL || 'https://glowminds.in').replace(/\/$/, '')
+const appUrl = (process.env.VITE_PUBLIC_APP_URL || 'https://app.glowminds.in').replace(/\/$/, '')
 const today = new Date().toISOString().slice(0, 10)
 
 const SITE_NAME = 'Glowminds'
@@ -26,7 +27,7 @@ const NAV_LINKS = [
   ['/pricing/', 'Pricing'],
   ['/careers/', 'Careers'],
   ['/contact/', 'Contact'],
-  ['/signup', 'Sign up free'],
+  [`${appUrl}/signup`, 'Sign up free'],
 ]
 
 /** @type {Array<Record<string, any>>} */
@@ -413,7 +414,7 @@ function bodyHtml(page) {
           <h1>${escapeHtml(page.h1)}</h1>
           <p>${escapeHtml(page.description)}</p>
           ${sections}
-          <p><a href="/about/">About</a> · <a href="/features/">Features</a> · <a href="/pricing/">Pricing</a> · <a href="/signup">Sign up free</a></p>
+          <p><a href="/about/">About</a> · <a href="/features/">Features</a> · <a href="/pricing/">Pricing</a> · <a href="${appUrl}/signup">Sign up free</a></p>
         </article>
       </main>`
 }

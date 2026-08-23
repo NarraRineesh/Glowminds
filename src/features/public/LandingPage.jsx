@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { AppAuthLink } from '@/components/HostLinks'
 import AppIcon from '@/components/icons/AppIcon'
 import SEO from '@/components/SEO'
 import {
@@ -225,7 +226,7 @@ export default function LandingPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button size="lg" className="min-w-[160px]" render={<Link to="/signup" />}>
+              <Button size="lg" className="min-w-[160px]" nativeButton={false} render={<AppAuthLink to="/signup" />}>
                 {exitCta?.button || 'Start Free'}
               </Button>
             </CardContent>

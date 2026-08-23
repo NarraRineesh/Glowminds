@@ -74,16 +74,34 @@
     </style>
     <script>
       (function () {
-        // Prefer apex host for SEO (Firebase www uses CDN 301; this covers *.web.app).
+        // Host split + apex canonicalize. Never bounce localhost.
         try {
           var host = location.hostname;
-          if (
-            host === 'www.glowminds.in' ||
-            host.endsWith('.web.app') ||
-            host.endsWith('.firebaseapp.com')
-          ) {
-            location.replace('https://glowminds.in' + location.pathname + location.search + location.hash);
-            return;
+          var rest = location.pathname + location.search + location.hash;
+          var path = location.pathname || '/';
+          var local = host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0';
+          var isApp = host === 'app.glowminds.in' || host === 'glowminds-app.web.app' || host === 'glowminds-app.firebaseapp.com';
+          var appPrefixes = ['/login','/signup','/verify-email','/dashboard','/admin','/design','/jobs'];
+          var mktPrefixes = ['/about','/features','/contact','/pricing','/careers','/privacy','/terms','/refund'];
+          function starts(list) {
+            for (var i = 0; i < list.length; i++) {
+              if (path === list[i] || path.indexOf(list[i] + '/') === 0) return true;
+            }
+            return false;
+          }
+          if (!local) {
+            if (!isApp && starts(appPrefixes)) {
+              location.replace('%APP_URL%' + rest);
+              return;
+            }
+            if (isApp && starts(mktPrefixes)) {
+              location.replace('%SITE_URL%' + rest);
+              return;
+            }
+            if (!isApp && (host === 'www.glowminds.in' || host === 'glowminds-abc84.web.app' || host === 'glowminds-abc84.firebaseapp.com')) {
+              location.replace('%SITE_URL%' + rest);
+              return;
+            }
           }
         } catch (e) {}
         try {
@@ -235,7 +253,7 @@
             <li><a href="/pricing">Pricing</a></li>
             <li><a href="/careers">Careers</a></li>
             <li><a href="/contact">Contact</a></li>
-            <li><a href="/signup">Sign up free</a></li>
+            <li><a href="%APP_URL%/signup">Sign up free</a></li>
           </ul>
         </nav>
       </main>

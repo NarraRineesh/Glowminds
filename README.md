@@ -69,7 +69,9 @@ Scheduled functions:
 
 ## Environment
 
-**Frontend** (`.env`): Firebase `VITE_*` keys, `VITE_API_BASE_URL=/api`
+**Frontend** (`.env`): Firebase `VITE_*` keys, `VITE_API_BASE_URL=/api`, `VITE_PUBLIC_SITE_URL=https://glowminds.in`, `VITE_PUBLIC_APP_URL=https://app.glowminds.in`
+
+See `docs/domains.md` for the marketing vs app host split, Cloudflare CNAME, and Auth host list.
 
 **Functions** (`functions/.env`): `CORS_ORIGINS`, Supabase URL/anon if used; secrets via Firebase secrets (not committed).
 

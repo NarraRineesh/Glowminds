@@ -1,5 +1,6 @@
 import { motion, useReducedMotion } from 'framer-motion'
 import { Link } from 'react-router-dom'
+import { AppAuthLink } from '@/components/HostLinks'
 import AppIcon from '@/components/icons/AppIcon'
 import LandingHeroVideo from '@/features/public/components/LandingHeroVideo'
 import LandingHeroMetrics from '@/features/public/components/LandingHeroMetrics'
@@ -83,7 +84,7 @@ export default function LandingHero({ hero, heroMetrics, trustBadges, stats }) {
             className="flex flex-wrap items-center gap-2"
           >
             <motion.div whileHover={reducedMotion ? {} : { y: -2, scale: 1.01 }} whileTap={reducedMotion ? {} : { y: 1 }}>
-              <Button size="lg" render={<Link to="/signup" />} className="gap-2">
+              <Button size="lg" nativeButton={false} render={<AppAuthLink to="/signup" />} className="gap-2">
                 {hero?.primaryCta || 'Build Your Resume'}
                 <AppIcon name="send" className="size-4" />
               </Button>
