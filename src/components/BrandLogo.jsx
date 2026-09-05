@@ -40,7 +40,7 @@ export function BrandLogo({
   const frame = (img) => (
     <span
       className={cn(
-        'inline-flex shrink-0 items-center justify-center overflow-hidden leading-none',
+        'inline-flex shrink-0 items-center justify-center overflow-hidden leading-none ring-1 ring-foreground/15',
         variant === 'full' ? 'rounded-xl' : 'rounded-lg',
       )}
       style={boxStyle}
