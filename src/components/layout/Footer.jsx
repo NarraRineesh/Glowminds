@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import BrandLogo, { GlowmindsWordmark } from '@/components/BrandLogo'
 import { LEGAL_ADDRESS_ONE_LINE, LEGAL_CIN, LEGAL_NAME } from '@/config/legal'
-import { AppAuthLink } from '@/components/HostLinks'
+import { AppAuthLink, ChromeHomeLink } from '@/components/HostLinks'
 
 const footerLink =
   'inline-flex min-h-11 items-center text-sm text-muted-foreground transition-colors hover:text-foreground'
@@ -23,10 +23,10 @@ export default function Footer() {
       <div className="mx-auto max-w-6xl px-4 py-8 md:px-8">
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-3 sm:col-span-2 lg:col-span-1">
-            <Link to="/" className="inline-flex min-h-11 items-center gap-2">
+            <ChromeHomeLink className="inline-flex min-h-11 items-center gap-2">
               <BrandLogo size={24} alt="" aria-hidden />
               <GlowmindsWordmark className="text-sm text-foreground" />
-            </Link>
+            </ChromeHomeLink>
             <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
             AI resume builder, job matching worldwide, Glow (Bot), upskilling, and interview prep — a Career Operating System for students and early-career professionals.
             </p>

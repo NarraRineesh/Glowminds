@@ -20,27 +20,35 @@ export function BrandLogo({
 }) {
   const px = typeof size === 'number' ? `${size}px` : size
   const sharedImg = cn(
-    'shrink-0 object-contain',
+    'block size-full object-contain',
     variant === 'full' ? 'rounded-xl' : 'rounded-lg',
     imgClassName,
     className,
   )
   const boxStyle = { width: px, height: px }
 
+  const frame = (img) => (
+    <span
+      className="inline-flex shrink-0 items-center justify-center overflow-visible leading-none"
+      style={boxStyle}
+    >
+      {img}
+    </span>
+  )
+
   if (forceDark) {
-    return (
+    return frame(
       <img
         src={BRAND_ASSETS.logoDark}
         alt={alt}
         width={size}
         height={size}
         className={sharedImg}
-        style={boxStyle}
-      />
+      />,
     )
   }
 
-  return (
+  return frame(
     <>
       <img
         src={BRAND_ASSETS.logoLight}
@@ -48,7 +56,6 @@ export function BrandLogo({
         width={size}
         height={size}
         className={cn(sharedImg, 'dark:hidden')}
-        style={boxStyle}
       />
       <img
         src={BRAND_ASSETS.logoDark}
@@ -56,9 +63,8 @@ export function BrandLogo({
         width={size}
         height={size}
         className={cn(sharedImg, 'hidden dark:block')}
-        style={boxStyle}
       />
-    </>
+    </>,
   )
 }
 

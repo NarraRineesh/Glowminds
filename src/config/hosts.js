@@ -82,6 +82,15 @@ export function siteHref(path = '/') {
 }
 
 /**
+ * Same-host destination for chrome logos (header, drawer, auth).
+ * Never returns SITE_URL — marketing stays on `/`; app stays in the product.
+ */
+export function chromeHomePath({ loggedIn = false, hostname = getHostname() } = {}) {
+  if (isAppHost(hostname)) return loggedIn ? '/dashboard' : '/login'
+  return '/'
+}
+
+/**
  * Cross-host bounce target, or null if this host should serve the path.
  * Never redirects on localhost.
  */
