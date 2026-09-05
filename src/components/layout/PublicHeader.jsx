@@ -23,7 +23,7 @@ const navLinkClass = ({ isActive }) =>
       : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
   )
 
-/** Full-width pills; text lines up with the shared drawer gutter (px-7). */
+/** Full-width pills; text lines up with the shared drawer gutter (px-8). */
 const mobileNavLinkClass = ({ isActive }) =>
   cn(
     'rounded-lg py-2.5 text-sm font-medium transition-colors',
@@ -99,7 +99,7 @@ export default function PublicHeader() {
                 <AppIcon name="menu" className="size-4" />
               </Button>
               <SheetContent side="right" className="w-[min(100vw-2rem,320px)] gap-0 p-0">
-                <div className="flex flex-col px-7 py-4">
+                <div className="flex flex-col px-8 py-4">
                   <SheetTitle className="sr-only">Menu</SheetTitle>
                   <div className="flex items-center overflow-visible pr-10 leading-none">
                     <ChromeHomeLink
