@@ -11,7 +11,6 @@ import {
   Button,
   Sheet,
   SheetContent,
-  SheetHeader,
   SheetTitle,
   cn,
 } from '@/components/ui'
@@ -19,6 +18,15 @@ import {
 const navLinkClass = ({ isActive }) =>
   cn(
     'rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+    isActive
+      ? 'bg-primary/10 text-primary'
+      : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+  )
+
+/** Same horizontal inset as the drawer logo and CTA buttons — no extra px. */
+const mobileNavLinkClass = ({ isActive }) =>
+  cn(
+    'rounded-lg py-2.5 text-sm font-medium transition-colors',
     isActive
       ? 'bg-primary/10 text-primary'
       : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
@@ -90,40 +98,41 @@ export default function PublicHeader() {
               >
                 <AppIcon name="menu" className="size-4" />
               </Button>
-              <SheetContent side="right" className="w-[min(100vw-2rem,320px)] gap-0 px-4 py-4">
-                <SheetHeader className="p-0 pr-10">
-                  <SheetTitle className="flex items-center gap-2 overflow-visible leading-none">
+              <SheetContent side="right" className="w-[min(100vw-2rem,320px)] gap-0 p-0">
+                <div className="flex flex-col px-5 py-4">
+                  <SheetTitle className="sr-only">Menu</SheetTitle>
+                  <div className="flex items-center overflow-visible pr-10 leading-none">
                     <ChromeHomeLink
                       className="flex min-w-0 items-center gap-2"
                       aria-label="Glowminds home"
                       onClick={() => setOpen(false)}
                     >
                       <BrandLogo
-                        size={32}
+                        size={36}
                         alt=""
                         aria-hidden
-                        className="rounded-md object-contain p-0.5"
+                        className="rounded-md object-contain p-1"
                       />
-                      <GlowmindsWordmark className="text-sm text-foreground" />
+                      <GlowmindsWordmark className="text-sm leading-none text-foreground" />
                     </ChromeHomeLink>
-                  </SheetTitle>
-                </SheetHeader>
-                <nav className="mt-6 flex flex-col gap-1" aria-label="Mobile">
-                  {PUBLIC_NAV_LINKS.map((item) => (
-                    <NavLink
-                      key={item.path}
-                      to={item.path}
-                      end={item.end}
-                      className={navLinkClass}
-                      onClick={() => setOpen(false)}
-                    >
-                      {item.label}
-                    </NavLink>
-                  ))}
-                </nav>
-                <div className="mt-6 flex flex-col gap-2 border-t border-border pt-6">
-                  <Button className="w-full" variant="outline" onClick={() => closeAndGoApp('/login')}>Log in</Button>
-                  <Button className="w-full" onClick={() => closeAndGoApp('/signup')}>Get started free</Button>
+                  </div>
+                  <nav className="mt-6 flex flex-col gap-1" aria-label="Mobile">
+                    {PUBLIC_NAV_LINKS.map((item) => (
+                      <NavLink
+                        key={item.path}
+                        to={item.path}
+                        end={item.end}
+                        className={mobileNavLinkClass}
+                        onClick={() => setOpen(false)}
+                      >
+                        {item.label}
+                      </NavLink>
+                    ))}
+                  </nav>
+                  <div className="mt-6 flex flex-col gap-2 border-t border-border pt-6">
+                    <Button className="w-full" variant="outline" onClick={() => closeAndGoApp('/login')}>Log in</Button>
+                    <Button className="w-full" onClick={() => closeAndGoApp('/signup')}>Get started free</Button>
+                  </div>
                 </div>
               </SheetContent>
             </Sheet>
