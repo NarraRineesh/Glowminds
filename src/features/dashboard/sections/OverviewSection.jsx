@@ -389,7 +389,7 @@ export default function OverviewSection() {
                   <JobMiniRow job={j} onClick={() => navigate(`/dashboard/jobs/${encodeURIComponent(j.id)}`)} />
                   {j.matchScore != null && <MatchBar value={j.matchScore} />}
                 </div>
-              )}
+              ))}
               {activityEvents.length > 0 && (
                 <ul className="divide-y divide-border">
                   {activityEvents.slice(0, 6).map((ev) => (
