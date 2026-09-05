@@ -111,7 +111,7 @@ export default function PublicHeader() {
                         size={36}
                         alt=""
                         aria-hidden
-                        className="rounded-md object-contain p-1"
+                        className="rounded-none object-contain"
                       />
                       <GlowmindsWordmark className="text-sm leading-none text-foreground" />
                     </ChromeHomeLink>
