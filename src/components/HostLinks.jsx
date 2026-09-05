@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
-import { appHref, isLocalHost, siteHref } from '@/config/hosts'
+import useAppStore from '@/store/authStore'
+import { appHref, chromeHomePath, isLocalHost, siteHref } from '@/config/hosts'
 
 /** Login / signup / dashboard CTA. Absolute on production marketing; relative on localhost. */
 export function AppAuthLink({ to, children, ...props }) {
@@ -30,5 +31,15 @@ export function SiteLink({ to, children, ...props }) {
     <a href={siteHref(to)} {...props}>
       {children}
     </a>
+  )
+}
+
+/** Logo / home control. Always same-origin — never hard-links marketing SITE_URL. */
+export function ChromeHomeLink({ children, ...props }) {
+  const loggedIn = useAppStore((s) => s.loggedIn)
+  return (
+    <Link to={chromeHomePath({ loggedIn })} {...props}>
+      {children}
+    </Link>
   )
 }

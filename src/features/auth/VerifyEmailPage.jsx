@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
+import { ChromeHomeLink } from '@/components/HostLinks'
 import useAppStore from '@/store/authStore'
 import SEO from '@/components/SEO'
 import { PAGE_SEO } from '@/config/seo'
@@ -67,9 +68,9 @@ export default function VerifyEmailPage() {
         <Card className="relative z-10 w-full max-w-md">
           <CardContent className="p-6 sm:p-7">
             <div className="mb-6 text-center">
-              <Link to="/" className="mb-4 inline-flex justify-center rounded-lg transition-opacity hover:opacity-80" aria-label="Back to home">
+              <ChromeHomeLink className="mb-4 inline-flex justify-center rounded-lg transition-opacity hover:opacity-80" aria-label="Glowminds home">
                 <BrandLogo variant="full" size={48} forceDark alt="Glowminds" />
-              </Link>
+              </ChromeHomeLink>
               <Badge variant="outline" className="mb-3 border-primary/20 bg-primary/10 text-primary">
                 Check your email
               </Badge>

@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import BrandLogo, { GlowmindsWordmark } from '@/components/BrandLogo'
 import AppIcon from '@/components/icons/AppIcon'
 import useTheme from '@/hooks/useTheme'
 import useIsLg from '@/hooks/useIsLg'
 import { PUBLIC_NAV_LINKS } from '@/constants/publicNav'
-import { AppAuthLink } from '@/components/HostLinks'
+import { AppAuthLink, ChromeHomeLink } from '@/components/HostLinks'
 import { appHref, isLocalHost } from '@/config/hosts'
 import {
   Button,
@@ -43,10 +43,10 @@ export default function PublicHeader() {
   return (
     <header className="sticky top-0 z-50 border-b border-border/80 bg-background/85 backdrop-blur-md supports-[backdrop-filter]:bg-background/70">
       <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4 md:px-8">
-        <Link to="/" className="flex min-w-0 shrink-0 items-center gap-2">
+        <ChromeHomeLink className="flex min-w-0 shrink-0 items-center gap-2" aria-label="Glowminds home">
           <BrandLogo size={32} alt="" aria-hidden className="rounded-lg" />
           {isLg ? <GlowmindsWordmark className="text-sm text-foreground" /> : null}
-        </Link>
+        </ChromeHomeLink>
 
         {isLg ? (
           <nav className="flex flex-1 items-center justify-center gap-1" aria-label="Main">
@@ -90,11 +90,22 @@ export default function PublicHeader() {
               >
                 <AppIcon name="menu" className="size-4" />
               </Button>
-              <SheetContent side="right" className="w-[min(100vw-2rem,320px)]">
-                <SheetHeader>
-                  <SheetTitle className="flex items-center gap-2">
-                    <BrandLogo size={28} alt="" aria-hidden className="rounded-lg" />
-                    <GlowmindsWordmark className="text-sm text-foreground" />
+              <SheetContent side="right" className="w-[min(100vw-2rem,320px)] gap-0 px-4 py-4">
+                <SheetHeader className="p-0 pr-10">
+                  <SheetTitle className="flex items-center gap-2 overflow-visible leading-none">
+                    <ChromeHomeLink
+                      className="flex min-w-0 items-center gap-2"
+                      aria-label="Glowminds home"
+                      onClick={() => setOpen(false)}
+                    >
+                      <BrandLogo
+                        size={32}
+                        alt=""
+                        aria-hidden
+                        className="rounded-md object-contain p-0.5"
+                      />
+                      <GlowmindsWordmark className="text-sm text-foreground" />
+                    </ChromeHomeLink>
                   </SheetTitle>
                 </SheetHeader>
                 <nav className="mt-6 flex flex-col gap-1" aria-label="Mobile">
@@ -111,8 +122,8 @@ export default function PublicHeader() {
                   ))}
                 </nav>
                 <div className="mt-6 flex flex-col gap-2 border-t border-border pt-6">
-                  <Button variant="outline" onClick={() => closeAndGoApp('/login')}>Log in</Button>
-                  <Button onClick={() => closeAndGoApp('/signup')}>Get started free</Button>
+                  <Button className="w-full" variant="outline" onClick={() => closeAndGoApp('/login')}>Log in</Button>
+                  <Button className="w-full" onClick={() => closeAndGoApp('/signup')}>Get started free</Button>
                 </div>
               </SheetContent>
             </Sheet>

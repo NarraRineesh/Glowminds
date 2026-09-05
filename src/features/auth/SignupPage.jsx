@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { SiteLink } from '@/components/HostLinks'
+import { ChromeHomeLink, SiteLink } from '@/components/HostLinks'
 import { motion } from 'framer-motion'
 import useAppStore from '@/store/authStore'
 import SEO from '@/components/SEO'
@@ -104,13 +104,12 @@ export default function SignupPage() {
           className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,color-mix(in_srgb,var(--border)_40%,transparent)_1px,transparent_1px),linear-gradient(to_bottom,color-mix(in_srgb,var(--border)_40%,transparent)_1px,transparent_1px)] bg-size-[48px_48px] [mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_75%)]"
         />
 
-        <SiteLink
-          to="/"
+        <ChromeHomeLink
           className="absolute left-4 top-4 z-20 inline-flex items-center gap-2 rounded-lg px-1 py-1 transition-colors hover:bg-muted/60 md:left-8 md:top-6"
         >
           <BrandLogo variant="full" size={28} forceDark alt="" aria-hidden />
           <GlowmindsWordmark className="hidden text-sm text-foreground sm:inline" />
-        </SiteLink>
+        </ChromeHomeLink>
 
         <div className="relative z-10 mx-auto grid w-full max-w-6xl flex-1 items-center gap-8 px-4 py-10 pb-12 md:grid-cols-2 md:gap-12 md:px-8 md:py-8 lg:gap-16">
 
@@ -169,9 +168,9 @@ export default function SignupPage() {
               <CardContent className="p-6 sm:p-7">
                 <div className="mb-6 text-center">
                   <div className="mb-4 flex justify-center">
-                    <SiteLink to="/" className="rounded-lg transition-opacity hover:opacity-80" aria-label="Back to home">
+                    <ChromeHomeLink className="rounded-lg transition-opacity hover:opacity-80" aria-label="Glowminds home">
                       <BrandLogo variant="full" size={48} forceDark alt="Glowminds" />
-                    </SiteLink>
+                    </ChromeHomeLink>
                   </div>
                   <h1 className="text-xl font-black">Create Your Account</h1>
                   <p className="mt-1 text-sm text-muted-foreground">Smart tools for your career journey</p>
