@@ -9,5 +9,6 @@ export const BRAND_ASSETS = {
   ogImage: '/og-image.png',
   logoLight: '/logo-light.png',
   logoDark: '/logo-dark.png',
+  /** GM monogram with baked transparent inset (~28% per side). Do not crop flush. */
   logoMark: '/logo-mark.png',
 }

@@ -19,9 +19,19 @@ export function BrandLogo({
   forceDark = false,
 }) {
   const px = typeof size === 'number' ? `${size}px` : size
+  // Inner pad so G/M never sit flush to the rounded frame. Scale with size so
+  // 24px footer marks stay readable while 36px chrome gets p-1.5 breathing room.
+  const padClass =
+    typeof size === 'number'
+      ? size >= 36
+        ? 'p-1.5'
+        : size >= 28
+          ? 'p-1'
+          : 'p-0.5'
+      : 'p-1'
   const sharedImg = cn(
     'block size-full object-contain',
-    variant === 'full' ? 'rounded-xl' : 'rounded-lg',
+    padClass,
     imgClassName,
     className,
   )
@@ -29,7 +39,10 @@ export function BrandLogo({
 
   const frame = (img) => (
     <span
-      className="inline-flex shrink-0 items-center justify-center overflow-visible leading-none"
+      className={cn(
+        'inline-flex shrink-0 items-center justify-center overflow-hidden leading-none ring-1 ring-foreground/15',
+        variant === 'full' ? 'rounded-xl' : 'rounded-lg',
+      )}
       style={boxStyle}
     >
       {img}
