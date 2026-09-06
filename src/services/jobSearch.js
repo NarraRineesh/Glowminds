@@ -3,6 +3,7 @@ import {
   getCatalogJob,
   searchJobs,
 } from '@/services/jobsApi'
+import { cleanJobSearchQuery } from '@/utils/targetRole'
 
 export async function getQueryHeader() {
   return apiFetch('/jobs/query-header', { method: 'GET' })
@@ -32,7 +33,7 @@ export async function getTopMatches({ limit = 10 } = {}) {
   let q = ''
   try {
     const header = await getQueryHeader()
-    q = String(header?.q || '').trim()
+    q = cleanJobSearchQuery(header?.q) || String(header?.q || '').trim()
   } catch {
     q = ''
   }
