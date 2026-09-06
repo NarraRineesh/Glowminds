@@ -1,4 +1,5 @@
 import { formatCompanyDisplayName } from '@/utils/companyName'
+import { catalogSearchParams } from '@/utils/jobFilters'
 
 export const JOBS_API_BASE =
   (import.meta.env.VITE_JOBS_API_BASE_URL || 'https://api.glowminds.in').replace(/\/$/, '')
@@ -54,6 +55,7 @@ export function mapCatalogJob(row) {
     logo: row.logo || '',
     location,
     loc: location,
+    country: cleanPlace(row.country),
     remote,
     type: typeLabel(row),
     salary: '',
@@ -93,10 +95,14 @@ async function catalogFetch(path, { method = 'GET', body } = {}) {
   return data
 }
 
-export async function searchJobs({ q = '', page = 1, limit = 12 } = {}) {
+export async function searchJobs({ q = '', page = 1, limit = 12, country = '' } = {}) {
   const params = new URLSearchParams()
   const query = String(q || '').trim()
   if (query) params.set('q', query)
+  const locationParams = catalogSearchParams(country)
+  for (const [key, value] of Object.entries(locationParams)) {
+    if (value) params.set(key, value)
+  }
   params.set('page', String(Math.max(1, Math.trunc(page) || 1)))
   params.set('limit', String(Math.min(50, Math.max(1, Math.trunc(limit) || 12))))
   const data = await catalogFetch(`/v1/jobs?${params.toString()}`)
