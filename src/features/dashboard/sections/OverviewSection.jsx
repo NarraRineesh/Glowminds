@@ -390,28 +390,6 @@ export default function OverviewSection() {
                   {j.matchScore != null && <MatchBar value={j.matchScore} />}
                 </div>
               ))}
-              {activityEvents.length > 0 && (
-                <ul className="divide-y divide-border">
-                  {activityEvents.slice(0, 6).map((ev) => (
-                    <li key={ev.id}>
-                      <button
-                        type="button"
-                        className="flex w-full items-start gap-3 py-2.5 text-left hover:bg-muted/40"
-                        onClick={() => navigate(ev.href)}
-                      >
-                        <AppIcon name={ev.icon} className="mt-0.5 size-4 shrink-0 text-primary" />
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-medium text-foreground">{ev.title}</span>
-                          {ev.body ? <span className="block truncate text-xs text-muted-foreground">{ev.body}</span> : null}
-                        </span>
-                        <span className="shrink-0 text-[10px] text-muted-foreground">
-                          {ev.at.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
             </div>
           ) : (
             <div className="space-y-3">
