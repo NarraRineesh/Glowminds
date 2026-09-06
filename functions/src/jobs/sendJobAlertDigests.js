@@ -27,6 +27,7 @@ export async function sendJobAlertDigests({ maxUsers = 80 } = {}) {
       ).trim();
       const { q } = buildQueryHeader({
         headline: headline || "software engineer",
+        preferredRole: prefs.preferredRole || "",
         skills: data.profile?.skills?.technical || [],
       });
       const result = await searchCatalogJobs({ q, page: 1, limit: 5 });

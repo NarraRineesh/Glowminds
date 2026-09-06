@@ -21,7 +21,11 @@ export async function loadProfileContext(uid) {
 
 export async function getQueryHeaderForUser(uid) {
   const { profile } = await loadProfileContext(uid);
-  const preferredRole = String(profile.preferences?.preferredRole || "").trim();
+  const prefs = profile.preferences || {};
+  const preferredRole = String(prefs.preferredRole || "").trim()
+    || (Array.isArray(prefs.preferredRoles)
+      ? prefs.preferredRoles.map((r) => String(r || "").trim()).filter(Boolean).join(" ")
+      : "");
   const headline = String(profile.headline || "").trim()
     || [profile.careerLevel, "software"].filter(Boolean).join(" ");
   return buildQueryHeader({

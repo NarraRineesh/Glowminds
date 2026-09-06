@@ -70,9 +70,24 @@ function stripToken(word) {
   return String(word || "").replace(/[^a-zA-Z0-9+#]/g, "");
 }
 
+const ROLE_ACRONYMS = new Set(["sde", "sdet", "qa", "ui", "ux", "ml", "ai", "sre", "ios"]);
+
+function formatRoleQuery(text) {
+  const words = String(text || "").trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return "";
+  return words
+    .map((word, index) => {
+      const lower = word.toLowerCase();
+      if (ROLE_ACRONYMS.has(lower)) return lower.toUpperCase();
+      if (index === 0) return lower.charAt(0).toUpperCase() + lower.slice(1);
+      return lower;
+    })
+    .join(" ");
+}
+
 /**
  * Short catalog query from a headline / preferred-role blob.
- * "Sof developer Soft developerFrontend developer" → "frontend developer"
+ * "Sof developer Soft developerFrontend developer" → "Frontend developer"
  */
 export function cleanHeadlineQuery(raw) {
   const spaced = splitConcatenatedWords(raw);
@@ -81,7 +96,7 @@ export function cleanHeadlineQuery(raw) {
   const hay = ` ${spaced.toLowerCase()} `;
   for (const phrase of KNOWN_ROLES) {
     if (hay.includes(` ${phrase} `) || hay.includes(` ${phrase.replace(/-/g, " ")} `)) {
-      return phrase.replace(/-/g, " ");
+      return formatRoleQuery(phrase.replace(/-/g, " "));
     }
   }
 
@@ -92,17 +107,19 @@ export function cleanHeadlineQuery(raw) {
     const prev = tokens[i - 1] || "";
     const prevKey = prev.toLowerCase();
     if (prev && prev.length >= 2 && !ROLE_STOP.has(prevKey)) {
-      if (prev.length <= 3 && !ROLE_QUALIFIERS.has(prevKey)) return noun;
-      return `${prev} ${tokens[i]}`;
+      if (prev.length <= 3 && !ROLE_QUALIFIERS.has(prevKey)) return formatRoleQuery(noun);
+      return formatRoleQuery(`${prev} ${tokens[i]}`);
     }
-    return tokens[i];
+    return formatRoleQuery(tokens[i]);
   }
 
-  return tokens
-    .filter((w) => w.length >= 2 && !ROLE_STOP.has(w.toLowerCase()))
-    .slice(0, 4)
-    .join(" ")
-    .trim();
+  return formatRoleQuery(
+    tokens
+      .filter((w) => w.length >= 2 && !ROLE_STOP.has(w.toLowerCase()))
+      .slice(0, 4)
+      .join(" ")
+      .trim(),
+  );
 }
 
 export function buildQueryHeader({ headline = "", skills = [], preferredRole = "" } = {}) {

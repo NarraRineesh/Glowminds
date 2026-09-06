@@ -6,7 +6,7 @@ describe('cleanHeadlineQuery', () => {
   it('cleans the founder mash', () => {
     assert.equal(
       cleanHeadlineQuery('Sof developer Soft developerFrontend developer'),
-      'frontend developer',
+      'Frontend developer',
     )
   })
 })
@@ -17,7 +17,7 @@ describe('buildQueryHeader', () => {
       headline: 'Sof developer Soft developerFrontend developer',
       skills: ['React', 'TypeScript'],
     })
-    assert.equal(header.q, 'frontend developer')
+    assert.equal(header.q, 'Frontend developer')
     assert.ok(!header.q.includes('with skills'))
   })
 
@@ -27,6 +27,6 @@ describe('buildQueryHeader', () => {
       preferredRole: 'Frontend developer',
       skills: ['React'],
     })
-    assert.equal(header.q, 'frontend developer')
+    assert.equal(header.q, 'Frontend developer')
   })
 })

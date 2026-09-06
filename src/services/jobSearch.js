@@ -6,7 +6,9 @@ import {
 import { cleanJobSearchQuery } from '@/utils/targetRole'
 
 export async function getQueryHeader() {
-  return apiFetch('/jobs/query-header', { method: 'GET' })
+  const header = await apiFetch('/jobs/query-header', { method: 'GET' })
+  const q = cleanJobSearchQuery(header?.q) || String(header?.q || '').trim()
+  return { ...header, q }
 }
 
 /** Job board — catalog search by q + optional country / remote work mode. */

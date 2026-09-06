@@ -105,27 +105,45 @@ function firstMeaningfulWords(text, maxWords = 4) {
   return words.slice(0, maxWords).join(' ').trim()
 }
 
+const ROLE_ACRONYMS = new Set(['sde', 'sdet', 'qa', 'ui', 'ux', 'ml', 'ai', 'sre', 'ios'])
+
+/** "frontend developer" → "Frontend developer"; "sde intern" → "SDE intern". */
+export function formatRoleQuery(text) {
+  const words = String(text || '').trim().split(/\s+/).filter(Boolean)
+  if (!words.length) return ''
+  return words
+    .map((word, index) => {
+      const lower = word.toLowerCase()
+      if (ROLE_ACRONYMS.has(lower)) return lower.toUpperCase()
+      if (index === 0) return lower.charAt(0).toUpperCase() + lower.slice(1)
+      return lower
+    })
+    .join(' ')
+}
+
 /**
  * Turn a messy headline / preferred-role blob into a short catalog query.
- * "Sof developer Soft developerFrontend developer" → "frontend developer"
+ * "Sof developer Soft developerFrontend developer" → "Frontend developer"
  */
 export function cleanJobSearchQuery(raw, { maxWords = 4 } = {}) {
   const spaced = splitConcatenatedWords(raw)
   if (!spaced) return ''
 
   const known = findKnownRole(spaced)
-  if (known) return known
+  if (known) return formatRoleQuery(known)
 
   const fromNoun = extractRoleNounPhrase(spaced)
-  if (fromNoun) return fromNoun
+  if (fromNoun) return formatRoleQuery(fromNoun)
 
-  return firstMeaningfulWords(spaced, maxWords)
+  return formatRoleQuery(firstMeaningfulWords(spaced, maxWords))
 }
 
 function fallbackRole(profile) {
-  return profile?.isFresher || profile?.careerLevel === 'fresher'
-    ? 'fresher internship'
-    : 'software engineer'
+  return formatRoleQuery(
+    profile?.isFresher || profile?.careerLevel === 'fresher'
+      ? 'fresher internship'
+      : 'software engineer',
+  )
 }
 
 function preferredRoleText(profile) {

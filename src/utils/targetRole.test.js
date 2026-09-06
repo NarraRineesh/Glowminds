@@ -16,26 +16,26 @@ describe('splitConcatenatedWords', () => {
 })
 
 describe('cleanJobSearchQuery', () => {
-  it('extracts frontend developer from the founder mash', () => {
+  it('extracts Frontend developer from the founder mash', () => {
     assert.equal(
       cleanJobSearchQuery('Sof developer Soft developerFrontend developer'),
-      'frontend developer',
+      'Frontend developer',
     )
   })
 
   it('keeps a short clean role', () => {
-    assert.equal(cleanJobSearchQuery('SDE intern'), 'sde intern')
+    assert.equal(cleanJobSearchQuery('SDE intern'), 'SDE intern')
   })
 
   it('pulls SDE out of a long headline', () => {
     assert.equal(
       cleanJobSearchQuery('B.Tech CS · aspiring SDE at Google | React, TS'),
-      'sde',
+      'SDE',
     )
   })
 
   it('drops a truncated Sof prefix before developer', () => {
-    assert.equal(cleanJobSearchQuery('Sof developer'), 'developer')
+    assert.equal(cleanJobSearchQuery('Sof developer'), 'Developer')
   })
 })
 
@@ -46,7 +46,7 @@ describe('cleanTargetRole', () => {
         headline: 'Sof developer Soft developerFrontend developer',
         preferences: { preferredRole: 'Frontend developer' },
       }),
-      'frontend developer',
+      'Frontend developer',
     )
   })
 
@@ -56,12 +56,12 @@ describe('cleanTargetRole', () => {
         headline: 'Sof developer Soft developerFrontend developer',
         preferences: { preferredRole: '' },
       }),
-      'frontend developer',
+      'Frontend developer',
     )
   })
 
   it('falls back for an empty profile', () => {
-    assert.equal(cleanTargetRole({}), 'software engineer')
-    assert.equal(cleanTargetRole({ isFresher: true }), 'fresher internship')
+    assert.equal(cleanTargetRole({}), 'Software engineer')
+    assert.equal(cleanTargetRole({ isFresher: true }), 'Fresher internship')
   })
 })
