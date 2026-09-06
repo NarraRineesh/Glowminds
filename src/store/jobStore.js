@@ -24,6 +24,7 @@ function buildJobSnapshot(job) {
     company,
     logo: job.logo || 'jobs',
     location: job.location || job.loc || '',
+    country: job.country || '',
     remote: !!job.remote,
     type: job.type || '',
     salary: job.salary || job.sal || '',
@@ -50,8 +51,8 @@ const emptyPagination = () => ({
   totalExact: true,
 })
 
-function requestCacheKey({ search = '', page = 1, pageSize = DEFAULT_PAGE_SIZE } = {}) {
-  return `${String(search).trim().toLowerCase()}|${page}|${pageSize}`
+function requestCacheKey({ search = '', page = 1, pageSize = DEFAULT_PAGE_SIZE, country = '' } = {}) {
+  return `${String(search).trim().toLowerCase()}|${String(country || '').trim()}|${page}|${pageSize}`
 }
 
 let inflightPromise = null
@@ -100,10 +101,11 @@ const useJobStore = create((set, get) => ({
     search = '',
     page = 1,
     pageSize = DEFAULT_PAGE_SIZE,
+    country = '',
     force = false,
   } = {}) => {
     const safePage = Math.max(1, Math.trunc(page) || 1)
-    const requestKey = requestCacheKey({ search, page: safePage, pageSize })
+    const requestKey = requestCacheKey({ search, page: safePage, pageSize, country })
 
     if (
       !force
@@ -126,6 +128,7 @@ const useJobStore = create((set, get) => ({
           search,
           page: safePage,
           pageSize,
+          country,
         })
         set({
           jobs: (data.jobs || []).map(normalizeJob),

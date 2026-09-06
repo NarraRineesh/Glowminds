@@ -13,7 +13,7 @@ import {
 } from '@/services/jobsApi'
 import { APPLICATION_STATUS } from '@/constants/schema'
 import { buildJobMatchAnalysis, canShowJobMatch, HIGH_MATCH_THRESHOLD, matchScoreTone } from '@/utils/jobMatchAnalysis'
-import { cleanTargetRole } from '@/utils/targetRole'
+import { cleanJobSearchQuery, cleanTargetRole } from '@/utils/targetRole'
 import {
   filterJobTags,
   inferCountryFromProfile,
@@ -108,7 +108,8 @@ export default function JobsSection() {
   const { entitlements } = useEntitlements()
   const isPro = useIsPro()
 
-  const initialQ = searchParams.get('q') || ''
+  const rawInitialQ = searchParams.get('q') || ''
+  const initialQ = rawInitialQ ? (cleanJobSearchQuery(rawInitialQ) || rawInitialQ) : ''
   const [boardTab, setBoardTab] = useState('browse')
   const [search, setSearch] = useState(initialQ)
   const [searchInput, setSearchInput] = useState(initialQ)
@@ -134,9 +135,11 @@ export default function JobsSection() {
   }
 
   useEffect(() => {
-    const q = searchParams.get('q') || ''
-    setSearch((prev) => (prev === q ? prev : q))
-    setSearchInput((prev) => (prev === q ? prev : q))
+    const raw = searchParams.get('q') || ''
+    const cleaned = raw ? (cleanJobSearchQuery(raw) || raw) : ''
+    // Keep an already-cleaned local value while the URL still has the pre-clean seed.
+    setSearch((prev) => (prev === raw || prev === cleaned ? prev : cleaned))
+    setSearchInput((prev) => (prev === raw || prev === cleaned ? prev : cleaned))
   }, [searchParams])
 
   useEffect(() => {
@@ -152,17 +155,6 @@ export default function JobsSection() {
   }, [loadSavedJobs, loadApps, loadProfile])
 
   useEffect(() => {
-    if (seeded.current) return
-    if (!profile) return
-    const role = cleanTargetRole(profile)
-    if (!role) return
-    seeded.current = true
-    setSearchInput(role)
-    setSearch(role)
-    syncQ(role)
-  }, [profile])
-
-  useEffect(() => {
     if (seededCountry.current || !profileLoaded) return
     seededCountry.current = true
     const inferred = inferCountryFromProfile(profile)
@@ -171,30 +163,55 @@ export default function JobsSection() {
   }, [profile, profileLoaded])
 
   useEffect(() => {
-    const urlQ = (new URLSearchParams(window.location.search).get('q') || '').trim()
-    if (urlQ) {
+    const applySeed = (raw) => {
+      const cleaned = cleanJobSearchQuery(raw) || String(raw || '').trim()
+      if (!cleaned) return false
       seeded.current = true
+      setSearchInput(cleaned)
+      setSearch(cleaned)
+      syncQ(cleaned)
+      return true
+    }
+
+    const urlQ = (searchParams.get('q') || '').trim()
+    if (urlQ) {
+      const cleaned = cleanJobSearchQuery(urlQ) || urlQ
+      seeded.current = true
+      if (cleaned !== urlQ) {
+        setSearchInput(cleaned)
+        setSearch(cleaned)
+        syncQ(cleaned)
+      }
       setHeaderReady(true)
       return
     }
+
+    if (seeded.current) {
+      setHeaderReady(true)
+      return
+    }
+
+    if (!profileLoaded) return
+
+    const fromProfile = cleanTargetRole(profile)
+    if (fromProfile) {
+      applySeed(fromProfile)
+      setHeaderReady(true)
+      return
+    }
+
     let cancelled = false
     getQueryHeader()
       .then((header) => {
-        if (cancelled) return
-        const q = String(header?.q || '').trim()
-        if (q) {
-          seeded.current = true
-          setSearch(q)
-          setSearchInput(q)
-          syncQ(q)
-        }
+        if (cancelled || seeded.current) return
+        applySeed(header?.q)
       })
       .catch(() => {})
       .finally(() => {
         if (!cancelled) setHeaderReady(true)
       })
     return () => { cancelled = true }
-  }, [])
+  }, [profile, profileLoaded, searchParams])
 
   useEffect(() => {
     Promise.all([
@@ -222,15 +239,17 @@ export default function JobsSection() {
   useEffect(() => {
     if (!headerReady) return
     if (boardTab === 'saved') return
-    fetchJobs({ search, page, pageSize: PER_PAGE })
-  }, [fetchJobs, search, page, boardTab, headerReady])
+    fetchJobs({ search, page, pageSize: PER_PAGE, country })
+  }, [fetchJobs, search, page, boardTab, headerReady, country])
 
   const canShowMatch = canShowJobMatch(profile)
   const scoredJobs = useMemo(() => {
     const source = boardTab === 'saved' ? (savedJobs || []) : jobs
-    return source
-      .filter((j) => jobMatchesCountry(j, country))
-      .map((j) => ({ job: j, analysis: buildJobMatchAnalysis(j, profile) }))
+    // Browse: country is applied by the catalog. Saved: filter client-side.
+    const located = boardTab === 'saved'
+      ? source.filter((j) => jobMatchesCountry(j, country))
+      : source
+    return located.map((j) => ({ job: j, analysis: buildJobMatchAnalysis(j, profile) }))
   }, [boardTab, savedJobs, jobs, country, profile])
 
   const visibleJobs = useMemo(() => {
@@ -314,10 +333,17 @@ export default function JobsSection() {
 
   const isInitialLoad = (!headerReady || loading) && jobs.length === 0 && !isSavedBoard
   const isRefreshing = loading && jobs.length > 0
-  const totalResults = pagination.total ?? jobs.length
+  const listCount = visibleJobs.length
+  // Empty state and pager must describe the same list. Best Match can hide
+  // the current page; never show "No jobs" beside "1–12 of N".
+  const showEmpty = listCount === 0
+  const totalResults = isSavedBoard
+    ? listCount
+    : (showEmpty && bestMatchOnly ? 0 : (pagination.total ?? jobs.length))
   const canGoNext = pagination.hasMore && !loading
   const hasActiveSearch = Boolean(search.trim())
   const pageCount = pagination.totalPages || (totalResults ? Math.max(1, Math.ceil(totalResults / PER_PAGE)) : 1)
+  const showPager = !isSavedBoard && !showEmpty && (pagination.total ?? jobs.length) > 0
   const openJob = (j) => navigate(`/dashboard/jobs/${encodeURIComponent(j.id)}`)
 
   return (
@@ -394,7 +420,7 @@ export default function JobsSection() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => fetchJobs({ search, page, pageSize: PER_PAGE, force: true })}
+              onClick={() => fetchJobs({ search, page, pageSize: PER_PAGE, country, force: true })}
             >
               Retry
             </Button>
@@ -416,7 +442,7 @@ export default function JobsSection() {
               )}
 
               <div className={cn('transition-opacity duration-200', isRefreshing && !isSavedBoard && 'pointer-events-none opacity-60')}>
-                {visibleJobs.length === 0 ? (
+                {showEmpty ? (
                   <div className="flex flex-col items-center px-2 py-8 text-center sm:px-4 sm:py-12">
                     <AppIcon name="search" className="mb-3 size-8 opacity-40 sm:size-10" />
                     <h3 className="text-base font-bold text-foreground sm:text-lg">
@@ -516,7 +542,7 @@ export default function JobsSection() {
                 )}
               </div>
 
-              {!isSavedBoard && totalResults > 0 && (
+              {showPager && (
                 <div className="mt-4 flex flex-col items-center gap-2 border-t border-border pt-4 sm:flex-row sm:justify-between">
                   <p className="m-0 text-xs text-muted-foreground">
                     {pagination.from

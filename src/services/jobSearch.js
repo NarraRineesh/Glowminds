@@ -3,18 +3,22 @@ import {
   getCatalogJob,
   searchJobs,
 } from '@/services/jobsApi'
+import { cleanJobSearchQuery } from '@/utils/targetRole'
 
 export async function getQueryHeader() {
-  return apiFetch('/jobs/query-header', { method: 'GET' })
+  const header = await apiFetch('/jobs/query-header', { method: 'GET' })
+  const q = cleanJobSearchQuery(header?.q) || String(header?.q || '').trim()
+  return { ...header, q }
 }
 
-/** Job board — catalog search by q only. */
+/** Job board — catalog search by q + optional country / remote work mode. */
 export async function searchBoardJobs({
   search = '',
   page = 1,
   pageSize = 12,
+  country = '',
 } = {}) {
-  return searchJobs({ q: search, page, limit: pageSize })
+  return searchJobs({ q: search, page, limit: pageSize, country })
 }
 
 /** @deprecated Use searchBoardJobs */
@@ -31,7 +35,7 @@ export async function getTopMatches({ limit = 10 } = {}) {
   let q = ''
   try {
     const header = await getQueryHeader()
-    q = String(header?.q || '').trim()
+    q = cleanJobSearchQuery(header?.q) || String(header?.q || '').trim()
   } catch {
     q = ''
   }
