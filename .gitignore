@@ -37,3 +37,7 @@ android/app/release
 android/local.properties
 ios/App/Pods
 ios/App/build
+
+# Local sideload APKs
+artifacts/
+
