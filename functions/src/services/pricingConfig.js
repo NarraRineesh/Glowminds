@@ -240,7 +240,7 @@ export function mergeWithDefaults(data) {
     marketing: { ...base.marketing, ...(data.marketing || {}) },
   };
 
-  return syncDerivedPricingFields(normalizeTemplateCountCopy(merged));
+  return syncDerivedPricingFields(rewriteStaleTemplateCount(merged));
 }
 
 export function invalidatePricingCache() {
