@@ -2,6 +2,7 @@ import type { CopilotInitPayload } from "@/libs/copilot-bridge";
 import { isCopilotEmbed } from "@/libs/copilot-bridge";
 
 let embedConfig: CopilotInitPayload | null = null;
+const embedConfigListeners = new Set<() => void>();
 
 type EmbedRouteSyncConfig = {
 	externalPath: string;
@@ -13,6 +14,14 @@ const embedRouteSyncListeners = new Set<() => void>();
 
 export function setEmbedConfig(config: CopilotInitPayload | null) {
 	embedConfig = config;
+	for (const listener of embedConfigListeners) listener();
+}
+
+export function subscribeEmbedConfig(listener: () => void) {
+	embedConfigListeners.add(listener);
+	return () => {
+		embedConfigListeners.delete(listener);
+	};
 }
 
 export function getEmbedConfig(): CopilotInitPayload | null {
@@ -35,6 +44,7 @@ export function subscribeEmbedRouteSync(listener: () => void) {
 
 export function clearEmbedConfig() {
 	embedConfig = null;
+	for (const listener of embedConfigListeners) listener();
 	setEmbedRouteSync(null);
 }
 

@@ -26,7 +26,7 @@ import {
 	ResumeLimitError,
 } from "@/features/resume/builder/local-storage";
 import { EMBED_RESUMES_READY_EVENT, listDashboardResumes } from "@/features/resume/builder/copilot-storage";
-import { isEmbedded } from "@/embed/runtime";
+import { isEmbedded, subscribeEmbedConfig } from "@/embed/runtime";
 import { FREE_LIMITS, getEmbedIsPro } from "@/lib/plans";
 import { ResumePreview } from "@/features/resume/preview/preview";
 import { createNoindexFollowMeta } from "@/libs/seo";
@@ -117,6 +117,7 @@ function RouteComponent() {
 	const navigate = useNavigate();
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [resumes, setResumes] = useState(() => (embedded ? listDashboardResumes() : listLocalResumes()));
+	const [planTick, setPlanTick] = useState(0);
 
 	const refresh = () => setResumes(embedded ? listDashboardResumes() : listLocalResumes());
 
@@ -126,7 +127,8 @@ function RouteComponent() {
 		window.addEventListener(EMBED_RESUMES_READY_EVENT, onReady);
 		return () => window.removeEventListener(EMBED_RESUMES_READY_EVENT, onReady);
 	}, [embedded]);
-	const isPro = getEmbedIsPro();
+	useEffect(() => subscribeEmbedConfig(() => setPlanTick((n) => n + 1)), []);
+	const isPro = planTick >= 0 && getEmbedIsPro();
 	const atResumeLimit = embedded && !isPro && resumes.length >= FREE_LIMITS.resumes;
 
 	const handleResumeLimit = (err: unknown) => {

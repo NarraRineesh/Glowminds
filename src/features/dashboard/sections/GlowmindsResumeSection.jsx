@@ -4,7 +4,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import 'glowminds-resume/host.css'
 import Loader from '@/components/Loader'
 import useTheme from '@/hooks/useTheme'
-import useIsPro from '@/hooks/useIsPro'
+import useEntitlements from '@/hooks/useEntitlements'
 import useAppStore from '@/store/authStore'
 import useProfileStore from '@/store/profileStore'
 import { getCopilotThemeTokens } from '@/constants/copilotThemeTokens'
@@ -33,7 +33,7 @@ export default function GlowmindsResumeSection() {
   const location = useLocation()
   const { resumeId } = useParams()
   const { theme } = useTheme()
-  const isPro = useIsPro()
+  const { isPro, loading: entitlementsLoading, entitlements } = useEntitlements()
   const user = useAppStore((state) => state.user)
   const resolvedTheme = theme === 'dark' ? 'dark' : 'light'
   const [cloudResumes, setCloudResumes] = useState(null)
@@ -141,7 +141,9 @@ export default function GlowmindsResumeSection() {
         className="rr-copilot-host flex min-h-0 flex-1 flex-col overflow-hidden"
       >
         <Suspense fallback={<Loader variant="section" label="Loading resume builder…" />}>
-          {cloudResumes === null && !loadError ? (
+          {entitlementsLoading && !entitlements ? (
+            <Loader variant="section" label="Loading your plan…" />
+          ) : cloudResumes === null && !loadError ? (
             <Loader variant="section" label="Loading your resumes…" />
           ) : loadError ? null : (
             <ResumeBuilderRoot
