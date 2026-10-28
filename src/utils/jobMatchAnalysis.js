@@ -3,7 +3,7 @@
  * Does not use backend `job.match` (that is a search-rank heuristic, not a profile score).
  */
 
-import { filterJobTags } from '@/utils/jobFilters'
+import { filterJobTags } from './jobFilters.js'
 
 function normalizeSkill(value) {
   return String(value || '').toLowerCase().trim()
@@ -14,8 +14,10 @@ function skillMatchesTag(userSkill, tag) {
   const skill = normalizeSkill(userSkill)
   const jobTag = normalizeSkill(tag)
   if (!skill || !jobTag) return false
-  if (skill === jobTag || skill.includes(jobTag) || jobTag.includes(skill)) return true
-  return false
+  if (skill === jobTag) return true
+  // Short tokens ("js", "r", "go") must not match inside longer names.
+  if (skill.length < 4 || jobTag.length < 4) return false
+  return skill.includes(jobTag) || jobTag.includes(skill)
 }
 
 function parseUserSkills(profile) {
@@ -209,11 +211,18 @@ export function buildJobMatchAnalysis(job, profile) {
 
   const matchedSkills = []
   const missingSkills = []
+  const matchedKeys = new Set()
 
   if (jobSkills.length) {
     for (const tag of jobSkills) {
-      if (userSkills.some((s) => skillMatchesTag(s, tag))) matchedSkills.push(tag)
-      else missingSkills.push(tag)
+      const key = normalizeSkill(tag)
+      if (!key || matchedKeys.has(key)) continue
+      if (userSkills.some((s) => skillMatchesTag(s, tag))) {
+        matchedSkills.push(tag)
+        matchedKeys.add(key)
+      } else if (!missingSkills.some((s) => normalizeSkill(s) === key)) {
+        missingSkills.push(tag)
+      }
     }
   } else if (userSkills.length) {
     for (const skill of userSkills) {

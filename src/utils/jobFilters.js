@@ -3,9 +3,24 @@ export function isJunkLabel(value) {
   const t = String(value || '').trim()
   if (!t || t.length < 2) return true
   if (/^[a-z]$/i.test(t)) return true
-  if (/\.(com|io|net|org|cloud)$/i.test(t)) return true
-  if (/oraclecloud/i.test(t)) return true
+  if (/\.(com|io|net|org|cloud|jobs)\b/i.test(t)) return true
+  if ((t.match(/\./g) || []).length >= 2) return true
+  if (/oraclecloud|saasfaprod|fa\.ocs/i.test(t)) return true
   if (/^www\./i.test(t)) return true
+  if (/^careers\./i.test(t)) return true
+  return false
+}
+
+const SHORT_TREND_ALLOW = new Set(['ui', 'ux', 'ml', 'ai', 'qa', 'sql', 'css', 'aws', 'gcp', 'api', 'c#', 'c++'])
+
+/** Trending-skill tokens that are letter matches ("R", "Go") rather than skills. */
+export function isNoiseTrendSkill(value) {
+  const raw = String(
+    typeof value === 'string' ? value : value?.skill_name || value?.name || '',
+  ).trim()
+  if (!raw || isJunkLabel(raw)) return true
+  const key = raw.toLowerCase()
+  if (key.length <= 2 && !SHORT_TREND_ALLOW.has(key)) return true
   return false
 }
 

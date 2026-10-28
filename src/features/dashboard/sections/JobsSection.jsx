@@ -17,11 +17,14 @@ import { cleanJobSearchQuery, cleanTargetRole } from '@/utils/targetRole'
 import {
   filterJobTags,
   inferCountryFromProfile,
+  isJunkLabel,
+  isNoiseTrendSkill,
   jobMatchesCountry,
   JOB_COUNTRY_OPTIONS,
   persistJobCountry,
   readStoredJobCountry,
 } from '@/utils/jobFilters'
+import { localDateInputValue } from '@/utils/localDate'
 import Loader from '@/components/Loader'
 import { JobGridSkeleton } from '@/features/dashboard/components/JobCardSkeleton'
 import {
@@ -103,7 +106,6 @@ export default function JobsSection() {
   const profile = useProfileStore((s) => s.profile)
   const loadProfile = useProfileStore((s) => s.load)
   const profileLoaded = useProfileStore((s) => s.loaded)
-  const jobMatchAlerts = useProfileStore((s) => s.user?.settings?.jobMatchAlerts !== false)
   const { addApp, loadApps, apps } = useTrackerStore()
   const { entitlements } = useEntitlements()
   const isPro = useIsPro()
@@ -119,10 +121,11 @@ export default function JobsSection() {
   const [skills, setSkills] = useState([])
   const [country, setCountry] = useState(() => readStoredJobCountry() ?? 'India')
   const [bestMatchOnly, setBestMatchOnly] = useState(false)
+  // Best Match is opt-in. jobMatchAlerts is a notification preference and
+  // must not hide the board behind an 85% filter by default.
   const [applyingId, setApplyingId] = useState(null)
   const seeded = useRef(Boolean(initialQ))
   const seededCountry = useRef(readStoredJobCountry() != null)
-  const seededMatchFilter = useRef(false)
 
   const syncQ = (next) => {
     const trimmed = (next || '').trim()
@@ -141,12 +144,6 @@ export default function JobsSection() {
     setSearch((prev) => (prev === raw || prev === cleaned ? prev : cleaned))
     setSearchInput((prev) => (prev === raw || prev === cleaned ? prev : cleaned))
   }, [searchParams])
-
-  useEffect(() => {
-    if (!profileLoaded || seededMatchFilter.current) return
-    seededMatchFilter.current = true
-    if (jobMatchAlerts) setBestMatchOnly(true)
-  }, [profileLoaded, jobMatchAlerts])
 
   useEffect(() => {
     loadSavedJobs()
@@ -218,16 +215,20 @@ export default function JobsSection() {
       getTopCompanies({ limit: 8 }).catch(() => []),
       getTrendingSkills({ limit: 10 }).catch(() => []),
     ]).then(([nextCompanies, nextSkills]) => {
-      setCompanies(nextCompanies || [])
+      setCompanies(
+        (nextCompanies || []).filter((row) => !isJunkLabel(row?.company_name || row?.name || '')),
+      )
       setSkills(
-        (nextSkills || []).map((row) => {
-          const skillName = String(row?.skill_name || row?.name || row || '').trim()
-          return {
-            ...row,
-            skill_name: skillName,
-            label: capitalizeLabel(skillName),
-          }
-        }),
+        (nextSkills || [])
+          .filter((row) => !isNoiseTrendSkill(row))
+          .map((row) => {
+            const skillName = String(row?.skill_name || row?.name || row || '').trim()
+            return {
+              ...row,
+              skill_name: skillName,
+              label: capitalizeLabel(skillName),
+            }
+          }),
       )
     })
   }, [])
@@ -302,7 +303,7 @@ export default function JobsSection() {
         company,
         role: j.title,
         status: APPLICATION_STATUS.APPLIED,
-        appliedDate: new Date().toISOString().split('T')[0],
+        appliedDate: localDateInputValue(),
         salary: j.salary || j.sal || '',
         notes: 'Applied via Glowminds',
         logo: j.logo,
@@ -370,11 +371,11 @@ export default function JobsSection() {
           ))}
         </div>
         {!isSavedBoard && (
-          <form onSubmit={handleSearch} className="flex min-w-0 flex-1 flex-wrap gap-2">
-            <div className="relative min-w-0 flex-1">
+          <form onSubmit={handleSearch} className="flex min-w-0 w-full flex-1 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+            <div className="relative min-w-0 w-full flex-1 sm:min-w-[12rem]">
               <AppIcon name="search" className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 opacity-50" />
               <Input
-                className="h-9 w-full pl-8 text-sm"
+                className="h-10 w-full min-w-0 pl-8 text-sm sm:h-9"
                 placeholder="Role, skill, or company"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
@@ -382,7 +383,7 @@ export default function JobsSection() {
               />
             </div>
             <Select
-              className="h-9 w-[158px] shrink-0 text-sm"
+              className="h-10 w-full text-sm sm:h-9 sm:w-[158px] sm:shrink-0"
               value={country}
               disabled={loading}
               onChange={(e) => handleCountryChange(e.target.value)}
