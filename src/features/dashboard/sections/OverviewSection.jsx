@@ -407,7 +407,7 @@ export default function OverviewSection() {
               <div className="min-w-0 flex-1">
                 <strong className="text-sm">ATS ≥ 85</strong>
                 <div className="mt-1.5 h-1.5 overflow-hidden rounded-[var(--radius-xs)] bg-muted">
-                  <div className="h-full bg-foreground" style={{ width: `${Math.min(100, atsScore)}%` }} />
+                  <div className="h-full bg-primary" style={{ width: `${Math.min(100, atsScore)}%` }} />
                 </div>
               </div>
               <span className="font-mono text-xs text-muted-foreground">{atsScore || '—'}</span>
@@ -428,7 +428,7 @@ export default function OverviewSection() {
             <>
               <strong className="text-sm">{gap.targetRole || 'Skill path'}</strong>
               <div className="mt-2 h-1.5 overflow-hidden rounded-[var(--radius-xs)] bg-muted">
-                <div className="h-full bg-foreground" style={{ width: `${gap.coverage || 0}%` }} />
+                <div className="h-full bg-primary" style={{ width: `${gap.coverage || 0}%` }} />
               </div>
               <p className="mt-2 mb-0 text-xs text-muted-foreground">
                 Coverage {gap.coverage || 0}%
