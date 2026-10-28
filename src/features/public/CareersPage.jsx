@@ -25,7 +25,7 @@ export default function CareersPage() {
             WE&apos;RE HIRING
           </Badge>
           <h1 className="mb-4 text-[clamp(2rem,4vw,3rem)] font-black leading-tight tracking-tight text-foreground">
-            Work at <span className="bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">Glowminds</span>
+            Work at <span className="text-foreground">Glowminds</span>
           </h1>
           <p className="mx-auto max-w-xl text-sm leading-relaxed text-muted-foreground md:text-base">
             Company roles at {LEGAL_NAME}. Looking for internships or fresher jobs? Use the student job board after you sign up.

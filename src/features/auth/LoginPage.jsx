@@ -139,7 +139,7 @@ export default function LoginPage() {
               </Badge>
               <h2 className="mb-3 text-[clamp(1.6rem,3vw,2.4rem)] font-black leading-tight tracking-tight">
                 Your Career Dashboard<br />
-                <span className="bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">Awaits You</span>
+                <span className="text-foreground">Awaits You</span>
               </h2>
               <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
                 Pick up right where you left off. Your matched jobs, resume drafts, and AI coach are ready.
@@ -160,7 +160,7 @@ export default function LoginPage() {
                 {AVATAR_INITIALS.map((initial, i) => (
                   <div
                     key={i}
-                    className="flex size-8 items-center justify-center rounded-full border-2 border-background bg-gradient-to-br from-primary to-emerald-500 text-xs font-bold text-white"
+                    className="flex size-8 items-center justify-center rounded-full border-2 border-background bg-foreground text-xs font-semibold text-background"
                     style={{ marginLeft: i > 0 ? -8 : 0 }}
                   >
                     {initial}

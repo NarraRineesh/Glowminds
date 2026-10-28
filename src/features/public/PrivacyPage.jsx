@@ -61,7 +61,7 @@ export default function PrivacyPage() {
             PRIVACY POLICY
           </Badge>
           <h1 className="mb-4 text-[clamp(2rem,4vw,3rem)] font-black leading-tight tracking-tight text-foreground">
-            Your Privacy <span className="bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">Matters</span>
+            Your Privacy <span className="text-foreground">Matters</span>
           </h1>
           <p className="mx-auto max-w-xl text-sm text-muted-foreground md:text-base">Last updated: May 4, 2026</p>
         </PublicPageContainer>

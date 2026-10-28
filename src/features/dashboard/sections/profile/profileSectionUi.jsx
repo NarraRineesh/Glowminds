@@ -85,7 +85,7 @@ export function ProfileAvatarBlock({
           {photoURL && !uploadingPhoto ? <AvatarImage src={photoURL} alt="" /> : null}
           <AvatarFallback
             className={cn(
-              'bg-gradient-to-br from-primary to-emerald-500 font-bold text-primary-foreground',
+              'bg-muted font-semibold text-foreground',
               compact ? 'text-xl' : 'text-3xl',
             )}
           >

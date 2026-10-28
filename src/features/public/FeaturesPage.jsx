@@ -112,7 +112,7 @@ function SectionHead({ badge, badgeClass, title, highlight, description }) {
       </Badge>
       <h2 className="mb-3 text-3xl font-black text-foreground md:text-4xl">
         {title}{' '}
-        <span className="bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">{highlight}</span>
+        <span className="text-foreground">{highlight}</span>
       </h2>
       <p className="mx-auto max-w-2xl text-muted-foreground">{description}</p>
     </motion.div>
@@ -248,7 +248,7 @@ export default function FeaturesPage() {
             className="mb-4 text-4xl font-black leading-tight tracking-tight text-foreground md:text-5xl"
           >
             Everything You Need in a{' '}
-            <span className="bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">Career Operating System</span>
+            <span className="text-foreground">Career Operating System</span>
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 20 }}

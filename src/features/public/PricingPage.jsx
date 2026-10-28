@@ -46,7 +46,7 @@ function PageHero({ eyebrow, title, highlight, description }) {
           transition={{ duration: 0.7, ease: motionEase, delay: 0.1 }}
           className="mb-4 text-4xl font-black leading-tight tracking-tight text-foreground md:text-5xl"
         >
-          {title} <span className="bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">{highlight}</span>
+          {title} <span className="text-foreground">{highlight}</span>
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, y: 20 }}
