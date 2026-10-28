@@ -74,7 +74,14 @@ export default function SEO({
       <meta name="twitter:image:alt" content={imageAlt} />
       <meta name="twitter:site" content={SEO_TWITTER} />
 
-      <meta name="theme-color" content="#07090f" />
+      <meta
+        name="theme-color"
+        content={
+          typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme') === 'light'
+            ? '#f6f5f2'
+            : '#111111'
+        }
+      />
       <meta name="mobile-web-app-capable" content="yes" />
       <meta name="apple-mobile-web-app-capable" content="yes" />
       <meta name="apple-mobile-web-app-status-bar-style" content="default" />

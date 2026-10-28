@@ -15,6 +15,8 @@ export function applyDocumentTheme(theme) {
   root.setAttribute('data-theme', theme)
   root.classList.toggle('dark', theme === 'dark')
   root.style.colorScheme = theme
+  const themeMeta = document.querySelector('meta[name="theme-color"]')
+  if (themeMeta) themeMeta.setAttribute('content', theme === 'light' ? '#f6f5f2' : '#111111')
   try {
     localStorage.setItem('theme', theme)
   } catch { /* ignore */ }

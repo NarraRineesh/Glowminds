@@ -104,7 +104,7 @@ export default function useUpgradePro() {
             name: user?.displayName || '',
             email: user?.email || '',
           },
-          theme: { color: '#2563eb' },
+          theme: { color: '#8e5340' },
           modal: { ondismiss: () => setLoading(false) },
         }
 
