@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom'
 import useAppStore from '@/store/authStore'
-import { appHref, chromeHomePath, isLocalHost, siteHref } from '@/config/hosts'
+import { appHref, chromeHomePath, isSingleOriginHost, siteHref } from '@/config/hosts'
 
-/** Login / signup / dashboard CTA. Absolute on production marketing; relative on localhost. */
+/** Login / signup / dashboard CTA. Absolute on production marketing; relative on a single-origin host. */
 export function AppAuthLink({ to, children, ...props }) {
-  if (isLocalHost()) {
+  if (isSingleOriginHost()) {
     return (
       <Link to={to} {...props}>
         {children}
@@ -20,7 +20,7 @@ export function AppAuthLink({ to, children, ...props }) {
 
 /** Marketing page link. Absolute to glowminds.in when rendered on the app host. */
 export function SiteLink({ to, children, ...props }) {
-  if (isLocalHost()) {
+  if (isSingleOriginHost()) {
     return (
       <Link to={to} {...props}>
         {children}

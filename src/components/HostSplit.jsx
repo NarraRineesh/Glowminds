@@ -4,8 +4,8 @@ import { PageLoader } from '@/components/Loader'
 import { resolveHostRedirect } from '@/config/hosts'
 
 /**
- * Production host split. Localhost is a no-op so `/login` and `/` still work
- * on a single origin during development.
+ * Production host split. Localhost, Firebase preview channels, and
+ * VITE_DISABLE_HOST_REDIRECT=true keep marketing and app routes on this origin.
  */
 export default function HostSplit({ children }) {
   const location = useLocation()
