@@ -4,6 +4,7 @@ import useProfileStore from '@/store/profileStore'
 import { getPreferredRole } from '@/constants/schema'
 import { getSkillGap, getSkillTrends } from '@/services/skillsApi'
 import { skillKey, skillLabel } from '@/utils/skillLabel'
+import { filterTrendSkills, sanitizeSkillGap } from '@/utils/skillRelevance'
 import {
   AiRail,
   DenseTable,
@@ -114,7 +115,7 @@ export default function SkillsSection() {
     getSkillTrends({ limit: 12, mode: 'demand' })
       .then((d) => {
         if (cancelled) return
-        setTrends(asSkillList(d))
+        setTrends(filterTrendSkills(asSkillList(d)))
         setDomain(d?.domain || null)
       })
       .catch(() => {
@@ -126,8 +127,10 @@ export default function SkillsSection() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  const displayGap = useMemo(() => sanitizeSkillGap(gap, profile), [gap, profile])
+
   const gapRows = useMemo(() => {
-    const missing = gap?.missingSkills || []
+    const missing = displayGap?.missingSkills || []
     return missing.map((s, i) => {
       const label = skillLabel(s)
       const imp = importanceLabel(s)
@@ -161,7 +164,7 @@ export default function SkillsSection() {
         </Link>,
       ]
     })
-  }, [gap])
+  }, [displayGap])
 
   const demandList = useMemo(() => {
     const list = asSkillList(trends)
@@ -189,18 +192,18 @@ export default function SkillsSection() {
     const soft = profile?.skills?.soft || []
     const fromProfile = [...technical, ...soft].map((s) => skillLabel(s)).filter(Boolean)
     if (fromProfile.length) return [...new Set(fromProfile)]
-    return (gap?.haveSkills || []).map((s) => skillLabel(s)).filter(Boolean)
-  }, [profile?.skills, gap?.haveSkills])
+    return (displayGap?.haveSkills || []).map((s) => skillLabel(s)).filter(Boolean)
+  }, [profile?.skills, displayGap?.haveSkills])
 
-  const domainLabel = domain?.label || gap?.domain?.label || null
+  const domainLabel = domain?.label || displayGap?.domain?.label || null
 
   return (
     <div className="space-y-4">
       <SplitRail
         main={(
           <SectionCard
-            title={gap?.targetRole ? `Gap for ${gap.targetRole}` : 'Skill gap'}
-            action={<span className="text-xs text-muted-foreground">{gap ? `${gap.coverage || 0}% coverage` : '—'}</span>}
+            title={displayGap?.targetRole ? `Gap for ${displayGap.targetRole}` : 'Skill gap'}
+            action={<span className="text-xs text-muted-foreground">{displayGap ? `${displayGap.coverage || 0}% coverage` : '—'}</span>}
           >
             <form
               className="mb-3 flex gap-2"
@@ -217,19 +220,19 @@ export default function SkillsSection() {
                 aria-label="Target role"
               />
               <Button type="submit" size="sm" className="h-9" disabled={busy}>
-                {busy ? '…' : 'Analyze'}
+                {busy ? 'Analyzing…' : 'Analyze'}
               </Button>
             </form>
 
-            {gap ? (
+            {displayGap ? (
               <>
-                <Progress value={gap.coverage || 0} className="mb-3" />
+                <Progress value={displayGap.coverage || 0} className="mb-3" />
                 {/* Mobile: stacked cards (no clipped table columns) */}
                 <div className="space-y-2 sm:hidden">
-                  {(gap.missingSkills || []).length === 0 ? (
+                  {(displayGap.missingSkills || []).length === 0 ? (
                     <p className="text-sm text-muted-foreground">No gaps detected for this role.</p>
                   ) : (
-                    (gap.missingSkills || []).map((s, i) => {
+                    (displayGap.missingSkills || []).map((s, i) => {
                       const label = skillLabel(s)
                       const imp = importanceLabel(s)
                       return (
@@ -299,8 +302,8 @@ export default function SkillsSection() {
             <AiRail
               title="Close the gap"
               body={
-                gap?.missingSkills?.length
-                  ? `A focused path on ${(gap.missingSkills || []).slice(0, 2).map(skillLabel).join(' + ')} maps to roles in your target set.`
+                displayGap?.missingSkills?.length
+                  ? `A focused path on ${(displayGap.missingSkills || []).slice(0, 2).map(skillLabel).join(' + ')} maps to roles in your target set.`
                   : 'Analyze your gap to unlock a tailored learning path.'
               }
               cta="Open Learning"
