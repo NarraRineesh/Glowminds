@@ -228,16 +228,17 @@ export default function DashboardSidebar() {
         {!entitlementsLoading && isPro ? (
           <div
             className={cn(
-              'flex w-full items-center gap-3 rounded-lg border border-primary/25 bg-primary/10 p-2.5',
+              'flex w-full items-center gap-3 rounded-[var(--radius-control)] border border-border bg-card p-2.5',
               iconCollapsed && 'justify-center px-2',
             )}
           >
-            <AppIcon name="star" className="size-5 shrink-0 text-primary" weight="fill" />
-            {!iconCollapsed && (
+            {!iconCollapsed ? (
               <span className="min-w-0 flex-1">
-                <span className="block text-[0.82rem] font-bold text-foreground">Glowminds Pro</span>
-                <span className="block text-[10.5px] text-muted-foreground">All features unlocked</span>
+                <span className="block text-sm font-semibold text-foreground">Pro</span>
+                <span className="block text-xs text-muted-foreground">All features unlocked</span>
               </span>
+            ) : (
+              <span className="text-xs font-semibold text-foreground">Pro</span>
             )}
           </div>
         ) : !entitlementsLoading ? (
@@ -246,19 +247,21 @@ export default function DashboardSidebar() {
           variant="default"
           nativeButton={false}
           render={<Link to="/dashboard/plans" onClick={closeDrawer} />}
+          aria-label={iconCollapsed ? 'Upgrade' : undefined}
           className={cn(
-            'h-auto w-full justify-start gap-3 p-2.5 text-left',
+            'h-auto min-h-11 w-full justify-start gap-3 p-2.5 text-left',
             iconCollapsed && 'justify-center px-2',
           )}
         >
-          <AppIcon name="sparkle" className="size-5 shrink-0" />
-          {!iconCollapsed && (
+          {!iconCollapsed ? (
             <span className="min-w-0 flex-1">
-              <span className="block text-[0.82rem] font-bold">Upgrade</span>
-              <span className="block text-[10.5px] font-normal opacity-90">
-                Compare plans & choose
+              <span className="block text-sm font-semibold">Upgrade</span>
+              <span className="block text-xs font-normal opacity-90">
+                Compare plans
               </span>
             </span>
+          ) : (
+            <AppIcon name="arrow-right" className="size-4" aria-hidden />
           )}
         </Button>
         ) : null}
@@ -267,19 +270,19 @@ export default function DashboardSidebar() {
           <Link
             to="/dashboard/settings?tab=usage"
             onClick={closeDrawer}
+            aria-label={`Credits, ${entitlements.credits.balance}`}
             className={cn(
-              'block rounded-lg border border-primary/20 bg-primary/5 px-2.5 py-2 text-left transition-colors hover:border-primary/40',
+              'block rounded-[var(--radius-control)] border border-border bg-card px-2.5 py-2 text-left no-underline hover:bg-muted',
               iconCollapsed && 'px-2 text-center',
             )}
           >
             {!iconCollapsed ? (
               <>
-                <p className="text-[10.5px] font-bold uppercase tracking-wide text-primary">AI credits</p>
-                <p className="text-sm font-black tabular-nums text-foreground">{entitlements.credits.balance} left</p>
-                <p className="text-[10px] text-muted-foreground">Usage & billing</p>
+                <p className="m-0 text-xs text-muted-foreground">Credits</p>
+                <p className="m-0 font-mono text-sm font-medium tabular-nums text-foreground">{entitlements.credits.balance}</p>
               </>
             ) : (
-              <AppIcon name="sparkle" className="mx-auto size-4 text-primary" aria-label={`${entitlements.credits.balance} AI credits`} />
+              <span className="font-mono text-xs font-medium tabular-nums text-foreground">{entitlements.credits.balance}</span>
             )}
           </Link>
         )}

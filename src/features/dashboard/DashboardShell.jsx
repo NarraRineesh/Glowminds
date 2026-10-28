@@ -42,13 +42,6 @@ export default function DashboardShell() {
           }
           style={{ '--dashboard-chrome': isResumeBuilder ? '0rem' : '7rem' }}
         >
-          {!isResumeRoute && !isAiRoute && (
-            <div
-              aria-hidden
-              className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-[420px] bg-[radial-gradient(ellipse_70%_50%_at_30%_0%,color-mix(in_srgb,var(--primary)_12%,transparent),transparent_70%),radial-gradient(ellipse_60%_50%_at_80%_10%,color-mix(in_srgb,var(--ai)_10%,transparent),transparent_65%)] opacity-40"
-            />
-          )}
-
           {/* Full-bleed pinned topbar */}
           {!isResumeBuilder && (
             <div className="shrink-0">
@@ -65,9 +58,9 @@ export default function DashboardShell() {
           >
             <motion.div
               key={location.pathname}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.12, ease: [0.2, 0, 0, 1] }}
               className={
                 isPanelScroll
                   ? 'flex h-full min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden'

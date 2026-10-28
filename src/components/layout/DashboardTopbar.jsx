@@ -1,6 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
 import NotificationsBell from '@/components/layout/NotificationsBell'
-import AppIcon from '@/components/icons/AppIcon'
 import { SidebarTrigger, cn } from '@/components/ui'
 import useEntitlements from '@/hooks/useEntitlements'
 
@@ -46,26 +45,13 @@ export default function DashboardTopbar() {
   return (
     <header
       className={cn(
-        'relative z-30 w-full shrink-0',
-        'border-b border-border/80',
-        'bg-background/80 backdrop-blur-xl',
-        'shadow-[0_8px_24px_-16px_color-mix(in_srgb,var(--foreground)_22%,transparent)]',
+        'relative z-30 w-full shrink-0 border-b border-border bg-background',
         'pt-[max(0.35rem,env(safe-area-inset-top))]',
       )}
     >
-      {/* Soft primary wash + bottom hairline sheen */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--primary)_8%,transparent)_0%,transparent_70%)]"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-[linear-gradient(90deg,transparent,color-mix(in_srgb,var(--primary)_35%,transparent)_20%,color-mix(in_srgb,var(--ai)_30%,transparent)_80%,transparent)]"
-      />
-
       <div className="relative flex w-full items-center gap-2 px-3 py-3 sm:gap-3 sm:px-5 sm:py-3.5 lg:pr-9 lg:pl-7">
         <div className="flex min-w-0 flex-1 items-center gap-1.5">
-          <SidebarTrigger className="size-9 shrink-0 md:hidden" />
+          <SidebarTrigger className="size-11 shrink-0 md:hidden" />
           <div className="min-w-0">
             <h1 className="m-0 truncate text-base font-semibold leading-none tracking-tight">{title}</h1>
             {subtitle ? (
@@ -76,12 +62,11 @@ export default function DashboardTopbar() {
         {typeof balance === 'number' ? (
           <Link
             to="/dashboard/settings?tab=usage"
-            className="inline-flex h-9 shrink-0 items-center gap-1 rounded-full border border-border/80 bg-muted/50 px-2.5 text-xs font-medium text-foreground no-underline shadow-sm backdrop-blur-sm hover:bg-muted"
-            title="AI credits"
+            className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-[var(--radius-control)] border border-border bg-card px-3 text-sm font-medium text-foreground no-underline hover:bg-muted"
+            aria-label={`Credits, ${balance}`}
           >
-            <AppIcon name="ai" className="size-3.5 text-ai" />
-            <span className="tabular-nums">{balance}</span>
-            <span className="hidden text-muted-foreground sm:inline">credits</span>
+            <span className="hidden text-muted-foreground sm:inline">Credits</span>
+            <span className="font-mono tabular-nums">{balance}</span>
           </Link>
         ) : null}
         <NotificationsBell />
