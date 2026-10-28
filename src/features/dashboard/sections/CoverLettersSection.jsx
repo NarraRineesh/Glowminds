@@ -36,7 +36,7 @@ const MODES = [
 ]
 
 function buildLetter(template, vars) {
-  const { yourName = 'Your Name', role = 'the role', company = '', skill = 'your top skill' } = vars
+  const { yourName = 'Your Name', role = 'the role', company = '', skill = 'hands-on projects' } = vars
   switch (template) {
     case 'story':
       return `${greeting(company)}
@@ -113,8 +113,11 @@ export default function CoverLettersSection() {
         const p = useProfileStore.getState().profile
         if (!role) setRole(getPreferredRole(p))
         if (!skill) {
-          const tech = p?.skills?.technical || []
-          setSkill(tech.slice(0, 2).join(', ') || 'problem solving')
+          const tech = (p?.skills?.technical || []).map((item) => String(item || '').trim()).filter(Boolean)
+          const roleText = `${getPreferredRole(p, '')}`.toLowerCase()
+          const related = tech.filter((item) => roleText.includes(item.toLowerCase()))
+          const chosen = (related.length ? related : tech).slice(0, 2)
+          if (chosen.length) setSkill(chosen.join(', '))
         }
       })
       .catch(() => {})
@@ -211,17 +214,31 @@ export default function CoverLettersSection() {
     }
     setAiLoading(true)
     try {
+      const technical = profile?.skills?.technical || []
+      const experience = (profile?.experience || [])
+        .slice(0, 4)
+        .map((entry) => [entry.role, entry.company, entry.description].filter(Boolean).join(' · '))
+        .filter(Boolean)
+        .join('; ')
       const data = await apiFetch('/ai/cover-letter', {
         body: {
-          role: role.trim(),
+          jobTitle: role.trim(),
           company: company.trim(),
           jobDescription: jobDescription.trim() || undefined,
           template,
           focusSkill: skill.trim() || undefined,
           mode: mode === 'cold_email' ? 'cold_email' : undefined,
+          profile: {
+            name: firstName,
+            title: profile?.headline || role.trim(),
+            skills: technical,
+            experience: experience || (profile?.isFresher ? 'Fresher' : ''),
+            education: profile?.education?.degree || profile?.education?.school || '',
+            projects: (profile?.projects || []).slice(0, 3).map((proj) => proj.name || proj.title).filter(Boolean).join('; '),
+          },
         },
       })
-      const text = data?.coverLetter || data?.letter || ''
+      const text = data?.coverLetter || data?.letter || data?.text || ''
       if (!text) throw new Error('Empty response from AI')
       setAiLetter(text)
       await refresh({ force: true })
