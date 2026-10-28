@@ -155,6 +155,15 @@ section[id],
 	scroll-margin-top: 1rem;
 }
 
+/* 10–11px grey labels disappear on the dark workspace. Keep the palette, raise the size. */
+.text-\[10px\],
+.text-\[10\.5px\],
+.text-\[11px\],
+.text-\[0\.65rem\] {
+	font-size: 0.75rem;
+	line-height: 1.35;
+}
+
 .skip-link {
 	@apply sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-500 focus:rounded-lg focus:border focus:border-border focus:bg-popover focus:px-4 focus:py-2.5 focus:font-semibold focus:shadow-[0_0_0_2px_var(--ring)];
 }

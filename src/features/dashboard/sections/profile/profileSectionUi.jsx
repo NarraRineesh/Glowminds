@@ -107,7 +107,7 @@ export function ProfileAvatarBlock({
             onClick={(e) => { e.stopPropagation(); onRemovePhoto?.() }}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onRemovePhoto?.() } }}
             className={cn(
-              'absolute right-0 top-0 flex items-center justify-center rounded-full border-2 border-card bg-destructive text-xs text-white',
+              'absolute right-0 top-0 flex items-center justify-center rounded-full border-2 border-card bg-card text-xs text-foreground opacity-0 shadow-sm ring-1 ring-border transition-opacity group-hover:opacity-100 group-focus-within:opacity-100',
               compact ? 'size-6' : 'size-7',
             )}
             title="Remove photo"

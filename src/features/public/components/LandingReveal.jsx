@@ -1,5 +1,5 @@
 import { motion, useReducedMotion } from 'framer-motion'
-import { fadeUp, motionEase, motionTransition } from '@/features/public/motionVariants'
+import { fadeUp, motionTransition } from '@/features/public/motionVariants'
 import { cn } from '@/components/ui'
 
 export default function LandingReveal({
@@ -14,9 +14,9 @@ export default function LandingReveal({
 
   return (
     <Component
-      initial={{ opacity: reducedMotion ? 1 : 0, y: reducedMotion ? 0 : y }}
+      initial={{ opacity: 1, y: reducedMotion ? 0 : y }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-60px' }}
+      viewport={{ once: true, margin: '0px' }}
       transition={motionTransition(reducedMotion, { duration: 0.55, delay })}
       className={cn(className)}
     >
@@ -32,7 +32,7 @@ export function LandingRevealStagger({ children, className, stagger = 0.1 }) {
     <motion.div
       initial="hidden"
       whileInView="visible"
-      viewport={{ once: true, margin: '-60px' }}
+      viewport={{ once: true, margin: '0px' }}
       variants={{
         hidden: {},
         visible: {

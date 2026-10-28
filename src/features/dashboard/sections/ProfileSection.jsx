@@ -39,6 +39,7 @@ import {
 } from '@/features/dashboard/sections/profile/profileSectionUi'
 import { createDefaultProfile, normalizeProfile, normalizeSkills, stampAiReview } from '@/constants/schema'
 import { formatDateRange, formatYearOrMonthDisplay, toMonthInputValue } from '@/utils/profileDates'
+import { phoneValidationError } from '@/utils/phone'
 import { computeProfileScore, profileCompletionChecks } from '@/utils/profileScore'
 import EducationModal from '@/features/dashboard/sections/profile/EducationModal'
 import ExperienceModal from '@/features/dashboard/sections/profile/ExperienceModal'
@@ -107,7 +108,7 @@ export default function ProfileSection() {
   const replaceProfile = useProfileStore((s) => s.replaceProfile)
   const updateProfile = useProfileStore((s) => s.updateProfile)
   const isLg = useIsLg()
-  const { credits, creditCosts, isPro, loading: entitlementsLoading, refresh: refreshEntitlements } = useEntitlements()
+  const { credits, creditCosts, refresh: refreshEntitlements } = useEntitlements()
   const reviewCost = creditCosts?.profileReview ?? DEFAULT_PRICING_CONFIG.creditCosts.profileReview ?? 1
   const creditBalance = credits?.balance
   const canReview = creditBalance == null || creditBalance >= reviewCost
@@ -660,8 +661,12 @@ export default function ProfileSection() {
                       {profileScore}%
                     </span>
                   ) : (
-                    <Badge variant="outline" className="text-[0.65rem] font-semibold uppercase tracking-wide">
-                      <AppIcon name="lock" className="size-3" /> locked
+                    <Badge
+                      variant="outline"
+                      className="text-xs font-semibold"
+                      title="Your name comes from your account and is not edited on this page."
+                    >
+                      <AppIcon name="lock" className="size-3" /> Account name
                     </Badge>
                   )}
                 </h1>
@@ -1187,12 +1192,16 @@ export default function ProfileSection() {
         footer={
           <>
             <Button variant="ghost" onClick={() => setEditing(null)}>Cancel</Button>
-            <Button  disabled={saving} onClick={() => saveSection({
-              personal: {
-                phone: form.phone || '', location: form.location || '', gender: form.gender || '', dob: form.dob || '',
-                languages: fromCsv(form.languages),
-              },
-            })}>{saving ? 'Saving…' : 'Save'}</Button>
+            <Button disabled={saving} onClick={() => {
+              const phoneError = phoneValidationError(form.phone)
+              if (phoneError) { addToast('error', phoneError); return }
+              saveSection({
+                personal: {
+                  phone: form.phone || '', location: form.location || '', gender: form.gender || '', dob: form.dob || '',
+                  languages: fromCsv(form.languages),
+                },
+              })
+            }}>{saving ? 'Saving…' : 'Save'}</Button>
           </>
         }
       >
