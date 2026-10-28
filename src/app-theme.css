@@ -50,8 +50,8 @@
 	--color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* Shared scale. --primary is the only brand accent.
-   --ai and --profile are neutral aliases so older call sites are not cyan or purple. */
+/* Shared scale for new UI. One accent is --primary. --ai / --profile stay
+   so existing bg-ai + text-background buttons keep their contrast. */
 :root {
 	--space-1: 0.25rem;
 	--space-2: 0.5rem;
@@ -74,86 +74,83 @@
 	--ease-standard: cubic-bezier(0.2, 0, 0, 1);
 	--motion-fast: 120ms;
 	--motion-base: 180ms;
-	--shadow-overlay: 0 8px 24px rgba(28, 27, 25, 0.12);
+	--shadow-overlay: 0 8px 24px rgba(15, 23, 42, 0.12);
 }
 
 :root,
 [data-theme="light"] {
 	--radius: 0.5rem;
-	--background: #f6f5f2;
-	--foreground: #1c1b19;
-	--card: #fffcf9;
-	--card-foreground: #1c1b19;
-	--popover: #fffcf9;
-	--popover-foreground: #1c1b19;
-	/* Clay #8E5340 on #f6f3ee ≈ 5.5:1 */
-	--primary: #8e5340;
-	--primary-foreground: #f6f3ee;
-	--secondary: #eeece8;
-	--secondary-foreground: #1c1b19;
-	--muted: #eeece8;
-	/* #5c5854 on #f6f5f2 ≈ 6.5:1 */
-	--muted-foreground: #5c5854;
-	--accent: #e7e4df;
-	--accent-foreground: #1c1b19;
-	--destructive: #8e3a32;
-	--elevated: #eeece8;
-	/* Neutral stand-in. Not a second brand hue. */
-	--ai: #3c3a37;
-	--success: #2f6a45;
-	--warning: #8a5a20;
-	--profile: #3c3a37;
-	--border: rgba(28, 27, 25, 0.12);
-	--input: rgba(28, 27, 25, 0.16);
-	--ring: #8e5340;
-	--sidebar: #fffcf9;
-	--sidebar-foreground: #1c1b19;
-	--sidebar-primary: #8e5340;
-	--sidebar-primary-foreground: #f6f3ee;
-	--sidebar-accent: #eeece8;
-	--sidebar-accent-foreground: #1c1b19;
-	--sidebar-border: rgba(28, 27, 25, 0.12);
-	--sidebar-ring: #8e5340;
+	--background: #f3f5f8;
+	--foreground: #0f172a;
+	--card: #ffffff;
+	--card-foreground: #0f172a;
+	--popover: #ffffff;
+	--popover-foreground: #0f172a;
+	--primary: #2563eb;
+	--primary-foreground: #ffffff;
+	--secondary: #f1f5f9;
+	--secondary-foreground: #0f172a;
+	--muted: #f1f5f9;
+	/* ~5.5:1 on white — AA for body/nav muted text */
+	--muted-foreground: #475569;
+	--accent: #e8eef5;
+	--accent-foreground: #0f172a;
+	--destructive: #dc2626;
+	--elevated: #f1f5f9;
+	--ai: #0891b2;
+	--success: #059669;
+	--warning: #d97706;
+	--profile: #7c3aed;
+	--border: rgba(15, 23, 42, 0.08);
+	--input: rgba(15, 23, 42, 0.1);
+	--ring: #2563eb;
+	--sidebar: #ffffff;
+	--sidebar-foreground: #0f172a;
+	--sidebar-primary: #2563eb;
+	--sidebar-primary-foreground: #ffffff;
+	--sidebar-accent: #f1f5f9;
+	--sidebar-accent-foreground: #0f172a;
+	--sidebar-border: rgba(15, 23, 42, 0.08);
+	--sidebar-ring: #2563eb;
 }
 
 [data-theme="dark"],
 :root.dark {
 	--radius: 0.5rem;
-	--background: #111111;
-	--foreground: #f3f1ec;
-	--card: #171717;
-	--card-foreground: #f3f1ec;
-	--popover: #171717;
-	--popover-foreground: #f3f1ec;
-	/* #8e5340 on #f6f3ee ≈ 5.5:1. Ring on #111 ≈ 3.1:1 */
-	--primary: #8e5340;
-	--primary-foreground: #f6f3ee;
-	--secondary: #1c1c1c;
-	--secondary-foreground: #f3f1ec;
-	--muted: #1c1c1c;
-	/* #a39e97 on #111 ≈ 7.1:1, on #171 ≈ 6.7:1 */
-	--muted-foreground: #a39e97;
-	--accent: #242424;
-	--accent-foreground: #f3f1ec;
-	--destructive: #d18a7e;
-	--elevated: #1c1c1c;
-	/* Light neutral so legacy bg-ai + text-background stays readable. Not cyan. */
-	--ai: #d8d4ce;
-	--success: #8eaa86;
-	--warning: #c4a36a;
-	--profile: #d8d4ce;
-	--border: rgba(255, 255, 255, 0.1);
-	--input: rgba(255, 255, 255, 0.14);
-	--ring: #8e5340;
-	--sidebar: #141414;
-	--sidebar-foreground: #f3f1ec;
-	--sidebar-primary: #8e5340;
-	--sidebar-primary-foreground: #f6f3ee;
-	--sidebar-accent: #242424;
-	--sidebar-accent-foreground: #f3f1ec;
-	--sidebar-border: rgba(255, 255, 255, 0.1);
-	--sidebar-ring: #8e5340;
-	--shadow-overlay: 0 8px 24px rgba(0, 0, 0, 0.45);
+	--background: #06080d;
+	--foreground: #e8eef5;
+	--card: #0c121c;
+	--card-foreground: #e8eef5;
+	--popover: #0c121c;
+	--popover-foreground: #e8eef5;
+	/* #2563eb on white text ≈ 4.56:1 — AA for primary buttons (was #3b82f6 @ 3.67:1) */
+	--primary: #2563eb;
+	--primary-foreground: #ffffff;
+	--secondary: #121a27;
+	--secondary-foreground: #e8eef5;
+	--muted: #121a27;
+	/* ~5.2:1 on #06080d — AA for body/nav muted text */
+	--muted-foreground: #a8b4c7;
+	--accent: #182233;
+	--accent-foreground: #e8eef5;
+	--destructive: #f87171;
+	--elevated: #121a27;
+	--ai: #22d3ee;
+	--success: #34d399;
+	--warning: #fbbf24;
+	--profile: #a78bfa;
+	--border: rgba(120, 160, 220, 0.12);
+	--input: rgba(120, 160, 220, 0.18);
+	--ring: #2563eb;
+	--sidebar: #0c121c;
+	--sidebar-foreground: #e8eef5;
+	--sidebar-primary: #2563eb;
+	--sidebar-primary-foreground: #ffffff;
+	--sidebar-accent: #121a27;
+	--sidebar-accent-foreground: #e8eef5;
+	--sidebar-border: rgba(120, 160, 220, 0.12);
+	--sidebar-ring: #2563eb;
+	--shadow-overlay: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
 @layer base {

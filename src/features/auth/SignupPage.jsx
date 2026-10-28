@@ -121,7 +121,7 @@ export default function SignupPage() {
               </Badge>
               <h2 className="mb-3 text-[clamp(1.6rem,3vw,2.4rem)] font-black leading-tight tracking-tight">
                 Launch Your Career<br />
-                <span className="text-foreground">In Minutes</span>
+                <span className="bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">In Minutes</span>
               </h2>
               <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
                 Join thousands of students who found their dream jobs using our AI-powered platform. It's free, fast, and built for freshers.
@@ -146,7 +146,7 @@ export default function SignupPage() {
                 "Signed up, built my resume in 2 minutes, and got 3 interview calls in my first week. This platform is insane for freshers!"
               </p>
               <div className="flex items-center gap-2.5">
-                <div className="flex size-8 items-center justify-center rounded-full border-2 border-border bg-foreground text-xs font-semibold text-background">
+                <div className="flex size-8 items-center justify-center rounded-full border-2 border-border bg-gradient-to-br from-primary to-emerald-500 text-xs font-bold text-white">
                   AV
                 </div>
                 <div>

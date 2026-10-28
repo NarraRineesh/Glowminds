@@ -31,7 +31,7 @@ function planBadgeTone(label) {
   }
   return {
     icon: 'star',
-    bar: 'bg-foreground text-background',
+    bar: 'bg-gradient-to-r from-primary to-emerald-500 text-primary-foreground',
     glow: 'shadow-[0_8px_24px_-12px_color-mix(in_oklab,var(--primary)_70%,transparent)]',
   }
 }

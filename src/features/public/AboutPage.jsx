@@ -52,7 +52,7 @@ function PageHero({ badge, title, highlight, description }) {
           transition={{ duration: 0.6, ease: motionEase, delay: 0.1 }}
           className="mb-4 text-4xl font-black leading-tight tracking-tight text-foreground md:text-5xl"
         >
-          {title} <span className="text-foreground">{highlight}</span>
+          {title} <span className="bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">{highlight}</span>
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, y: 20 }}
@@ -159,7 +159,7 @@ export default function AboutPage() {
                   {aboutMetrics.map((metric, i, arr) => (
                     <div key={metric.label} className="flex items-center gap-4">
                       <div className="text-center">
-                        <div className="font-mono text-lg font-black text-foreground">{metric.value}</div>
+                        <div className="font-mono text-lg font-black bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">{metric.value}</div>
                         <div className="text-[10px] text-muted-foreground">{metric.label}</div>
                       </div>
                       {i < arr.length - 1 && <Separator orientation="vertical" className="hidden h-8 sm:block" />}
