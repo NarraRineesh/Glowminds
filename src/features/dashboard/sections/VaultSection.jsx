@@ -14,13 +14,11 @@ import {
 } from '@/services/vaultService'
 import { logActivity } from '@/services/activityLog'
 import useAppStore from '@/store/authStore'
-import { AppIcon, Badge, Button, DashboardCard, Progress, cn } from '@/components/ui'
+import { AppDialog, AppIcon, Badge, Button, DashboardCard, Progress, cn } from '@/components/ui'
+import { VAULT_ACCEPT, formatBytes as formatFileSize, vaultFileRejection } from '@/utils/vaultFiles'
 
 function formatBytes(n) {
-  if (!n) return '0 B'
-  if (n < 1024) return `${n} B`
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`
-  return `${(n / (1024 * 1024)).toFixed(2)} MB`
+  return formatFileSize(n)
 }
 
 function relativeTime(ms) {
@@ -46,6 +44,7 @@ export default function VaultSection() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const [opening, setOpening] = useState(null)
+  const [pendingDelete, setPendingDelete] = useState(null)
 
   const quota = vaultQuotaBytes(isPro)
   const used = useMemo(() => items.reduce((a, i) => a + (i.size || 0), 0), [items])
@@ -77,18 +76,25 @@ export default function VaultSection() {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
+    const rejected = vaultFileRejection(file, { maxBytes: MAX_FILE_BYTES })
+    if (rejected) {
+      setError(rejected)
+      addToast('error', rejected)
+      return
+    }
     setBusy(true)
     setError(null)
     try {
       const uid = requireUid()
-      if (file.size > MAX_FILE_BYTES) throw new Error('File too large. Max 5 MB per file.')
       if (used + file.size > quota) throw new Error('Storage quota exceeded. Upgrade Pro for more space.')
       const uploadCategory = folder === 'all' ? 'others' : folder
       await uploadVaultDoc({ uid, file, category: uploadCategory })
       await logActivity(uid, { type: 'vault', title: `Uploaded ${file.name}` })
       await reload()
     } catch (err) {
-      setError(err.message || 'Upload failed')
+      const message = err.message || 'Upload failed'
+      setError(message)
+      addToast('error', message)
     } finally {
       setBusy(false)
     }
@@ -112,10 +118,11 @@ export default function VaultSection() {
     }
   }
 
-  const onDelete = async (item) => {
-    if (!confirm(`Delete ${item.name}?`)) return
+  const confirmDelete = async () => {
+    if (!pendingDelete) return
     const uid = requireUid()
-    await deleteVaultDoc(uid, item)
+    await deleteVaultDoc(uid, pendingDelete)
+    setPendingDelete(null)
     await reload()
   }
 
@@ -124,7 +131,7 @@ export default function VaultSection() {
   const sidebar = (
     <div className="space-y-4">
       <DashboardCard titleIcon="folder" title="Upload" contentClassName="space-y-3">
-        <input ref={inputRef} type="file" className="hidden" onChange={onUpload} />
+        <input ref={inputRef} type="file" accept={VAULT_ACCEPT} className="hidden" onChange={onUpload} />
         <Button
           className="w-full"
           disabled={busy}
@@ -232,7 +239,7 @@ export default function VaultSection() {
                     >
                       {opening === item.id ? 'Downloading…' : 'Download'}
                     </Button>
-                    <Button type="button" size="sm" variant="ghost" onClick={() => onDelete(item)}>
+                    <Button type="button" size="sm" variant="ghost" onClick={() => setPendingDelete(item)}>
                       Delete
                     </Button>
                   </div>
@@ -242,6 +249,18 @@ export default function VaultSection() {
           )}
         </DashboardCard>
       </ToolSidebarLayout>
+      <AppDialog
+        open={!!pendingDelete}
+        onOpenChange={(open) => { if (!open) setPendingDelete(null) }}
+        title="Delete file?"
+        description={pendingDelete ? `${pendingDelete.name || 'This file'} will be removed from your vault.` : ''}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setPendingDelete(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => void confirmDelete()}>Delete</Button>
+          </>
+        }
+      />
     </ToolPage>
   )
 }
