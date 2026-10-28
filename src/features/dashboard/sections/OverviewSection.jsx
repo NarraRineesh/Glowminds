@@ -8,6 +8,8 @@ import useInterviewStore from '@/store/interviewStore'
 import { profileReadyForJobMatches } from '@/utils/jobMatchProfile'
 import { APPLICATION_STATUS, getPreferredRole, normalizeGamification } from '@/constants/schema'
 import { computeProfileScore, getLinkedInScore, getResumeScore } from '@/utils/profileScore'
+import { averageSessionPercent } from '@/utils/interviewScore'
+import { sanitizeSkillGap } from '@/utils/skillRelevance'
 import { buildActivityEvents } from '@/utils/activityTimeline'
 import JobMiniRow from '@/features/dashboard/components/JobMiniRow'
 import { getSkillGap } from '@/services/skillsApi'
@@ -44,11 +46,9 @@ function timeAgo(ts) {
   return `${Math.floor(hrs / 24)}d ago`
 }
 
-function trendFromHistory(history, key, fallback) {
+function trendFromHistory(history, key) {
   const pts = (history || []).map((h) => Number(h[key])).filter((n) => n > 0)
-  if (pts.length >= 2) return pts.slice(-6)
-  if (fallback > 0) return [Math.max(0, fallback - 8), Math.max(0, fallback - 4), fallback]
-  return []
+  return pts.length >= 2 ? pts.slice(-6) : []
 }
 
 export default function OverviewSection() {
@@ -62,6 +62,7 @@ export default function OverviewSection() {
   const sessions = useInterviewStore((s) => s.sessions) || []
 
   const [gap, setGap] = useState(null)
+  const [gapReady, setGapReady] = useState(false)
   const [activity, setActivity] = useState([])
   const [scoreHistory, setScoreHistory] = useState([])
   const [focusDismissed, setFocusDismissed] = useState(() => {
@@ -72,12 +73,7 @@ export default function OverviewSection() {
     }
   })
 
-  const interviewAvg = useMemo(() => {
-    const scored = sessions.filter((s) => typeof s.totalScore === 'number' || s.percent != null)
-    if (!scored.length) return 0
-    const sum = scored.reduce((a, s) => a + (s.percent ?? s.totalScore ?? 0), 0)
-    return Math.round(sum / scored.length)
-  }, [sessions])
+  const interviewAvg = useMemo(() => averageSessionPercent(sessions) ?? 0, [sessions])
 
   const profileLoaded = useProfileStore((s) => s.loaded)
   const scores = useMemo(() => {
@@ -104,8 +100,8 @@ export default function OverviewSection() {
 
   const readyForMatches = profileReadyForJobMatches(profile)
   const actionPlan = useMemo(
-    () => buildActionPlan({ profile, apps, scores, readyForMatches }),
-    [profile, apps, scores, readyForMatches],
+    () => (gapReady ? buildActionPlan({ profile, apps, scores, readyForMatches }) : []),
+    [gapReady, profile, apps, scores, readyForMatches],
   )
   const focus = actionPlan[0]
 
@@ -159,12 +155,15 @@ export default function OverviewSection() {
   }, [user?.uid, loadProfile])
 
   useEffect(() => {
+    setGapReady(false)
     getSkillGap({ role: getPreferredRole(profile) })
       .then((data) => {
-        setGap(data)
-        v2Debug('dashboard', 'skill gap', data?.coverage)
+        const next = sanitizeSkillGap(data, profile)
+        setGap(next)
+        v2Debug('dashboard', 'skill gap', next?.coverage)
       })
       .catch(() => setGap(null))
+      .finally(() => setGapReady(true))
   }, [profile?.headline, profile?.preferences?.preferredRole, profile])
 
   useEffect(() => {
@@ -272,23 +271,23 @@ export default function OverviewSection() {
             label="Career"
             value={!profileLoaded ? '…' : (scores.careerScore || 'Complete')}
             color="primary"
-            trend={trendFromHistory(scoreHistory, 'career', scores.careerScore)}
+            trend={trendFromHistory(scoreHistory, 'career')}
           />
         </button>
         <button type="button" className="min-w-0 text-left" onClick={() => navigate('/dashboard/resume')}>
           <ScoreSparkCard
             label="Resume"
-            value={!profileLoaded ? '…' : (scores.resumeScore || 'Score it')}
+            value={!profileLoaded ? '…' : (scores.resumeScore || 'Not scored')}
             color="ai"
-            trend={trendFromHistory(scoreHistory, 'resume', scores.resumeScore)}
+            trend={trendFromHistory(scoreHistory, 'resume')}
           />
         </button>
         <button type="button" className="min-w-0 text-left" onClick={() => navigate('/dashboard/linkedin')}>
           <ScoreSparkCard
             label="LinkedIn"
-            value={!profileLoaded ? '…' : (scores.linkedInScore || 'Audit')}
+            value={!profileLoaded ? '…' : (scores.linkedInScore || 'Not audited')}
             color="success"
-            trend={trendFromHistory(scoreHistory, 'linkedin', scores.linkedInScore)}
+            trend={trendFromHistory(scoreHistory, 'linkedin')}
           />
         </button>
         <button type="button" className="min-w-0 text-left" onClick={() => navigate('/dashboard/interview')}>
@@ -296,7 +295,7 @@ export default function OverviewSection() {
             label="Interview"
             value={scores.interviewReady || 'Practice'}
             color="warning"
-            trend={trendFromHistory(scoreHistory, 'interview', scores.interviewReady)}
+            trend={trendFromHistory(scoreHistory, 'interview')}
           />
         </button>
       </div>
@@ -315,9 +314,13 @@ export default function OverviewSection() {
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         <SectionCard
           title="Action plan"
-          action={<span className="text-xs text-muted-foreground">{actionPlan.filter((i) => i.done).length} / {actionPlan.length || 0}</span>}
+          action={<span className="text-xs text-muted-foreground">{gapReady ? `${actionPlan.filter((i) => i.done).length} / ${actionPlan.length}` : 'Loading…'}</span>}
         >
-          <ActionPlanList items={actionPlan} onItemClick={(item) => item.to && navigate(item.to)} />
+          {gapReady ? (
+            <ActionPlanList items={actionPlan} onItemClick={(item) => item.to && navigate(item.to)} />
+          ) : (
+            <p className="text-sm text-muted-foreground">Putting your next steps together…</p>
+          )}
         </SectionCard>
 
         <SectionCard

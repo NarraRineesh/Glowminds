@@ -24,6 +24,9 @@ import { getSkillGap, getSkillTrends } from '@/services/skillsApi'
 import { loadScoreHistory } from '@/services/gamification'
 import { loadActivity } from '@/services/activityLog'
 import { buildCareerScores } from '@/utils/v2Scores'
+import { computeProfileScore, getLinkedInScore, getResumeScore } from '@/utils/profileScore'
+import { averageSessionPercent, sessionPercent } from '@/utils/interviewScore'
+import { sanitizeSkillGap } from '@/utils/skillRelevance'
 import { skillLabel } from '@/utils/skillLabel'
 import { auth } from '@/services/firebase'
 import {
@@ -66,15 +69,6 @@ function relativeDay(ts, now = 0) {
   return d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })
 }
 
-function sessionPercent(s) {
-  if (typeof s?.percent === 'number') return Math.round(s.percent)
-  const total = Array.isArray(s?.questions) ? s.questions.length : 0
-  if (total && typeof s?.totalScore === 'number') {
-    return Math.round((s.totalScore / total) * 100)
-  }
-  return null
-}
-
 function companyMark(name) {
   const letter = (name || '?').trim().charAt(0).toUpperCase()
   return (
@@ -93,6 +87,7 @@ export default function AnalyticsSection() {
   const sessions = useInterviewStore((s) => s.sessions) || []
   const loadHistory = useInterviewStore((s) => s.loadHistory)
   const profile = useProfileStore((s) => s.profile)
+  const profileLoaded = useProfileStore((s) => s.loaded)
   const loadProfile = useProfileStore((s) => s.load)
   const user = useAppStore((s) => s.user)
 
@@ -129,6 +124,8 @@ export default function AnalyticsSection() {
       .catch(() => setTrends([]))
   }, [profile?.headline, profile?.preferences?.preferredRole])
 
+  const roleGap = useMemo(() => sanitizeSkillGap(gap, profile), [gap, profile])
+
   const recent = useMemo(() => {
     const since = now - days * 86400000
     return apps.filter((a) => {
@@ -137,22 +134,23 @@ export default function AnalyticsSection() {
     })
   }, [apps, days, now])
 
-  const interviewAvg = useMemo(() => {
-    const scored = sessions.map(sessionPercent).filter((n) => n != null)
-    if (!scored.length) return 0
-    return Math.round(scored.reduce((a, b) => a + b, 0) / scored.length)
-  }, [sessions])
+  const interviewAvg = useMemo(() => averageSessionPercent(sessions) ?? 0, [sessions])
 
-  const scores = useMemo(
-    () =>
-      buildCareerScores({
-        profile,
-        resumeAnalysis: profile?.resumeAnalysis || null,
-        interviewAvg,
-        skillCoverage: gap?.coverage,
-      }),
-    [profile, interviewAvg, gap],
-  )
+  const scores = useMemo(() => {
+    const built = buildCareerScores({
+      profile,
+      resumeAnalysis: profile?.resumeAnalysis || null,
+      interviewAvg,
+      skillCoverage: roleGap?.coverage,
+    })
+    return {
+      ...built,
+      careerScore: profileLoaded ? computeProfileScore({ profile, user }) : 0,
+      resumeScore: getResumeScore(profile) || built.resumeScore || 0,
+      linkedInScore: getLinkedInScore(profile) || built.linkedInScore || 0,
+      interviewReady: interviewAvg,
+    }
+  }, [profile, profileLoaded, user, interviewAvg, roleGap])
 
   const scoreDelta = (key) => {
     const pts = (scoreHistory || []).map((h) => Number(h[key])).filter((n) => n > 0)
@@ -160,11 +158,9 @@ export default function AnalyticsSection() {
     return pts[pts.length - 1] - pts[0]
   }
 
-  const scoreTrendPts = (key, fallback) => {
+  const scoreTrendPts = (key) => {
     const pts = (scoreHistory || []).map((h) => Number(h[key])).filter((n) => n > 0)
-    if (pts.length >= 2) return pts.slice(-8)
-    if (fallback > 0) return [Math.max(0, fallback - 6), fallback]
-    return []
+    return pts.length >= 2 ? pts.slice(-8) : []
   }
 
   const timeline = useMemo(() => {
@@ -279,18 +275,21 @@ export default function AnalyticsSection() {
     : 0
 
   const skillRows = useMemo(() => {
-    const have = new Set((gap?.haveSkills || []).map((s) => skillLabel(s)))
+    const have = new Set((roleGap?.haveSkills || []).map((s) => skillLabel(s)))
     return (trends || [])
       .map((t) => {
         const label = skillLabel(t)
         if (!label) return null
-        const demand = Math.max(40, Math.min(100, Math.round(Number(t.importanceScore ?? t.demand ?? t.score ?? 70)) || 70))
-        const you = have.has(label) ? Math.max(60, Math.min(95, demand)) : 30
-        return { label, demand, you }
+        const jobs = Number(t.jobCount ?? t.active_job_count) || 0
+        if (!jobs) return null
+        const you = have.has(label) ? 100 : 0
+        return { label, demand: jobs, you, demandPct: 0 }
       })
       .filter(Boolean)
       .slice(0, 6)
-  }, [trends, gap])
+  }, [trends, roleGap])
+
+  const skillMax = Math.max(1, ...skillRows.map((row) => row.demand))
 
   const exportCsv = () => {
     const rows = [['Company', 'Role', 'Status', 'Applied'].join(',')]
@@ -335,16 +334,16 @@ export default function AnalyticsSection() {
 
       {/* Career health across every feature */}
       <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-5">
-        <ScoreSparkCard label="Career" value={scores.careerScore || '—'} color="primary" delta={scoreDelta('career')} trend={scoreTrendPts('career', scores.careerScore)} />
-        <ScoreSparkCard label="Resume ATS" value={scores.resumeScore || '—'} color="ai" delta={scoreDelta('resume')} trend={scoreTrendPts('resume', scores.resumeScore)} />
-        <ScoreSparkCard label="LinkedIn" value={scores.linkedInScore || '—'} color="success" delta={scoreDelta('linkedin')} trend={scoreTrendPts('linkedin', scores.linkedInScore)} />
-        <ScoreSparkCard label="Interview" value={scores.interviewReady || '—'} color="warning" delta={scoreDelta('interview')} trend={scoreTrendPts('interview', scores.interviewReady)} />
-        <ScoreSparkCard label="Skills" value={scores.skillScore || '—'} color="profile" trend={scoreTrendPts('skill', scores.skillScore)} />
+        <ScoreSparkCard label="Career" value={scores.careerScore || '—'} color="primary" delta={scoreDelta('career')} trend={scoreTrendPts('career')} />
+        <ScoreSparkCard label="Resume ATS" value={scores.resumeScore || '—'} color="ai" delta={scoreDelta('resume')} trend={scoreTrendPts('resume')} />
+        <ScoreSparkCard label="LinkedIn" value={scores.linkedInScore || '—'} color="success" delta={scoreDelta('linkedin')} trend={scoreTrendPts('linkedin')} />
+        <ScoreSparkCard label="Interview" value={interviewAvg || '—'} color="warning" delta={scoreDelta('interview')} trend={scoreTrendPts('interview')} />
+        <ScoreSparkCard label="Skills" value={scores.skillScore || '—'} color="profile" trend={scoreTrendPts('skill')} />
       </div>
 
       <StatStrip
         stats={[
-          ['Applications', String(recent.length)],
+          ['Applications', String(apps.length)],
           ['Saved jobs', String(savedJobs.length)],
           ['Interviews', String(interviews)],
           ['Response rate', `${responseRate}%`],
@@ -353,8 +352,9 @@ export default function AnalyticsSection() {
       />
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <SectionCard title="Applications over time" className={styles.chartCard}>
+        <SectionCard title={`Applications · last ${days}d`} className={styles.chartCard}>
           <div className={styles.chartWrap}>
+            {recent.length ? (
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={timeline}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
@@ -364,6 +364,13 @@ export default function AnalyticsSection() {
                 <Area type="monotone" dataKey="count" stroke="var(--primary)" fill="color-mix(in oklab, var(--primary) 25%, transparent)" />
               </AreaChart>
             </ResponsiveContainer>
+            ) : (
+              <p className="flex h-full items-center justify-center px-6 text-center text-sm text-muted-foreground">
+                {apps.length
+                  ? `No applications in the last ${days} days. You have ${apps.length} tracked in total.`
+                  : 'No tracked applications yet.'}
+              </p>
+            )}
           </div>
         </SectionCard>
 
@@ -445,11 +452,11 @@ export default function AnalyticsSection() {
                   <li key={s.label}>
                     <div className="mb-1 flex justify-between text-xs">
                       <span className="font-medium">{s.label}</span>
-                      <span className="font-mono text-muted-foreground">{s.you} / {s.demand}</span>
+                      <span className="font-mono text-muted-foreground">{s.you ? 'On your profile' : 'Not listed'} · {s.demand} roles</span>
                     </div>
                     <div className="relative h-1.5 rounded-full bg-elevated">
-                      <div className="absolute inset-y-0 left-0 rounded-full bg-primary/40" style={{ width: `${s.demand}%` }} />
-                      <div className="absolute inset-y-0 left-0 rounded-full bg-ai" style={{ width: `${s.you}%` }} />
+                      <div className="absolute inset-y-0 left-0 rounded-full bg-primary/40" style={{ width: `${Math.round((s.demand / skillMax) * 100)}%` }} />
+                      {s.you ? <div className="absolute inset-y-0 left-0 w-1.5 rounded-full bg-ai" /> : null}
                     </div>
                   </li>
                 ))}
@@ -464,17 +471,17 @@ export default function AnalyticsSection() {
           </SectionCard>
         )}
         rail={(
-          <SectionCard title="Skill coverage" action={<span className="text-xs text-muted-foreground">{gap?.targetRole || 'Target role'}</span>}>
+          <SectionCard title="Skill coverage" action={<span className="text-xs text-muted-foreground">{roleGap?.targetRole || 'Target role'}</span>}>
             <div className="mb-1 flex items-end justify-between">
-              <span className="font-mono text-2xl font-bold">{gap?.coverage ?? 0}%</span>
+              <span className="font-mono text-2xl font-bold">{roleGap?.coverage ?? 0}%</span>
               <span className="text-xs text-muted-foreground">covered</span>
             </div>
-            <Progress value={gap?.coverage || 0} className="h-2" />
-            {gap?.missingSkills?.length ? (
+            <Progress value={roleGap?.coverage || 0} className="h-2" />
+            {roleGap?.missingSkills?.length ? (
               <div className="mt-3">
                 <p className="mb-1.5 text-xs font-medium text-muted-foreground">Top gaps to close</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {gap.missingSkills.slice(0, 6).map((s) => (
+                  {roleGap.missingSkills.slice(0, 6).map((s) => (
                     <span key={skillLabel(s)} className="rounded-md border border-border bg-muted/40 px-1.5 py-0.5 text-[0.7rem]">
                       {skillLabel(s)}
                     </span>
@@ -507,7 +514,7 @@ export default function AnalyticsSection() {
           </SectionCard>
         )}
         rail={(
-          <SectionCard title="Conversion funnel">
+          <SectionCard title="Conversion funnel" action={<span className="text-xs text-muted-foreground">All tracked</span>}>
             <DenseTable
               columns={['Step', 'Count', 'Conv.']}
               rows={funnel.map(([step, count, conv]) => [
