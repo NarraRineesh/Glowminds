@@ -36,7 +36,7 @@ export default function StreakCard({
             <div key={`${d}-${i}`} className="flex flex-col items-center gap-1.5 text-[10px] text-muted-foreground">
               <span
                 className={`h-[18px] w-[18px] rounded-full border ${
-                  done ? 'border-transparent bg-primary' : 'border-border bg-muted'
+                  done ? 'border-transparent bg-foreground' : 'border-border bg-muted'
                 } ${isToday ? 'ring-2 ring-ring/40' : ''}`}
               />
               <span>{d}</span>
@@ -51,7 +51,7 @@ export default function StreakCard({
           <span className="font-mono text-muted-foreground">{xp} / {xpToNext}</span>
         </div>
         <div className="h-1.5 overflow-hidden rounded-[var(--radius-xs)] bg-muted">
-          <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
+          <div className="h-full bg-foreground" style={{ width: `${pct}%` }} />
         </div>
         <p className="m-0 text-xs text-muted-foreground">
           {xpHint || `${Math.max(0, xpToNext - xp)} XP to Level ${level + 1}`}
