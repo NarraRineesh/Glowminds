@@ -37,6 +37,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { normalizeGamification } from '@/constants/schema'
 import { updateGamificationPrefs, xpToNextLevel } from '@/services/gamification'
 import { StreakCard } from '@/features/dashboard/components/v2'
+import PlanUsageSummary from '@/components/dashboard/PlanUsageSummary'
 
 const SECTIONS = [
   { id: 'account', icon: 'user', title: 'Account', desc: 'Profile and security' },
@@ -568,6 +569,10 @@ export default function SettingsSection() {
       console.error('persist settings:', err)
     })
   }
+
+  void selectSection
+  void jobMatchAlerts
+  void onToggleMatchAlerts
 
   const onToggleEmail = (v) => { setEmailNotifs(v); persistSettings({ emailNotifications: v }) }
   const onTogglePush = (v) => { setPushNotifs(v); persistSettings({ pushNotifications: v }) }
