@@ -527,4 +527,6 @@ Firebase `VITE_*` values are undefined in that build. Canonicals still default t
 
 ### Screenshots
 
-This stage does not change UI, so before and after frames of the same route match. Captures are from a local preview only and are attached on the pull request. Dashboard routes need a signed-in Firebase user; without real `VITE_FIREBASE_*` keys the preview cannot open the product. Marketing and auth screens are the ones a local preview can show.
+This stage does not change UI, so before and after frames of the same route match. They were taken from `pnpm preview` on `127.0.0.1:4173` after a second local build that inlined a gitignored placeholder `.env.local` (fake Firebase keys, not a real project, not committed). The passing `pnpm build` reported above was the earlier run with no `.env.local`.
+
+Captured above the fold, default dark theme: `/`, `/features`, `/pricing`, `/login`, each at 1440×900 and 390×844. Dashboard routes were not captured. They require a signed-in Firebase user, and the placeholder keys cannot authenticate. The pull request embeds the pairs.
