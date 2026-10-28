@@ -28,6 +28,27 @@ export function isSingleOriginHost(hostname = getHostname()) {
   })
 }
 
+/**
+ * Continue URL for Firebase email actions.
+ * Production stays on SITE_URL. Preview/localhost uses this tab's origin.
+ */
+export function authContinueUrl(path = '/login') {
+  const normalized = path.startsWith('/') ? path : `/${path}`
+  if (isSingleOriginHost() && typeof window !== 'undefined' && window.location?.origin) {
+    return `${window.location.origin}${normalized}`
+  }
+  return `${SITE_URL}${normalized}`
+}
+
+/** Undefined on production so Firebase keeps its default continue URL. */
+export function passwordResetActionCodeSettings() {
+  if (!isSingleOriginHost() || typeof window === 'undefined' || !window.location?.origin) return undefined
+  return {
+    url: `${window.location.origin}/login`,
+    handleCodeInApp: false,
+  }
+}
+
 export function isAppHost(hostname = getHostname()) {
   if (isLocalHost(hostname)) return false
   return hostname === 'app.glowminds.in' || hostname.startsWith('app.')

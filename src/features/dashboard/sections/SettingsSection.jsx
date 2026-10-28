@@ -30,6 +30,7 @@ import {
 } from '@/constants/pricingDefaults'
 import { formatSubscriptionEndDate, isActiveProSubscription } from '@/constants/plans'
 import { sendPasswordResetEmail } from 'firebase/auth'
+import { passwordResetActionCodeSettings } from '@/config/hosts'
 import { auth } from '@/services/firebase'
 import { loadUserUsage } from '@/utils/firestoreCollections'
 import { apiFetch } from '@/services/apiClient'
@@ -609,7 +610,7 @@ export default function SettingsSection() {
     }
     setResettingPassword(true)
     try {
-      await sendPasswordResetEmail(auth, email)
+      await sendPasswordResetEmail(auth, email, passwordResetActionCodeSettings())
       addToast('success', 'Password reset email sent — check your inbox')
     } catch (err) {
       console.error('sendPasswordReset:', err)

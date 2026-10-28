@@ -3,12 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { ChromeHomeLink } from '@/components/HostLinks'
 import { motion } from 'framer-motion'
 import { sendPasswordResetEmail } from 'firebase/auth'
+import { passwordResetActionCodeSettings } from '@/config/hosts'
 import { auth } from '@/services/firebase'
 import useAppStore from '@/store/authStore'
 import SEO from '@/components/SEO'
 import { PAGE_SEO } from '@/config/seo'
 import BrandLogo, { GlowmindsWordmark } from '@/components/BrandLogo'
-import useLandingConfig from '@/hooks/useLandingConfig'
 import { Badge, Button, Card, CardContent, FormField, Input, Separator, AppIcon } from '@/components/ui'
 import { requiresEmailVerification } from '@/utils/emailVerification'
 
@@ -40,8 +40,6 @@ function AuthDivider({ label }) {
 export default function LoginPage() {
   const navigate = useNavigate()
   const { doLogin, doGoogleLogin, addToast } = useAppStore()
-  const { config: landingConfig } = useLandingConfig()
-  const socialProof = landingConfig.socialProof || {}
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -82,7 +80,7 @@ export default function LoginPage() {
     }
     setLoading(true)
     try {
-      await sendPasswordResetEmail(auth, email)
+      await sendPasswordResetEmail(auth, email, passwordResetActionCodeSettings())
       setResetSent(true)
       setErrors((e) => ({ ...e, email: '' }))
       addToast('success', 'Password reset email sent! Check your inbox.')

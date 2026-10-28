@@ -76,12 +76,17 @@
     </style>
     <script>
       (function () {
-        // Host split + apex canonicalize. Never bounce localhost.
+        // Host split + apex canonicalize.
+        // Stay on this origin for localhost, Firebase preview channels
+        // (`{site}--{channel}.web.app`), and VITE_DISABLE_HOST_REDIRECT=true.
         try {
           var host = location.hostname;
           var rest = location.pathname + location.search + location.hash;
           var path = location.pathname || '/';
-          var local = host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0';
+          var local = host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0' || host === '[::1]' || (host.length > 10 && host.lastIndexOf('.localhost') === host.length - 10);
+          var preview = /--.*\.web\.app$/i.test(host) || /--.*\.firebaseapp\.com$/i.test(host);
+          var disableRedirect = %DISABLE_HOST_REDIRECT%;
+          var singleOrigin = local || preview || disableRedirect === true;
           var isApp = host === 'app.glowminds.in' || host === 'glowminds-app.web.app' || host === 'glowminds-app.firebaseapp.com';
           var appPrefixes = ['/login','/signup','/verify-email','/dashboard','/admin','/design','/jobs'];
           var mktPrefixes = ['/about','/features','/contact','/pricing','/careers','/privacy','/terms','/refund'];
@@ -91,7 +96,7 @@
             }
             return false;
           }
-          if (!local) {
+          if (!singleOrigin) {
             if (!isApp && starts(appPrefixes)) {
               location.replace('%APP_URL%' + rest);
               return;

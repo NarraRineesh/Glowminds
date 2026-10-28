@@ -10,7 +10,11 @@ const PREVIEW = 'glowminds-abc84--redesign-qafix-tgy14j7r.web.app'
 describe('firebase preview channels', () => {
   it('matches {site}--{channel}.web.app only', () => {
     assert.equal(isFirebasePreviewChannel(PREVIEW), true)
+    assert.equal(isFirebasePreviewChannel('glowminds-abc84--redesign-qafix-tgy14j7r.firebaseapp.com'), true)
     assert.equal(isFirebasePreviewChannel('glowminds-abc84.web.app'), false)
+    assert.equal(isFirebasePreviewChannel('glowminds-abc84.firebaseapp.com'), false)
+    assert.equal(isFirebasePreviewChannel('glowminds-app.web.app'), false)
+    assert.equal(isFirebasePreviewChannel('glowminds-app.firebaseapp.com'), false)
     assert.equal(isFirebasePreviewChannel('glowminds.in'), false)
     assert.equal(isFirebasePreviewChannel('www.glowminds.in'), false)
     assert.equal(isFirebasePreviewChannel('app.glowminds.in'), false)

@@ -1,7 +1,7 @@
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '0.0.0.0', '[::1]'])
 
-/** Firebase Hosting preview channels are `{site}--{channel}.web.app`. */
-const FIREBASE_PREVIEW_CHANNEL = /--.*\.web\.app$/i
+/** Firebase Hosting preview channels: `{site}--{channel}.web.app` or `.firebaseapp.com`. */
+const FIREBASE_PREVIEW_CHANNEL = /--.*\.(web\.app|firebaseapp\.com)$/i
 
 export function isLoopbackHost(hostname) {
   if (!hostname) return true

@@ -1,10 +1,10 @@
 import { create } from 'zustand'
 import { createDefaultUserDoc } from '@/constants/schema'
-import { SITE_URL } from '@/config/site'
+import { authContinueUrl } from '@/config/hosts'
 
 function verificationActionCodeSettings() {
   return {
-    url: `${SITE_URL}/login`,
+    url: authContinueUrl('/login'),
     handleCodeInApp: false,
   }
 }
