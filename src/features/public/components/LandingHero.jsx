@@ -10,9 +10,9 @@ import {
   heroStagger,
   motionTransition,
 } from '@/features/public/motionVariants'
-import { Badge, Button } from '@/components/ui'
+import { Button } from '@/components/ui'
 
-export default function LandingHero({ hero, heroMetrics, trustBadges, stats }) {
+export default function LandingHero({ hero, heroMetrics, trustBadges }) {
   const reducedMotion = useReducedMotion()
 
     const headline = hero?.headline || 'Your AI-Powered Career Operating System'
@@ -40,12 +40,6 @@ export default function LandingHero({ hero, heroMetrics, trustBadges, stats }) {
               {hero.positioning}
             </motion.p>
           ) : null}
-
-          <motion.div variants={heroFadeUp} transition={motionTransition(reducedMotion, { duration: 0.65, delay: 0.2 })}>
-            <Badge variant="outline" className="border-emerald-500/20 bg-emerald-500/10 text-emerald-500">
-              {hero?.liveBadge || 'FREE TO START'} · {stats?.badgeLine || 'ATS resume, jobs & interview prep'}
-            </Badge>
-          </motion.div>
 
           <motion.h1
             variants={heroFadeUp}
