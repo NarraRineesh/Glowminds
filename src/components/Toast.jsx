@@ -12,9 +12,10 @@ export default function Toast() {
       if (seen.current.has(t.id)) continue
       seen.current.add(t.id)
       const message = t.msg
-      if (t.type === 'error') toast.error(message)
-      else if (t.type === 'success') toast.success(message)
-      else toast.message(message)
+      const toastId = String(t.id)
+      if (t.type === 'error') toast.error(message, { id: toastId })
+      else if (t.type === 'success') toast.success(message, { id: toastId })
+      else toast.message(message, { id: toastId })
     }
   }, [toasts])
 
