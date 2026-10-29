@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import SectionHeader from '@/components/dashboard/SectionHeader'
 import ProUpgradeInline from '@/components/ProUpgradeInline'
 import { ToolPage, ToolSidebarLayout } from '@/features/dashboard/components/toolSectionLayout'
@@ -17,6 +17,7 @@ import {
   matchSalaryRole,
   parseExpectedCtcLpa,
 } from '@/utils/salaryInsights'
+import { getPreferredRole } from '@/constants/schema'
 
 export default function SalaryInsightsSection() {
   const addToast = useAppStore((s) => s.addToast)
@@ -39,39 +40,50 @@ export default function SalaryInsightsSection() {
   const [level, setLevel] = useState('junior')
   const [city, setCity] = useState('Bangalore')
   const [prefilled, setPrefilled] = useState(false)
+  const requestRef = useRef(0)
 
   const fetchInsights = useCallback(async () => {
+    const requestId = requestRef.current + 1
+    requestRef.current = requestId
     setLoading(true)
     setError(null)
     setNeedsPro(false)
+    const stillCurrent = () => requestRef.current === requestId
     try {
       await loadProfile().catch(() => {})
+      if (!stillCurrent()) return
       if (isPro) {
         const payload = await apiFetch('/salary/insights', { method: 'GET' })
+        if (!stillCurrent()) return
         setData(payload)
         setPreview(null)
+        setNeedsPro(false)
       } else {
         const payload = await apiFetch('/salary/preview', { method: 'GET' })
+        if (!stillCurrent()) return
         setPreview(payload)
         setData(null)
         setNeedsPro(true)
       }
     } catch (err) {
-      if (isProUpgradeRequired(err)) {
+      if (!stillCurrent()) return
+      if (isProUpgradeRequired(err) && !isPro) {
         setNeedsPro(true)
         setData(null)
         try {
           const payload = await apiFetch('/salary/preview', { method: 'GET' })
+          if (!stillCurrent()) return
           setPreview(payload)
           setError(null)
         } catch (previewErr) {
-          setError(previewErr)
+          if (stillCurrent()) setError(previewErr)
         }
       } else {
         setError(err)
+        setNeedsPro(false)
       }
     } finally {
-      setLoading(false)
+      if (stillCurrent()) setLoading(false)
     }
   }, [isPro, loadProfile])
 
@@ -104,11 +116,16 @@ export default function SalaryInsightsSection() {
       return
     }
     const prefs = profile?.preferences || {}
+    const experienceRoles = (Array.isArray(profile?.experience) ? profile.experience : [])
+      .map((entry) => entry?.role || entry?.title)
+      .filter(Boolean)
     const matchedRole = matchSalaryRole(
       roles,
+      getPreferredRole(profile, ''),
       profile?.headline,
       prefs.jobType,
-      profile?.experience?.[0]?.role,
+      prefs.preferredRole,
+      ...experienceRoles,
     )
     const matchedLevel = mapCareerLevelToSalary(profile?.careerLevel) || 'junior'
     const matchedCity = matchSalaryCity(
@@ -417,6 +434,11 @@ export default function SalaryInsightsSection() {
               </ul>
             </DashboardCard>
           </>
+        ) : isPro ? (
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-muted/20 px-4 py-10 text-center">
+            <p className="text-sm text-muted-foreground">Salary tables didn’t load. Your Pro plan includes them.</p>
+            <Button size="sm" variant="outline" onClick={() => void fetchInsights()}>Retry</Button>
+          </div>
         ) : (
           <ProUpgradeInline
             message="Upgrade to Glowminds Pro for full salary tables across roles and cities, plus negotiation tips."

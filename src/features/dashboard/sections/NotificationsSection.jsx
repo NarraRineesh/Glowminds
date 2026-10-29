@@ -39,7 +39,7 @@ export default function NotificationsSection() {
   const { notifs, markRead, markAllRead } = useNotifStore()
   const profile = useProfileStore((s) => s.profile)
   const updateProfile = useProfileStore((s) => s.updateProfile)
-  const [filter, setFilter] = useState('Unread')
+  const [filter, setFilter] = useState('All')
 
   const prefs = profile?.notificationPrefs || {}
 

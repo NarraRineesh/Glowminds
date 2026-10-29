@@ -37,6 +37,11 @@ function isValidLinkedInUrl(input) {
 }
 
 const STEPPER_STEPS = ['Import', 'Audit', 'Rewrite']
+const MIN_AUDIT_CHARS = 40
+
+function linkedInFieldLength(headline, about, experience) {
+  return [headline, about, experience].map((value) => String(value || '').trim()).join('').length
+}
 
 const FALLBACK_CHECKS = [
   { id: 'photo', label: 'Professional photo', tip: 'Headshot · neutral background · genuine smile', done: false },
@@ -76,6 +81,11 @@ function LinkedInStepper({ active, onStep }) {
               >
                 {label}
               </span>
+              {current ? (
+                <span className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.5 text-[0.7rem] font-semibold text-primary">
+                  {i + 1}/{STEPPER_STEPS.length}
+                </span>
+              ) : null}
             </button>
             {i < STEPPER_STEPS.length - 1 && (
               <div className={cn('mx-2 h-px flex-1', done ? 'bg-emerald-500/50' : 'bg-border')} />
@@ -223,6 +233,12 @@ export default function LinkedInOptimizerSection() {
   const useMyProfile = () => {
     const profile = useProfileStore.getState().profile || {}
     fillFieldsFromProfile(profile, { onlyEmpty: false, setHeadline, setAbout, setExperience })
+    const nextHeadline = profile?.headline || ''
+    const nextAbout = profile?.summary ? String(profile.summary) : ''
+    const nextExperience = (profile?.experience || []).slice(0, 4).map((e) => [e.role, e.company, e.description].filter(Boolean).join(' ')).join(' ')
+    if (linkedInFieldLength(nextHeadline, nextAbout, nextExperience) < MIN_AUDIT_CHARS) {
+      addToast?.('info', 'Filled what is on your profile. Add more About or Experience text (about 40 characters) before the audit.')
+    }
     addToast?.('success', 'Filled from your GlowMinds profile')
   }
 
@@ -286,6 +302,11 @@ export default function LinkedInOptimizerSection() {
   const runAiAudit = async () => {
     if (!hasImport) {
       addToast?.('error', 'Import or paste LinkedIn fields first')
+      setStep(0)
+      return
+    }
+    if (linkedInFieldLength(headline, about, experience) < MIN_AUDIT_CHARS) {
+      addToast?.('error', 'Paste your LinkedIn About and Experience (at least ~40 characters) before running an audit.')
       setStep(0)
       return
     }
@@ -551,11 +572,11 @@ export default function LinkedInOptimizerSection() {
                 </div>
               ) : (
                 <>
-                  {openFindings > 0 && (
-                    <Badge variant="outline" className="mb-3 border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400">
-                      {openFindings} open finding{openFindings !== 1 ? 's' : ''}
-                    </Badge>
-                  )}
+                  <Badge variant="outline" className="mb-3 border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400">
+                    {openFindings > 0
+                      ? `${openFindings} open finding${openFindings !== 1 ? 's' : ''}`
+                      : `${doneCount}/${checklist.length} checks reviewed`}
+                  </Badge>
                   <ul className="divide-y divide-border rounded-xl border border-border">
                     {checklist.map((c, index) => {
                       const id = c.id || c.label

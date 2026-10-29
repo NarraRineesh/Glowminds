@@ -9,6 +9,7 @@ import { apiFetch } from '@/services/apiClient'
 import { getJobById } from '@/services/jobSearch'
 import { trackJobMetric } from '@/services/jobsApi'
 import { buildJobMatchAnalysis, matchScoreTone } from '@/utils/jobMatchAnalysis'
+import { localDateInputValue } from '@/utils/localDate'
 import { filterJobTags } from '@/utils/jobFilters'
 import Loader from '@/components/Loader'
 import { APPLICATION_STATUS } from '@/constants/schema'
@@ -70,7 +71,7 @@ export default function JobDetailSection() {
   const loadProfile = useProfileStore((s) => s.load)
   const profile = useProfileStore((s) => s.profile)
   const { addApp, loadApps, apps } = useTrackerStore()
-  const { isPro, credits, creditCosts, loading: entLoading, refresh } = useEntitlements()
+  const { isPro, credits, creditCosts, refresh } = useEntitlements()
 
   const [job, setJob] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -168,7 +169,7 @@ export default function JobDetailSection() {
         company,
         role: j.title,
         status: APPLICATION_STATUS.APPLIED,
-        appliedDate: new Date().toISOString().split('T')[0],
+        appliedDate: localDateInputValue(),
         salary: j.salary || j.sal || '',
         notes,
         logo: j.logo,
@@ -344,7 +345,13 @@ export default function JobDetailSection() {
     ?? (matchAnalysis?.available ? matchAnalysis.score : null)
   const hasMatchScore = typeof displayScore === 'number' && displayScore > 0
   const hits = matchAnalysis?.matchedSkills || matchAnalysis?.matches || matchAnalysis?.strengths || aiFit?.strengths || []
-  const misses = matchAnalysis?.missingSkills || matchAnalysis?.gaps || aiFit?.gaps || []
+  const hitKeys = new Set(hits.map((h) => String(typeof h === 'string' ? h : h?.text || h?.label || '').trim().toLowerCase()))
+  const misses = (matchAnalysis?.missingSkills || matchAnalysis?.gaps || aiFit?.gaps || []).filter((g) => {
+    const label = String(typeof g === 'string' ? g : g?.text || g?.label || '').trim().toLowerCase()
+    return label && !hitKeys.has(label)
+  })
+  const blurbSource = (job.description || job.desc || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+  const blurb = blurbSource.length > 160 ? `${blurbSource.slice(0, 160).trim()}…` : blurbSource
 
   return (
     <div className="w-full min-w-0 space-y-4">
@@ -375,12 +382,15 @@ export default function JobDetailSection() {
               ) : (
                 <Badge variant="outline">Add skills to see match</Badge>
               )}
-              {(job.remote || job.location) && <Badge variant="outline">{job.remote ? 'Remote' : job.location}</Badge>}
+              {(job.remote || job.location || job.loc) && (
+                <Badge variant="outline">
+                  {[job.remote ? 'Remote' : null, job.location || job.loc].filter(Boolean).join(' · ')}
+                </Badge>
+              )}
               {misses.length > 0 && <Badge variant="outline" className="text-warning">{misses.length} skill gap{misses.length > 1 ? 's' : ''}</Badge>}
             </div>
             <p className="m-0 max-w-xl text-sm text-muted-foreground">
-              {(job.description || job.desc || '').replace(/<[^>]+>/g, ' ').slice(0, 160) || 'Review fit and use Apply Kit before tracking.'}
-              …
+              {blurb || 'Review the fit, then apply and track from here.'}
             </p>
           </div>
           <div className="flex flex-col items-center gap-1">
@@ -493,13 +503,9 @@ export default function JobDetailSection() {
           </Button>
           {applied ? (
             <Button variant="secondary" onClick={() => navigate('/dashboard/applications')}>
-              <AppIcon name="check-circle" className="size-4" /> Applied · View tracker
+              <AppIcon name="check-circle" className="size-4" /> View in tracker
             </Button>
-          ) : (
-            <Button disabled={applying} onClick={() => handleApply(job)}>
-              {applying ? 'Applying…' : 'Apply & track'}
-            </Button>
-          )}
+          ) : null}
         </div>
 
         <section className="space-y-2 border-t border-border pt-4">
@@ -511,7 +517,7 @@ export default function JobDetailSection() {
               html={job.descHtml}
               plain={job.description || job.desc}
               fallback={(job.tags || []).length
-                ? 'Full description is not in the catalog yet. Use skills above and Apply to read the posting.'
+                ? 'The full description is not in the catalog yet. Use the skills above, or open Apply to read the original posting.'
                 : 'No description available.'}
             />
           )}

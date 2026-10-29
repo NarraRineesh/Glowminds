@@ -30,6 +30,7 @@ import {
 } from '@/constants/pricingDefaults'
 import { formatSubscriptionEndDate, isActiveProSubscription } from '@/constants/plans'
 import { sendPasswordResetEmail } from 'firebase/auth'
+import { passwordResetActionCodeSettings } from '@/config/hosts'
 import { auth } from '@/services/firebase'
 import { loadUserUsage } from '@/utils/firestoreCollections'
 import { apiFetch } from '@/services/apiClient'
@@ -37,6 +38,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { normalizeGamification } from '@/constants/schema'
 import { updateGamificationPrefs, xpToNextLevel } from '@/services/gamification'
 import { StreakCard } from '@/features/dashboard/components/v2'
+import PlanUsageSummary from '@/components/dashboard/PlanUsageSummary'
 
 const SECTIONS = [
   { id: 'account', icon: 'user', title: 'Account', desc: 'Profile and security' },
@@ -569,6 +571,10 @@ export default function SettingsSection() {
     })
   }
 
+  void selectSection
+  void jobMatchAlerts
+  void onToggleMatchAlerts
+
   const onToggleEmail = (v) => { setEmailNotifs(v); persistSettings({ emailNotifications: v }) }
   const onTogglePush = (v) => { setPushNotifs(v); persistSettings({ pushNotifications: v }) }
   const onToggleMatchAlerts = (v) => { setJobMatchAlerts(v); persistSettings({ jobMatchAlerts: v }) }
@@ -604,7 +610,7 @@ export default function SettingsSection() {
     }
     setResettingPassword(true)
     try {
-      await sendPasswordResetEmail(auth, email)
+      await sendPasswordResetEmail(auth, email, passwordResetActionCodeSettings())
       addToast('success', 'Password reset email sent — check your inbox')
     } catch (err) {
       console.error('sendPasswordReset:', err)

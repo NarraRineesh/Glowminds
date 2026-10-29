@@ -21,7 +21,7 @@ export const DEFAULT_BUILDER_LAYOUT: BuilderLayout = {
 };
 
 export const DESKTOP_BUILDER_SIDEBAR_COLLAPSED_SIZE = 48;
-export const DESKTOP_BUILDER_SIDEBAR_MIN_SIZE = 320;
+export const DESKTOP_BUILDER_SIDEBAR_MIN_SIZE = 220;
 
 type BuilderSidebarResizeConfigInput = {
 	isMobile: boolean;

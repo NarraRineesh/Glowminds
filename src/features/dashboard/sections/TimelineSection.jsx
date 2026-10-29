@@ -2,7 +2,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useAppStore from '@/store/authStore'
 import useProfileStore from '@/store/profileStore'
+import useTrackerStore from '@/store/trackerStore'
+import useInterviewStore from '@/store/interviewStore'
 import { loadActivity } from '@/services/activityLog'
+import { buildActivityEvents } from '@/utils/activityTimeline'
 import { auth } from '@/services/firebase'
 import { normalizeGamification } from '@/constants/schema'
 import {
@@ -77,6 +80,10 @@ export default function TimelineSection() {
   const navigate = useNavigate()
   const user = useAppStore((s) => s.user)
   const profile = useProfileStore((s) => s.profile)
+  const apps = useTrackerStore((s) => s.apps) || []
+  const loadApps = useTrackerStore((s) => s.loadApps)
+  const sessions = useInterviewStore((s) => s.sessions) || []
+  const loadHistory = useInterviewStore((s) => s.loadHistory)
   const [items, setItems] = useState([])
   const [filter, setFilter] = useState('all')
   const [range, setRange] = useState('30')
@@ -84,20 +91,44 @@ export default function TimelineSection() {
   const [now] = useState(() => Date.now())
 
   useEffect(() => {
+    loadApps?.().catch(() => {})
+    loadHistory?.({ force: false }).catch(() => {})
+    useProfileStore.getState().load({ force: false }).catch(() => {})
+  }, [loadApps, loadHistory])
+
+  useEffect(() => {
     const uid = auth.currentUser?.uid || user?.uid
-    if (!uid) return
+    if (!uid) {
+      setLoading(false)
+      return
+    }
     setLoading(true)
     loadActivity(uid, 80)
       .then(setItems)
       .finally(() => setLoading(false))
   }, [user?.uid])
 
+  const merged = useMemo(() => {
+    const derived = buildActivityEvents({ apps, interviews: sessions, profile }).map((event) => ({
+      id: event.id,
+      type: event.icon || 'event',
+      title: [event.title, event.body].filter(Boolean).join(' — '),
+      createdAt: event.at,
+    }))
+    const byId = new Map()
+    for (const row of [...items, ...derived]) {
+      if (!row?.id || byId.has(row.id)) continue
+      byId.set(row.id, row)
+    }
+    return [...byId.values()].sort((a, b) => eventTime(b) - eventTime(a))
+  }, [items, apps, sessions, profile])
+
   const ranged = useMemo(() => {
-    if (range === 'all') return items
+    if (range === 'all') return merged
     const days = Number(range) || 30
     const cutoff = now - days * 86400000
-    return items.filter((a) => eventTime(a) >= cutoff)
-  }, [items, range, now])
+    return merged.filter((a) => eventTime(a) >= cutoff)
+  }, [merged, range, now])
 
   const filtered = useMemo(() => {
     if (filter === 'all') return ranged

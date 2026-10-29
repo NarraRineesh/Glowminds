@@ -28,6 +28,7 @@ import {
   updateLearningPathProgress,
 } from '@/services/skillsApi'
 import Loader from '@/components/Loader'
+import { sanitizeSkillGap } from '@/utils/skillRelevance'
 
 const LEVELS = [
   { id: 'beginner', label: 'Beginner' },
@@ -45,11 +46,14 @@ const SUGGESTED_ROLES = [
 ]
 
 function pathProgress(path) {
-  if (path?.progress) return path.progress
   const items = (path?.weeks || []).flatMap((week) => week.items || [])
-  const total = items.length
-  const completed = items.filter((item) => item.done).length
-  return { completed, total, percent: total ? Math.round((completed / total) * 100) : 0 }
+  if (items.length) {
+    const completed = items.filter((item) => item.done).length
+    return { completed, total: items.length, percent: Math.round((completed / items.length) * 100) }
+  }
+  const stored = path?.progress
+  if (stored && Number(stored.total) > 0) return stored
+  return { completed: 0, total: 0, percent: 0 }
 }
 
 function formatDate(value) {
@@ -308,6 +312,7 @@ export default function UpskillingSection() {
   const [pathLoading, setPathLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [generating, setGenerating] = useState(false)
+  const [generateSeconds, setGenerateSeconds] = useState(0)
   const [path, setPath] = useState(null)
   const [history, setHistory] = useState([])
   const [view, setView] = useState('plan')
@@ -317,6 +322,19 @@ export default function UpskillingSection() {
   const [deleteTarget, setDeleteTarget] = useState(null)
 
   const progress = useMemo(() => pathProgress(path), [path])
+  const savedPathCount = useMemo(() => {
+    if (!path?.pathId) return history.length
+    return history.some((item) => item.pathId === path.pathId) ? history.length : history.length + 1
+  }, [history, path])
+
+  useEffect(() => {
+    if (!generating) {
+      setGenerateSeconds(0)
+      return undefined
+    }
+    const timer = setInterval(() => setGenerateSeconds((value) => value + 1), 1000)
+    return () => clearInterval(timer)
+  }, [generating])
 
   const loadWorkspace = useCallback(async () => {
     setPathLoading(true)
@@ -367,9 +385,9 @@ export default function UpskillingSection() {
     if (!target) return addToast('error', 'Enter a target role first')
     setGapLoading(true)
     try {
-      const data = await getSkillGap({ role: target })
+      const data = sanitizeSkillGap(await getSkillGap({ role: target }), useProfileStore.getState().profile)
       setGap(data)
-      setSelectedSkills((data.missingSkills || []).slice(0, 4).map((skill) => skill.name))
+      setSelectedSkills((data?.missingSkills || []).slice(0, 4).map((skill) => skill.name))
     } catch (error) {
       addToast('error', error.message || 'Could not analyze skill gap')
     } finally {
@@ -510,8 +528,15 @@ export default function UpskillingSection() {
           onClick={createPath}
           disabled={generating || gapLoading || entLoading || !selectedSkills.length}
         >
-          {generating ? 'Building your path…' : `Generate path · ${pathCost} credits`}
+          {generating ? `Building your path… ${generateSeconds}s` : `Generate path · ${pathCost} credits`}
         </Button>
+        {generating && (
+          <p className="text-xs text-muted-foreground">
+            {generateSeconds < 20
+              ? 'Drafting a week-by-week plan from your selected skills.'
+              : 'Still working. This can take a minute. If the draft can’t be read, you’ll get an error instead of a blank plan.'}
+          </p>
+        )}
         {!canGenerate && (
           <p className="text-xs text-amber-600">
             Not enough credits. <Link to="/dashboard/settings" className="underline">Check balance</Link>
@@ -530,9 +555,13 @@ export default function UpskillingSection() {
     <div className="space-y-4">
       <DashboardCard titleIcon="book" title="Current journey" contentClassName="space-y-3">
         <div>
-          <p className="font-semibold">{path?.targetRole}</p>
+          <p className="font-semibold">{pathLoading ? 'Loading your path…' : (path?.targetRole || 'No active path')}</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            {progress.completed}/{progress.total} activities · {progress.percent}% complete
+            {pathLoading
+              ? 'Checking saved plans…'
+              : progress.total
+                ? `${progress.completed}/${progress.total} activities · ${progress.percent}% complete`
+                : 'No activities on this path yet'}
           </p>
         </div>
         <Progress value={progress.percent} className="h-2" />
@@ -545,7 +574,9 @@ export default function UpskillingSection() {
       </DashboardCard>
       <DashboardCard titleIcon="clock" title="Saved paths" contentClassName="space-y-3">
         <p className="text-sm text-muted-foreground">
-          {history.length} {history.length === 1 ? 'path' : 'paths'} saved. Resume any path without using credits.
+          {pathLoading
+            ? 'Loading saved paths…'
+            : `${savedPathCount} ${savedPathCount === 1 ? 'path' : 'paths'} saved. Resume any path without using credits.`}
         </p>
         <Button className="w-full" variant="ghost" onClick={() => setView('history')}>
           View history

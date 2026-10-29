@@ -11,6 +11,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const siteUrl = (env.VITE_PUBLIC_SITE_URL || 'https://glowminds.in').replace(/\/$/, '')
   const appUrl = (env.VITE_PUBLIC_APP_URL || 'https://app.glowminds.in').replace(/\/$/, '')
+  const disableHostRedirect = env.VITE_DISABLE_HOST_REDIRECT === 'true'
 
   const firebaseProjectId = env.VITE_FIREBASE_PROJECT_ID || 'glowminds-abc84'
 
@@ -33,7 +34,10 @@ export default defineConfig(({ mode }) => {
       {
         name: 'inject-site-url-html',
         transformIndexHtml(html) {
-          return html.replace(/%SITE_URL%/g, siteUrl).replace(/%APP_URL%/g, appUrl)
+          return html
+            .replace(/%SITE_URL%/g, siteUrl)
+            .replace(/%APP_URL%/g, appUrl)
+            .replace(/%DISABLE_HOST_REDIRECT%/g, disableHostRedirect ? 'true' : 'false')
         },
       },
       {

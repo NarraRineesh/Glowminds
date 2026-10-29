@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { getPreferredRole } from '@/constants/schema'
+import { sessionPercent } from '@/utils/interviewScore'
 import useAppStore from '@/store/authStore'
 import useInterviewStore from '@/store/interviewStore'
 import useProfileStore from '@/store/profileStore'
@@ -80,8 +81,6 @@ function InterviewSectionContent() {
   const sessions = useInterviewStore((s) => s.sessions)
   const historyLoading = useInterviewStore((s) => s.loading)
 
-  const latestSession = sessions[0] || null
-
   const openSession = (session) => {
     if (!session) return
     const qs = Array.isArray(session.questions) ? session.questions : []
@@ -126,9 +125,7 @@ function InterviewSectionContent() {
   }, [loadHistory])
 
   const lastSession = sessions[0] || null
-  const lastScore = lastSession
-    ? Math.round(lastSession.percent ?? lastSession.totalScore ?? 0)
-    : null
+  const lastScore = lastSession ? sessionPercent(lastSession) : null
 
   const [sessionId, setSessionId] = useState(null)
   const [questions, setQuestions] = useState([])
@@ -402,11 +399,9 @@ function InterviewSectionContent() {
             ) : (
               <ul className="space-y-2">
                 {sessions.slice(0, 8).map((s) => {
-                  const score = typeof s.totalScore === 'number'
-                    ? Math.round(s.totalScore)
-                    : typeof s.percent === 'number'
-                      ? Math.round(s.percent)
-                      : null
+                  const score = sessionPercent(s)
+                  const correct = typeof s.totalScore === 'number' ? s.totalScore : null
+                  const total = Array.isArray(s.questions) ? s.questions.length : 0
                   return (
                     <li
                       key={s.id}
@@ -416,7 +411,7 @@ function InterviewSectionContent() {
                         <p className="truncate text-sm font-semibold">{s.role || 'Interview'}</p>
                         <p className="text-xs text-muted-foreground">
                           {s.type || 'mixed'} · {formatSessionDate(s.completedAt || s.createdAt)}
-                          {score != null ? ` · ${score}%` : ''}
+                          {score != null ? ` · ${score}%` : correct != null ? ` · ${correct}${total ? `/${total}` : ''} correct` : ''}
                         </p>
                       </div>
                       <Button variant="outline" size="sm" onClick={() => openSession(s)}>

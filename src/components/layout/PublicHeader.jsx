@@ -6,7 +6,7 @@ import useTheme from '@/hooks/useTheme'
 import useIsLg from '@/hooks/useIsLg'
 import { PUBLIC_NAV_LINKS } from '@/constants/publicNav'
 import { AppAuthLink, ChromeHomeLink } from '@/components/HostLinks'
-import { appHref, isLocalHost } from '@/config/hosts'
+import { appHref, isSingleOriginHost } from '@/config/hosts'
 import {
   Button,
   Sheet,
@@ -44,7 +44,7 @@ export default function PublicHeader() {
 
   const closeAndGoApp = (path) => {
     setOpen(false)
-    if (isLocalHost()) navigate(path)
+    if (isSingleOriginHost()) navigate(path)
     else window.location.assign(appHref(path))
   }
 

@@ -257,7 +257,7 @@ function TypingIndicator() {
 export default function AISection() {
   const { user, addToast } = useAppStore()
   const [searchParams, setSearchParams] = useSearchParams()
-  const { credits, creditCosts, isPro, loading: entitlementsLoading, refresh: refreshEntitlements } = useEntitlements()
+  const { credits, creditCosts, refresh: refreshEntitlements } = useEntitlements()
   const chatCost = getCareerChatCost(creditCosts)
   const creditBalance = credits?.balance
   const canSend = creditBalance == null || creditBalance >= chatCost
@@ -390,8 +390,9 @@ export default function AISection() {
       }
       wantsStreamingRef.current = true
       await appendMessage({ role: 'assistant', text: String(reply).trim() })
+      setLoading(false)
       if (typeof data?.credits?.balance === 'number') {
-        await refreshEntitlements({ force: true })
+        refreshEntitlements({ force: true }).catch(() => {})
       }
     } catch (err) {
       console.error('Chat error:', err)
@@ -566,7 +567,7 @@ export default function AISection() {
                 )
               })}
 
-              {loading && (
+              {loading && currentMessages[currentMessages.length - 1]?.role !== 'assistant' && (
                 <div className="flex w-full items-start gap-2">
                   <Avatar className="mt-0.5 hidden h-7 w-7 shrink-0 sm:flex sm:h-8 sm:w-8">
                     <AvatarFallback className="bg-muted text-xs"><AppIcon name="robot" className="size-4" /></AvatarFallback>

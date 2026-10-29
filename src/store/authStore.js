@@ -1,10 +1,10 @@
 import { create } from 'zustand'
 import { createDefaultUserDoc } from '@/constants/schema'
-import { SITE_URL } from '@/config/site'
+import { authContinueUrl } from '@/config/hosts'
 
 function verificationActionCodeSettings() {
   return {
-    url: `${SITE_URL}/login`,
+    url: authContinueUrl('/login'),
     handleCodeInApp: false,
   }
 }
@@ -219,9 +219,11 @@ const useAppStore = create((set) => ({
     set({ loggedIn: false, user: null })
   },
 
-  addToast: (type, msg) => {
-    const id = Date.now()
-    set((s) => ({ toasts: [...s.toasts, { id, type, msg }] }))
+  addToast: (type, msg, options = {}) => {
+    const id = options.id || `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+    set((s) => ({
+      toasts: [...s.toasts.filter((t) => t.id !== id), { id, type, msg }],
+    }))
     setTimeout(() => {
       set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) }))
     }, 3500)

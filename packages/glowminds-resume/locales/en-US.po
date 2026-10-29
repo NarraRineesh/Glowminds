@@ -215,6 +215,10 @@ msgstr "Add Column After"
 msgid "Add Column Before"
 msgstr "Add Column Before"
 
+#: src/routes/builder/$resumeId/-components/dock.tsx
+msgid "Add details in Profile first — then sync here."
+msgstr "Add details in Profile first — then sync here."
+
 #: src/components/input/chip-input.tsx
 msgid "Add keyword"
 msgstr "Add keyword"
@@ -333,9 +337,9 @@ msgstr "An error occurred while loading the page."
 #~ msgid "Analyze Resume"
 #~ msgstr "Analyze Resume"
 
-#: src/routes/builder/$resumeId/-sidebar/right/sections/resume-analysis.tsx
-#~ msgid "Analyzing…"
-#~ msgstr "Analyzing…"
+#: src/routes/builder/$resumeId/-sidebar/right/sections/analysis.tsx
+msgid "Analyzing…"
+msgstr "Analyzing…"
 
 #: src/routes/_home/-sections/features.tsx
 #~ msgid "And many more..."
@@ -452,6 +456,14 @@ msgstr "Area of Study"
 msgid "Aspect Ratio"
 msgstr "Aspect Ratio"
 
+#: src/routes/builder/$resumeId/-sidebar/right/sections/analysis.tsx
+msgid "ATS review complete"
+msgstr "ATS review complete"
+
+#: src/routes/builder/$resumeId/-sidebar/right/sections/analysis.tsx
+msgid "ATS review failed"
+msgstr "ATS review failed"
+
 #: src/routes/agent/$threadId.tsx
 #~ msgid "Attach files"
 #~ msgstr "Attach files"
@@ -509,6 +521,10 @@ msgstr "Background Color"
 #: src/libs/resume/section.tsx
 msgid "Basics"
 msgstr "Basics"
+
+#: src/routes/builder/$resumeId/-components/dock.tsx
+msgid "Basics, summary, experience, education, projects, skills, and related sections will be updated. Template and design stay the same."
+msgstr "Basics, summary, experience, education, projects, skills, and related sections will be updated. Template and design stay the same."
 
 #: src/routes/_home/-sections/features.tsx
 #~ msgid "Beautiful templates to choose from, with more on the way."
@@ -816,6 +832,10 @@ msgstr "Could not import resume. Please upload a valid Reactive Resume JSON file
 #: src/routes/agent/$threadId.tsx
 #~ msgid "Could not restore this patch."
 #~ msgstr "Could not restore this patch."
+
+#: src/routes/builder/$resumeId/-sidebar/right/sections/export.tsx
+msgid "Could not save the PDF to your account, please try again."
+msgstr "Could not save the PDF to your account, please try again."
 
 #: src/features/settings/integrations/components/ai-section.tsx
 #~ msgid "Could not verify provider connection."
@@ -1355,6 +1375,7 @@ msgstr "Experience"
 #~ msgstr "Explore the API documentation to learn how to integrate Reactive Resume with your applications. Find detailed endpoints, request examples, and authentication methods."
 
 #: src/libs/resume/section.tsx
+#: src/routes/builder/$resumeId/-components/dock.tsx
 msgid "Export"
 msgstr "Export"
 
@@ -1488,6 +1509,10 @@ msgstr "Failed to load sample data."
 #~ msgid "Failed to start agent thread."
 #~ msgstr "Failed to start agent thread."
 
+#: src/routes/builder/$resumeId/-components/dock.tsx
+msgid "Failed to sync profile."
+msgstr "Failed to sync profile."
+
 #. Fallback toast when unlinking a social authentication provider fails
 #: src/features/settings/authentication/components/hooks.tsx
 #~ msgid "Failed to unlink provider. Please try again."
@@ -1556,6 +1581,10 @@ msgstr "Failed to upload picture. Please try again."
 #~ msgid "Finnish"
 #~ msgstr "Finnish"
 
+#: src/routes/builder/$resumeId/-components/dock.tsx
+msgid "Fit to screen"
+msgstr "Fit to screen"
+
 #: src/routes/_home/-sections/features.tsx
 #~ msgid "Flexibility"
 #~ msgstr "Flexibility"
@@ -1610,9 +1639,14 @@ msgstr "Format"
 #~ msgid "Free"
 #~ msgstr "Free"
 
+#. placeholder {0}: FREE_LIMITS.resumes
 #: src/routes/local/index.tsx
-msgid "Free plan allows up to 3 resumes. Upgrade to Pro for unlimited resumes."
-msgstr "Free plan allows up to 3 resumes. Upgrade to Pro for unlimited resumes."
+msgid "Free plan allows up to {0} resume. Upgrade to Pro for unlimited resumes."
+msgstr "Free plan allows up to {0} resume. Upgrade to Pro for unlimited resumes."
+
+#: src/routes/local/index.tsx
+#~ msgid "Free plan allows up to 3 resumes. Upgrade to Pro for unlimited resumes."
+#~ msgstr "Free plan allows up to 3 resumes. Upgrade to Pro for unlimited resumes."
 
 #: src/routes/builder/$resumeId/-sidebar/right/sections/page.tsx
 msgid "Free-form"
@@ -1667,6 +1701,10 @@ msgstr "Generating…"
 #: src/routes/_home/-sections/footer.tsx
 #~ msgid "GitHub"
 #~ msgstr "GitHub"
+
+#: src/routes/local/index.tsx
+#~ msgid "Glowminds Resume Builder"
+#~ msgstr "Glowminds Resume Builder"
 
 #: src/components/layout/not-found-screen.tsx
 msgid "Go Back"
@@ -1939,6 +1977,10 @@ msgstr "Italic"
 #~ msgid "Japanese"
 #~ msgstr "Japanese"
 
+#: src/routes/builder/$resumeId/-sidebar/right/sections/analysis.tsx
+msgid "Job description (optional)"
+msgstr "Job description (optional)"
+
 #. Example full name placeholder on profile settings form
 #. Example full name placeholder on registration form
 #: src/features/auth/pages/register.tsx
@@ -2151,10 +2193,6 @@ msgstr "Load sample data into this resume?"
 #: src/components/layout/loading-screen.tsx
 msgid "Loading…"
 msgstr "Loading…"
-
-#: src/routes/local/index.tsx
-#~ msgid "Glowminds Resume Builder"
-#~ msgstr "Glowminds Resume Builder"
 
 #: src/dialogs/resume/sections/education.tsx
 #: src/dialogs/resume/sections/experience.tsx
@@ -2429,6 +2467,10 @@ msgstr "Organization"
 msgid "Original"
 msgstr "Original"
 
+#: src/routes/builder/$resumeId/-sidebar/right/sections/analysis.tsx
+msgid "Overall score"
+msgstr "Overall score"
+
 #: src/routes/builder/$resumeId/-sidebar/right/sections/resume-analysis.tsx
 #~ msgid "Overall Score"
 #~ msgstr "Overall Score"
@@ -2500,6 +2542,10 @@ msgstr "Paragraph"
 #: src/routes/builder/$resumeId/-sidebar/right/sections/sharing.tsx
 #~ msgid "Password protection has been enabled."
 #~ msgstr "Password protection has been enabled."
+
+#: src/routes/builder/$resumeId/-sidebar/right/sections/analysis.tsx
+msgid "Paste a target job description…"
+msgstr "Paste a target job description…"
 
 #: src/routes/agent/$threadId.tsx
 #~ msgid "Patch applied"
@@ -2646,6 +2692,10 @@ msgstr "Proficiency"
 #: src/routes/dashboard/settings/profile.tsx
 #~ msgid "Profile"
 #~ msgstr "Profile"
+
+#: src/routes/builder/$resumeId/-components/dock.tsx
+msgid "Profile sync is available when editing from Glowminds."
+msgstr "Profile sync is available when editing from Glowminds."
 
 #: src/dialogs/resume/sections/custom.tsx
 #: src/libs/resume/section-title.ts
@@ -2869,6 +2919,10 @@ msgstr "Resume deleted."
 msgid "Resume duplicated successfully."
 msgstr "Resume duplicated successfully."
 
+#: src/routes/builder/$resumeId/-components/dock.tsx
+msgid "Resume filled from your profile."
+msgstr "Resume filled from your profile."
+
 #: src/routes/local/index.tsx
 msgid "Resume imported successfully."
 msgstr "Resume imported successfully."
@@ -2938,6 +2992,14 @@ msgstr "rule"
 msgid "rules"
 msgstr "rules"
 
+#: src/routes/builder/$resumeId/-sidebar/right/sections/analysis.tsx
+msgid "Run an ATS-focused review of this resume (Pro · 5 AI credits). Optionally paste a job description for keyword targeting."
+msgstr "Run an ATS-focused review of this resume (Pro · 5 AI credits). Optionally paste a job description for keyword targeting."
+
+#: src/routes/builder/$resumeId/-sidebar/right/sections/analysis.tsx
+msgid "Run ATS review"
+msgstr "Run ATS review"
+
 #: src/routes/builder/$resumeId/-sidebar/right/sections/resume-analysis.tsx
 #~ msgid "Run your first analysis to get a scorecard, strengths, and prioritized suggestions."
 #~ msgstr "Run your first analysis to get a scorecard, strengths, and prioritized suggestions."
@@ -2973,9 +3035,21 @@ msgstr "Sample data loaded successfully."
 msgid "Save Changes"
 msgstr "Save Changes"
 
+#: src/routes/builder/$resumeId/-sidebar/right/sections/export.tsx
+msgid "Save PDF to account"
+msgstr "Save PDF to account"
+
 #: src/features/settings/integrations/components/ai-section.tsx
 #~ msgid "Save Provider"
 #~ msgstr "Save Provider"
+
+#: src/routes/builder/$resumeId/-sidebar/right/sections/export.tsx
+msgid "Saved to your account. Find it in your Vault."
+msgstr "Saved to your account. Find it in your Vault."
+
+#: src/routes/builder/$resumeId/-sidebar/right/sections/export.tsx
+msgid "Saving your PDF to your account..."
+msgstr "Saving your PDF to your account..."
 
 #: src/dialogs/auth/enable-two-factor.tsx
 #~ msgid "Scan the QR code below with your preferred authenticator app. You can also copy the secret below and paste it into your app."
@@ -2985,9 +3059,9 @@ msgstr "Save Changes"
 msgid "School"
 msgstr "School"
 
-#: src/routes/builder/$resumeId/-sidebar/right/sections/resume-analysis.tsx
-#~ msgid "Scorecard"
-#~ msgstr "Scorecard"
+#: src/routes/builder/$resumeId/-sidebar/right/sections/analysis.tsx
+msgid "Scorecard"
+msgstr "Scorecard"
 
 #. Accessible label for command palette search input
 #: src/features/command-palette/index.tsx
@@ -3186,6 +3260,10 @@ msgstr "Sidebar Width"
 #~ msgstr "Signing up..."
 
 #: src/dialogs/resume/template/data.ts
+msgid "Single-column with a clean grid layout; versatile for any professional or technical role."
+msgstr "Single-column with a clean grid layout; versatile for any professional or technical role."
+
+#: src/dialogs/resume/template/data.ts
 msgid "Single-column with a magenta left border accent; compact and efficient for entry-level or internship applications."
 msgstr "Single-column with a magenta left border accent; compact and efficient for entry-level or internship applications."
 
@@ -3194,8 +3272,8 @@ msgid "Single-column with a minimal top header and lots of whitespace; clean and
 msgstr "Single-column with a minimal top header and lots of whitespace; clean and modern for designers or content creators."
 
 #: src/dialogs/resume/template/data.ts
-msgid "Single-column with a sidebar and clean grid layout; versatile for any professional or technical role."
-msgstr "Single-column with a sidebar and clean grid layout; versatile for any professional or technical role."
+#~ msgid "Single-column with a sidebar and clean grid layout; versatile for any professional or technical role."
+#~ msgstr "Single-column with a sidebar and clean grid layout; versatile for any professional or technical role."
 
 #: src/dialogs/resume/template/data.ts
 msgid "Single-column with an inline three-column entry header (position · organization · period); compact and ATS-friendly, well-suited for Asian resume conventions (CN/JP/KR)."
@@ -3314,8 +3392,8 @@ msgid "Start from sample"
 msgstr "Start from sample"
 
 #: src/routes/local/index.tsx
-msgid "Start from Sample"
-msgstr "Start from Sample"
+#~ msgid "Start from Sample"
+#~ msgstr "Start from Sample"
 
 #: src/routes/agent/index.tsx
 #~ msgid "Start new thread"
@@ -3337,9 +3415,13 @@ msgstr "Stay"
 #~ msgid "Stop generation"
 #~ msgstr "Stop generation"
 
-#: src/routes/builder/$resumeId/-sidebar/right/sections/resume-analysis.tsx
-#~ msgid "Strengths"
-#~ msgstr "Strengths"
+#: src/routes/builder/$resumeId/-sidebar/right/sections/export.tsx
+msgid "Store a PDF copy securely in your account. It appears in your Vault so you can access it from any device."
+msgstr "Store a PDF copy securely in your account. It appears in your Vault so you can access it from any device."
+
+#: src/routes/builder/$resumeId/-sidebar/right/sections/analysis.tsx
+msgid "Strengths"
+msgstr "Strengths"
 
 #: src/components/input/rich-input.tsx
 msgid "Strike"
@@ -3350,6 +3432,7 @@ msgstr "Strike"
 #~ msgstr "Subreddit"
 
 #: src/components/input/ai-enhance-dialog.tsx
+#: src/routes/builder/$resumeId/-sidebar/right/sections/analysis.tsx
 msgid "Suggestions"
 msgstr "Suggestions"
 
@@ -3381,6 +3464,14 @@ msgstr "Summary"
 #: src/features/theme/toggle-button.tsx
 #~ msgid "Switch to light theme"
 #~ msgstr "Switch to light theme"
+
+#: src/routes/builder/$resumeId/-components/dock.tsx
+msgid "Sync profile"
+msgstr "Sync profile"
+
+#: src/routes/builder/$resumeId/-components/dock.tsx
+msgid "Sync this resume from your Glowminds profile?"
+msgstr "Sync this resume from your Glowminds profile?"
 
 #: src/components/input/rich-input.tsx
 msgid "Table"
@@ -3758,6 +3849,10 @@ msgstr "Underline"
 #: src/routes/builder/$resumeId/-components/header.tsx
 msgid "Unlock"
 msgstr "Unlock"
+
+#: src/routes/builder/$resumeId/-components/dock.tsx
+msgid "Unlock the resume before syncing profile data."
+msgstr "Unlock the resume before syncing profile data."
 
 #: src/features/settings/authentication/components/passkeys.tsx
 #~ msgid "Unnamed passkey"

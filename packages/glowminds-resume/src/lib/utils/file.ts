@@ -1,7 +1,11 @@
 import { slugify } from "./string";
 
 export function generateFilename(prefix: string, extension?: string) {
-	const name = slugify(prefix);
+	const cleaned = String(prefix || "Resume")
+		.replace(/[<>:"/\\|?*\u0000-\u001F]/g, "")
+		.replace(/\s+/g, " ")
+		.trim();
+	const name = cleaned || slugify(prefix) || "Resume";
 	return `${name}${extension ? `.${extension}` : ""}`;
 }
 

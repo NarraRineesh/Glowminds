@@ -37,7 +37,7 @@ export function matchSalaryRole(roles, ...candidates) {
     })
     if (bestScore >= 1 && best >= 0) return roles[best]
   }
-  return roles[0] || ''
+  return ''
 }
 
 /** Match profile location / preferred city to salary city keys. */

@@ -3,7 +3,7 @@
 export const motionEase = [0.16, 1, 0.3, 1]
 
 export const fadeUp = {
-  hidden: { opacity: 0, y: 28 },
+  hidden: { opacity: 1, y: 16 },
   visible: { opacity: 1, y: 0 },
 }
 

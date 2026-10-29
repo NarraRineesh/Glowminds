@@ -4,10 +4,14 @@ import { HelmetProvider } from 'react-helmet-async'
 import './index.css'
 import App from './App.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
+import { installSingleOriginNavigationGuard } from '@/config/singleOriginHost'
 import { ThemeProvider } from '@/hooks/useTheme'
 import { installChunkLoadRecovery } from '@/utils/chunkLoadRecovery'
 
 installChunkLoadRecovery()
+installSingleOriginNavigationGuard(undefined, {
+  disableHostRedirect: import.meta.env?.VITE_DISABLE_HOST_REDIRECT === 'true',
+})
 
 const rootEl = document.getElementById('root')
 if (!rootEl) {

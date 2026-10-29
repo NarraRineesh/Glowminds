@@ -18,7 +18,6 @@ import {
   FormRow,
   Input,
   PageTitle,
-  ScrollArea,
   Select,
   Textarea,
   cn,
@@ -28,6 +27,7 @@ import {
   APPLICATION_STATUSES,
   APPLICATION_STATUS_LABEL,
 } from '@/constants/schema'
+import { localDateInputValue } from '@/utils/localDate'
 
 const COLUMN_STYLE = {
   [APPLICATION_STATUS.APPLIED]: { text: 'text-primary', badge: 'bg-primary/20 text-primary' },
@@ -54,7 +54,7 @@ const EMPTY_FORM = {
   notes: '',
 }
 
-function ApplicationCard({ app, onStatusChange, onDelete }) {
+function ApplicationCard({ app, onStatusChange, onDelete, onEdit }) {
   return (
     <div className="relative rounded-lg border border-border bg-muted/50 p-3 transition-colors hover:border-primary/30">
       <div className="flex items-start justify-between gap-2">
@@ -72,16 +72,27 @@ function ApplicationCard({ app, onStatusChange, onDelete }) {
             Next: {NEXT_STEP[app.status] || 'Update status'}
           </div>
         </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="size-10 shrink-0 text-muted-foreground hover:text-destructive"
-          onClick={() => onDelete(app.id, app.company)}
-          aria-label={`Remove ${app.company}`}
-        >
-          <AppIcon name="x" className="size-4" />
-        </Button>
+        <div className="flex shrink-0 flex-col gap-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2"
+            onClick={() => onEdit(app)}
+          >
+            Edit
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="size-8 text-muted-foreground hover:text-destructive"
+            onClick={() => onDelete(app)}
+            aria-label={`Remove ${app.company}`}
+          >
+            <AppIcon name="x" className="size-4" />
+          </Button>
+        </div>
       </div>
       <Select
         className="mt-2 w-full px-2 py-2 text-sm"
@@ -100,50 +111,79 @@ function ApplicationCard({ app, onStatusChange, onDelete }) {
 
 export default function ApplicationsSection() {
   const { addToast } = useAppStore()
-  const { apps, loading, addApp, updateStatus, deleteApp, loadApps } = useTrackerStore()
+  const { apps, loading, addApp, updateApp, updateStatus, deleteApp, loadApps } = useTrackerStore()
   const { isPro, freeLimits, loading: entitlementsLoading } = useEntitlements()
   const appLimit = isPro ? -1 : (freeLimits?.applications ?? 10)
   const atAppLimit = !isPro && appLimit >= 0 && apps.length >= appLimit
   const isLg = useIsLg()
   const [modal, setModal] = useState(false)
+  const [editingId, setEditingId] = useState(null)
+  const [pendingDelete, setPendingDelete] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
   const [activeStatus, setActiveStatus] = useState(APPLICATION_STATUS.APPLIED)
 
+  const openCreate = () => {
+    setEditingId(null)
+    setForm({ ...EMPTY_FORM, appliedDate: localDateInputValue() })
+    setModal(true)
+  }
+
+  const openEdit = (app) => {
+    setEditingId(app.id)
+    setForm({
+      company: app.company || '',
+      role: app.role || '',
+      status: app.status || APPLICATION_STATUS.APPLIED,
+      appliedDate: app.appliedDate || localDateInputValue(),
+      salary: app.salary || '',
+      notes: app.notes || '',
+    })
+    setModal(true)
+  }
+
   useEffect(() => { loadApps() }, [loadApps])
 
-  const handleAdd = async () => {
+  const handleSave = async () => {
     if (!form.company || !form.role) { addToast('error', 'Company and role required'); return }
-    if (atAppLimit) {
+    if (!editingId && atAppLimit) {
       addToast('error', `Free plan allows up to ${appLimit} applications. Upgrade to Pro for unlimited tracking.`)
       return
     }
     try {
-      const application = await addApp({
+      const payload = {
         company: form.company,
         role: form.role,
         status: form.status,
-        appliedDate: form.appliedDate || new Date().toISOString().split('T')[0],
+        appliedDate: form.appliedDate || localDateInputValue(),
         salary: form.salary,
         notes: form.notes,
-        logo: 'jobs',
-      })
-      if (application) addToast('success', `${form.role} at ${form.company} tracked!`)
+      }
+      if (editingId) {
+        await updateApp(editingId, payload)
+        addToast('success', 'Application updated', { id: 'tracker-save' })
+      } else {
+        const application = await addApp({ ...payload, logo: 'jobs' })
+        if (application) addToast('success', `${form.role} at ${form.company} tracked!`, { id: 'tracker-save' })
+      }
       setModal(false)
+      setEditingId(null)
       setForm(EMPTY_FORM)
       setActiveStatus(form.status || APPLICATION_STATUS.APPLIED)
     } catch (err) {
-      addToast('error', err?.message || 'Could not add application. Please try again.')
+      addToast('error', err?.message || 'Could not save application. Please try again.')
     }
   }
 
   const handleStatusChange = async (appId, newStatus) => {
     await updateStatus(appId, newStatus)
-    addToast('info', `Status updated to ${APPLICATION_STATUS_LABEL[newStatus] || newStatus}`)
+    addToast('info', `Status updated to ${APPLICATION_STATUS_LABEL[newStatus] || newStatus}`, { id: 'tracker-status' })
   }
 
-  const handleDelete = async (appId, company) => {
-    await deleteApp(appId)
-    addToast('info', `${company} removed from tracker`)
+  const confirmDelete = async () => {
+    if (!pendingDelete) return
+    await deleteApp(pendingDelete.id)
+    addToast('info', `${pendingDelete.company || 'Application'} removed from tracker`, { id: 'tracker-delete' })
+    setPendingDelete(null)
   }
 
   const mobileItems = apps.filter((a) => a.status === activeStatus)
@@ -160,7 +200,7 @@ export default function ApplicationsSection() {
           <p className="m-0 text-sm font-semibold sm:hidden">
             {apps.length} application{apps.length === 1 ? '' : 's'}
           </p>
-          <Button size="sm" className="min-h-10 sm:min-h-8" onClick={() => setModal(true)} disabled={atAppLimit}>
+          <Button size="sm" className="min-h-10 sm:min-h-8" onClick={openCreate} disabled={atAppLimit}>
             + Add application
           </Button>
         </div>
@@ -192,14 +232,14 @@ export default function ApplicationsSection() {
                       {items.length}
                     </Badge>
                   </CardHeader>
-                  <ScrollArea className="max-h-[min(420px,calc(100svh-16rem))] flex-1">
-                    <CardContent className="space-y-2 p-2">
+                  <CardContent className="flex-1 space-y-2 p-2">
                       {items.map((a) => (
                         <ApplicationCard
                           key={a.id}
                           app={a}
                           onStatusChange={handleStatusChange}
-                          onDelete={handleDelete}
+                          onDelete={setPendingDelete}
+                          onEdit={openEdit}
                         />
                       ))}
                       {col === APPLICATION_STATUS.APPLIED && (
@@ -208,13 +248,12 @@ export default function ApplicationsSection() {
                           variant="outline"
                           size="sm"
                           className="w-full border-dashed"
-                          onClick={() => setModal(true)}
+                          onClick={openCreate}
                         >
                           + Add manually
                         </Button>
                       )}
-                    </CardContent>
-                  </ScrollArea>
+                  </CardContent>
                 </Card>
               )
             })}
@@ -266,7 +305,8 @@ export default function ApplicationsSection() {
                     key={a.id}
                     app={a}
                     onStatusChange={handleStatusChange}
-                    onDelete={handleDelete}
+                    onDelete={setPendingDelete}
+                    onEdit={openEdit}
                   />
                 ))
               )}
@@ -276,7 +316,7 @@ export default function ApplicationsSection() {
                   variant="outline"
                   size="sm"
                   className="min-h-11 w-full border-dashed"
-                  onClick={() => setModal(true)}
+                  onClick={openCreate}
                 >
                   + Add manually
                 </Button>
@@ -289,11 +329,11 @@ export default function ApplicationsSection() {
       <AppDialog
         open={modal}
         onOpenChange={setModal}
-        title="Track Application"
+        title={editingId ? 'Edit application' : 'Track Application'}
         footer={
           <>
-            <Button variant="ghost" onClick={() => setModal(false)}>Cancel</Button>
-            <Button onClick={handleAdd}>Add Application</Button>
+            <Button variant="ghost" onClick={() => { setModal(false); setEditingId(null) }}>Cancel</Button>
+            <Button onClick={handleSave}>{editingId ? 'Save changes' : 'Add Application'}</Button>
           </>
         }
       >
@@ -322,6 +362,19 @@ export default function ApplicationsSection() {
           <Textarea className="min-h-[56px]" placeholder="Recruiter name, next steps…" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
         </FormField>
       </AppDialog>
+
+      <AppDialog
+        open={!!pendingDelete}
+        onOpenChange={(open) => { if (!open) setPendingDelete(null) }}
+        title="Remove application?"
+        description={pendingDelete ? `${pendingDelete.company || 'This application'} will be removed from your tracker.` : ''}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setPendingDelete(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => void confirmDelete()}>Remove</Button>
+          </>
+        }
+      />
     </>
   )
 }

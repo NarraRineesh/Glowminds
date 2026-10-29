@@ -82,7 +82,7 @@ const HERO = {
 const HERO_METRICS = [
   { value: '15', label: 'Resume templates' },
   { value: 'ATS', label: 'Resume scoring' },
-  { value: '1', label: 'Dashboard for the whole search' },
+  { value: '1', label: 'Workspace for resume, jobs, and prep' },
 ]
 
 const TRUST_BADGES = [
