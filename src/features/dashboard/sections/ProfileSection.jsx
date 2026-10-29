@@ -37,7 +37,7 @@ import {
   ProfileSectionGrid,
   SkillGroup,
 } from '@/features/dashboard/sections/profile/profileSectionUi'
-import { createDefaultProfile, normalizeProfile, normalizeSkills, stampAiReview } from '@/constants/schema'
+import { CAREER_LEVELS, CAREER_LEVEL_LABEL, createDefaultProfile, normalizeProfile, normalizeSkills, stampAiReview } from '@/constants/schema'
 import { formatDateRange, formatYearOrMonthDisplay, toMonthInputValue } from '@/utils/profileDates'
 import { phoneValidationError } from '@/utils/phone'
 import { computeProfileScore, profileCompletionChecks } from '@/utils/profileScore'
@@ -226,6 +226,13 @@ export default function ProfileSection() {
     }
   }, [profileFromStore, loading, isProfileBusy])
 
+  useEffect(() => {
+    if (loading) return
+    const id = window.location.hash.replace(/^#/, '')
+    if (!id) return
+    document.getElementById(id)?.scrollIntoView({ block: 'start' })
+  }, [loading])
+
   const openSkillsEdit = () => {
     const s = normalizeSkills(profile.skills)
     setSkillsDraft({ technical: [...s.technical], soft: [...s.soft] })
@@ -278,6 +285,7 @@ export default function ProfileSection() {
         languages: toCsv(p.personal?.languages),
       },
       preferences: {
+        careerLevel: p.careerLevel || '',
         jobType: p.preferences?.jobType || '',
         preferredRole: p.preferences?.preferredRole || '',
         location: toCsv(p.preferences?.preferredLocations),
@@ -621,7 +629,7 @@ export default function ProfileSection() {
   const educationEmpty = !educationList.some(educationEntryHasContent)
   const skillsEmpty = skillsTechnical.length === 0 && skillsSoft.length === 0
   const experienceEmpty = !isFresher && !experienceList.some(experienceEntryHasContent)
-  const preferencesEmpty = !prefs.preferredRole && !prefs.jobType && !(prefs.preferredLocations || []).length && !prefs.expectedCTC
+  const preferencesEmpty = !profile.careerLevel && !prefs.preferredRole && !prefs.jobType && !(prefs.preferredLocations || []).length && !prefs.expectedCTC
   const projectsEmpty = !projectList.some(projectHasContent)
   const internshipsEmpty = !internshipList.some(internshipHasContent)
   const certsEmpty = !certs.some((c) => c.name)
@@ -914,9 +922,10 @@ export default function ProfileSection() {
         action={!preferencesEmpty ? <Button variant="ghost" size="sm" onClick={() => startEdit('preferences')}>Edit</Button> : null}
       >
             {preferencesEmpty ? (
-              <ProfileEmptyState icon="salary" message="Set preferred role, location & salary expectations" actionLabel="+ Set preferences" onAction={() => startEdit('preferences')} compact={!isLg} />
+              <ProfileEmptyState icon="salary" message="Set career level, target role, location, and salary" actionLabel="+ Set preferences" onAction={() => startEdit('preferences')} compact={!isLg} />
             ) : (
               <div className="space-y-0">
+                <ProfileFieldRow label="Career level">{CAREER_LEVEL_LABEL[profile.careerLevel] || '—'}</ProfileFieldRow>
                 <ProfileFieldRow label="Preferred job role">{prefs.preferredRole || '—'}</ProfileFieldRow>
                 <ProfileFieldRow label="Preferred work location">{(prefs.preferredLocations || []).join(', ') || '—'}</ProfileFieldRow>
                 <ProfileFieldRow label="Job Type">{prefs.jobType || '—'}</ProfileFieldRow>
@@ -1345,31 +1354,48 @@ export default function ProfileSection() {
         footer={
           <>
             <Button variant="ghost" onClick={() => setEditing(null)}>Cancel</Button>
-            <Button  disabled={saving} onClick={() => saveSection({
-              preferences: {
-                preferredRole: String(form.preferredRole || '').trim().slice(0, 120),
-                jobType: form.jobType || '',
-                preferredLocations: fromCsv(form.location),
-                expectedCTC: form.expectedCTC || '',
-                noticePeriod: form.noticePeriod || '',
-              },
-              links: {
-                ...(profile.links || {}),
-                linkedin: form.linkedin || '',
-                github: form.github || '',
-                portfolio: form.portfolio || '',
-              },
-            })}>{saving ? 'Saving…' : 'Save'}</Button>
+            <Button  disabled={saving} onClick={() => {
+              const role = String(form.preferredRole || '').trim().slice(0, 120)
+              const level = String(form.careerLevel || '').trim()
+              const patch = {
+                careerLevel: level,
+                isFresher: level === CAREER_LEVELS.FRESHER,
+                preferences: {
+                  preferredRole: role,
+                  jobType: form.jobType || '',
+                  preferredLocations: fromCsv(form.location),
+                  expectedCTC: form.expectedCTC || '',
+                  noticePeriod: form.noticePeriod || '',
+                },
+                links: {
+                  ...(profile.links || {}),
+                  linkedin: form.linkedin || '',
+                  github: form.github || '',
+                  portfolio: form.portfolio || '',
+                },
+              }
+              if (!String(profile.headline || '').trim() && role) patch.headline = role
+              saveSection(patch)
+            }}>{saving ? 'Saving…' : 'Save'}</Button>
           </>
         }
       >
+        <FormField label="Career level">
+          <Select value={form.careerLevel || ''} onChange={e => setForm({ ...form, careerLevel: e.target.value })}>
+            <option value="">Select…</option>
+            {Object.values(CAREER_LEVELS).map((id) => (
+              <option key={id} value={id}>{CAREER_LEVEL_LABEL[id]}</option>
+            ))}
+          </Select>
+          <p className="mt-1 text-[0.7rem] text-muted-foreground">Jobs, salary, and interview difficulty use this with your target role.</p>
+        </FormField>
         <FormField label="Preferred job role">
           <Input
-            placeholder="e.g. Staff Frontend Engineer"
+            placeholder="e.g. SDE intern, Frontend engineer"
             value={form.preferredRole || ''}
             onChange={e => setForm({ ...form, preferredRole: e.target.value })}
           />
-          <p className="mt-1 text-[0.7rem] text-muted-foreground">Used for Skills gap, Learning, Interview, and other AI tools.</p>
+          <p className="mt-1 text-[0.7rem] text-muted-foreground">Used for the jobs search, Skills gap, Learning, and Interview.</p>
         </FormField>
         <FormField label="Preferred work location (comma-separated)">
           <Input placeholder="Bangalore, Remote, Hyderabad…" value={form.location || ''} onChange={e => setForm({ ...form, location: e.target.value })} />

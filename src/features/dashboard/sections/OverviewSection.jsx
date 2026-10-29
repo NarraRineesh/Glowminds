@@ -22,7 +22,7 @@ import {
 } from '@/services/gamification'
 import { auth } from '@/services/firebase'
 import { buildActionPlan, buildCareerScores } from '@/utils/v2Scores'
-import { hasCareerSignals } from '@/utils/targetRole'
+import { defaultJobQuery, hasCareerSignals, needsCareerSetup } from '@/utils/targetRole'
 import { skillLabel } from '@/utils/skillLabel'
 import { v2Debug } from '@/utils/v2Debug'
 import {
@@ -143,9 +143,15 @@ export default function OverviewSection() {
     loadProfile({ force: false }).catch(() => {})
     loadApps().catch(() => {})
     loadSavedJobs().catch(() => {})
-    fetchTopMatches({ limit: 6 }).catch(() => {})
     useInterviewStore.getState().loadHistory({ force: false }).catch(() => {})
-  }, [loadProfile, loadApps, loadSavedJobs, fetchTopMatches])
+  }, [loadProfile, loadApps, loadSavedJobs])
+
+  useEffect(() => {
+    if (!profileLoaded) return
+    const q = defaultJobQuery(profile)
+    const country = needsCareerSetup(profile) ? 'India' : ''
+    fetchTopMatches({ limit: 6, q, country }).catch(() => {})
+  }, [profileLoaded, profile, fetchTopMatches])
 
   useEffect(() => {
     const uid = auth.currentUser?.uid

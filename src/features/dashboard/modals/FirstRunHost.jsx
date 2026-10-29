@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import OnboardingModal from './OnboardingModal'
 import useAppStore from '@/store/authStore'
 import useProfileStore from '@/store/profileStore'
-import { hasUsableProfile } from '@/utils/targetRole'
+import { hasUsableProfile, needsCareerSetup } from '@/utils/targetRole'
 
 /**
  * First-run only. Existing users with a usable profile or completed
@@ -29,13 +29,16 @@ export default function FirstRunHost() {
 
     const userDoc = useProfileStore.getState().user
     const onboardingDone = !!userDoc?.flags?.onboardingCompleted
-    if (onboardingDone || hasUsableProfile(profile)) return
+    const missingCareer = needsCareerSetup(profile)
+    // Closing or finishing onboarding used to hide it forever, even when no
+    // career level or target role was saved. Ask again until those exist.
+    if (!missingCareer && (onboardingDone || hasUsableProfile(profile))) return
 
     const savedIdx = Number.isFinite(userDoc?.flags?.onboardingStep)
       ? Math.max(0, userDoc.flags.onboardingStep)
       : 0
     const ORDER = ['career', 'contact', 'skills', 'done']
-    setResumeStepId(ORDER[Math.min(savedIdx, ORDER.length - 1)] || 'career')
+    setResumeStepId(missingCareer ? 'career' : (ORDER[Math.min(savedIdx, ORDER.length - 1)] || 'career'))
     const t = setTimeout(() => setShowOnboarding(true), 600)
     return () => clearTimeout(t)
   }, [loggedIn, user?.uid, onDashboardRoot, flagsLoaded, profile])

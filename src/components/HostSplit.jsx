@@ -18,7 +18,12 @@ export default function HostSplit({ children }) {
   const dest = rawDest && blockProductionNavigation(rawDest) ? null : rawDest
 
   useEffect(() => {
-    if (dest) window.location.replace(dest)
+    if (!dest) return
+    // Replace only this entry. Earlier history stays, so hardware back can
+    // return to the page that led here. Assign would keep the redirecting
+    // URL and bounce. In-app routes never get here: on the app host
+    // resolveHostRedirect is null except for marketing paths.
+    window.location.replace(dest)
   }, [dest])
 
   if (dest) return <PageLoader />

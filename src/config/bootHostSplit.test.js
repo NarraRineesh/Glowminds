@@ -18,6 +18,10 @@ describe('index.html boot host split', () => {
   it('still sends production app paths to APP_URL and marketing paths to SITE_URL', () => {
     assert.match(html, /location\.replace\('%APP_URL%' \+ rest\)/)
     assert.match(html, /location\.replace\('%SITE_URL%' \+ rest\)/)
+    assert.match(html, /\['\/resume','\/dashboard\/resume'\]/)
+    assert.match(html, /\['\/applications','\/dashboard\/applications'\]/)
+    assert.match(html, /\['\/settings','\/dashboard\/settings'\]/)
+    assert.match(html, /singleOrigin \|\| isApp/)
     assert.match(html, /host === 'app\.glowminds\.in'/)
     assert.match(html, /host === 'www\.glowminds\.in'/)
     assert.match(html, /host === 'glowminds-abc84\.web\.app'/)

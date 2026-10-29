@@ -6,14 +6,13 @@ import useTrackerStore from '@/store/trackerStore'
 import useProfileStore from '@/store/profileStore'
 import useEntitlements from '@/hooks/useEntitlements'
 import useIsPro from '@/hooks/useIsPro'
-import { getQueryHeader } from '@/services/jobSearch'
 import {
   getTopCompanies,
   getTrendingSkills,
 } from '@/services/jobsApi'
 import { APPLICATION_STATUS } from '@/constants/schema'
 import { buildJobMatchAnalysis, canShowJobMatch, HIGH_MATCH_THRESHOLD, matchScoreTone } from '@/utils/jobMatchAnalysis'
-import { cleanJobSearchQuery, defaultJobQuery } from '@/utils/targetRole'
+import { cleanJobSearchQuery, defaultJobQuery, needsCareerSetup } from '@/utils/targetRole'
 import {
   filterJobTags,
   inferCountryFromProfile,
@@ -125,7 +124,7 @@ export default function JobsSection() {
   // must not hide the board behind an 85% filter by default.
   const [applyingId, setApplyingId] = useState(null)
   const seeded = useRef(Boolean(initialQ))
-  const seededCountry = useRef(readStoredJobCountry() != null)
+  const seededCountry = useRef(false)
 
   const syncQ = (next) => {
     const trimmed = (next || '').trim()
@@ -154,9 +153,18 @@ export default function JobsSection() {
   useEffect(() => {
     if (seededCountry.current || !profileLoaded) return
     seededCountry.current = true
-    const inferred = inferCountryFromProfile(profile)
-    setCountry(inferred)
-    persistJobCountry(inferred)
+    const hasLocation = Boolean(
+      String(profile?.personal?.location || '').trim()
+      || (profile?.preferences?.preferredLocations || []).length,
+    )
+    const stored = readStoredJobCountry()
+    // No saved city and no career setup: ignore a leftover United States
+    // filter. India is the default until they pick a location.
+    const next = hasLocation
+      ? (inferCountryFromProfile(profile) || stored || 'India')
+      : (needsCareerSetup(profile) ? 'India' : (stored ?? 'India'))
+    setCountry(next)
+    persistJobCountry(next)
   }, [profile, profileLoaded])
 
   useEffect(() => {
@@ -190,24 +198,11 @@ export default function JobsSection() {
 
     if (!profileLoaded) return
 
+    // Never call /jobs/query-header here. With no headline it returns "software",
+    // which is a ~16k US senior/staff feed. The profile query is the default.
     const fromProfile = defaultJobQuery(profile)
-    if (fromProfile) {
-      applySeed(fromProfile)
-      setHeaderReady(true)
-      return
-    }
-
-    let cancelled = false
-    getQueryHeader()
-      .then((header) => {
-        if (cancelled || seeded.current) return
-        applySeed(header?.q)
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (!cancelled) setHeaderReady(true)
-      })
-    return () => { cancelled = true }
+    if (fromProfile) applySeed(fromProfile)
+    setHeaderReady(true)
   }, [profile, profileLoaded, searchParams])
 
   useEffect(() => {
@@ -286,6 +281,7 @@ export default function JobsSection() {
   const clearSearch = () => applySearch('')
 
   const handleCountryChange = (next) => {
+    seededCountry.current = true
     setCountry(next)
     persistJobCountry(next)
     setPage(1)
@@ -419,6 +415,24 @@ export default function JobsSection() {
           </form>
         )}
       </div>
+
+      {profileLoaded && needsCareerSetup(profile) && !isSavedBoard && (
+        <div className="flex flex-col gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-foreground">
+            No target role or career level is saved, so this board starts with entry-level roles
+            {country === 'India' ? ' in India' : ''}. Set both and the search will follow them.
+          </p>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-9 shrink-0"
+            onClick={() => navigate('/dashboard/profile#profile-preferences')}
+          >
+            Set role and level
+          </Button>
+        </div>
+      )}
 
       {error && !loading && !isSavedBoard && (
         <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
