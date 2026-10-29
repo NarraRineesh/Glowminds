@@ -13,7 +13,7 @@ import {
 } from '@/services/jobsApi'
 import { APPLICATION_STATUS } from '@/constants/schema'
 import { buildJobMatchAnalysis, canShowJobMatch, HIGH_MATCH_THRESHOLD, matchScoreTone } from '@/utils/jobMatchAnalysis'
-import { cleanJobSearchQuery, cleanTargetRole } from '@/utils/targetRole'
+import { cleanJobSearchQuery, defaultJobQuery } from '@/utils/targetRole'
 import {
   filterJobTags,
   inferCountryFromProfile,
@@ -190,7 +190,7 @@ export default function JobsSection() {
 
     if (!profileLoaded) return
 
-    const fromProfile = cleanTargetRole(profile)
+    const fromProfile = defaultJobQuery(profile)
     if (fromProfile) {
       applySeed(fromProfile)
       setHeaderReady(true)
@@ -211,16 +211,21 @@ export default function JobsSection() {
   }, [profile, profileLoaded, searchParams])
 
   useEffect(() => {
+    let cancelled = false
     Promise.all([
-      getTopCompanies({ limit: 8 }).catch(() => []),
-      getTrendingSkills({ limit: 10 }).catch(() => []),
+      getTopCompanies({ limit: 40 }).catch(() => []),
+      getTrendingSkills({ limit: 40 }).catch(() => []),
     ]).then(([nextCompanies, nextSkills]) => {
+      if (cancelled) return
       setCompanies(
-        (nextCompanies || []).filter((row) => !isJunkLabel(row?.company_name || row?.name || '')),
+        (nextCompanies || [])
+          .filter((row) => !isJunkLabel(row?.company_name || row?.name || ''))
+          .slice(0, 8),
       )
       setSkills(
         (nextSkills || [])
           .filter((row) => !isNoiseTrendSkill(row))
+          .slice(0, 10)
           .map((row) => {
             const skillName = String(row?.skill_name || row?.name || row || '').trim()
             return {
@@ -231,6 +236,7 @@ export default function JobsSection() {
           }),
       )
     })
+    return () => { cancelled = true }
   }, [])
 
   useEffect(() => {
@@ -586,7 +592,7 @@ export default function JobsSection() {
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-sm text-muted-foreground">No company trends yet.</p>
+                  <p className="text-sm text-muted-foreground">No hiring companies to show yet. This fills in as the job catalog refreshes.</p>
                 )}
               </SectionCard>
               <SectionCard title="Trending skills">
@@ -610,7 +616,7 @@ export default function JobsSection() {
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-sm text-muted-foreground">No skill trends yet.</p>
+                  <p className="text-sm text-muted-foreground">No trending skills to show yet. Letter-only catalog tokens are hidden.</p>
                 )}
               </SectionCard>
             </>

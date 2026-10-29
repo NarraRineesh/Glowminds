@@ -67,6 +67,16 @@ const DesignSystemGallery = lazy(() => import('@/features/design-lab/DesignSyste
 const DesignScreenView = lazy(() => import('@/features/design-lab/DesignScreenView'))
 
 
+function LegacyAppRedirect({ base, dest }) {
+  const { pathname, search, hash } = useLocation()
+  const rest = pathname === base || pathname === `${base}/`
+    ? ''
+    : pathname.startsWith(`${base}/`)
+      ? pathname.slice(base.length)
+      : ''
+  return <Navigate to={`${dest}${rest}${search}${hash}`} replace />
+}
+
 function HomeRoute() {
   if (isAppHost()) {
     return (
@@ -111,6 +121,9 @@ function AnimatedRoutes() {
       <Route path="/signup" element={<Suspense fallback={<PageLoader />}><PublicOnlyRoute><SignupPage /></PublicOnlyRoute></Suspense>} />
       <Route path="/verify-email" element={<Suspense fallback={<PageLoader />}><VerifyEmailPage /></Suspense>} />
       <Route path="/jobs" element={<Navigate to="/dashboard/jobs" replace />} />
+      <Route path="/resume/*" element={<LegacyAppRedirect base="/resume" dest="/dashboard/resume" />} />
+      <Route path="/applications/*" element={<LegacyAppRedirect base="/applications" dest="/dashboard/applications" />} />
+      <Route path="/settings/*" element={<LegacyAppRedirect base="/settings" dest="/dashboard/settings" />} />
       {/* Dashboard (protected) */}
       <Route path="/dashboard" element={
         <ProtectedRoute><DashboardShell /></ProtectedRoute>

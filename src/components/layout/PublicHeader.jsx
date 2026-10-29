@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
 import BrandLogo, { GlowmindsWordmark } from '@/components/BrandLogo'
 import AppIcon from '@/components/icons/AppIcon'
 import useTheme from '@/hooks/useTheme'
@@ -7,6 +7,7 @@ import useIsLg from '@/hooks/useIsLg'
 import { PUBLIC_NAV_LINKS } from '@/constants/publicNav'
 import { AppAuthLink, ChromeHomeLink } from '@/components/HostLinks'
 import { appHref, isSingleOriginHost } from '@/config/hosts'
+import useAppStore from '@/store/authStore'
 import {
   Button,
   Sheet,
@@ -34,6 +35,7 @@ const mobileNavLinkClass = ({ isActive }) =>
 
 export default function PublicHeader() {
   const navigate = useNavigate()
+  const loggedIn = useAppStore((s) => s.loggedIn)
   const { theme, toggleTheme } = useTheme()
   const isLg = useIsLg()
   const [open, setOpen] = useState(false)
@@ -56,7 +58,7 @@ export default function PublicHeader() {
           {isLg ? <GlowmindsWordmark className="text-sm text-foreground" /> : null}
         </ChromeHomeLink>
 
-        {isLg ? (
+        {isLg && !loggedIn ? (
           <nav className="flex flex-1 items-center justify-center gap-1" aria-label="Main">
             {PUBLIC_NAV_LINKS.map((item) => (
               <NavLink key={item.path} to={item.path} end={item.end} className={navLinkClass}>
@@ -78,7 +80,11 @@ export default function PublicHeader() {
             <AppIcon name={theme === 'dark' ? 'sun' : 'moon'} className="size-4" />
           </Button>
 
-          {isLg ? (
+          {loggedIn ? (
+            <Button type="button" size="sm" nativeButton={false} render={<Link to="/dashboard" />}>
+              Dashboard
+            </Button>
+          ) : isLg ? (
             <>
               <Button type="button" variant="ghost" size="sm" nativeButton={false} render={<AppAuthLink to="/login" />}>
                 Log in
@@ -130,8 +136,16 @@ export default function PublicHeader() {
                     ))}
                   </nav>
                   <div className="mt-6 flex flex-col gap-2 border-t border-border pt-6">
-                    <Button className="w-full" variant="outline" onClick={() => closeAndGoApp('/login')}>Log in</Button>
-                    <Button className="w-full" onClick={() => closeAndGoApp('/signup')}>Get started free</Button>
+                    {loggedIn ? (
+                      <Button className="w-full" nativeButton={false} render={<Link to="/dashboard" onClick={() => setOpen(false)} />}>
+                        Dashboard
+                      </Button>
+                    ) : (
+                      <>
+                        <Button className="w-full" variant="outline" onClick={() => closeAndGoApp('/login')}>Log in</Button>
+                        <Button className="w-full" onClick={() => closeAndGoApp('/signup')}>Get started free</Button>
+                      </>
+                    )}
                   </div>
                 </div>
               </SheetContent>

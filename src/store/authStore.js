@@ -18,6 +18,57 @@ async function firebaseAuth() {
   return { auth, googleProvider, db, ...authMod, ...fsMod }
 }
 
+let googleSignInFlight = null
+
+/** True when this window is the Google popup, not the tab the user clicked in. */
+export function isGoogleAuthPopup() {
+  if (typeof window === 'undefined') return false
+  try {
+    return !!(window.opener && window.opener !== window && !window.opener.closed)
+  } catch {
+    return false
+  }
+}
+
+async function googleSignIn() {
+  const { auth, googleProvider, db, signInWithPopup, doc, setDoc, getDoc, serverTimestamp } =
+    await firebaseAuth()
+  const cred = await signInWithPopup(auth, googleProvider)
+  const userRef = doc(db, 'users', cred.user.uid)
+  const existing = await getDoc(userRef)
+  const gName = cred.user.displayName || ''
+  const firstName = gName.split(' ')[0] || ''
+  const lastName = gName.split(' ').slice(1).join(' ') || ''
+
+  if (!existing.exists()) {
+    // New users only — never write createDefaultUserDoc over an existing account.
+    const userDoc = createDefaultUserDoc({
+      uid: cred.user.uid,
+      email: cred.user.email,
+      firstName,
+      lastName,
+      displayName: gName,
+      photoURL: cred.user.photoURL,
+    })
+    await setDoc(userRef, {
+      ...userDoc,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    })
+  } else {
+    const prev = existing.data() || {}
+    await setDoc(userRef, {
+      email: cred.user.email || prev.email || '',
+      displayName: prev.displayName || gName || '',
+      firstName: prev.firstName || firstName,
+      lastName: prev.lastName || lastName,
+      photoURL: prev.photoURL || cred.user.photoURL || null,
+      updatedAt: serverTimestamp(),
+    }, { merge: true })
+  }
+  return cred.user
+}
+
 const useAppStore = create((set) => ({
   authLoading: true,
   loggedIn: false,
@@ -93,47 +144,12 @@ const useAppStore = create((set) => ({
     return verified
   },
 
-  doGoogleLogin: async () => {
-    const { auth, googleProvider, db, signInWithPopup, doc, setDoc, getDoc, serverTimestamp } =
-      await firebaseAuth()
-    const cred = await signInWithPopup(auth, googleProvider)
-    const userRef = doc(db, 'users', cred.user.uid)
-    const existing = await getDoc(userRef)
-    const gName = cred.user.displayName || ''
-    const firstName = gName.split(' ')[0] || ''
-    const lastName = gName.split(' ').slice(1).join(' ') || ''
-
-    if (!existing.exists()) {
-      // New users only — never write createDefaultUserDoc over an existing account.
-      // Firestore merge:true still overwrites nested leaves, so merging defaults
-      // would wipe experience, skills, summary, settings, etc. on every Google login.
-      const userDoc = createDefaultUserDoc({
-        uid: cred.user.uid,
-        email: cred.user.email,
-        firstName,
-        lastName,
-        displayName: gName,
-        photoURL: cred.user.photoURL,
-      })
-      await setDoc(userRef, {
-        ...userDoc,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      })
-    } else {
-      // Returning users: refresh identity fields only. Prefer Google values when
-      // the stored field is empty so we don't clobber user-edited names.
-      const prev = existing.data() || {}
-      await setDoc(userRef, {
-        email: cred.user.email || prev.email || '',
-        displayName: prev.displayName || gName || '',
-        firstName: prev.firstName || firstName,
-        lastName: prev.lastName || lastName,
-        photoURL: prev.photoURL || cred.user.photoURL || null,
-        updatedAt: serverTimestamp(),
-      }, { merge: true })
-    }
-    return cred.user
+  doGoogleLogin: () => {
+    if (googleSignInFlight) return googleSignInFlight
+    googleSignInFlight = googleSignIn().finally(() => {
+      googleSignInFlight = null
+    })
+    return googleSignInFlight
   },
 
   updatePhotoURL: async (file) => {

@@ -231,10 +231,12 @@ export default function OnboardingModal({ open, onClose, onPickAction, initialSt
       return
     }
     if (id === 'career') {
+      const headline = draft.headline.trim()
       await updateProfile({
         careerLevel: draft.careerLevel,
         isFresher: draft.careerLevel === CAREER_LEVELS.FRESHER,
-        headline: draft.headline.trim(),
+        headline,
+        preferences: { preferredRole: headline },
       })
       return
     }
@@ -298,7 +300,13 @@ export default function OnboardingModal({ open, onClose, onPickAction, initialSt
       flagsPatch.onboardingCompleted = true
       flagsPatch.onboardingCompletedAt = new Date().toISOString()
     }
-    await patchUserDoc({ flags: flagsPatch })
+    try {
+      await patchUserDoc({ flags: flagsPatch })
+    } catch (err) {
+      // The profile write already succeeded. A flags failure must not trap the
+      // user on this step; the next save retries the step index.
+      console.error('onboarding flags:', err)
+    }
   }
 
   const handleNext = async () => {

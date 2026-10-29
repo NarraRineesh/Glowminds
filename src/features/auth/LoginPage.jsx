@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import { sendPasswordResetEmail } from 'firebase/auth'
 import { passwordResetActionCodeSettings } from '@/config/hosts'
 import { auth } from '@/services/firebase'
-import useAppStore from '@/store/authStore'
+import useAppStore, { isGoogleAuthPopup } from '@/store/authStore'
 import SEO from '@/components/SEO'
 import { PAGE_SEO } from '@/config/seo'
 import BrandLogo, { GlowmindsWordmark } from '@/components/BrandLogo'
@@ -97,8 +97,14 @@ export default function LoginPage() {
     setLoading(true)
     try {
       await doGoogleLogin()
+      if (isGoogleAuthPopup()) {
+        window.close()
+        return
+      }
       addToast('success', 'Signed in with Google!')
-      navigate('/dashboard')
+      if (window.location.pathname.startsWith('/login')) {
+        navigate('/dashboard', { replace: true })
+      }
     } catch (err) {
       if (err.code !== 'auth/popup-closed-by-user') {
         addToast('error', err.message)

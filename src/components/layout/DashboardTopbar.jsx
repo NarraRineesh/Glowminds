@@ -65,7 +65,7 @@ export default function DashboardTopbar() {
             className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-[var(--radius-control)] border border-border bg-card px-3 text-sm font-medium text-foreground no-underline hover:bg-muted"
             aria-label={`Credits, ${balance}`}
           >
-            <span className="hidden text-muted-foreground sm:inline">Credits</span>
+            <span className="hidden text-muted-foreground sm:inline">AI credits</span>
             <span className="font-mono tabular-nums">{balance}</span>
           </Link>
         ) : null}
