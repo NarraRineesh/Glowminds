@@ -130,6 +130,7 @@ export default function DashboardSidebar() {
         <SidebarMenuButton
           isActive={active}
           tooltip={item.label}
+          className="h-11 gap-3 rounded-[var(--radius-panel)] px-3 md:h-9 md:gap-2 md:rounded-md md:px-2"
           render={
             <NavLink
               to={item.path}
@@ -139,7 +140,7 @@ export default function DashboardSidebar() {
           }
         >
           <AppIcon name={item.icon} className="size-4 shrink-0" />
-          <span className="truncate">{item.label}</span>
+          <span className="truncate leading-none">{item.label}</span>
           {item.proOnly && !isPro && (
             <AppIcon name="lock" className="ml-auto size-3 shrink-0 text-muted-foreground" />
           )}
@@ -150,24 +151,34 @@ export default function DashboardSidebar() {
 
   return (
     <Sidebar id="dashboardSidebar" collapsible="icon">
-      <SidebarHeader className="flex flex-row items-center gap-1 border-b border-sidebar-border p-2">
+      <SidebarHeader className="flex flex-row items-center gap-2 border-b border-border px-5 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 md:gap-1 md:border-sidebar-border md:p-2 md:pt-2">
         <SidebarMenuButton
           size="lg"
           tooltip="Glowminds"
           render={<Link to="/dashboard" onClick={closeDrawer} />}
-          className="min-w-0 flex-1"
+          className="h-11 min-w-0 flex-1 gap-3 px-0 md:h-12 md:px-2"
         >
           <BrandLogo size={32} alt="" aria-hidden className="rounded-lg" />
-          <GlowmindsWordmark className="text-sidebar-foreground" />
+          <GlowmindsWordmark className="text-sm leading-none text-sidebar-foreground" />
         </SidebarMenuButton>
-        <SidebarTrigger className="hidden md:inline-flex" />
+        <SidebarTrigger className="hidden size-11 md:inline-flex md:size-8" />
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="size-11 shrink-0 md:hidden"
+          aria-label="Close menu"
+          onClick={closeDrawer}
+        >
+          <AppIcon name="x" className="size-4" />
+        </Button>
       </SidebarHeader>
 
       <SidebarContent>
         {SIDEBAR_TOP_ITEMS.length > 0 && (
-          <SidebarGroup>
+          <SidebarGroup className="px-5 py-3 md:p-2">
             <SidebarGroupContent>
-              <SidebarMenu>{SIDEBAR_TOP_ITEMS.map(renderNavItem)}</SidebarMenu>
+              <SidebarMenu className="gap-1">{SIDEBAR_TOP_ITEMS.map(renderNavItem)}</SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
         )}
@@ -175,11 +186,11 @@ export default function DashboardSidebar() {
           const open = isGroupOpen(group)
           const showItems = open || iconCollapsed
           return (
-            <SidebarGroup key={group.label}>
+            <SidebarGroup key={group.label} className="border-t border-border px-5 py-3 md:border-0 md:p-2">
               {group.collapsibleId ? (
                 <SidebarGroupLabel
                   className={cn(
-                    'h-8 text-sm font-semibold tracking-wide text-sidebar-foreground/85',
+                    'h-11 px-3 text-sm font-semibold text-sidebar-foreground/85 md:h-8 md:px-2',
                     iconCollapsed && 'md:hidden',
                   )}
                   render={
@@ -208,7 +219,7 @@ export default function DashboardSidebar() {
               ) : (
                 <SidebarGroupLabel
                   className={cn(
-                    'h-8 text-sm font-semibold tracking-wide text-sidebar-foreground/85',
+                    'h-11 px-3 text-sm font-semibold text-sidebar-foreground/85 md:h-8 md:px-2',
                     iconCollapsed && 'md:hidden',
                   )}
                 >
@@ -217,7 +228,7 @@ export default function DashboardSidebar() {
               )}
               {showItems && (
                 <SidebarGroupContent id={group.collapsibleId ? `navgroup-${group.collapsibleId}` : undefined}>
-                  <SidebarMenu>{group.items.map(renderNavItem)}</SidebarMenu>
+                  <SidebarMenu className="gap-1">{group.items.map(renderNavItem)}</SidebarMenu>
                 </SidebarGroupContent>
               )}
             </SidebarGroup>
@@ -225,11 +236,11 @@ export default function DashboardSidebar() {
         })}
       </SidebarContent>
 
-      <SidebarFooter className="gap-1">
+      <SidebarFooter className="gap-2 border-t border-border px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] md:border-0 md:p-2 md:pb-2">
         {!entitlementsLoading && isPro ? (
           <div
             className={cn(
-              'flex w-full items-center gap-3 rounded-[var(--radius-control)] border border-border bg-card p-2.5',
+              'flex min-h-11 w-full items-center gap-3 rounded-[var(--radius-panel)] border border-border bg-card px-3 shadow-none',
               iconCollapsed && 'justify-center px-2',
             )}
           >
@@ -250,7 +261,7 @@ export default function DashboardSidebar() {
           render={<Link to="/dashboard/plans" onClick={closeDrawer} />}
           aria-label={iconCollapsed ? 'Upgrade' : undefined}
           className={cn(
-            'h-auto min-h-11 w-full justify-start gap-3 p-2.5 text-left',
+            'h-auto min-h-11 w-full justify-start gap-3 rounded-[var(--radius-panel)] px-3 text-left',
             iconCollapsed && 'justify-center px-2',
           )}
         >
@@ -273,7 +284,7 @@ export default function DashboardSidebar() {
             onClick={closeDrawer}
             aria-label={`Credits, ${creditBalance}`}
             className={cn(
-              'block rounded-[var(--radius-control)] border border-border bg-card px-2.5 py-2 text-left no-underline hover:bg-muted',
+              'flex min-h-11 flex-col justify-center rounded-[var(--radius-panel)] border border-border bg-card px-3 py-2 text-left no-underline shadow-none hover:border-foreground/55',
               iconCollapsed && 'px-2 text-center',
             )}
           >

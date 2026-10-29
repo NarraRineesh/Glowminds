@@ -48,7 +48,7 @@ export default function SidebarProfileMenu({ user, initials, iconCollapsed, onCl
             size="lg"
             tooltip={iconCollapsed ? (user?.displayName || 'Account') : undefined}
             className={cn(
-              'h-auto w-full data-[state=open]:bg-sidebar-accent',
+              'h-auto min-h-11 w-full gap-3 rounded-[var(--radius-panel)] px-3 data-[state=open]:bg-sidebar-accent md:px-2',
               iconCollapsed ? 'justify-center' : 'justify-start',
             )}
           >
