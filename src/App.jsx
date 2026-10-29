@@ -10,6 +10,7 @@ import AdminRoute from '@/components/AdminRoute'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import { PageLoader } from '@/components/Loader'
 import AndroidAppAuthGate from '@/components/AndroidAppAuthGate'
+import NativeBackButton from '@/components/NativeBackButton'
 import HostSplit from '@/components/HostSplit'
 import { isAppHost, legacyDashboardPath } from '@/config/hosts'
 import PublicLayout from '@/features/public/PublicLayout'
@@ -303,6 +304,7 @@ function App() {
       <MotionConfig reducedMotion="user">
         <BrowserRouter>
           <AppEffects />
+          <NativeBackButton />
           <a href="#main-content" className="skip-link">
             Skip to main content
           </a>

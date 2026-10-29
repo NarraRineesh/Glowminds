@@ -112,6 +112,9 @@
           }
           if (legacyDest) {
             var legacySuffix = location.search + location.hash;
+            // Replace only this entry so /resume is not left on the back stack
+            // (that would bounce). Earlier entries stay. Other app paths are
+            // not touched, so in-app navigations can push history.
             location.replace((singleOrigin || isApp) ? (legacyDest + legacySuffix) : ('%APP_URL%' + legacyDest + legacySuffix));
             return;
           }
