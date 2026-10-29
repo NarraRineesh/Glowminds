@@ -14,20 +14,15 @@ import {
 } from '@/config/seo'
 import PublicFaqItem from '@/features/public/components/PublicFaqItem'
 import LandingHero from '@/features/public/components/LandingHero'
-import LandingAtsPreview from '@/features/public/components/LandingAtsPreview'
-import { LandingMockupCard } from '@/features/public/components/LandingMockupPreviews'
 import LandingOutcomeGroups from '@/features/public/components/LandingOutcomeGroups'
 import LandingPricingCards from '@/features/public/components/LandingPricingCards'
 import LandingWhyGlowminds from '@/features/public/components/LandingWhyGlowminds'
 import LandingReveal, { LandingRevealItem, LandingRevealStagger } from '@/features/public/components/LandingReveal'
 import {
-  LandingCheckList,
-  LandingFeatureGrid,
   LandingSection,
   LandingSectionTitle,
-  featureBadgeClass,
 } from '@/features/public/components/landingPageUi'
-import { DEFAULT_LANDING_CONTENT, getHomeFeatures } from '@/data/landingDefaults'
+import { DEFAULT_LANDING_CONTENT } from '@/data/landingDefaults'
 import useLandingConfig from '@/hooks/useLandingConfig'
 import usePricingConfig from '@/hooks/usePricingConfig'
 import {
@@ -45,7 +40,6 @@ import {
 } from '@/components/ui'
 
 const {
-  features,
   hero,
   heroMetrics,
   trustBadges,
@@ -55,16 +49,12 @@ const {
   steps,
   testimonials,
   faqs,
-  stats,
 } = DEFAULT_LANDING_CONTENT
-
-const HOME_FEATURES = getHomeFeatures(features)
 
 export default function LandingPage() {
   const { config: landingConfig } = useLandingConfig()
   const { pricing: configPricing } = usePricingConfig()
   const resolvedHeroMetrics = landingConfig.heroMetrics || heroMetrics
-  const resolvedStats = landingConfig.stats || stats
   const pricing = configPricing
 
   return (
@@ -85,47 +75,7 @@ export default function LandingPage() {
         hero={hero}
         heroMetrics={resolvedHeroMetrics}
         trustBadges={trustBadges}
-        stats={resolvedStats}
       />
-
-      {/* Feature story */}
-      <LandingSection>
-        <LandingReveal>
-          <LandingSectionTitle
-            eyebrow="AI-Powered Career Operating System"
-            title="From first resume to offer"
-            highlight="in one OS"
-            subtitle="Build, apply, prepare, and track — a Career Operating System designed for how job seekers actually work."
-          />
-        </LandingReveal>
-        <div className="space-y-16 md:space-y-20">
-          {HOME_FEATURES.map((feature, index) => (
-            <LandingReveal key={feature.key || feature.title} delay={index * 0.05}>
-              <LandingFeatureGrid reverse={index % 2 === 1}>
-                <div className="space-y-4">
-                  <Badge variant="outline" className={featureBadgeClass(index)}>
-                    {feature.badge}
-                  </Badge>
-                  <h3 className="text-xl font-bold text-foreground md:text-2xl">{feature.title}</h3>
-                  <p className="text-sm leading-relaxed text-muted-foreground">{feature.desc}</p>
-                  <LandingCheckList items={feature.bullets} />
-                  {feature.key === 'resume-builder' ? (
-                    <div className="space-y-4">
-                      <LandingAtsPreview className="max-w-sm" />
-                      <Button render={<Link to="/signup" />}>{feature.cta || 'Try resume builder free'}</Button>
-                    </div>
-                  ) : feature.cta ? (
-                    <Button variant={index === 0 ? 'default' : 'outline'} render={<Link to="/signup" />}>
-                      {feature.cta}
-                    </Button>
-                  ) : null}
-                </div>
-                <LandingMockupCard src={feature.image} stats={resolvedStats} />
-              </LandingFeatureGrid>
-            </LandingReveal>
-          ))}
-        </div>
-      </LandingSection>
 
       <LandingWhyGlowminds whyGlowminds={whyGlowminds} />
 

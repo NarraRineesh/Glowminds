@@ -33,7 +33,8 @@ import {
   StreakCard,
   TimelineList,
 } from '@/features/dashboard/components/v2'
-import { AppIcon, Button } from '@/components/ui'
+import { AppIcon } from '@/components/ui'
+import { Button } from '@/design-system'
 
 function timeAgo(ts) {
   if (!ts) return ''
@@ -224,7 +225,7 @@ export default function OverviewSection() {
 
       {/* 1. Focus */}
       {!focusDismissed && focus && (
-        <div className="flex items-center gap-2 rounded-xl border border-border border-l-[3px] border-l-warning bg-card px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3.5">
+        <div className="flex items-center gap-2 rounded-[var(--radius-panel)] border border-border bg-card px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3.5">
           <div className="min-w-0 flex-1">
             <span className="text-[0.65rem] text-muted-foreground sm:text-xs">Today’s focus</span>
             <p className="m-0 truncate text-sm font-semibold tracking-tight sm:text-[15px]">{focus.title}</p>
@@ -266,35 +267,35 @@ export default function OverviewSection() {
 
       {/* 2. Score sparklines */}
       <div className="grid min-w-0 grid-cols-2 gap-2.5 lg:grid-cols-4 [&>*]:min-w-0">
-        <button type="button" className="min-w-0 text-left" onClick={() => navigate('/dashboard/profile')}>
+        <button type="button" className="min-w-0 rounded-[var(--radius-panel)] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => navigate('/dashboard/profile')}>
           <ScoreSparkCard
             label="Career"
             value={!profileLoaded ? '…' : (scores.careerScore || 'Complete')}
-            color="primary"
+            tone="neutral"
             trend={trendFromHistory(scoreHistory, 'career')}
           />
         </button>
-        <button type="button" className="min-w-0 text-left" onClick={() => navigate('/dashboard/resume')}>
+        <button type="button" className="min-w-0 rounded-[var(--radius-panel)] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => navigate('/dashboard/resume')}>
           <ScoreSparkCard
             label="Resume"
             value={!profileLoaded ? '…' : (scores.resumeScore || 'Not scored')}
-            color="ai"
+            tone="neutral"
             trend={trendFromHistory(scoreHistory, 'resume')}
           />
         </button>
-        <button type="button" className="min-w-0 text-left" onClick={() => navigate('/dashboard/linkedin')}>
+        <button type="button" className="min-w-0 rounded-[var(--radius-panel)] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => navigate('/dashboard/linkedin')}>
           <ScoreSparkCard
             label="LinkedIn"
             value={!profileLoaded ? '…' : (scores.linkedInScore || 'Not audited')}
-            color="success"
+            tone="neutral"
             trend={trendFromHistory(scoreHistory, 'linkedin')}
           />
         </button>
-        <button type="button" className="min-w-0 text-left" onClick={() => navigate('/dashboard/interview')}>
+        <button type="button" className="min-w-0 rounded-[var(--radius-panel)] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => navigate('/dashboard/interview')}>
           <ScoreSparkCard
             label="Interview"
             value={scores.interviewReady || 'Practice'}
-            color="warning"
+            tone="neutral"
             trend={trendFromHistory(scoreHistory, 'interview')}
           />
         </button>
@@ -325,11 +326,10 @@ export default function OverviewSection() {
 
         <SectionCard
           title="Suggested"
-          action={<span className="rounded-md bg-ai/15 px-1.5 py-0.5 text-[10px] font-medium text-ai">AI</span>}
         >
           <p className="mt-0 mb-3 text-sm leading-relaxed font-medium">{suggestion}</p>
           <div className="flex flex-wrap gap-2">
-            <Button type="button" size="sm" className="bg-ai text-background hover:bg-ai/90" onClick={() => navigate('/dashboard/resume')}>
+            <Button type="button" size="sm" onClick={() => navigate('/dashboard/resume')}>
               Apply to resume
             </Button>
             <Button type="button" size="sm" variant="ghost" onClick={() => navigate('/dashboard/ai')}>
@@ -409,8 +409,8 @@ export default function OverviewSection() {
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0 flex-1">
                 <strong className="text-sm">ATS ≥ 85</strong>
-                <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-elevated">
-                  <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, atsScore)}%` }} />
+                <div className="mt-1.5 h-1.5 overflow-hidden rounded-[var(--radius-xs)] bg-muted">
+                  <div className="h-full bg-primary" style={{ width: `${Math.min(100, atsScore)}%` }} />
                 </div>
               </div>
               <span className="font-mono text-xs text-muted-foreground">{atsScore || '—'}</span>
@@ -430,8 +430,8 @@ export default function OverviewSection() {
           {gap ? (
             <>
               <strong className="text-sm">{gap.targetRole || 'Skill path'}</strong>
-              <div className="mt-2 h-2 overflow-hidden rounded-full bg-elevated">
-                <div className="h-full rounded-full bg-primary" style={{ width: `${gap.coverage || 0}%` }} />
+              <div className="mt-2 h-1.5 overflow-hidden rounded-[var(--radius-xs)] bg-muted">
+                <div className="h-full bg-primary" style={{ width: `${gap.coverage || 0}%` }} />
               </div>
               <p className="mt-2 mb-0 text-xs text-muted-foreground">
                 Coverage {gap.coverage || 0}%

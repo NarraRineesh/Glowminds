@@ -75,6 +75,10 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       rollupOptions: {
+        input: {
+          main: path.resolve(__dirname, 'index.html'),
+          designSystem: path.resolve(__dirname, 'design-system.html'),
+        },
         output: {
           manualChunks(id) {
             if (!id.includes('node_modules')) return undefined
