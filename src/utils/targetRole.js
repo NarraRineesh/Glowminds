@@ -138,12 +138,40 @@ export function cleanJobSearchQuery(raw, { maxWords = 4 } = {}) {
   return formatRoleQuery(firstMeaningfulWords(spaced, maxWords))
 }
 
-function fallbackRole(profile) {
-  return formatRoleQuery(
-    profile?.isFresher || profile?.careerLevel === 'fresher'
-      ? 'fresher internship'
-      : 'software engineer',
-  )
+export function isFresherProfile(profile) {
+  return profile?.isFresher === true || profile?.careerLevel === 'fresher'
+}
+
+/** True when the user has entered career content, not just a Google name or photo. */
+export function hasCareerSignals(profile) {
+  if (!profile || typeof profile !== 'object') return false
+  if (String(profile.headline || '').trim() || String(profile.summary || '').trim()) return true
+  const technical = Array.isArray(profile.skills?.technical) ? profile.skills.technical.filter(Boolean) : []
+  const soft = Array.isArray(profile.skills?.soft) ? profile.skills.soft.filter(Boolean) : []
+  if (technical.length || soft.length) return true
+  const experience = Array.isArray(profile.experience) ? profile.experience.filter((e) => e?.company || e?.role) : []
+  const internships = Array.isArray(profile.internships) ? profile.internships.filter((e) => e?.company || e?.role) : []
+  const education = Array.isArray(profile.educationList) ? profile.educationList.filter((e) => e?.college || e?.degree || e?.course) : []
+  return experience.length > 0 || internships.length > 0 || education.length > 0
+}
+
+/**
+ * Default jobs query from the saved target role and career level.
+ * No role and no fresher/entry level returns '' so the board is not seeded
+ * with a generic "software engineer" search that surfaces senior titles.
+ */
+export function defaultJobQuery(profile) {
+  const explicit = cleanJobSearchQuery(preferredRoleText(profile))
+    || cleanJobSearchQuery(String(profile?.headline || '').trim())
+  const fresher = isFresherProfile(profile)
+  const entry = profile?.careerLevel === '0-2'
+  if (explicit) {
+    if (fresher && !/intern/i.test(explicit)) return `${explicit} intern`
+    return explicit
+  }
+  if (fresher) return 'intern'
+  if (entry) return 'junior'
+  return ''
 }
 
 function preferredRoleText(profile) {
@@ -165,9 +193,9 @@ export function cleanTargetRole(profile) {
   if (fromPreferred) return fromPreferred
 
   const headline = String(profile?.headline || '').trim()
-  if (!headline) return fallbackRole(profile)
+  if (!headline) return defaultJobQuery(profile)
 
-  return cleanJobSearchQuery(headline) || fallbackRole(profile)
+  return cleanJobSearchQuery(headline) || defaultJobQuery(profile)
 }
 
 export function hasUsableProfile(profile) {

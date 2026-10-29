@@ -82,7 +82,7 @@ export default function SkillsSection() {
   }, [load])
 
   useEffect(() => {
-    const next = getPreferredRole(profile)
+    const next = getPreferredRole(profile, '')
     if (next) setRole(next)
   }, [profile?.preferences?.preferredRole, profile?.headline, profile])
 
@@ -100,7 +100,12 @@ export default function SkillsSection() {
 
   useEffect(() => {
     let cancelled = false
-    const preferred = getPreferredRole(profile)
+    const preferred = getPreferredRole(profile, '')
+    if (!preferred) {
+      setGap(null)
+      setBusy(false)
+      return undefined
+    }
     ;(async () => {
       setBusy(true)
       try {

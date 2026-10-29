@@ -6,10 +6,10 @@ import useTrackerStore from '@/store/trackerStore'
 import useProfileStore from '@/store/profileStore'
 import useInterviewStore from '@/store/interviewStore'
 import { profileReadyForJobMatches } from '@/utils/jobMatchProfile'
-import { APPLICATION_STATUS, getPreferredRole, normalizeGamification } from '@/constants/schema'
+import { APPLICATION_STATUS, normalizeGamification } from '@/constants/schema'
 import { computeProfileScore, getLinkedInScore, getResumeScore } from '@/utils/profileScore'
 import { averageSessionPercent } from '@/utils/interviewScore'
-import { sanitizeSkillGap } from '@/utils/skillRelevance'
+import { sanitizeSkillGap, isNoiseSkillName } from '@/utils/skillRelevance'
 import { buildActivityEvents } from '@/utils/activityTimeline'
 import JobMiniRow from '@/features/dashboard/components/JobMiniRow'
 import { getSkillGap } from '@/services/skillsApi'
@@ -22,6 +22,7 @@ import {
 } from '@/services/gamification'
 import { auth } from '@/services/firebase'
 import { buildActionPlan, buildCareerScores } from '@/utils/v2Scores'
+import { hasCareerSignals } from '@/utils/targetRole'
 import { skillLabel } from '@/utils/skillLabel'
 import { v2Debug } from '@/utils/v2Debug'
 import {
@@ -115,13 +116,14 @@ export default function OverviewSection() {
     const tip = profile?.aiReview?.suggestions?.[0] || profile?.aiReview?.tips?.[0]
     if (typeof tip === 'string' && tip.trim()) return tip
     if (tip?.text) return tip.text
-    if (gap?.missingSkills?.[0]) {
-      return `Prioritize learning ${skillLabel(gap.missingSkills[0])} to close your top skill gap.`
+    const nextSkill = skillLabel(gap?.missingSkills?.[0])
+    if (nextSkill && !isNoiseSkillName(nextSkill) && String(profile?.headline || profile?.preferences?.preferredRole || '').trim()) {
+      return `Prioritize learning ${nextSkill} to close your top skill gap.`
     }
     if (scores.resumeScore > 0 && scores.resumeScore < 85) {
       return 'Raise your ATS score toward 85+ before your next interview.'
     }
-    return 'Lead with measurable outcomes in your summary for Staff-level roles.'
+    return ''
   }, [profile, gap, scores.resumeScore])
 
   const appStats = useMemo(() => {
@@ -156,20 +158,33 @@ export default function OverviewSection() {
   }, [user?.uid, loadProfile])
 
   useEffect(() => {
+    const role = String(profile?.preferences?.preferredRole || profile?.headline || '').trim()
+    if (!role) {
+      setGap(null)
+      setGapReady(true)
+      return undefined
+    }
     setGapReady(false)
-    getSkillGap({ role: getPreferredRole(profile) })
+    let cancelled = false
+    getSkillGap({ role })
       .then((data) => {
+        if (cancelled) return
         const next = sanitizeSkillGap(data, profile)
         setGap(next)
         v2Debug('dashboard', 'skill gap', next?.coverage)
       })
-      .catch(() => setGap(null))
-      .finally(() => setGapReady(true))
+      .catch(() => {
+        if (!cancelled) setGap(null)
+      })
+      .finally(() => {
+        if (!cancelled) setGapReady(true)
+      })
+    return () => { cancelled = true }
   }, [profile?.headline, profile?.preferences?.preferredRole, profile])
 
   useEffect(() => {
     const uid = auth.currentUser?.uid
-    if (!uid || !scores.careerScore) return
+    if (!uid || !hasCareerSignals(profile) || !scores.careerScore) return
     const t = setTimeout(() => {
       snapshotScores(uid, {
         career: scores.careerScore,
@@ -180,7 +195,7 @@ export default function OverviewSection() {
       })
     }, 800)
     return () => clearTimeout(t)
-  }, [scores.careerScore, scores.resumeScore, scores.linkedInScore, scores.interviewReady, scores.profileReview])
+  }, [profile, scores.careerScore, scores.resumeScore, scores.linkedInScore, scores.interviewReady, scores.profileReview])
 
   const derivedEvents = useMemo(
     () => buildActivityEvents({ apps, interviews: sessions, profile }),
@@ -270,7 +285,7 @@ export default function OverviewSection() {
         <button type="button" className="min-w-0 rounded-[var(--radius-panel)] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => navigate('/dashboard/profile')}>
           <ScoreSparkCard
             label="Career"
-            value={!profileLoaded ? '…' : (scores.careerScore || 'Complete')}
+            value={!profileLoaded ? '…' : (hasCareerSignals(profile) && scores.careerScore ? scores.careerScore : '—')}
             tone="neutral"
             trend={trendFromHistory(scoreHistory, 'career')}
           />
@@ -327,14 +342,18 @@ export default function OverviewSection() {
         <SectionCard
           title="Suggested"
         >
-          <p className="mt-0 mb-3 text-sm leading-relaxed font-medium">{suggestion}</p>
+          <p className="mt-0 mb-3 text-sm leading-relaxed font-medium text-muted-foreground">
+            {suggestion || 'Add a target role and a few skills to get a suggestion here.'}
+          </p>
           <div className="flex flex-wrap gap-2">
-            <Button type="button" size="sm" onClick={() => navigate('/dashboard/resume')}>
-              Apply to resume
+            <Button type="button" size="sm" onClick={() => navigate('/dashboard/profile')}>
+              Complete profile
             </Button>
-            <Button type="button" size="sm" variant="ghost" onClick={() => navigate('/dashboard/ai')}>
-              Why this?
-            </Button>
+            {suggestion ? (
+              <Button type="button" size="sm" variant="ghost" onClick={() => navigate('/dashboard/ai')}>
+                Why this?
+              </Button>
+            ) : null}
           </div>
         </SectionCard>
 

@@ -1,5 +1,5 @@
 import { Navigate } from 'react-router-dom'
-import useAppStore from '@/store/authStore'
+import useAppStore, { isGoogleAuthPopup } from '@/store/authStore'
 import Loader from '@/components/Loader'
 import { requiresEmailVerification } from '@/utils/emailVerification'
 
@@ -18,6 +18,10 @@ export default function PublicOnlyRoute({ children }) {
   }
 
   if (loggedIn) {
+    if (isGoogleAuthPopup()) {
+      window.close()
+      return <Loader variant="page" />
+    }
     if (requiresEmailVerification(user)) {
       return <Navigate to="/verify-email" replace />
     }

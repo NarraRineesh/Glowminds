@@ -53,7 +53,8 @@ export default function DashboardSidebar() {
   const { pathname } = useLocation()
   const { user } = useAppStore()
   const { loadNotifs, reset: resetNotifs } = useNotifStore()
-  const { isPro, loading: entitlementsLoading, entitlements } = useEntitlements()
+  const { isPro, loading: entitlementsLoading, credits } = useEntitlements()
+  const creditBalance = credits?.balance
   const { setOpenMobile, state } = useSidebarState()
   const iconCollapsed = state === 'collapsed'
 
@@ -266,11 +267,11 @@ export default function DashboardSidebar() {
         </Button>
         ) : null}
 
-        {typeof entitlements?.credits?.balance === 'number' && (
+        {typeof creditBalance === 'number' && (
           <Link
             to="/dashboard/settings?tab=usage"
             onClick={closeDrawer}
-            aria-label={`Credits, ${entitlements.credits.balance}`}
+            aria-label={`Credits, ${creditBalance}`}
             className={cn(
               'block rounded-[var(--radius-control)] border border-border bg-card px-2.5 py-2 text-left no-underline hover:bg-muted',
               iconCollapsed && 'px-2 text-center',
@@ -278,11 +279,11 @@ export default function DashboardSidebar() {
           >
             {!iconCollapsed ? (
               <>
-                <p className="m-0 text-xs text-muted-foreground">Credits</p>
-                <p className="m-0 font-mono text-sm font-medium tabular-nums text-foreground">{entitlements.credits.balance}</p>
+                <p className="m-0 text-xs text-muted-foreground">AI credits</p>
+                <p className="m-0 font-mono text-sm font-medium tabular-nums text-foreground">{creditBalance}</p>
               </>
             ) : (
-              <span className="font-mono text-xs font-medium tabular-nums text-foreground">{entitlements.credits.balance}</span>
+              <span className="font-mono text-xs font-medium tabular-nums text-foreground">{creditBalance}</span>
             )}
           </Link>
         )}

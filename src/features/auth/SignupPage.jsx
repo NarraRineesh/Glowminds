@@ -2,11 +2,10 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ChromeHomeLink, SiteLink } from '@/components/HostLinks'
 import { motion } from 'framer-motion'
-import useAppStore from '@/store/authStore'
+import useAppStore, { isGoogleAuthPopup } from '@/store/authStore'
 import SEO from '@/components/SEO'
 import { PAGE_SEO } from '@/config/seo'
 import BrandLogo, { GlowmindsWordmark } from '@/components/BrandLogo'
-import useLandingConfig from '@/hooks/useLandingConfig'
 import { Badge, Button, Card, CardContent, FormField, FormRow, Input, Separator, AppIcon } from '@/components/ui'
 import { MIN_PASSWORD_LENGTH, PASSWORD_RULE_HINT, PASSWORD_TOO_SHORT } from '@/constants/auth'
 
@@ -35,8 +34,6 @@ export default function SignupPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { doSignup, doGoogleLogin, addToast } = useAppStore()
-  const { config: landingConfig } = useLandingConfig()
-  const socialProof = landingConfig.socialProof || {}
   const benefits = BENEFITS
   const [fn, setFn] = useState('')
   const [ln, setLn] = useState('')
@@ -81,8 +78,14 @@ export default function SignupPage() {
     setLoading(true)
     try {
       await doGoogleLogin()
+      if (isGoogleAuthPopup()) {
+        window.close()
+        return
+      }
       addToast('success', 'Signed up with Google!')
-      navigate('/dashboard')
+      if (window.location.pathname.startsWith('/signup')) {
+        navigate('/dashboard', { replace: true })
+      }
     } catch (err) {
       if (err.code !== 'auth/popup-closed-by-user') {
         addToast('error', err.message)

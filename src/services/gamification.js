@@ -5,6 +5,7 @@
 import {
   doc,
   getDoc,
+  setDoc,
   updateDoc,
   collection,
   addDoc,
@@ -60,10 +61,22 @@ async function readGamification(uid) {
 }
 
 async function writeGamification(uid, gamification) {
-  await updateDoc(doc(db, 'users', uid), {
+  const ref = doc(db, 'users', uid)
+  const payload = {
     'profile.gamification': gamification,
     updatedAt: serverTimestamp(),
-  })
+  }
+  try {
+    // Dot-path update keeps the rest of profile. update() throws not-found
+    // when users/{uid} has not been created yet.
+    await updateDoc(ref, payload)
+  } catch (err) {
+    if (err?.code !== 'not-found') throw err
+    await setDoc(ref, {
+      profile: { gamification },
+      updatedAt: serverTimestamp(),
+    }, { merge: true })
+  }
 }
 
 /** Record a calendar day of activity and refresh streak / week dots. */

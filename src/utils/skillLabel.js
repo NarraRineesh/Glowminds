@@ -2,7 +2,7 @@
 export function skillLabel(skill) {
   if (skill == null) return ''
   if (typeof skill === 'string') return skill
-  return String(skill.name || skill.skill || '').trim()
+  return String(skill.name || skill.skill || skill.skill_name || '').trim()
 }
 
 export function skillKey(skill, index = 0) {

@@ -4,6 +4,7 @@ import useAppStore from '@/store/authStore'
 import { dedupeAsync } from '@/utils/dedupeAsync'
 
 let cache = { data: null, expiresAt: 0, uid: null }
+let entitlementsSeq = 0
 const CACHE_TTL_MS = 60_000
 const listeners = new Set()
 
@@ -63,15 +64,17 @@ export default function useEntitlements({ enabled = true } = {}) {
 
     setLoading(true)
     setError(null)
+    const seq = ++entitlementsSeq
     try {
       const result = await dedupeAsync(`entitlements|${uid}|${force ? 'force' : 'soft'}`, async () => {
         if (!force && cache.uid === uid && cache.data && cache.expiresAt > Date.now()) {
           return cache.data
         }
         const payload = await apiFetch('/entitlements', { method: 'GET' })
-        writeCache({ data: payload, expiresAt: Date.now() + CACHE_TTL_MS, uid })
         return payload
       })
+      if (seq !== entitlementsSeq) return result
+      if (result) writeCache({ data: result, expiresAt: Date.now() + CACHE_TTL_MS, uid })
       setData(result)
       return result
     } catch (err) {

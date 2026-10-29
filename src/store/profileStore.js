@@ -39,6 +39,17 @@ export function profileHasSubstance(profile) {
   return false
 }
 
+function omitUndefined(value) {
+  if (Array.isArray(value)) return value.map(omitUndefined)
+  if (!value || typeof value !== 'object') return value
+  const next = {}
+  for (const [key, item] of Object.entries(value)) {
+    if (item === undefined) continue
+    next[key] = omitUndefined(item)
+  }
+  return next
+}
+
 function mergeProfilePatch(current, partial) {
   const patch = partial || {}
   return {
@@ -162,12 +173,20 @@ const useProfileStore = create((set, get) => ({
     if (!uid) return
     // Always re-read before write so we never merge onto in-memory defaults
     // after a logout/login race (that previously wiped cloud profile data).
-    const loaded = await get().load({ force: true })
-    if (auth.currentUser?.uid !== uid || !get().loaded || get().loadedUid !== uid) {
-      throw new Error('Profile is not loaded yet')
+    await get().load({ force: true })
+    if (auth.currentUser?.uid !== uid) {
+      throw new Error('Signed out before the profile could be saved')
     }
-    if (!loaded && !get().loaded) {
-      throw new Error('Profile is not loaded yet')
+    // A brand-new account may not have users/{uid} yet. Treat that as an empty
+    // profile and create the doc with merge, instead of failing the first save.
+    if (!get().loaded || get().loadedUid !== uid) {
+      set({
+        profile: createDefaultProfile(),
+        user: get().user || {},
+        loaded: true,
+        loadedUid: uid,
+        loading: false,
+      })
     }
 
     const current = get().profile
@@ -179,7 +198,7 @@ const useProfileStore = create((set, get) => ({
     try {
       await setDoc(
         doc(db, 'users', uid),
-        { profile: safeNext, updatedAt: serverTimestamp() },
+        { profile: omitUndefined(safeNext), updatedAt: serverTimestamp() },
         { merge: true },
       )
     } catch (err) {
@@ -205,7 +224,7 @@ const useProfileStore = create((set, get) => ({
     try {
       await setDoc(
         doc(db, 'users', uid),
-        { profile: safeNext, updatedAt: serverTimestamp() },
+        { profile: omitUndefined(safeNext), updatedAt: serverTimestamp() },
         { merge: true },
       )
     } catch (err) {
@@ -230,11 +249,12 @@ const useProfileStore = create((set, get) => ({
     try {
       await setDoc(
         doc(db, 'users', uid),
-        { ...safe, updatedAt: serverTimestamp() },
+        { ...omitUndefined(safe), updatedAt: serverTimestamp() },
         { merge: true },
       )
     } catch (err) {
       console.error('profileStore.patchUserDoc:', err)
+      throw err
     }
   },
 }))

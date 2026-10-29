@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
+  AppDialog,
   AppIcon,
   Button,
   DashboardCard,
@@ -539,6 +540,9 @@ export default function SettingsSection() {
   const [cancelling, setCancelling] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleteText, setDeleteText] = useState('')
+  const [deletePhase, setDeletePhase] = useState('confirm')
   const [emailNotifs, setEmailNotifs] = useState(true)
   const [pushNotifs, setPushNotifs] = useState(false)
   const [jobMatchAlerts, setJobMatchAlerts] = useState(true)
@@ -653,23 +657,25 @@ export default function SettingsSection() {
     }
   }
 
+  const closeDeleteDialog = () => {
+    if (deleting) return
+    setDeleteOpen(false)
+    setDeleteText('')
+    setDeletePhase('confirm')
+  }
+
   const deleteAccount = async () => {
-    const ok = window.confirm(
-      'Permanently delete your account and data? This cannot be undone. Type DELETE in the next prompt.',
-    )
-    if (!ok) return
-    const confirm = window.prompt('Type DELETE to confirm account deletion')
-    if (confirm !== 'DELETE') {
-      addToast('info', 'Deletion cancelled')
-      return
-    }
+    if (deleteText.trim() !== 'DELETE' || deleting) return
     setDeleting(true)
+    setDeletePhase('deleting')
     try {
       await apiFetch('/account/delete', { method: 'POST', body: { confirm: 'DELETE' } })
+      setDeletePhase('success')
       addToast('success', 'Account deleted')
       await doLogout()
       navigate('/')
     } catch (err) {
+      setDeletePhase('confirm')
       addToast('error', err?.message || 'Could not delete account')
     } finally {
       setDeleting(false)
@@ -976,9 +982,67 @@ export default function SettingsSection() {
                 Permanently removes your account, profile, and application history.
                 Billing records may be retained as required by law.
               </p>
-              <Button variant="destructive" size="sm" className="self-start" disabled={deleting} onClick={deleteAccount}>
-                {deleting ? 'Deleting…' : 'Delete account'}
+              <Button
+                variant="destructive"
+                size="sm"
+                className="self-start"
+                disabled={deleting}
+                onClick={() => {
+                  setDeleteText('')
+                  setDeletePhase('confirm')
+                  setDeleteOpen(true)
+                }}
+              >
+                Delete account
               </Button>
+              <AppDialog
+                open={deleteOpen}
+                onOpenChange={(open) => { if (!open) closeDeleteDialog() }}
+                title={deletePhase === 'success' ? 'Account deleted' : 'Delete account'}
+                description={
+                  deletePhase === 'success'
+                    ? 'Your account is deleted. Signing you out…'
+                    : deletePhase === 'deleting'
+                      ? 'Deleting your account and data. This can take a moment.'
+                      : 'This permanently removes your account, profile, and application history. Type DELETE to confirm.'
+                }
+                footer={deletePhase === 'confirm' ? (
+                  <>
+                    <Button type="button" variant="ghost" onClick={closeDeleteDialog} disabled={deleting}>
+                      Cancel
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      disabled={deleting || deleteText.trim() !== 'DELETE'}
+                      onClick={deleteAccount}
+                    >
+                      Delete account
+                    </Button>
+                  </>
+                ) : (
+                  <Button type="button" variant="outline" disabled>
+                    {deletePhase === 'success' ? 'Signed out' : 'Deleting…'}
+                  </Button>
+                )}
+              >
+                {deletePhase === 'confirm' ? (
+                  <FormField label="Type DELETE">
+                    <Input
+                      value={deleteText}
+                      onChange={(e) => setDeleteText(e.target.value)}
+                      autoComplete="off"
+                      placeholder="DELETE"
+                    />
+                  </FormField>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    {deletePhase === 'success'
+                      ? 'Done. Taking you back to the home page.'
+                      : 'Please keep this tab open while we delete your data.'}
+                  </p>
+                )}
+              </AppDialog>
             </DashboardCard>
           </SettingsTabPanel>
         </TabsContent>

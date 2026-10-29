@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import useAppStore from '@/store/authStore'
 import BrandLogo, { GlowmindsWordmark } from '@/components/BrandLogo'
 import { LEGAL_ADDRESS_ONE_LINE, LEGAL_CIN, LEGAL_NAME } from '@/config/legal'
 import { AppAuthLink, ChromeHomeLink } from '@/components/HostLinks'
@@ -17,6 +18,7 @@ function FooterGroup({ title, children }) {
 
 export default function Footer() {
   const year = new Date().getFullYear()
+  const loggedIn = useAppStore((s) => s.loggedIn)
 
   return (
     <footer className="mt-auto border-t border-border bg-muted/30">
@@ -30,16 +32,26 @@ export default function Footer() {
             <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
             AI resume builder, job matching worldwide, Glow (Bot), upskilling, and interview prep — a Career Operating System for students and early-career professionals.
             </p>
-            <AppAuthLink to="/signup" className="inline-flex min-h-11 items-center text-sm font-semibold text-primary hover:underline">
-              Sign up free
-            </AppAuthLink>
+            {loggedIn ? (
+              <Link to="/dashboard" className="inline-flex min-h-11 items-center text-sm font-semibold text-primary hover:underline">
+                Open dashboard
+              </Link>
+            ) : (
+              <AppAuthLink to="/signup" className="inline-flex min-h-11 items-center text-sm font-semibold text-primary hover:underline">
+                Sign up free
+              </AppAuthLink>
+            )}
           </div>
 
           <FooterGroup title="Product">
             <Link to="/features" className={footerLink}>Features</Link>
             <Link to="/careers" className={footerLink}>We're hiring</Link>
             <Link to="/pricing" className={footerLink}>Pricing</Link>
-            <AppAuthLink to="/signup" className={footerLink}>Get started</AppAuthLink>
+            {loggedIn ? (
+              <Link to="/dashboard" className={footerLink}>Dashboard</Link>
+            ) : (
+              <AppAuthLink to="/signup" className={footerLink}>Get started</AppAuthLink>
+            )}
           </FooterGroup>
 
           <FooterGroup title="Company">
