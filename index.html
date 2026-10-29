@@ -109,6 +109,69 @@
               location.replace('%SITE_URL%' + rest);
               return;
             }
+          } else if (!window.__gmOriginGuard) {
+            // Client navigations (PublicOnlyRoute → /dashboard, APP_URL anchors)
+            // happen after this script. Keep them on this origin. Production
+            // hosts never enter this branch.
+            window.__gmOriginGuard = 1;
+            var prodHosts = {
+              'app.glowminds.in': 1,
+              'glowminds.in': 1,
+              'www.glowminds.in': 1,
+              'glowminds-abc84.web.app': 1,
+              'glowminds-abc84.firebaseapp.com': 1,
+              'glowminds-app.web.app': 1,
+              'glowminds-app.firebaseapp.com': 1
+            };
+            function rewriteProd(url) {
+              try {
+                var dest = new URL(String(url), location.href);
+                if (dest.origin === location.origin) return null;
+                if (dest.pathname.indexOf('/__/') === 0) return null;
+                if (!prodHosts[dest.hostname]) return null;
+                return dest.pathname + dest.search + dest.hash;
+              } catch (err) { return null; }
+            }
+            var origReplace = Location.prototype.replace;
+            var origAssign = Location.prototype.assign;
+            Location.prototype.replace = function (url) {
+              var next = rewriteProd(url);
+              return origReplace.call(this, next == null ? url : next);
+            };
+            Location.prototype.assign = function (url) {
+              var next = rewriteProd(url);
+              return origAssign.call(this, next == null ? url : next);
+            };
+            try {
+              var hrefDesc = Object.getOwnPropertyDescriptor(Location.prototype, 'href');
+              if (hrefDesc && hrefDesc.set && hrefDesc.get) {
+                Object.defineProperty(Location.prototype, 'href', {
+                  configurable: true,
+                  enumerable: hrefDesc.enumerable,
+                  get: hrefDesc.get,
+                  set: function (url) {
+                    var next = rewriteProd(url);
+                    hrefDesc.set.call(this, next == null ? url : next);
+                  }
+                });
+              }
+            } catch (err) {}
+            document.addEventListener('click', function (e) {
+              var node = e.target;
+              while (node && node.tagName !== 'A') node = node.parentNode;
+              if (!node || !node.href) return;
+              var next = rewriteProd(node.href);
+              if (next == null) return;
+              e.preventDefault();
+              origAssign.call(location, next);
+            }, true);
+            document.addEventListener('DOMContentLoaded', function () {
+              var links = document.getElementsByTagName('a');
+              for (var n = 0; n < links.length; n++) {
+                var nextHref = rewriteProd(links[n].getAttribute('href'));
+                if (nextHref != null) links[n].setAttribute('href', nextHref);
+              }
+            });
           }
         } catch (e) {}
         try {

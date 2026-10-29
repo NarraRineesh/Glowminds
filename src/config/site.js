@@ -1,3 +1,5 @@
+import { keepsMarketingAndAppOnOrigin } from './singleOriginHost.js'
+
 /**
  * Public site origin — must match `VITE_PUBLIC_SITE_URL` and index.html (via Vite transform).
  * No trailing slash.
@@ -24,9 +26,21 @@ export function pageUrl(path = '/') {
   return `${SITE_URL}${withSlash}`
 }
 
-/** Absolute app URL (login, signup, dashboard). No forced trailing slash. */
+function onSingleOriginHost() {
+  if (typeof window === 'undefined') return false
+  return keepsMarketingAndAppOnOrigin(window.location.hostname || '', {
+    disableHostRedirect: import.meta.env?.VITE_DISABLE_HOST_REDIRECT === 'true',
+  })
+}
+
+/** Absolute app URL (login, signup, dashboard). Same-origin on preview/localhost. */
 export function appPageUrl(path = '/') {
-  if (!path || path === '/') return `${APP_URL}/`
-  const normalized = path.startsWith('/') ? path : `/${path}`
+  const normalized = !path || path === '/'
+    ? '/'
+    : (path.startsWith('/') ? path : `/${path}`)
+  if (onSingleOriginHost() && window.location?.origin) {
+    return `${window.location.origin}${normalized}`
+  }
+  if (normalized === '/') return `${APP_URL}/`
   return `${APP_URL}${normalized}`
 }

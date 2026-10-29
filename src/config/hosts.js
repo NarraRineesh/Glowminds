@@ -6,7 +6,11 @@
  * when that flag is unset.
  */
 import { APP_URL, SITE_URL } from '@/config/site'
-import { isLoopbackHost, keepsMarketingAndAppOnOrigin } from '@/config/singleOriginHost'
+import {
+  isLoopbackHost,
+  keepsMarketingAndAppOnOrigin,
+  pathIfProductionNavigation,
+} from '@/config/singleOriginHost'
 
 export function getHostname() {
   if (typeof window === 'undefined') return ''
@@ -142,4 +146,15 @@ export function resolveHostRedirect(pathname, { hostname, search = '', hash = ''
 
   if (isAppPath(p)) return `${APP_URL}${p.startsWith('/') ? p : `/${p}`}${suffix}`
   return null
+}
+
+/**
+ * Same-tab path to use instead of `url` when this page must not leave for
+ * production. Null means `url` is allowed (including the production host split).
+ */
+export function blockProductionNavigation(url) {
+  if (typeof window === 'undefined' || !url) return null
+  return pathIfProductionNavigation(url, window.location.href, {
+    disableHostRedirect: hostRedirectDisabledByEnv(),
+  })
 }

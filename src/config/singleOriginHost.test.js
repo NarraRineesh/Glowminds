@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import {
   isFirebasePreviewChannel,
   keepsMarketingAndAppOnOrigin,
+  pathIfProductionNavigation,
 } from './singleOriginHost.js'
 
 const PREVIEW = 'glowminds-abc84--redesign-qafix-tgy14j7r.web.app'
@@ -36,5 +37,59 @@ describe('keepsMarketingAndAppOnOrigin', () => {
     assert.equal(keepsMarketingAndAppOnOrigin('glowminds-abc84.web.app'), false)
     assert.equal(keepsMarketingAndAppOnOrigin('glowminds.in', { disableHostRedirect: true }), true)
     assert.equal(keepsMarketingAndAppOnOrigin('app.glowminds.in', { disableHostRedirect: true }), true)
+  })
+})
+
+describe('pathIfProductionNavigation', () => {
+  const previewHref = `https://${PREVIEW}/login`
+
+  it('keeps a signed-in preview dashboard hop on this origin', () => {
+    assert.equal(
+      pathIfProductionNavigation('https://app.glowminds.in/dashboard', previewHref),
+      '/dashboard',
+    )
+    assert.equal(
+      pathIfProductionNavigation('https://app.glowminds.in/dashboard?tab=1#usage', previewHref),
+      '/dashboard?tab=1#usage',
+    )
+    assert.equal(
+      pathIfProductionNavigation('https://glowminds.in/about/', previewHref),
+      '/about/',
+    )
+  })
+
+  it('does not rewrite production host split or Firebase auth handlers', () => {
+    assert.equal(
+      pathIfProductionNavigation('https://app.glowminds.in/dashboard', 'https://glowminds.in/login'),
+      null,
+    )
+    assert.equal(
+      pathIfProductionNavigation('https://glowminds.in/about/', 'https://app.glowminds.in/dashboard'),
+      null,
+    )
+    assert.equal(
+      pathIfProductionNavigation(
+        'https://glowminds-abc84.firebaseapp.com/__/auth/handler?apiKey=1',
+        previewHref,
+      ),
+      null,
+    )
+    assert.equal(
+      pathIfProductionNavigation('https://accounts.google.com/o/oauth2/auth', previewHref),
+      null,
+    )
+    assert.equal(
+      pathIfProductionNavigation('/dashboard', previewHref),
+      null,
+    )
+  })
+
+  it('rewrites when the env flag forces a single origin on production', () => {
+    assert.equal(
+      pathIfProductionNavigation('https://app.glowminds.in/dashboard', 'https://glowminds.in/login', {
+        disableHostRedirect: true,
+      }),
+      '/dashboard',
+    )
   })
 })

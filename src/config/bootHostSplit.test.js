@@ -10,6 +10,9 @@ describe('index.html boot host split', () => {
     assert.match(html, /--\.\*\\.firebaseapp\\.com\$/)
     assert.match(html, /%DISABLE_HOST_REDIRECT%/)
     assert.match(html, /if \(!singleOrigin\)/)
+    assert.match(html, /window\.__gmOriginGuard/)
+    assert.match(html, /'app\.glowminds\.in': 1/)
+    assert.match(html, /dest\.pathname\.indexOf\('\/__\/'\) === 0/)
   })
 
   it('still sends production app paths to APP_URL and marketing paths to SITE_URL', () => {
