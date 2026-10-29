@@ -60,8 +60,8 @@ describe('cleanTargetRole', () => {
     )
   })
 
-  it('falls back for an empty profile', () => {
-    assert.equal(cleanTargetRole({}), 'Software engineer')
-    assert.equal(cleanTargetRole({ isFresher: true }), 'Fresher internship')
+  it('falls back to an entry-level query for an empty profile', () => {
+    assert.equal(cleanTargetRole({}), 'intern')
+    assert.equal(cleanTargetRole({ isFresher: true }), 'intern')
   })
 })

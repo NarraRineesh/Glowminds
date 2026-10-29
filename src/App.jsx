@@ -11,7 +11,7 @@ import ErrorBoundary from '@/components/ErrorBoundary'
 import { PageLoader } from '@/components/Loader'
 import AndroidAppAuthGate from '@/components/AndroidAppAuthGate'
 import HostSplit from '@/components/HostSplit'
-import { isAppHost } from '@/config/hosts'
+import { isAppHost, legacyDashboardPath } from '@/config/hosts'
 import PublicLayout from '@/features/public/PublicLayout'
 // Landing is eager so `/` does not blank on Suspense while the chunk downloads.
 import LandingPage from '@/features/public/LandingPage'
@@ -67,6 +67,13 @@ const DesignSystemGallery = lazy(() => import('@/features/design-lab/DesignSyste
 const DesignScreenView = lazy(() => import('@/features/design-lab/DesignScreenView'))
 
 
+function LegacyPathRedirect() {
+  const { pathname, search, hash } = useLocation()
+  const dest = legacyDashboardPath(pathname)
+  if (!dest) return null
+  return <Navigate to={`${dest}${search}${hash}`} replace />
+}
+
 function LegacyAppRedirect({ base, dest }) {
   const { pathname, search, hash } = useLocation()
   const rest = pathname === base || pathname === `${base}/`
@@ -104,6 +111,7 @@ function AnimatedRoutes() {
   return (
     <HostSplit>
     <AndroidAppAuthGate>
+    <LegacyPathRedirect />
     <Routes location={location}>
       {/* Public marketing pages — no auth gate so crawlers see content without waiting on Firebase Auth */}
       <Route index element={<HomeRoute />} />
@@ -121,8 +129,11 @@ function AnimatedRoutes() {
       <Route path="/signup" element={<Suspense fallback={<PageLoader />}><PublicOnlyRoute><SignupPage /></PublicOnlyRoute></Suspense>} />
       <Route path="/verify-email" element={<Suspense fallback={<PageLoader />}><VerifyEmailPage /></Suspense>} />
       <Route path="/jobs" element={<Navigate to="/dashboard/jobs" replace />} />
+      <Route path="/resume" element={<Navigate to="/dashboard/resume" replace />} />
       <Route path="/resume/*" element={<LegacyAppRedirect base="/resume" dest="/dashboard/resume" />} />
+      <Route path="/applications" element={<Navigate to="/dashboard/applications" replace />} />
       <Route path="/applications/*" element={<LegacyAppRedirect base="/applications" dest="/dashboard/applications" />} />
+      <Route path="/settings" element={<Navigate to="/dashboard/settings" replace />} />
       <Route path="/settings/*" element={<LegacyAppRedirect base="/settings" dest="/dashboard/settings" />} />
       {/* Dashboard (protected) */}
       <Route path="/dashboard" element={

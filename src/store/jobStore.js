@@ -151,8 +151,8 @@ const useJobStore = create((set, get) => ({
     return inflightPromise
   },
 
-  fetchTopMatches: async ({ limit = 10, force = false } = {}) => {
-    const requestKey = `top|${limit}`
+  fetchTopMatches: async ({ limit = 10, q = '', country = '', force = false } = {}) => {
+    const requestKey = `top|${limit}|${String(q || '').trim().toLowerCase()}|${String(country || '').trim()}`
     if (
       !force
       && get().topMatchesRequestKey === requestKey
@@ -171,7 +171,7 @@ const useJobStore = create((set, get) => ({
     topMatchesInflightKey = requestKey
     topMatchesInflight = (async () => {
       try {
-        const data = await getTopMatches({ limit })
+        const data = await getTopMatches({ limit, q, country })
         set({
           topMatches: (data.jobs || []).map(normalizeJob),
           topMatchesQueryUsed: data.queryUsed || '',

@@ -157,8 +157,8 @@ export function hasCareerSignals(profile) {
 
 /**
  * Default jobs query from the saved target role and career level.
- * No role and no fresher/entry level returns '' so the board is not seeded
- * with a generic "software engineer" search that surfaces senior titles.
+ * An empty profile must not leave q blank: the jobs API then fills in
+ * "software", which is a large senior/staff feed.
  */
 export function defaultJobQuery(profile) {
   const explicit = cleanJobSearchQuery(preferredRoleText(profile))
@@ -171,7 +171,16 @@ export function defaultJobQuery(profile) {
   }
   if (fresher) return 'intern'
   if (entry) return 'junior'
-  return ''
+  // No saved level or role. Do not leave q empty: the jobs API then fills
+  // "software", which is a US-heavy senior/staff feed. Entry-level is the
+  // default for a new account until they pick a role.
+  return 'intern'
+}
+
+export function needsCareerSetup(profile) {
+  const level = String(profile?.careerLevel || '').trim()
+  const role = String(profile?.preferences?.preferredRole || profile?.headline || '').trim()
+  return !level || !role
 }
 
 function preferredRoleText(profile) {

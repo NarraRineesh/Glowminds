@@ -30,15 +30,23 @@ export async function getJobById(jobId) {
   return getCatalogJob(jobId)
 }
 
-/** Prefill q from query-header, then search catalog. */
-export async function getTopMatches({ limit = 10 } = {}) {
-  let q = ''
-  try {
-    const header = await getQueryHeader()
-    q = cleanJobSearchQuery(header?.q) || String(header?.q || '').trim()
-  } catch {
-    q = ''
+/**
+ * Dashboard "top matches". Callers should pass the profile query.
+ * An empty q used to hit /jobs/query-header, which fills "software"
+ * when no headline is saved.
+ */
+export async function getTopMatches({ limit = 10, q = '', country = '' } = {}) {
+  let query = cleanJobSearchQuery(q) || String(q || '').trim()
+  if (!query) {
+    try {
+      const header = await getQueryHeader()
+      query = cleanJobSearchQuery(header?.q) || String(header?.q || '').trim()
+    } catch {
+      query = ''
+    }
+    // Server fills "software" when the profile has no headline.
+    if (!query || /^software$/i.test(query)) query = 'intern'
   }
-  const data = await searchJobs({ q, page: 1, limit })
-  return { ...data, queryUsed: q }
+  const data = await searchJobs({ q: query, page: 1, limit, country })
+  return { ...data, queryUsed: query }
 }

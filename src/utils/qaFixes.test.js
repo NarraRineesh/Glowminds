@@ -8,14 +8,25 @@ import { isNoiseSkillName, sanitizeSkillGap, skillsReferToSame } from './skillRe
 import { vaultFileRejection } from './vaultFiles.js'
 import { buildJobMatchAnalysis } from './jobMatchAnalysis.js'
 import { phoneValidationError } from './phone.js'
-import { defaultJobQuery, hasCareerSignals } from './targetRole.js'
+import { defaultJobQuery, hasCareerSignals, needsCareerSetup } from './targetRole.js'
 
 describe('new user job query and scores', () => {
   it('uses fresher level instead of a senior software-engineer default', () => {
     assert.equal(defaultJobQuery({ careerLevel: 'fresher', isFresher: true }), 'intern')
     assert.equal(defaultJobQuery({ careerLevel: 'fresher', headline: 'SDE intern' }), 'SDE intern')
     assert.equal(defaultJobQuery({ careerLevel: 'fresher', headline: 'Frontend engineer' }), 'Frontend engineer intern')
-    assert.equal(defaultJobQuery({}), '')
+    assert.equal(defaultJobQuery({ careerLevel: 'fresher', preferences: { preferredRole: 'Frontend engineer' } }), 'Frontend engineer intern')
+    assert.equal(defaultJobQuery({ careerLevel: '2-5', preferences: { preferredRole: 'Backend engineer' } }), 'Backend engineer')
+    assert.equal(defaultJobQuery({ careerLevel: '0-2' }), 'junior')
+    assert.equal(defaultJobQuery({}), 'intern')
+  })
+
+  it('asks for career setup until both a level and a role are saved', () => {
+    assert.equal(needsCareerSetup({}), true)
+    assert.equal(needsCareerSetup({ careerLevel: 'fresher' }), true)
+    assert.equal(needsCareerSetup({ headline: 'SDE intern' }), true)
+    assert.equal(needsCareerSetup({ careerLevel: 'fresher', preferences: { preferredRole: 'SDE intern' } }), false)
+    assert.equal(needsCareerSetup({ careerLevel: '0-2', headline: 'Junior analyst' }), false)
   })
 
   it('does not treat a Google name alone as career data', () => {

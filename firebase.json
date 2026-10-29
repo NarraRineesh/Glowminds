@@ -52,6 +52,14 @@
           ]
         }
       ],
+      "redirects": [
+        { "source": "/resume", "destination": "https://app.glowminds.in/dashboard/resume", "type": 301 },
+        { "source": "/resume/**", "destination": "https://app.glowminds.in/dashboard/resume/:path*", "type": 301 },
+        { "source": "/applications", "destination": "https://app.glowminds.in/dashboard/applications", "type": 301 },
+        { "source": "/applications/**", "destination": "https://app.glowminds.in/dashboard/applications/:path*", "type": 301 },
+        { "source": "/settings", "destination": "https://app.glowminds.in/dashboard/settings", "type": 301 },
+        { "source": "/settings/**", "destination": "https://app.glowminds.in/dashboard/settings/:path*", "type": 301 }
+      ],
       "rewrites": [
         {
           "source": "/api/**",
@@ -119,7 +127,13 @@
         { "source": "/terms", "destination": "https://glowminds.in/terms/", "type": 302 },
         { "source": "/terms/**", "destination": "https://glowminds.in/terms/:path*", "type": 302 },
         { "source": "/refund", "destination": "https://glowminds.in/refund/", "type": 302 },
-        { "source": "/refund/**", "destination": "https://glowminds.in/refund/:path*", "type": 302 }
+        { "source": "/refund/**", "destination": "https://glowminds.in/refund/:path*", "type": 302 },
+        { "source": "/resume", "destination": "/dashboard/resume", "type": 301 },
+        { "source": "/resume/**", "destination": "/dashboard/resume/:path*", "type": 301 },
+        { "source": "/applications", "destination": "/dashboard/applications", "type": 301 },
+        { "source": "/applications/**", "destination": "/dashboard/applications/:path*", "type": 301 },
+        { "source": "/settings", "destination": "/dashboard/settings", "type": 301 },
+        { "source": "/settings/**", "destination": "/dashboard/settings/:path*", "type": 301 }
       ],
       "rewrites": [
         {

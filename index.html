@@ -97,6 +97,24 @@
             return false;
           }
           if (path.indexOf('/__/') === 0) return;
+          // /resume, /applications, /settings are not dashboard routes. Send them
+          // to /dashboard/* before React, or the public catch-all paints a 404.
+          var legacyPath = path;
+          if (legacyPath.length > 1 && legacyPath.charAt(legacyPath.length - 1) === '/') legacyPath = legacyPath.slice(0, -1);
+          var legacyPairs = [['/resume','/dashboard/resume'],['/applications','/dashboard/applications'],['/settings','/dashboard/settings']];
+          var legacyDest = '';
+          for (var li = 0; li < legacyPairs.length; li++) {
+            var from = legacyPairs[li][0], to = legacyPairs[li][1];
+            if (legacyPath === from || legacyPath.indexOf(from + '/') === 0) {
+              legacyDest = to + legacyPath.slice(from.length);
+              break;
+            }
+          }
+          if (legacyDest) {
+            var legacySuffix = location.search + location.hash;
+            location.replace((singleOrigin || isApp) ? (legacyDest + legacySuffix) : ('%APP_URL%' + legacyDest + legacySuffix));
+            return;
+          }
           if (!singleOrigin) {
             if (!isApp && starts(appPrefixes)) {
               location.replace('%APP_URL%' + rest);

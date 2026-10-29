@@ -72,7 +72,28 @@ export const APP_PATH_PREFIXES = [
   '/admin',
   '/design',
   '/jobs',
+  '/resume',
+  '/applications',
+  '/settings',
 ]
+
+/** Short paths that should open the dashboard, not the public 404. */
+const LEGACY_DASHBOARD_PATHS = [
+  ['/resume', '/dashboard/resume'],
+  ['/applications', '/dashboard/applications'],
+  ['/settings', '/dashboard/settings'],
+]
+
+export function legacyDashboardPath(pathname) {
+  const raw = pathname || '/'
+  const trimmed = raw.length > 1 && raw.endsWith('/') ? raw.slice(0, -1) : raw
+  for (const [from, to] of LEGACY_DASHBOARD_PATHS) {
+    if (trimmed === from || trimmed.startsWith(`${from}/`)) {
+      return `${to}${trimmed.slice(from.length)}`
+    }
+  }
+  return null
+}
 
 /** Marketing-only paths. App host may bounce these to glowminds.in. */
 export const MARKETING_PATH_PREFIXES = [
@@ -138,6 +159,8 @@ export function resolveHostRedirect(pathname, { hostname, search = '', hash = ''
 
   const suffix = `${search || ''}${hash || ''}`
   const p = pathname || '/'
+  const legacy = legacyDashboardPath(p)
+  if (legacy && !isAppHost(host)) return `${APP_URL}${legacy}${suffix}`
 
   if (isAppHost(host)) {
     if (isMarketingOnlyPath(p)) return `${SITE_URL}${p.startsWith('/') ? p : `/${p}`}${suffix}`
