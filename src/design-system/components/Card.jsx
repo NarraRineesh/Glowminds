@@ -3,7 +3,7 @@ import { cn } from '@/components/ui'
 /** Bordered surface. No gradient fill and no drop shadow. */
 export function Card({ title, description, children, footer, className }) {
   return (
-    <section className={cn('rounded-[var(--radius-panel)] border border-border bg-card text-card-foreground', className)}>
+    <section className={cn('rounded-[var(--radius-panel)] border border-border bg-card text-card-foreground shadow-none', className)}>
       {title || description ? (
         <header className="border-b border-border px-[var(--space-4)] py-[var(--space-3)]">
           {title ? (

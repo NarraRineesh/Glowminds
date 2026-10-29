@@ -16,7 +16,9 @@
 	--radius-sm: calc(var(--radius) * 0.6);
 	--radius-md: calc(var(--radius) * 0.8);
 	--radius-lg: var(--radius);
-	--radius-xl: calc(var(--radius) * 1.4);
+	/* Cards, panels, and option tiles. Controls stay on --radius / --radius-control. */
+	--radius-xl: 0.875rem;
+	--radius-2xl: 1rem;
 	--color-background: var(--background);
 	--color-foreground: var(--foreground);
 	--color-card: var(--card);
@@ -70,7 +72,7 @@
 	--leading-body: 1.5;
 	--radius-xs: 0.25rem;
 	--radius-control: 0.5rem;
-	--radius-panel: 0.5rem;
+	--radius-panel: 0.875rem;
 	--ease-standard: cubic-bezier(0.2, 0, 0, 1);
 	--motion-fast: 120ms;
 	--motion-base: 180ms;
@@ -82,7 +84,7 @@
 	--radius: 0.5rem;
 	--background: #f3f5f8;
 	--foreground: #0f172a;
-	--card: #ffffff;
+	--card: #f3f5f8;
 	--card-foreground: #0f172a;
 	--popover: #ffffff;
 	--popover-foreground: #0f172a;
@@ -101,16 +103,16 @@
 	--success: #059669;
 	--warning: #d97706;
 	--profile: #7c3aed;
-	--border: rgba(15, 23, 42, 0.08);
-	--input: rgba(15, 23, 42, 0.1);
+	--border: rgba(15, 23, 42, 0.34);
+	--input: rgba(15, 23, 42, 0.34);
 	--ring: #2563eb;
-	--sidebar: #ffffff;
+	--sidebar: #f3f5f8;
 	--sidebar-foreground: #0f172a;
 	--sidebar-primary: #2563eb;
 	--sidebar-primary-foreground: #ffffff;
 	--sidebar-accent: #f1f5f9;
 	--sidebar-accent-foreground: #0f172a;
-	--sidebar-border: rgba(15, 23, 42, 0.08);
+	--sidebar-border: rgba(15, 23, 42, 0.34);
 	--sidebar-ring: #2563eb;
 }
 
@@ -119,9 +121,9 @@
 	--radius: 0.5rem;
 	--background: #06080d;
 	--foreground: #e8eef5;
-	--card: #0c121c;
+	--card: #06080d;
 	--card-foreground: #e8eef5;
-	--popover: #0c121c;
+	--popover: #121820;
 	--popover-foreground: #e8eef5;
 	/* #2563eb on white text ≈ 4.56:1 — AA for primary buttons (was #3b82f6 @ 3.67:1) */
 	--primary: #2563eb;
@@ -139,16 +141,16 @@
 	--success: #34d399;
 	--warning: #fbbf24;
 	--profile: #a78bfa;
-	--border: rgba(120, 160, 220, 0.12);
-	--input: rgba(120, 160, 220, 0.18);
+	--border: rgba(255, 255, 255, 0.42);
+	--input: rgba(255, 255, 255, 0.42);
 	--ring: #2563eb;
-	--sidebar: #0c121c;
+	--sidebar: #06080d;
 	--sidebar-foreground: #e8eef5;
 	--sidebar-primary: #2563eb;
 	--sidebar-primary-foreground: #ffffff;
 	--sidebar-accent: #121a27;
 	--sidebar-accent-foreground: #e8eef5;
-	--sidebar-border: rgba(120, 160, 220, 0.12);
+	--sidebar-border: rgba(255, 255, 255, 0.42);
 	--sidebar-ring: #2563eb;
 	--shadow-overlay: 0 8px 24px rgba(0, 0, 0, 0.4);
 }

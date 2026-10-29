@@ -435,7 +435,7 @@ export default function LinkedInOptimizerSection() {
                 </button>
               </div>
               {showAdvanced && (
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-muted/40 px-3 py-3">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-panel)] border border-border bg-card px-3 py-3">
                 <div>
                   <p className="m-0 text-sm font-semibold">Optional: Paste Assist JSON</p>
                   <p className="m-0 mt-0.5 text-xs text-muted-foreground">Chrome extension is Advanced-only. Clipboard must contain GlowMinds LinkedIn Assist data.</p>
@@ -454,7 +454,7 @@ export default function LinkedInOptimizerSection() {
                       href={profileUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex max-w-full items-center gap-2 truncate rounded-xl border border-border bg-muted/50 px-3 py-2 text-sm font-semibold text-primary"
+                      className="inline-flex max-w-full items-center gap-2 truncate rounded-[var(--radius-panel)] border border-border bg-card px-3 py-2 text-sm font-semibold text-primary"
                     >
                       <AppIcon name="linkedin" className="size-4 shrink-0" />
                       <span className="truncate">{profileUrl.replace(/^https?:\/\//, '')}</span>

@@ -152,8 +152,8 @@ export default function LoginPage() {
 
             <motion.div variants={fadeUp} transition={{ duration: .5, ease }} className="flex flex-col gap-3">
               {PERKS.map(p => (
-                <div key={p.text} className="flex items-center gap-3 rounded-lg border border-border bg-card px-3.5 py-2.5 transition-colors hover:border-primary/30">
-                  <AppIcon name={p.ico} className="size-5 shrink-0 text-primary" />
+                <div key={p.text} className="flex items-center gap-3 rounded-[var(--radius-panel)] border border-border bg-card px-3.5 py-2.5 shadow-none transition-colors hover:border-foreground/55">
+                  <AppIcon name={p.ico} className="size-5 shrink-0 text-foreground" />
                   <span className="text-[0.82rem] font-medium text-muted-foreground">{p.text}</span>
                 </div>
               ))}

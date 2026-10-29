@@ -17,8 +17,8 @@ export default function MetricCard({
       onClick={onClick}
       disabled={!onClick}
       className={cn(
-        'flex flex-col gap-2 rounded-xl border border-border bg-card p-3 text-left ring-1 ring-foreground/5 transition-colors',
-        onClick && 'cursor-pointer hover:border-primary/40 hover:bg-muted/40',
+        'flex flex-col gap-2 rounded-[var(--radius-panel)] border border-border bg-card p-3 text-left shadow-none transition-colors',
+        onClick && 'cursor-pointer hover:border-foreground/55',
         !onClick && 'cursor-default',
         className,
       )}

@@ -155,7 +155,7 @@ export default function AboutPage() {
                 <p>
                   We asked ourselves: <strong className="text-foreground">What if AI could be the great equaliser?</strong> That question became Glowminds. Today we help students and early-career people worldwide land roles — not only in India.
                 </p>
-                <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-muted/40 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-4 rounded-[var(--radius-panel)] border border-border bg-card p-4">
                   {aboutMetrics.map((metric, i, arr) => (
                     <div key={metric.label} className="flex items-center gap-4">
                       <div className="text-center">
@@ -180,8 +180,7 @@ export default function AboutPage() {
         className="pb-12 md:pb-16"
       >
         <div className="mx-auto max-w-6xl px-4 md:px-8">
-          <Card className="relative overflow-hidden border-primary/20 bg-gradient-to-br from-card to-muted text-center">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,color-mix(in_oklab,var(--primary)_10%,transparent),transparent)]" />
+          <Card className="relative overflow-hidden text-center">
             <CardContent className="relative py-10 md:py-12">
               <h2 className="mb-3 text-2xl font-black text-foreground md:text-3xl">{socialProof.joinStudentsTitle || 'Join students getting hired'}</h2>
               <p className="mx-auto mb-6 max-w-md text-base text-muted-foreground">Start building your career today — completely free.</p>

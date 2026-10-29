@@ -149,7 +149,7 @@ export default function TermsPage() {
                 </LegalP>
               </LegalSection>
 
-              <div className="rounded-xl border border-border bg-muted/50 p-5">
+              <div className="rounded-[var(--radius-panel)] border border-border bg-card p-5">
                 <h3 className="mb-2 text-lg font-extrabold text-foreground">Contact Us</h3>
                 <LegalP>Questions about these terms? Contact us at:</LegalP>
                 <p className="mt-2 text-sm text-primary">{LEGAL_LEGAL_EMAIL}</p>

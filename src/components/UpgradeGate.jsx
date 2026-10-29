@@ -35,7 +35,7 @@ export default function UpgradeGate({
 
   if (loading) {
     return (
-      <div className={cn('animate-pulse rounded-xl border border-border bg-muted/40 p-8', className)}>
+      <div className={cn('animate-pulse rounded-[var(--radius-panel)] border border-border bg-card p-8', className)}>
         <div className="mx-auto h-6 w-48 rounded bg-muted" />
         <div className="mx-auto mt-3 h-4 w-72 max-w-full rounded bg-muted" />
       </div>
@@ -48,7 +48,7 @@ export default function UpgradeGate({
 
   return (
     <div className={cn('flex min-h-[min(28rem,70vh)] items-center justify-center py-8', className)}>
-      <Card className="w-full max-w-lg border-primary/20 bg-gradient-to-br from-primary/5 to-emerald-500/5 py-0">
+      <Card className="w-full max-w-lg py-0">
         <CardContent className="space-y-5 p-6 sm:p-8 text-center">
           <div className="mx-auto flex size-14 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10">
             <AppIcon name="star" className="size-7 text-primary" />

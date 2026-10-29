@@ -640,7 +640,7 @@ export default function ProfileSection() {
   return (
     <>
       <div className="min-w-0 space-y-3 sm:space-y-6">
-      <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-primary/5 to-emerald-500/5 py-0">
+      <Card className="overflow-hidden py-0">
         <CardContent className="px-4 py-4 sm:px-7 sm:py-6">
         <div className="flex flex-row items-start gap-3 sm:gap-5">
           <ProfileAvatarBlock
@@ -1178,7 +1178,7 @@ export default function ProfileSection() {
               )}
 
               {aiReview.summaryDraft && (
-                <div className="rounded-xl border border-border bg-muted/50 p-3">
+                <div className="rounded-[var(--radius-panel)] border border-border bg-card p-3">
                   <div className="mb-2 flex items-center justify-between gap-2">
                     <p className="text-xs font-bold uppercase tracking-wide text-emerald-500"><AppIcon name="grammar-check" className="inline size-3" /> Suggested summary</p>
                     <Button variant="ghost" size="sm" onClick={() => { navigator.clipboard.writeText(aiReview.summaryDraft); addToast('success', 'Summary copied!') }}>Copy</Button>

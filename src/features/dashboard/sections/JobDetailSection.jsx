@@ -562,7 +562,7 @@ export default function JobDetailSection() {
               </div>
             )}
             {aiFit.talkTrack && (
-              <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm whitespace-pre-wrap">
+              <div className="rounded-[var(--radius-panel)] border border-border bg-card p-3 text-sm whitespace-pre-wrap">
                 <p className="mb-1 text-[0.72rem] font-bold uppercase tracking-wide text-muted-foreground">Talk track</p>
                 {aiFit.talkTrack}
               </div>
@@ -623,7 +623,7 @@ export default function JobDetailSection() {
                 )}
               </Button>
             </div>
-            <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm leading-relaxed whitespace-pre-wrap text-foreground">
+            <div className="rounded-[var(--radius-panel)] border border-border bg-card p-4 text-sm leading-relaxed whitespace-pre-wrap text-foreground">
               {coverLetter}
             </div>
           </section>

@@ -498,7 +498,7 @@ export default function JobsSection() {
                         <Card
                           key={j.id}
                           className={cn(
-                            'cursor-pointer gap-0 py-0 transition-colors hover:bg-muted/40',
+                            'cursor-pointer gap-0 py-0 shadow-none transition-colors hover:border-foreground/55',
                             j.isNew && 'ring-1 ring-primary/25',
                           )}
                           onClick={() => openJob(j)}

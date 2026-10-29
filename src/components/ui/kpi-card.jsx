@@ -1,31 +1,22 @@
 import { Card, CardContent, cn } from 'glowminds-resume/ui'
 import AppIcon from '@/components/icons/AppIcon'
 
-const ACCENTS = {
-  1: 'from-primary/80 to-primary',
-  2: 'from-emerald-500/80 to-emerald-500',
-  3: 'from-amber-500/80 to-amber-500',
-  4: 'from-violet-500/80 to-violet-500',
-}
-
 export function KpiCard({
   icon,
   label,
   value,
   sub,
-  accent = 1,
   className,
   onClick,
 }) {
   return (
     <Card
-      className={cn('relative cursor-pointer overflow-hidden py-4 transition-shadow hover:ring-foreground/15', className)}
+      className={cn('relative cursor-pointer overflow-hidden py-4 shadow-none', className)}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
       onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(e) } } : undefined}
     >
-      <div className={cn('absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r', ACCENTS[accent] || ACCENTS[1])} />
       {icon && (
         <div className="absolute right-3 top-3 opacity-15" aria-hidden>
           {typeof icon === 'string' ? <AppIcon name={icon} className="size-8" /> : icon}
@@ -42,7 +33,7 @@ export function KpiCard({
 
 export function FilterBar({ children, className }) {
   return (
-    <div className={cn('mb-4 flex flex-wrap items-center gap-2.5 rounded-xl bg-card p-3 ring-1 ring-foreground/10', className)}>
+    <div className={cn('mb-4 flex flex-wrap items-center gap-2.5 rounded-[var(--radius-panel)] border border-border bg-card p-3 shadow-none', className)}>
       {children}
     </div>
   )

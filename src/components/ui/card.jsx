@@ -28,7 +28,7 @@ export function DashboardCard({
           <div className="min-w-0">
             {title && (
               <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-                {titleIcon && <AppIcon name={titleIcon} className="size-4 text-primary" />}
+                {titleIcon && <AppIcon name={titleIcon} className="size-4 text-foreground" />}
                 {title}
               </CardTitle>
             )}

@@ -128,7 +128,7 @@ export default function GrammarCheckSection() {
                 <Button variant="outline" size="sm" onClick={applyCorrected}>Apply to editor</Button>
               </div>
             </div>
-            <div className="rounded-xl border border-border bg-muted/30 p-3 text-sm leading-relaxed whitespace-pre-wrap">
+            <div className="rounded-[var(--radius-panel)] border border-border bg-card p-3 text-sm leading-relaxed whitespace-pre-wrap">
               {result.corrected}
             </div>
           </div>
@@ -184,7 +184,7 @@ export default function GrammarCheckSection() {
                   const sev = SEVERITY_META[s.severity] || SEVERITY_META.medium
                   const hasDiff = Boolean(s.original?.trim() || s.replacement?.trim())
                   return (
-                    <li key={i} className="rounded-xl border border-border bg-muted/30 p-3">
+                    <li key={i} className="rounded-[var(--radius-panel)] border border-border bg-card p-3">
                       <div className="mb-2 flex items-center justify-between gap-2">
                         <Badge variant="outline" className={cn('text-[0.65rem] font-bold uppercase', sev.className)}>
                           {sev.label} priority

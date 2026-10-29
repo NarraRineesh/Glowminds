@@ -491,7 +491,7 @@ export default function AISection() {
             <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 px-4 py-4 sm:max-w-4xl sm:gap-4 sm:px-6 sm:py-5 lg:max-w-5xl">
               {showSuggestions ? (
                 <div className="space-y-4">
-                  <div className="rounded-2xl border border-border bg-muted/40 px-4 py-5 text-center sm:px-6 sm:py-8">
+                  <div className="rounded-[var(--radius-panel)] border border-border bg-card px-4 py-5 text-center sm:px-6 sm:py-8">
                     <div className="mx-auto mb-3 flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                       <AppIcon name="robot" className="size-5" />
                     </div>
@@ -572,7 +572,7 @@ export default function AISection() {
                   <Avatar className="mt-0.5 hidden h-7 w-7 shrink-0 sm:flex sm:h-8 sm:w-8">
                     <AvatarFallback className="bg-muted text-xs"><AppIcon name="robot" className="size-4" /></AvatarFallback>
                   </Avatar>
-                  <div className="rounded-2xl border border-border bg-muted/30 px-3 py-2.5 sm:bg-background">
+                  <div className="rounded-[var(--radius-panel)] border border-border bg-card px-3 py-2.5 sm:bg-background">
                     <TypingIndicator />
                   </div>
                 </div>

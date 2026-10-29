@@ -137,7 +137,7 @@ export default function ImproveTextModal({ open, originalText = '', onAccept, on
               key={i}
               type="button"
               onClick={() => onAccept?.(v)}
-              className="group flex items-start gap-3 rounded-lg border border-border bg-muted/50 p-3 text-left transition-all hover:-translate-y-px hover:border-primary hover:bg-primary/10"
+              className="group flex items-start gap-3 rounded-[var(--radius-panel)] border border-border bg-card p-3 text-left transition-all hover:-translate-y-px hover:border-primary hover:bg-primary/10"
             >
               <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
                 {i + 1}

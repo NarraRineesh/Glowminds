@@ -77,7 +77,7 @@ function SkillChip({ skill, selected, onToggle, selectable }) {
       className={cn(
         'inline-flex min-h-11 max-w-full flex-col items-start gap-0.5 rounded-xl border px-3 py-2 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
         selectable ? 'cursor-pointer hover:-translate-y-0.5 hover:border-primary/40' : 'cursor-default',
-        selected ? 'border-primary bg-primary/10 shadow-sm' : 'border-border bg-muted/30',
+        selected ? 'border-foreground/70 bg-card' : 'border-border bg-card',
       )}
     >
       <span className="text-sm font-medium text-foreground">{skill.name}</span>
@@ -104,7 +104,7 @@ function LearningPlan({ path, progress, togglingId, onToggle }) {
   return (
     <DashboardCard className="overflow-hidden">
       <div className="space-y-5">
-        <div className="rounded-2xl bg-gradient-to-br from-primary/15 via-primary/5 to-transparent p-4 sm:p-6">
+        <div className="rounded-[var(--radius-panel)] border border-border bg-card p-4 shadow-none sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -150,7 +150,7 @@ function LearningPlan({ path, progress, togglingId, onToggle }) {
                     return next
                   })
                 }}
-                className="group rounded-2xl border border-border bg-card open:shadow-sm"
+                className="group rounded-[var(--radius-panel)] border border-border bg-card shadow-none"
               >
                 <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/60 sm:px-5">
                   <div className="min-w-0">
@@ -242,7 +242,7 @@ function LearningPlan({ path, progress, togglingId, onToggle }) {
 function HistoryCard({ item, active, busy, onResume, onDelete }) {
   const progress = pathProgress(item)
   return (
-    <div className="flex h-full flex-col rounded-2xl border border-border bg-card p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
+    <div className="flex h-full flex-col rounded-[var(--radius-panel)] border border-border bg-card p-4 shadow-none">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -700,7 +700,7 @@ export default function UpskillingSection() {
                 onClick={() => setView('plan')}
                 className={cn(
                   'min-h-10 flex-1 rounded-lg px-4 text-sm font-medium transition-colors sm:flex-none',
-                  view === 'plan' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground',
+                  view === 'plan' ? 'border border-border bg-card text-foreground' : 'text-muted-foreground',
                 )}
               >
                 Active plan
@@ -710,7 +710,7 @@ export default function UpskillingSection() {
                 onClick={() => setView('history')}
                 className={cn(
                   'min-h-10 flex-1 rounded-lg px-4 text-sm font-medium transition-colors sm:flex-none',
-                  view === 'history' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground',
+                  view === 'history' ? 'border border-border bg-card text-foreground' : 'text-muted-foreground',
                 )}
               >
                 History · {history.length}
@@ -759,7 +759,7 @@ export default function UpskillingSection() {
       </ToolSidebarLayout>
 
       {builderOpen && path && (
-        <div className="sticky bottom-3 z-20 mx-auto flex w-full max-w-sm rounded-2xl border border-border bg-background/95 p-2 shadow-xl backdrop-blur lg:hidden">
+        <div className="sticky bottom-3 z-20 mx-auto flex w-full max-w-sm rounded-[var(--radius-panel)] border border-border bg-card p-2 shadow-none lg:hidden">
           <Button className="w-full" variant="secondary" onClick={() => setBuilderOpen(false)}>
             Continue current path · {progress.percent}%
           </Button>
@@ -783,7 +783,7 @@ export default function UpskillingSection() {
         )}
       >
         {deleteTarget && (
-          <div className="rounded-xl border border-border bg-muted/30 p-3">
+          <div className="rounded-[var(--radius-panel)] border border-border bg-card p-3">
             <p className="font-medium">{deleteTarget.targetRole}</p>
             <p className="mt-1 text-xs text-muted-foreground">
               Created {formatDate(deleteTarget.createdAt)} · {pathProgress(deleteTarget).percent}% complete
