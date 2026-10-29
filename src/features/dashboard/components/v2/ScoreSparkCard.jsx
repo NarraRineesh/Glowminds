@@ -15,15 +15,16 @@ export default function ScoreSparkCard({
   delta,
   color = 'primary',
   trend = [],
+  tone = 'accent',
 }) {
-  const stroke = COLOR_MAP[color] || color
+  const stroke = tone === 'neutral' ? 'var(--foreground)' : (COLOR_MAP[color] || color)
   const flat = delta == null || delta === '—' || delta === 0
   const deltaLabel = flat ? '—' : (Number(delta) > 0 ? `+${delta}` : String(delta))
 
   return (
     <div
-      className="flex h-full min-h-[6.5rem] min-w-0 flex-col gap-1.5 rounded-xl border border-border bg-card px-3 py-3"
-      style={{ borderLeftWidth: 3, borderLeftColor: stroke }}
+      className="flex h-full min-h-[6.5rem] min-w-0 flex-col gap-1.5 rounded-[var(--radius-panel)] border border-border bg-card px-3 py-3"
+      style={tone === 'neutral' ? undefined : { borderLeftWidth: 3, borderLeftColor: stroke }}
     >
       <div className="flex items-center justify-between gap-1.5">
         <span className="text-[11px] text-muted-foreground">{label}</span>
@@ -31,7 +32,10 @@ export default function ScoreSparkCard({
           {deltaLabel}
         </span>
       </div>
-      <div className="font-mono text-[22px] font-bold leading-none tracking-tight" style={{ color: stroke }}>
+      <div
+        className="font-mono text-[22px] font-semibold leading-none tracking-tight text-foreground"
+        style={tone === 'neutral' ? undefined : { color: stroke }}
+      >
         {value == null ? '—' : value}
       </div>
       {trend.length >= 2 ? (

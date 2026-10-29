@@ -17,7 +17,7 @@ export default function StreakCard({
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3">
-        <div className="grid h-12 w-12 place-items-center rounded-xl border border-warning/35 bg-warning/15 font-mono text-[22px] font-bold text-warning">
+        <div className="grid h-12 w-12 place-items-center rounded-[var(--radius-control)] border border-border bg-card font-mono text-[22px] font-semibold text-foreground">
           {streak}
         </div>
         <div>
@@ -36,8 +36,8 @@ export default function StreakCard({
             <div key={`${d}-${i}`} className="flex flex-col items-center gap-1.5 text-[10px] text-muted-foreground">
               <span
                 className={`h-[18px] w-[18px] rounded-full border ${
-                  done ? 'border-transparent bg-warning' : 'border-border bg-elevated'
-                } ${isToday ? 'ring-2 ring-warning/30' : ''}`}
+                  done ? 'border-transparent bg-primary' : 'border-border bg-muted'
+                } ${isToday ? 'ring-2 ring-ring/40' : ''}`}
               />
               <span>{d}</span>
             </div>
@@ -50,8 +50,8 @@ export default function StreakCard({
           <span>XP this week</span>
           <span className="font-mono text-muted-foreground">{xp} / {xpToNext}</span>
         </div>
-        <div className="h-2 overflow-hidden rounded-full bg-elevated">
-          <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+        <div className="h-1.5 overflow-hidden rounded-[var(--radius-xs)] bg-muted">
+          <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
         </div>
         <p className="m-0 text-xs text-muted-foreground">
           {xpHint || `${Math.max(0, xpToNext - xp)} XP to Level ${level + 1}`}

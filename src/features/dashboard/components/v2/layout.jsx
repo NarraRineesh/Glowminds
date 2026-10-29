@@ -48,7 +48,7 @@ export function StatStrip({ stats = [], className }) {
       {stats.map(([label, value, hint]) => (
         <div
           key={label}
-          className="rounded-xl border border-border bg-card px-3 py-2.5 ring-1 ring-foreground/5"
+          className="rounded-[var(--radius-panel)] border border-border bg-card px-3 py-2.5"
         >
           <p className="m-0 text-[0.68rem] text-muted-foreground">{label}</p>
           <p className="m-0 mt-0.5 text-xl font-bold tabular-nums tracking-tight">{value}</p>
