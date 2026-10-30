@@ -147,47 +147,78 @@ function BuilderLayoutShell({ initialLayout }: BuilderLayoutShellProps) {
 		<div className={cn("flex flex-col", shellHeight)}>
 			<BuilderHeader />
 
-			<ResizableGroup
-				orientation="horizontal"
-				className="mt-14 min-h-0 flex-1"
-				onLayoutChanged={onLayoutChanged}
-			>
-				<ResizablePanel
-					collapsible
-					id="left"
-					panelRef={leftSidebarRef}
-					groupResizeBehavior={groupResizeBehavior}
-					maxSize={maxSidebarSize}
-					minSize={sidebarMinSize}
-					collapsedSize={sidebarCollapsedSize}
-					defaultSize={leftSidebarSize}
-					className={cn("z-20", panelHeight)}
+			{isMobile ? (
+				<MobileBuilderStage />
+			) : (
+				<ResizableGroup
+					orientation="horizontal"
+					className="mt-14 min-h-0 flex-1"
+					onLayoutChanged={onLayoutChanged}
 				>
-					<BuilderSidebarLeft />
-				</ResizablePanel>
-				<ResizableSeparator withHandle className={cn("z-50 border-s", isMobile && "hidden")} />
-				<ResizablePanel
-					id="artboard"
-					defaultSize={artboardSize}
-					className={cn("relative min-h-0 overflow-hidden", panelHeight)}
-				>
-					<Outlet />
-				</ResizablePanel>
-				<ResizableSeparator withHandle className={cn("z-50 border-e", isMobile && "hidden")} />
-				<ResizablePanel
-					collapsible
-					id="right"
-					panelRef={rightSidebarRef}
-					groupResizeBehavior={groupResizeBehavior}
-					maxSize={maxSidebarSize}
-					minSize={sidebarMinSize}
-					collapsedSize={sidebarCollapsedSize}
-					defaultSize={rightSidebarSize}
-					className={cn("z-20", panelHeight)}
-				>
-					<BuilderSidebarRight />
-				</ResizablePanel>
-			</ResizableGroup>
+					<ResizablePanel
+						collapsible
+						id="left"
+						panelRef={leftSidebarRef}
+						groupResizeBehavior={groupResizeBehavior}
+						maxSize={maxSidebarSize}
+						minSize={sidebarMinSize}
+						collapsedSize={sidebarCollapsedSize}
+						defaultSize={leftSidebarSize}
+						className={cn("z-20", panelHeight)}
+					>
+						<BuilderSidebarLeft />
+					</ResizablePanel>
+					<ResizableSeparator withHandle className="z-50 border-s" />
+					<ResizablePanel
+						id="artboard"
+						defaultSize={artboardSize}
+						className={cn("relative min-h-0 overflow-hidden", panelHeight)}
+					>
+						<Outlet />
+					</ResizablePanel>
+					<ResizableSeparator withHandle className="z-50 border-e" />
+					<ResizablePanel
+						collapsible
+						id="right"
+						panelRef={rightSidebarRef}
+						groupResizeBehavior={groupResizeBehavior}
+						maxSize={maxSidebarSize}
+						minSize={sidebarMinSize}
+						collapsedSize={sidebarCollapsedSize}
+						defaultSize={rightSidebarSize}
+						className={cn("z-20", panelHeight)}
+					>
+						<BuilderSidebarRight />
+					</ResizablePanel>
+				</ResizableGroup>
+			)}
+		</div>
+	);
+}
+
+function MobileBuilderStage() {
+	const overlay = useBuilderSidebarStore((state) => state.mobileOverlay);
+
+	useEffect(() => {
+		if (!overlay) return undefined;
+		const onKeyDown = (event: KeyboardEvent) => {
+			if (event.key !== "Escape") return;
+			useBuilderSidebarStore.getState().setMobileOverlay(null);
+		};
+		window.addEventListener("keydown", onKeyDown);
+		return () => window.removeEventListener("keydown", onKeyDown);
+	}, [overlay]);
+
+	return (
+		<div className="relative mt-14 min-h-0 flex-1">
+			<div className="h-full min-h-0 overflow-hidden">
+				<Outlet />
+			</div>
+			{overlay ? (
+				<div className="absolute inset-0 z-40 flex min-h-0 flex-col bg-background">
+					{overlay === "left" ? <BuilderSidebarLeft /> : <BuilderSidebarRight />}
+				</div>
+			) : null}
 		</div>
 	);
 }
