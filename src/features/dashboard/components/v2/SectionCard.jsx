@@ -27,10 +27,10 @@ export function ActionPlanList({ items = [], onItemClick }) {
           <button
             type="button"
             onClick={() => onItemClick?.(item)}
-            className="flex w-full items-center gap-2.5 rounded-lg border border-border bg-muted/30 px-2.5 py-2 text-left transition-colors hover:border-primary/30 hover:bg-muted/60"
+            className="flex w-full items-center gap-2.5 rounded-[var(--radius-panel)] border border-border bg-card px-2.5 py-2 text-left shadow-none transition-colors hover:border-foreground/55"
           >
             <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-card">
-              <AppIcon name={item.icon || 'target'} className="size-4 text-primary" />
+              <AppIcon name={item.icon || 'target'} className="size-4 text-foreground" />
             </span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[0.8rem] font-semibold text-foreground">{item.title}</span>

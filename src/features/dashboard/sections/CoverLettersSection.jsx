@@ -332,7 +332,7 @@ export default function CoverLettersSection() {
       {drafts.map((d) => (
         <div
           key={d.id}
-          className="flex items-start justify-between gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2"
+          className="flex items-start justify-between gap-2 rounded-[var(--radius-panel)] border border-border bg-card px-3 py-2"
         >
           <button type="button" className="min-w-0 flex-1 text-left" onClick={() => loadDraft(d)}>
             <span className="block truncate text-sm font-semibold">{d.company || 'Draft'}</span>
@@ -382,7 +382,7 @@ export default function CoverLettersSection() {
           ) : null}
         </div>
       )}
-      <pre className="max-h-[42vh] overflow-y-auto whitespace-pre-wrap rounded-xl border border-border bg-muted/30 p-3 font-sans text-sm leading-relaxed sm:max-h-none sm:p-4">
+      <pre className="max-h-[42vh] overflow-y-auto whitespace-pre-wrap rounded-[var(--radius-panel)] border border-border bg-card p-3 font-sans text-sm leading-relaxed sm:max-h-none sm:p-4">
         {letter}
       </pre>
       <p className="text-xs text-muted-foreground sm:text-right">

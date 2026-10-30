@@ -405,7 +405,7 @@ function InterviewSectionContent() {
                   return (
                     <li
                       key={s.id}
-                      className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2"
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-panel)] border border-border bg-card px-3 py-2"
                     >
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold">{s.role || 'Interview'}</p>
@@ -470,14 +470,14 @@ function InterviewSectionContent() {
               <div className="text-[0.92rem] font-semibold leading-relaxed text-foreground">{q.question}</div>
 
               {showTips && q.tips && (
-                <div className="flex items-start gap-1.5 rounded-lg border border-border bg-muted/50 px-3 py-2 text-[0.78rem] text-muted-foreground">
+                <div className="flex items-start gap-1.5 rounded-[var(--radius-panel)] border border-border bg-card px-3 py-2 text-[0.78rem] text-muted-foreground">
                   <AppIcon name="lightbulb" className="mt-0.5 size-4 shrink-0" />
                   <span><strong className="text-foreground">Approach:</strong> {q.tips}</span>
                 </div>
               )}
 
               {showTips && Array.isArray(q.hints) && q.hints.length > 0 && (
-                <div className="rounded-lg border border-border bg-muted/50 px-3 py-2 text-[0.78rem] text-muted-foreground">
+                <div className="rounded-[var(--radius-panel)] border border-border bg-card px-3 py-2 text-[0.78rem] text-muted-foreground">
                   <strong className="flex items-center gap-1 text-foreground">
                     <AppIcon name="sparkle" className="size-3.5" /> Hints:
                   </strong>
@@ -621,7 +621,7 @@ function InterviewSectionContent() {
             </div>
 
             {sessionSummary?.summary && (
-              <div className="rounded-xl border border-border bg-muted/40 p-4 text-left">
+              <div className="rounded-[var(--radius-panel)] border border-border bg-card p-4 text-left">
                 <div className="mb-1.5 flex items-center gap-1 text-[0.72rem] font-bold uppercase tracking-wide text-muted-foreground">
                   <AppIcon name="applications" className="size-3.5" />
                   Coaching Summary
@@ -696,7 +696,7 @@ function InterviewSectionContent() {
               return (
                 <div
                   key={i}
-                  className={cn('rounded-xl border border-border bg-muted/30 p-3.5 text-left border-l-[3px]', borderColor)}
+                  className={cn('rounded-[var(--radius-panel)] border border-border bg-card p-3.5 text-left border-l-[3px]', borderColor)}
                 >
                   <div className="mb-1.5 flex items-center justify-between gap-2">
                     <span className="text-[0.72rem] font-bold text-muted-foreground">Q{i + 1}</span>

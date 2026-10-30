@@ -198,7 +198,7 @@ export default function ParaphrasingSection() {
         </p>
       ) : (
         variants.map((v, i) => (
-          <div key={i} className="rounded-xl border border-border bg-muted/30 p-3">
+          <div key={i} className="rounded-[var(--radius-panel)] border border-border bg-card p-3">
             <div className="mb-2 flex items-center justify-between gap-2">
               <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {VARIANT_NAMES[i] || `Variant ${i + 1}`}

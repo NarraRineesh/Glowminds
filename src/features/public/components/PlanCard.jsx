@@ -18,21 +18,21 @@ function planBadgeTone(label) {
   if (t.includes('founding') || t.includes('offer') || t.includes('launch')) {
     return {
       icon: 'crown',
-      bar: 'bg-gradient-to-r from-amber-500 via-orange-400 to-amber-500 text-white',
-      glow: 'shadow-[0_8px_24px_-12px_rgba(245,158,11,0.85)]',
+      bar: 'bg-amber-500 text-white',
+      glow: '',
     }
   }
   if (t.includes('best') || t.includes('value') || t.includes('lifetime')) {
     return {
       icon: 'trophy',
-      bar: 'bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-600 text-white',
-      glow: 'shadow-[0_8px_24px_-12px_rgba(16,185,129,0.85)]',
+      bar: 'bg-emerald-600 text-white',
+      glow: '',
     }
   }
   return {
     icon: 'star',
-    bar: 'bg-gradient-to-r from-primary to-emerald-500 text-primary-foreground',
-    glow: 'shadow-[0_8px_24px_-12px_color-mix(in_oklab,var(--primary)_70%,transparent)]',
+    bar: 'bg-primary text-primary-foreground',
+    glow: '',
   }
 }
 
@@ -96,13 +96,10 @@ export default function PlanCard({
     <Card
       className={cn(
         'relative flex h-full min-h-[28rem] flex-col overflow-hidden py-0',
-        isHighlighted && 'border-primary/40 shadow-md shadow-primary/10 ring-1 ring-primary/20',
+        isHighlighted && 'border-primary',
         className,
       )}
     >
-      {isHighlighted && (
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_70%_0%,color-mix(in_oklab,var(--primary)_14%,transparent),transparent)]" />
-      )}
       <PlanOfferBadge label={plan.badge} />
       <CardHeader className={cn('relative space-y-3 px-6 pb-2', plan.badge ? 'pt-5' : 'pt-6')}>
         <CardDescription className="text-xs font-bold uppercase tracking-wider text-primary">

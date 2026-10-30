@@ -175,7 +175,7 @@ function SettingsUpgradeBanner({ upgradePlan, onChoosePlan, onGoToBilling }) {
 
 function SettingsInfoBox({ children, icon = 'info' }) {
   return (
-    <div className="rounded-xl border border-border/80 bg-muted/40 px-4 py-3 text-sm leading-relaxed text-muted-foreground">
+    <div className="rounded-[var(--radius-panel)] border border-border bg-card px-4 py-3 text-sm leading-relaxed text-muted-foreground">
       <div className="flex gap-3">
         <AppIcon name={icon} className="mt-0.5 size-4 shrink-0 text-primary" />
         <div className="min-w-0 space-y-1.5">{children}</div>
@@ -323,7 +323,7 @@ function BillingPanel({
   return (
     <div className="flex flex-col gap-4">
       <DashboardCard titleIcon="credit-card" title="Billing & plan" contentClassName="flex flex-col gap-4">
-        <div className="rounded-xl border border-border bg-muted/50 p-4">
+        <div className="rounded-[var(--radius-panel)] border border-border bg-card p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Current plan</p>

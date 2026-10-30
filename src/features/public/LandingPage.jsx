@@ -168,7 +168,7 @@ export default function LandingPage() {
       {/* Exit CTA */}
       <LandingSection>
         <LandingReveal y={28}>
-          <Card className="mx-auto max-w-2xl border-primary/30 bg-gradient-to-b from-primary/5 to-card text-center">
+          <Card className="mx-auto max-w-2xl text-center">
             <CardHeader className="space-y-3">
               <CardTitle className="text-xl md:text-2xl">{exitCta?.title || 'Ready to Land Your Next Job?'}</CardTitle>
               <CardDescription className="text-base">

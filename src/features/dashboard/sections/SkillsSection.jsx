@@ -241,7 +241,7 @@ export default function SkillsSection() {
                       const label = skillLabel(s)
                       const imp = importanceLabel(s)
                       return (
-                        <div key={`m-${i}`} className="rounded-xl border border-border bg-muted/30 p-3">
+                        <div key={`m-${i}`} className="rounded-[var(--radius-panel)] border border-border bg-card p-3">
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
                               <p className="m-0 font-semibold">{label}</p>

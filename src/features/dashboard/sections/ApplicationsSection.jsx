@@ -56,7 +56,7 @@ const EMPTY_FORM = {
 
 function ApplicationCard({ app, onStatusChange, onDelete, onEdit }) {
   return (
-    <div className="relative rounded-lg border border-border bg-muted/50 p-3 transition-colors hover:border-primary/30">
+    <div className="relative rounded-[var(--radius-panel)] border border-border bg-card p-3 transition-colors hover:border-primary/30">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 text-sm font-bold text-foreground">

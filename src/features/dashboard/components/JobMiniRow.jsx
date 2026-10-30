@@ -21,7 +21,7 @@ export default function JobMiniRow({ job, onClick, className }) {
         }
       }}
       className={cn(
-        'mb-1.5 flex min-w-0 max-w-full cursor-pointer items-center gap-2.5 rounded-lg border border-border bg-muted/50 px-2.5 py-2 transition-all hover:translate-x-0.5 hover:border-ring/30',
+        'mb-1.5 flex min-w-0 max-w-full cursor-pointer items-center gap-2.5 rounded-[var(--radius-panel)] border border-border bg-card px-2.5 py-2 shadow-none transition-colors hover:border-foreground/55',
         className,
       )}
     >

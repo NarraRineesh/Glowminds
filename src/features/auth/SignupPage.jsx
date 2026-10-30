@@ -133,8 +133,8 @@ export default function SignupPage() {
 
             <motion.div variants={fadeUp} transition={{ duration: .5, ease }} className="grid grid-cols-2 gap-3">
               {benefits.map(b => (
-                <div key={b.title} className="rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/30">
-                  <AppIcon name={b.ico} className="mb-2 size-5 text-primary" />
+                <div key={b.title} className="rounded-[var(--radius-panel)] border border-border bg-card p-4 shadow-none transition-colors hover:border-foreground/55">
+                  <AppIcon name={b.ico} className="mb-2 size-5 text-foreground" />
                   <div className="mb-1 text-[0.82rem] font-extrabold">{b.title}</div>
                   <p className="text-[0.74rem] leading-relaxed text-muted-foreground">{b.desc}</p>
                 </div>

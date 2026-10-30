@@ -59,7 +59,7 @@ function MiniResumePreview({ className, data }: MiniResumePreviewProps) {
 					pageGap={0}
 					pageLayout="vertical"
 					pageScale={0.2}
-					pageClassName="shadow-sm ring-1 ring-border/60"
+					pageClassName="shadow-none ring-1 ring-border"
 					showPageNumbers={false}
 				/>
 			</div>
@@ -73,7 +73,6 @@ function ActionRow({
 	description,
 	onClick,
 	disabled,
-	accent,
 }: {
 	icon: typeof PlusIcon;
 	title: ReactNode;
@@ -88,24 +87,14 @@ function ActionRow({
 			onClick={onClick}
 			disabled={disabled}
 			className={cn(
-				"flex min-h-14 w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition-colors",
-				"active:scale-[0.99] sm:min-h-16",
-				accent
-					? "border-primary/30 bg-primary/5 hover:border-primary/50 hover:bg-primary/10"
-					: "border-border bg-card hover:border-primary/40 hover:bg-primary/5",
-				disabled && "cursor-not-allowed opacity-60 hover:border-border hover:bg-card",
+				"flex min-h-14 w-full items-center gap-3 rounded-[var(--radius-panel,0.875rem)] border border-border bg-card px-3.5 py-3.5 text-left shadow-none transition-colors",
+				"hover:border-foreground/55 active:scale-[0.99] sm:min-h-16",
+				disabled && "cursor-not-allowed opacity-60 hover:border-border",
 			)}
 		>
-			<span
-				className={cn(
-					"flex size-11 shrink-0 items-center justify-center rounded-xl",
-					accent ? "bg-primary/15 text-primary" : "bg-muted text-foreground",
-				)}
-			>
-				<Icon className="size-5" weight={accent ? "fill" : "regular"} />
-			</span>
+			<Icon className="size-5 shrink-0 text-foreground" weight="regular" />
 			<span className="min-w-0 flex-1">
-				<span className="block font-semibold text-foreground">{title}</span>
+				<span className="block text-sm font-bold text-foreground">{title}</span>
 				<span className="mt-0.5 block text-xs text-muted-foreground">{description}</span>
 			</span>
 		</button>
@@ -223,16 +212,14 @@ function RouteComponent() {
 					onClick={handleCreate}
 					disabled={atResumeLimit}
 					className={cn(
-						"group flex aspect-square flex-col items-start justify-between gap-2.5 rounded-xl border border-border bg-card p-2.5 text-left transition-colors",
-						"hover:border-primary/40 hover:bg-primary/5",
-						atResumeLimit && "cursor-not-allowed opacity-60 hover:border-border hover:bg-card",
+						"group flex aspect-square flex-col items-start justify-between gap-2.5 rounded-[var(--radius-panel,0.875rem)] border border-border bg-card p-2.5 text-left shadow-none transition-colors",
+						"hover:border-foreground/55",
+						atResumeLimit && "cursor-not-allowed opacity-60 hover:border-border",
 					)}
 				>
 					<MiniResumePreview data={defaultResumeData} className="h-20 w-full" />
 					<span className="flex items-start gap-2.5">
-						<span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted transition-colors group-hover:bg-primary/10">
-							<PlusIcon className="size-4 text-foreground" />
-						</span>
+						<PlusIcon className="mt-0.5 size-5 shrink-0 text-foreground" weight="regular" />
 						<span className="min-w-0">
 							<span className="block font-semibold text-foreground">
 								<Trans>Blank resume</Trans>
@@ -248,16 +235,14 @@ function RouteComponent() {
 					onClick={handleCreateSample}
 					disabled={atResumeLimit}
 					className={cn(
-						"group flex aspect-square flex-col items-start justify-between gap-2.5 rounded-xl border border-primary/30 bg-gradient-to-br from-primary/10 via-card to-card p-2.5 text-left transition-colors",
-						"hover:border-primary/50 hover:from-primary/15",
+						"group flex aspect-square flex-col items-start justify-between gap-2.5 rounded-[var(--radius-panel,0.875rem)] border border-border bg-card p-2.5 text-left shadow-none transition-colors",
+						"hover:border-foreground/55",
 						atResumeLimit && "cursor-not-allowed opacity-60",
 					)}
 				>
-					<MiniResumePreview data={glowmindsSampleResumeData} className="h-20 w-full border-primary/25 bg-primary/5" />
+					<MiniResumePreview data={glowmindsSampleResumeData} className="h-20 w-full" />
 					<span className="flex items-start gap-2.5">
-						<span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/15 transition-colors group-hover:bg-primary/20">
-							<SparkleIcon className="size-4 text-primary" weight="fill" />
-						</span>
+						<SparkleIcon className="mt-0.5 size-5 shrink-0 text-foreground" weight="regular" />
 						<span className="min-w-0">
 							<span className="block font-semibold text-foreground">
 								<Trans>Start from sample</Trans>
@@ -272,17 +257,15 @@ function RouteComponent() {
 					type="button"
 					onClick={() => fileInputRef.current?.click()}
 					className={cn(
-						"group flex aspect-square flex-col items-start justify-between gap-2.5 rounded-xl border border-border bg-card p-2.5 text-left transition-colors",
-						"hover:border-primary/40 hover:bg-primary/5",
+						"group flex aspect-square flex-col items-start justify-between gap-2.5 rounded-[var(--radius-panel,0.875rem)] border border-border bg-card p-2.5 text-left shadow-none transition-colors",
+						"hover:border-foreground/55",
 					)}
 				>
-					<div className="flex h-20 w-full items-center justify-center rounded-xl border border-dashed border-border/80 bg-muted/40">
-						<FileArrowUpIcon className="size-8 text-muted-foreground/70 transition-colors group-hover:text-primary" />
+					<div className="flex h-20 w-full items-center justify-center rounded-[var(--radius-panel,0.875rem)] border border-border bg-card">
+						<FileArrowUpIcon className="size-8 text-foreground" weight="regular" />
 					</div>
 					<span className="flex items-start gap-2.5">
-						<span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted transition-colors group-hover:bg-primary/10">
-							<FileArrowUpIcon className="size-4 text-foreground" />
-						</span>
+						<FileArrowUpIcon className="mt-0.5 size-5 shrink-0 text-foreground" weight="regular" />
 						<span className="min-w-0">
 							<span className="block font-semibold text-foreground">
 								<Trans>Import JSON</Trans>
@@ -317,7 +300,7 @@ function RouteComponent() {
 				)}
 
 				{resumes.length === 0 ? (
-					<Card className="border-dashed">
+					<Card>
 						<CardHeader className="text-center">
 							<FileTextIcon className="mx-auto mb-2 size-10 text-muted-foreground/60" />
 							<CardTitle>
@@ -334,9 +317,7 @@ function RouteComponent() {
 				) : (
 					<>
 						<section
-							className={cn(
-								"mb-6 rounded-2xl border border-border/80 bg-gradient-to-b from-muted/40 to-card p-3 shadow-sm sm:mb-8 sm:p-4",
-							)}
+							className="mb-6 rounded-[var(--radius-panel,0.875rem)] border border-border bg-card p-3 shadow-none sm:mb-8 sm:p-4"
 						>
 							<div className="mb-3 sm:mb-4">
 								<h2 className="text-base font-semibold text-foreground">

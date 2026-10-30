@@ -141,7 +141,7 @@ function AtsScoreHeroVisual() {
       className="mx-auto mt-8 max-w-md"
     >
       <p className="mb-4 text-sm font-semibold text-foreground">See Your Resume Score Improve</p>
-      <Card className="border-primary/20 bg-card/80 text-left shadow-lg backdrop-blur-sm">
+      <Card className="text-left">
         <CardContent className="space-y-4 p-5">
           <div>
             <div className="mb-1 flex justify-between text-sm">
@@ -170,7 +170,7 @@ function AtsScoreHeroVisual() {
 
 function PipelineVisualization() {
   return (
-    <div className="rounded-xl border border-border bg-muted/30 p-4">
+    <div className="rounded-[var(--radius-panel)] border border-border bg-card p-4">
       <div className="flex flex-wrap items-center justify-center gap-2 text-sm font-semibold">
         {PIPELINE_STAGES.map((stage, index) => (
           <div key={stage} className="flex items-center gap-2">
@@ -342,8 +342,7 @@ export default function FeaturesPage() {
           >
             {/* 1. Resume Builder — largest */}
             <motion.div variants={fadeUp} transition={{ duration: 0.55, ease: motionEase }}>
-              <Card className="relative overflow-hidden border-primary/20 shadow-md">
-                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,color-mix(in_oklab,var(--primary)_8%,transparent),transparent)]" />
+              <Card className="relative overflow-hidden">
                 <CardHeader className="pb-2">
                   <Badge variant="outline" className="mb-3 w-fit border-emerald-500/20 bg-emerald-500/10 text-emerald-500">
                     #1 — Start Here
@@ -363,7 +362,7 @@ export default function FeaturesPage() {
                       <Badge variant="secondary" className="border-primary/20 bg-primary/10 text-primary">Most Popular</Badge>
                     </div>
                   </div>
-                  <div className="rounded-xl border border-border bg-muted/40 p-4">
+                  <div className="rounded-[var(--radius-panel)] border border-border bg-card p-4">
                     <div className="mb-2 flex justify-between text-sm">
                       <span className="font-semibold">ATS Score</span>
                       <span className="font-bold text-emerald-500">91/100</span>
@@ -390,8 +389,7 @@ export default function FeaturesPage() {
 
             {/* 2. Job Matching — large */}
             <motion.div variants={fadeUp} transition={{ duration: 0.55, ease: motionEase }}>
-              <Card className="relative overflow-hidden border-emerald-500/20 shadow-md">
-                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_70%_20%,color-mix(in_oklab,var(--emerald-500)_8%,transparent),transparent)]" />
+              <Card className="relative overflow-hidden">
                 <CardHeader className="pb-2">
                   <Badge variant="outline" className="mb-3 w-fit border-emerald-500/20 bg-emerald-500/10 text-emerald-500">
                     #2 — Find Roles That Fit
@@ -441,7 +439,7 @@ export default function FeaturesPage() {
                     <CheckList items={['Technical Questions', 'Behavioral (STAR)', 'HR & Culture Fit', 'Real-time Scoring', 'Detailed Feedback']} />
                   </div>
                   <div className="space-y-3">
-                    <div className="rounded-xl border border-border bg-muted/40 p-4">
+                    <div className="rounded-[var(--radius-panel)] border border-border bg-card p-4">
                       <p className="text-sm font-medium">
                         &quot;Explain the difference between useEffect and useLayoutEffect in React.&quot;
                       </p>
@@ -502,7 +500,7 @@ export default function FeaturesPage() {
                       </Badge>
                     ))}
                   </div>
-                  <div className="rounded-xl border border-border bg-muted/40 p-3">
+                  <div className="rounded-[var(--radius-panel)] border border-border bg-card p-3">
                     <div className="mb-3 flex items-center gap-2">
                       <span className="flex size-8 items-center justify-center rounded-full bg-primary/15">
                         <AppIcon name="robot" className="size-4 text-primary" />
@@ -646,8 +644,7 @@ export default function FeaturesPage() {
             viewport={{ once: true }}
             transition={{ duration: 0.6, ease: motionEase }}
           >
-            <Card className="relative overflow-hidden border-primary/20 bg-gradient-to-br from-card to-muted text-center">
-              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,color-mix(in_oklab,var(--primary)_12%,transparent),transparent)]" />
+            <Card className="relative overflow-hidden text-center">
               <CardContent className="relative py-10 md:py-12">
                 <h2 className="mb-3 text-2xl font-black text-foreground md:text-3xl">Ready to Land More Interviews?</h2>
                 <p className="mx-auto mb-6 max-w-lg text-muted-foreground">

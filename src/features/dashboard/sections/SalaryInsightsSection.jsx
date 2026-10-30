@@ -203,7 +203,7 @@ export default function SalaryInsightsSection() {
           {role} · {levels.find((l) => l.id === level)?.name || level} · {city}
         </span>
       </summary>
-      <DashboardCard titleIcon="faders" title="Filters" className="max-lg:border-0 max-lg:shadow-none lg:border lg:shadow-sm [&_[data-slot=card-header]]:max-lg:hidden" contentClassName="space-y-4 max-lg:pt-0">
+      <DashboardCard titleIcon="faders" title="Filters" className="max-lg:border-0 lg:border [&_[data-slot=card-header]]:max-lg:hidden" contentClassName="space-y-4 max-lg:pt-0">
       {prefilled && (profile?.headline || profile?.preferences?.expectedCTC) ? (
         <p className="rounded-lg border border-primary/15 bg-primary/5 px-2.5 py-2 text-xs text-muted-foreground">
           Prefilling from your profile
@@ -283,7 +283,7 @@ export default function SalaryInsightsSection() {
       />
 
       <ToolSidebarLayout sidebar={sidebar}>
-        <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-primary/10 to-emerald-500/10 py-0">
+        <Card className="overflow-hidden py-0">
           <CardContent className="p-5 sm:p-6">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               {role || '—'} · {levels.find((l) => l.id === level)?.name || level} · {city}
@@ -387,11 +387,11 @@ export default function SalaryInsightsSection() {
                       {' '}(anchor ₹{negotiateResult.anchorLow}–{negotiateResult.anchorHigh})
                     </span>
                   </p>
-                  <pre className="whitespace-pre-wrap rounded-xl border border-border bg-muted/30 p-3 font-sans text-sm">
+                  <pre className="whitespace-pre-wrap rounded-[var(--radius-panel)] border border-border bg-card p-3 font-sans text-sm">
                     {negotiateResult.script}
                   </pre>
                   {negotiateResult.email ? (
-                    <pre className="whitespace-pre-wrap rounded-xl border border-border bg-muted/30 p-3 font-sans text-sm">
+                    <pre className="whitespace-pre-wrap rounded-[var(--radius-panel)] border border-border bg-card p-3 font-sans text-sm">
                       {negotiateResult.email}
                     </pre>
                   ) : null}
@@ -423,7 +423,7 @@ export default function SalaryInsightsSection() {
             <DashboardCard titleIcon="lightbulb" title="Negotiation tips">
               <ul className="grid gap-3 sm:grid-cols-2">
                 {tips.map((tip) => (
-                  <li key={tip.label} className="flex gap-3 rounded-xl border border-border bg-muted/30 p-3">
+                  <li key={tip.label} className="flex gap-3 rounded-[var(--radius-panel)] border border-border bg-card p-3">
                     <AppIcon name={tip.ico} className="mt-0.5 size-5 shrink-0 text-primary" />
                     <div>
                       <p className="text-sm font-semibold text-foreground">{tip.label}</p>

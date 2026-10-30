@@ -148,7 +148,7 @@ export default function PrivacyPage() {
                 </LegalP>
               </LegalSection>
 
-              <div className="rounded-xl border border-border bg-muted/50 p-5">
+              <div className="rounded-[var(--radius-panel)] border border-border bg-card p-5">
                 <h3 className="mb-2 text-lg font-extrabold text-foreground">Contact Us</h3>
                 <LegalP>If you have questions about this privacy policy or our data practices, please contact us at:</LegalP>
                 <p className="mt-2 text-sm text-primary">{LEGAL_PRIVACY_EMAIL}</p>

@@ -6,7 +6,7 @@ export default function LandingAtsPreview({ className, score = 67 }) {
   const barTone = score >= 80 ? 'bg-emerald-500' : score >= 60 ? 'bg-amber-500' : 'bg-orange-500'
 
   return (
-    <div className={cn('rounded-xl border border-border bg-card p-4 shadow-sm', className)}>
+    <div className={cn('rounded-[var(--radius-panel)] border border-border bg-card p-4 shadow-none', className)}>
       <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">ATS Score Preview</p>
       <div className="mt-3 flex items-end gap-3">
         <p className={cn('text-4xl font-bold tabular-nums', tone)}>{score}</p>
