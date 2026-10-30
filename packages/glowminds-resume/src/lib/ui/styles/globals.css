@@ -232,3 +232,11 @@ html.dark:not(:has(.dashboard-shell)) {
 .rr-embed [data-slot="scroll-area-viewport"] {
 	overflow: hidden;
 }
+
+/* iOS Safari zooms the page when a focused field is under 16px. */
+@media (max-width: 767px) {
+	.rr-copilot-host :is(input, textarea, select, [contenteditable="true"]),
+	html:not(:has(.dashboard-shell)) :is(input, textarea, select, [contenteditable="true"]) {
+		font-size: 16px !important;
+	}
+}

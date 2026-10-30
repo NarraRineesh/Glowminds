@@ -49,11 +49,14 @@ export function BuilderSidebarLeft() {
 	const scrollAreaRef = useRef<HTMLDivElement | null>(null);
 
 	return (
-		<>
+		<div className="relative h-full min-h-0">
 			<SidebarEdge scrollAreaRef={scrollAreaRef} />
 
-			<ScrollArea ref={scrollAreaRef} className="@container h-[calc(100svh-3.5rem)] bg-background sm:ms-12">
-				<div className="space-y-4 p-4">
+			<ScrollArea
+				ref={scrollAreaRef}
+				className="@container h-full min-h-0 bg-background sm:ms-12 [&_[data-slot=scroll-area-viewport]]:overflow-y-auto"
+			>
+				<div className="space-y-4 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
 					{leftSidebarSections.map((section) => (
 						<Fragment key={section}>
 							{getSectionComponent(section)}
@@ -62,7 +65,7 @@ export function BuilderSidebarLeft() {
 					))}
 				</div>
 			</ScrollArea>
-		</>
+		</div>
 	);
 }
 

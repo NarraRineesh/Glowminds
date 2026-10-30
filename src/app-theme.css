@@ -288,6 +288,16 @@ section[id],
 	overflow: hidden;
 }
 
+/* iOS Safari zooms the page when a focused field is under 16px. */
+@media (max-width: 767px) {
+	input,
+	textarea,
+	select,
+	[contenteditable="true"] {
+		font-size: 16px !important;
+	}
+}
+
 @media (prefers-reduced-motion: reduce) {
 	.rr-copilot-host *,
 	.rr-copilot-host *::before,

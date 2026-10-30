@@ -32,17 +32,25 @@ import {
 	updateLocalResumeMetadata,
 } from "@/features/resume/builder/local-storage";
 import { useConfirm } from "@/hooks/use-confirm";
-import { useBuilderSidebar } from "../-store/sidebar";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useBuilderSidebar, useBuilderSidebarStore } from "../-store/sidebar";
 
 export function BuilderHeader() {
 	const resume = useCurrentResume();
 	const name = resume.name;
 	const isLocked = resume.isLocked;
 	const toggleSidebar = useBuilderSidebar((state) => state.toggleSidebar);
+	const mobileOverlay = useBuilderSidebarStore((state) => state.mobileOverlay);
+	const isMobile = useIsMobile();
 
 	return (
 		<div className="absolute inset-x-0 top-0 z-50 flex h-14 shrink-0 items-center justify-between border-b bg-popover px-1.5">
-			<Button size="icon" variant="ghost" onClick={() => toggleSidebar("left")}>
+			<Button
+				size="icon"
+				variant="ghost"
+				aria-expanded={isMobile ? mobileOverlay === "left" : undefined}
+				onClick={() => toggleSidebar("left")}
+			>
 				<SidebarSimpleIcon />
 				<span className="sr-only">
 					<Trans comment="Screen-reader label for opening or closing the left sidebar in resume builder">
@@ -72,7 +80,12 @@ export function BuilderHeader() {
 				<BuilderHeaderDropdown />
 			</div>
 
-			<Button size="icon" variant="ghost" onClick={() => toggleSidebar("right")}>
+			<Button
+				size="icon"
+				variant="ghost"
+				aria-expanded={isMobile ? mobileOverlay === "right" : undefined}
+				onClick={() => toggleSidebar("right")}
+			>
 				<SidebarSimpleIcon className="-scale-x-100" />
 				<span className="sr-only">
 					<Trans comment="Screen-reader label for opening or closing the right sidebar in resume builder">

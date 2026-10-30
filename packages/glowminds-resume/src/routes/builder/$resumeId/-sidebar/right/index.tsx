@@ -38,14 +38,14 @@ export function BuilderSidebarRight() {
 	const sections = BUILDER_RIGHT_SIDEBAR_SECTIONS;
 
 	return (
-		<>
+		<div className="relative h-full min-h-0">
 			<SidebarEdge scrollAreaRef={scrollAreaRef} sections={sections} />
 
 			<ScrollArea
 				ref={scrollAreaRef}
-				className="@container h-[calc(100svh-3.5rem)] overflow-hidden bg-background sm:me-12"
+				className="@container h-full min-h-0 overflow-hidden bg-background sm:me-12 [&_[data-slot=scroll-area-viewport]]:overflow-y-auto"
 			>
-				<div className="space-y-4 p-4">
+				<div className="space-y-4 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
 					{sections.map((section) => (
 						<Fragment key={section}>
 							{getSectionComponent(section)}
@@ -54,7 +54,7 @@ export function BuilderSidebarRight() {
 					))}
 				</div>
 			</ScrollArea>
-		</>
+		</div>
 	);
 }
 

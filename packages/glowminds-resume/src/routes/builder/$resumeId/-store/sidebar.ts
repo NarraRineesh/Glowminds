@@ -3,6 +3,7 @@ import { useCallback, useMemo } from "react";
 import { useWindowSize } from "usehooks-ts";
 import { create } from "zustand/react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { resolveMobileOverlay, type MobileOverlaySide } from "@/features/resume/builder/mobile-overlay";
 
 type PanelImperativeHandle = ReturnType<typeof usePanelRef>;
 
@@ -73,12 +74,14 @@ interface BuilderSidebarState {
 	layout: BuilderLayout;
 	leftSidebar: PanelImperativeHandle | null;
 	rightSidebar: PanelImperativeHandle | null;
+	mobileOverlay: MobileOverlaySide | null;
 }
 
 interface BuilderSidebarActions {
 	setLayout: (layout: BuilderLayout) => void;
 	setLeftSidebar: (ref: PanelImperativeHandle | null) => void;
 	setRightSidebar: (ref: PanelImperativeHandle | null) => void;
+	setMobileOverlay: (side: MobileOverlaySide | null) => void;
 }
 
 type BuilderSidebar = BuilderSidebarState & BuilderSidebarActions;
@@ -87,9 +90,11 @@ export const useBuilderSidebarStore = create<BuilderSidebar>((set) => ({
 	layout: DEFAULT_BUILDER_LAYOUT,
 	leftSidebar: null,
 	rightSidebar: null,
+	mobileOverlay: null,
 	setLayout: (layout) => set({ layout }),
 	setLeftSidebar: (ref) => set({ leftSidebar: ref }),
 	setRightSidebar: (ref) => set({ rightSidebar: ref }),
+	setMobileOverlay: (side) => set({ mobileOverlay: side }),
 }));
 
 type UseBuilderSidebarReturn = {
@@ -108,18 +113,29 @@ export function useBuilderSidebar<T = UseBuilderSidebarReturn>(selector?: (build
 	const { maxSidebarSize, minSidebarSize, collapsedSidebarSize, expandSize, groupResizeBehavior } =
 		getBuilderSidebarResizeConfig({ isMobile, width });
 
-	const isCollapsed = useCallback((side: "left" | "right") => {
-		const sidebar =
-			side === "left"
-				? useBuilderSidebarStore.getState().leftSidebar?.current
-				: useBuilderSidebarStore.getState().rightSidebar?.current;
+	const isCollapsed = useCallback(
+		(side: "left" | "right") => {
+			if (isMobile) return useBuilderSidebarStore.getState().mobileOverlay !== side;
 
-		if (!sidebar) return false;
-		return sidebar.isCollapsed();
-	}, []);
+			const sidebar =
+				side === "left"
+					? useBuilderSidebarStore.getState().leftSidebar?.current
+					: useBuilderSidebarStore.getState().rightSidebar?.current;
+
+			if (!sidebar) return false;
+			return sidebar.isCollapsed();
+		},
+		[isMobile],
+	);
 
 	const toggleSidebar = useCallback(
 		(side: "left" | "right", forceState?: boolean) => {
+			if (isMobile) {
+				const current = useBuilderSidebarStore.getState().mobileOverlay;
+				useBuilderSidebarStore.getState().setMobileOverlay(resolveMobileOverlay(current, side, forceState));
+				return;
+			}
+
 			const sidebar =
 				side === "left"
 					? useBuilderSidebarStore.getState().leftSidebar?.current
@@ -132,7 +148,7 @@ export function useBuilderSidebar<T = UseBuilderSidebarReturn>(selector?: (build
 			if (shouldExpand) sidebar.resize(expandSize);
 			else sidebar.collapse();
 		},
-		[expandSize],
+		[expandSize, isMobile],
 	);
 
 	const state = useMemo(() => {
