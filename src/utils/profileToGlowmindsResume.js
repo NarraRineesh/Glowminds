@@ -1,6 +1,5 @@
 import { buildResumeProfileSnapshot } from '@/constants/resumeProfileSchema'
 import { getCopilotThemeTokens } from '@/constants/copilotThemeTokens'
-import { profileHasResumeData } from '@/utils/resumeFromProfile'
 import { formatDateRange } from '@/utils/profileDates'
 import {
   sortEducationEntries,

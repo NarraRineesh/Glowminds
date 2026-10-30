@@ -73,6 +73,8 @@
 	--radius-xs: 0.25rem;
 	--radius-control: 0.5rem;
 	--radius-panel: 0.875rem;
+	--gutter: 1.25rem;
+	--row: 2.75rem;
 	--ease-standard: cubic-bezier(0.2, 0, 0, 1);
 	--motion-fast: 120ms;
 	--motion-base: 180ms;
@@ -296,6 +298,25 @@ section[id],
 	[contenteditable="true"] {
 		font-size: 16px !important;
 	}
+}
+
+/* Flat cards: dark (or light) surface, 1px border, 14px radius, no drop shadow. */
+[data-slot="card"] {
+	border-radius: var(--radius-panel);
+	background-color: var(--card);
+	box-shadow: none;
+}
+
+/* Menus were frosted glass (translucent fill + blur). Keep them opaque. */
+[class*="bg-popover/70"],
+[class*="bg-popover\\/70"] {
+	background-color: var(--popover);
+}
+
+[class*="backdrop-blur"],
+[class*="backdrop-blur"]::before {
+	-webkit-backdrop-filter: none !important;
+	backdrop-filter: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -18,7 +18,7 @@ export default function PlanUsageSummary({ className }) {
     return (
       <DashboardCard
         className={className}
-        titleIcon="sparkle"
+        titleIcon="credit-card"
         title="Plan usage"
         contentClassName="text-sm text-muted-foreground"
       >
@@ -45,7 +45,7 @@ export default function PlanUsageSummary({ className }) {
   return (
     <DashboardCard
       className={className}
-      titleIcon="sparkle"
+      titleIcon="credit-card"
       title={isPro ? 'Pro usage' : 'Free plan usage'}
       action={(
         <Button variant="ghost" size="sm" onClick={() => void refresh({ force: true })}>

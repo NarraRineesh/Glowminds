@@ -8,7 +8,7 @@ export default function LandingHeroMetrics({ metrics, className }) {
       {metrics.map((item) => (
         <div
           key={item.label}
-          className="rounded-xl border border-border/80 bg-card/60 px-4 py-3 text-center backdrop-blur-sm"
+          className="rounded-[var(--radius-panel)] border border-border bg-card px-4 py-3 text-center shadow-none"
         >
           <p className="text-xl font-bold tracking-tight text-foreground md:text-2xl">{item.value}</p>
           <p className="mt-0.5 text-xs text-muted-foreground md:text-sm">{item.label}</p>

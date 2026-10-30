@@ -479,7 +479,7 @@ function InterviewSectionContent() {
               {showTips && Array.isArray(q.hints) && q.hints.length > 0 && (
                 <div className="rounded-[var(--radius-panel)] border border-border bg-card px-3 py-2 text-[0.78rem] text-muted-foreground">
                   <strong className="flex items-center gap-1 text-foreground">
-                    <AppIcon name="sparkle" className="size-3.5" /> Hints:
+                    <AppIcon name="info" className="size-3.5" /> Hints:
                   </strong>
                   <ul className="mt-1 list-disc pl-5">
                     {q.hints.slice(0, 4).map((h, i) => (
@@ -612,7 +612,7 @@ function InterviewSectionContent() {
 
         <Card>
           <CardContent className="space-y-4 pt-6 text-center">
-            <div className={cn('text-4xl font-black tabular-nums', summaryColor)}>
+            <div className={cn('text-4xl font-semibold tabular-nums', summaryColor)}>
               {correct}/{total}
             </div>
             <div className="text-sm text-muted-foreground">

@@ -133,8 +133,8 @@ export function BuilderDock({ pageLayout, onTogglePageLayout }: BuilderDockProps
 
 	if (isMobile) {
 		return (
-			<div className="pointer-events-none absolute inset-x-0 bottom-0 z-40 flex justify-center px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-				<div className="pointer-events-auto flex w-full max-w-md items-center justify-center gap-0.5 rounded-2xl border border-border/80 bg-popover/95 px-1.5 py-1.5 shadow-xl backdrop-blur-md">
+			<div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex justify-center px-5 pb-3">
+				<div className="pointer-events-auto flex w-full max-w-md items-center justify-center gap-0.5 rounded-[var(--radius-panel,0.875rem)] border border-border bg-popover px-1.5 py-1 shadow-none">
 					<DockIcon large icon={MagnifyingGlassPlusIcon} title={t`Zoom in`} onClick={() => zoomIn(0.15)} />
 					<DockIcon large icon={MagnifyingGlassMinusIcon} title={t`Zoom out`} onClick={() => zoomOut(0.15)} />
 					<DockIcon large icon={CubeFocusIcon} title={t`Fit to screen`} onClick={fitToScreen} />
@@ -157,10 +157,10 @@ export function BuilderDock({ pageLayout, onTogglePageLayout }: BuilderDockProps
 		<div className="absolute inset-x-0 bottom-4 flex items-center justify-center">
 			<m.div
 				initial={{ opacity: 0, y: -18 }}
-				animate={{ opacity: 0.6, y: 0 }}
-				whileHover={{ opacity: 1, y: -2, scale: 1.01 }}
+				animate={{ opacity: 1, y: 0 }}
+				whileHover={{ y: -2 }}
 				transition={{ duration: 0.2, ease: "easeOut" }}
-				className="flex items-center rounded-r-full rounded-l-full bg-popover px-2 shadow-xl will-change-[transform,opacity]"
+				className="flex items-center rounded-full border border-border bg-popover px-2 shadow-none will-change-[transform,opacity]"
 			>
 				<DockIcon icon={MagnifyingGlassPlusIcon} title={t`Zoom in`} onClick={() => zoomIn(0.1)} />
 				<DockIcon icon={MagnifyingGlassMinusIcon} title={t`Zoom out`} onClick={() => zoomOut(0.1)} />

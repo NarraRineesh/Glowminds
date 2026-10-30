@@ -382,7 +382,7 @@ function RouteComponent() {
 							{resumes.map((resume) => (
 								<Card
 									key={resume.id}
-									className="group flex aspect-square flex-col overflow-hidden transition-shadow hover:border-primary/30 hover:shadow-md"
+									className="group flex aspect-square flex-col overflow-hidden shadow-none hover:border-foreground/55"
 								>
 									<button
 										type="button"

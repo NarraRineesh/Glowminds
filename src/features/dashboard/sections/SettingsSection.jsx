@@ -141,10 +141,10 @@ function SettingsUpgradeBanner({ upgradePlan, onChoosePlan, onGoToBilling }) {
   const price = planPriceLabel(upgradePlan) || 'Pro'
   const highlight = (upgradePlan?.cardFeatures || []).find((f) => f.badge)?.text
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-primary/20 bg-primary/5 px-3 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:px-4">
+    <div className="flex flex-col gap-3 rounded-[var(--radius-panel)] border border-border bg-card px-5 py-3 shadow-none sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
       <div className="flex min-w-0 items-center gap-3">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-primary/10">
-          <AppIcon name="sparkle" className="size-4 text-primary" />
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border bg-muted">
+          <AppIcon name="credit-card" className="size-4 text-foreground" />
         </span>
         <div className="min-w-0">
           <p className="text-sm font-semibold text-foreground">
@@ -327,7 +327,7 @@ function BillingPanel({
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Current plan</p>
-              <p className="mt-1 text-lg font-black text-foreground">{planTitle}</p>
+              <p className="mt-1 text-lg font-semibold text-foreground">{planTitle}</p>
               {(priceLabel || cadence) && (
                 <p className="mt-1 text-sm font-medium text-foreground">
                   {[priceLabel || null, cadence].filter(Boolean).join(' · ')}
@@ -380,7 +380,7 @@ function BillingPanel({
       </DashboardCard>
 
       <DashboardCard
-        titleIcon="sparkle"
+        titleIcon="sliders"
         title="Included in your plan"
         contentClassName="flex flex-col gap-3"
       >

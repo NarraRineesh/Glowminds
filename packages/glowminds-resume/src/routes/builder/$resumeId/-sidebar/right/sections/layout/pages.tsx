@@ -413,7 +413,7 @@ function LayoutItemContent({ id, ref, isDragging, isOverlay, className, style, .
 			data-overlay={isOverlay ? "true" : undefined}
 			data-dragging={isDragging ? "true" : undefined}
 			className={cn(
-				"group/item flex cursor-grab touch-none select-none items-center gap-x-2 rounded-md border border-border bg-background px-2 py-1.5 font-medium text-sm transition-all duration-200 ease-out",
+				"group/item flex min-h-11 cursor-grab touch-none select-none items-center gap-x-3 rounded-[var(--radius-panel,0.875rem)] border border-border bg-card px-2 font-medium text-sm shadow-none",
 				"hover:bg-secondary/40 active:cursor-grabbing active:border-primary/60 active:bg-secondary/40",
 				"data-[overlay=true]:cursor-grabbing data-[overlay=true]:border-primary/60 data-[overlay=true]:bg-background",
 				"data-[dragging=true]:cursor-grabbing data-[dragging=true]:border-primary/60 data-[dragging=true]:bg-background",
@@ -421,7 +421,7 @@ function LayoutItemContent({ id, ref, isDragging, isOverlay, className, style, .
 			)}
 			{...rest}
 		>
-			<DotsSixVerticalIcon className="opacity-40 transition-opacity group-hover/item:opacity-100" />
+			<DotsSixVerticalIcon className="size-5 shrink-0 opacity-80" />
 			<span className="truncate">{title}</span>
 		</div>
 	);

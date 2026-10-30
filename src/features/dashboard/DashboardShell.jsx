@@ -52,8 +52,8 @@ export default function DashboardShell() {
           <div
             className={
               isPanelScroll
-                ? 'flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden px-3 pt-3 pb-3 sm:px-5 sm:pt-4 md:pb-4 lg:pr-9 lg:pl-7'
-                : '@container/dashboard min-h-0 w-full min-w-0 flex-1 overflow-y-auto overscroll-y-contain px-3 pt-3 pb-3 sm:px-5 sm:pt-4 md:pb-4 lg:pr-9 lg:pl-7 [-webkit-overflow-scrolling:touch]'
+                ? 'flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden px-5 pt-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pt-4 md:pb-4 lg:pr-9 lg:pl-7'
+                : '@container/dashboard min-h-0 w-full min-w-0 flex-1 overflow-y-auto overscroll-y-contain px-5 pt-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pt-4 md:pb-4 lg:pr-9 lg:pl-7 [-webkit-overflow-scrolling:touch]'
             }
           >
             <motion.div

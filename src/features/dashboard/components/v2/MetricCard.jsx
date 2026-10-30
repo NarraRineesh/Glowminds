@@ -30,7 +30,7 @@ export default function MetricCard({
       {children}
       {score != null && (
         <div className="flex items-end justify-between gap-2">
-          <span className="text-2xl font-black tabular-nums text-foreground">{score}</span>
+          <span className="text-2xl font-semibold tabular-nums text-foreground">{score}</span>
           <div className="text-right text-[0.7rem]">
             {status && <div className="font-medium text-foreground">{status}</div>}
             {delta != null && (

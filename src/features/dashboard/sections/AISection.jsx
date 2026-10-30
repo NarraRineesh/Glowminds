@@ -581,7 +581,7 @@ export default function AISection() {
             </div>
           </div>
 
-          <div className="shrink-0 border-t border-border bg-card/95 px-4 py-3 backdrop-blur sm:px-6 sm:py-4">
+          <div className="shrink-0 border-t border-border bg-card px-5 py-3 sm:px-6 sm:py-4">
             <div className="mx-auto flex w-full max-w-3xl items-end gap-2 sm:max-w-4xl lg:max-w-5xl">
               <Textarea
                 ref={inputRef}

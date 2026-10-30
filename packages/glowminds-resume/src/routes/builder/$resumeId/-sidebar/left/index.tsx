@@ -56,7 +56,7 @@ export function BuilderSidebarLeft() {
 				ref={scrollAreaRef}
 				className="@container h-full min-h-0 bg-background sm:ms-12 [&_[data-slot=scroll-area-viewport]]:overflow-y-auto"
 			>
-				<div className="space-y-4 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+				<div className="space-y-4 px-5 py-4 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
 					{leftSidebarSections.map((section) => (
 						<Fragment key={section}>
 							{getSectionComponent(section)}

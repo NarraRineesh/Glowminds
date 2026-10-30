@@ -49,8 +49,6 @@ const PAGE_PX = {
    Helpers
 ========================================================= */
 
-const uid = (prefix = 'id') => `${prefix}_${Math.random().toString(36).slice(2, 9)}`
-
 function handlePaste(e) {
   e.preventDefault()
   const text = (e.clipboardData || window.clipboardData).getData('text/plain')
@@ -101,6 +99,7 @@ function applyTemplateContent(tpl) {
 const editableCallbacks = new WeakMap()
 
 function Editable({ as: Tag = 'div', value, onChange, placeholder, singleLine = false, className, style }) {
+  const El = Tag
   const ref = useRef(null)
   useEffect(() => {
     const el = ref.current
@@ -1173,7 +1172,7 @@ function distributeBlocks(blocks, firstBudget, regularBudget) {
       budget = regular
     }
 
-    const { h, ...rest } = block
+    const { h: _blockHeight, ...rest } = block
     out[out.length - 1].push(rest)
     used += blockH
   }
@@ -1242,6 +1241,8 @@ export default function ResumeSection() {
         if (cancelled) return
 
         if (resumePayload?.syncedFromProfile && resumePayload.content) {
+          // openResume is declared later in this component; the effect runs after render.
+          // eslint-disable-next-line react-hooks/immutability
           openResume(resumePayload)
           setProfileSynced(true)
         } else {
@@ -1532,7 +1533,7 @@ export default function ResumeSection() {
             onClick={onImproveClick}
             title="Improve the selected text (or the focused field) with AI"
           >
-            <span className="ico">✦</span> <span className="label">Improve text</span>
+            <span className="label">Improve text</span>
           </button>
           <button className="rbv2-tb-btn" onClick={() => addToast('info', 'Spell check coming soon')} title="Spell check">
             <AppIcon name="text-aa" className="ico size-4" /> <span className="label">Check</span>

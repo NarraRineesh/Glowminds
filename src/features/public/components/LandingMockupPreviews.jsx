@@ -15,7 +15,7 @@ export function getLandingPreviewKey(src) {
   return match?.[1] || 'dashboard'
 }
 
-function DashboardPreview({ stats }) {
+function DashboardPreview() {
   return (
     <MockupShell className="space-y-4">
       <div className="grid grid-cols-3 gap-2">

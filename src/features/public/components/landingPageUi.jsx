@@ -5,7 +5,7 @@ import { Badge, cn } from '@/components/ui'
 export function LandingSection({ children, className, muted = false }) {
   return (
     <section className={cn(muted ? 'bg-muted/30' : '', 'py-12 md:py-16', className)}>
-      <div className="mx-auto max-w-6xl px-4 md:px-8">{children}</div>
+      <div className="mx-auto max-w-6xl px-5 md:px-8">{children}</div>
     </section>
   )
 }
@@ -43,40 +43,15 @@ export function LandingCheckList({ items }) {
 }
 
 const FEATURE_BADGE_CLASS = [
-  'border-primary/20 bg-primary/10 text-primary',
-  'border-emerald-500/20 bg-emerald-500/10 text-emerald-500',
-  'border-amber-500/20 bg-amber-500/10 text-amber-500',
-  'border-violet-500/20 bg-violet-500/10 text-violet-500',
-  'border-pink-500/20 bg-pink-500/10 text-pink-500',
-  'border-cyan-500/20 bg-cyan-500/10 text-cyan-500',
-  'border-teal-500/20 bg-teal-500/10 text-teal-500',
+  'border-border bg-card text-foreground',
 ]
 
 export function featureBadgeClass(index) {
   return FEATURE_BADGE_CLASS[index % FEATURE_BADGE_CLASS.length]
 }
 
-const TOOL_ICON_BG = {
-  resume: 'bg-primary/10 text-primary',
-  target: 'bg-emerald-500/10 text-emerald-500',
-  robot: 'bg-amber-500/10 text-amber-500',
-  microphone: 'bg-violet-500/10 text-violet-500',
-  dashboard: 'bg-pink-500/10 text-pink-500',
-  'grammar-check': 'bg-teal-500/10 text-teal-500',
-  'envelope-open': 'bg-cyan-500/10 text-cyan-500',
-  linkedin: 'bg-primary/10 text-primary',
-  'cover-letters': 'bg-pink-500/10 text-pink-500',
-  pencil: 'bg-violet-500/10 text-violet-500',
-  calendar: 'bg-emerald-500/10 text-emerald-500',
-  code: 'bg-amber-500/10 text-amber-500',
-  chart: 'bg-primary/10 text-primary',
-  bell: 'bg-amber-500/10 text-amber-500',
-  lock: 'bg-muted text-foreground',
-  sparkle: 'bg-violet-500/10 text-violet-500',
-}
-
-export function toolIconClass(ico) {
-  return TOOL_ICON_BG[ico] || 'bg-muted text-foreground'
+export function toolIconClass() {
+  return 'bg-muted text-foreground'
 }
 
 export function LandingFeatureGrid({ reverse, children }) {

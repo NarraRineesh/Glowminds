@@ -98,33 +98,24 @@ export default function SignupPage() {
       <SEO {...PAGE_SEO.signup} />
       <div className="relative flex min-h-svh overflow-hidden">
         <div aria-hidden className="pointer-events-none absolute inset-0 bg-background" />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,color-mix(in_srgb,var(--primary)_18%,transparent),transparent_65%)]"
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,color-mix(in_srgb,var(--border)_40%,transparent)_1px,transparent_1px),linear-gradient(to_bottom,color-mix(in_srgb,var(--border)_40%,transparent)_1px,transparent_1px)] bg-size-[48px_48px] [mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_75%)]"
-        />
-
         <ChromeHomeLink
-          className="absolute left-4 top-4 z-20 inline-flex items-center gap-2 rounded-lg px-1 py-1 transition-colors hover:bg-muted/60 md:left-8 md:top-6"
+          className="absolute left-5 top-[max(1rem,env(safe-area-inset-top))] z-20 inline-flex min-h-11 items-center gap-2 rounded-lg px-1 py-1 transition-colors hover:bg-muted/60 md:left-8 md:top-6"
         >
           <BrandLogo variant="full" size={28} forceDark alt="" aria-hidden />
           <GlowmindsWordmark className="hidden text-sm text-foreground sm:inline" />
         </ChromeHomeLink>
 
-        <div className="relative z-10 mx-auto grid w-full max-w-6xl flex-1 items-center gap-8 px-4 py-10 pb-12 md:grid-cols-2 md:gap-12 md:px-8 md:py-8 lg:gap-16">
+        <div className="relative z-10 mx-auto grid w-full max-w-6xl flex-1 items-center gap-8 px-5 py-10 pb-[max(3rem,env(safe-area-inset-bottom))] md:grid-cols-2 md:gap-12 md:px-8 md:py-8 lg:gap-16">
 
           {/* Left: Benefits panel (hidden on mobile) */}
           <motion.div className="hidden flex-col gap-7 md:flex" variants={stagger} initial="hidden" animate="visible">
             <motion.div variants={fadeUp} transition={{ duration: .6, ease }}>
-              <Badge variant="outline" className="mb-4 border-emerald-500/20 bg-emerald-500/10 text-emerald-500">
-                ✦ FREE TO START
+              <Badge variant="outline" className="mb-4 border-border bg-card text-foreground">
+                Free to start
               </Badge>
-              <h2 className="mb-3 text-[clamp(1.6rem,3vw,2.4rem)] font-black leading-tight tracking-tight">
+              <h2 className="mb-3 text-[clamp(1.6rem,3vw,2.4rem)] font-semibold leading-tight tracking-tight">
                 Launch Your Career<br />
-                <span className="bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">In Minutes</span>
+                <span className="text-primary">In Minutes</span>
               </h2>
               <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
                 Join thousands of students who found their dream jobs using our AI-powered platform. It's free, fast, and built for freshers.
@@ -149,7 +140,7 @@ export default function SignupPage() {
                 "Signed up, built my resume in 2 minutes, and got 3 interview calls in my first week. This platform is insane for freshers!"
               </p>
               <div className="flex items-center gap-2.5">
-                <div className="flex size-8 items-center justify-center rounded-full border-2 border-border bg-gradient-to-br from-primary to-emerald-500 text-xs font-bold text-white">
+                <div className="flex size-8 items-center justify-center rounded-full border-2 border-border bg-primary text-xs font-bold text-primary-foreground">
                   AV
                 </div>
                 <div>
@@ -175,7 +166,7 @@ export default function SignupPage() {
                       <BrandLogo variant="full" size={48} forceDark alt="Glowminds" />
                     </ChromeHomeLink>
                   </div>
-                  <h1 className="text-xl font-black">Create Your Account</h1>
+                  <h1 className="text-xl font-semibold">Create Your Account</h1>
                   <p className="mt-1 text-sm text-muted-foreground">Smart tools for your career journey</p>
                 </div>
 

@@ -36,7 +36,7 @@ function normalizeSuggestion(raw) {
 
 export default function GrammarCheckSection() {
   const { addToast } = useAppStore()
-  const { credits, creditCosts, isPro, loading: entitlementsLoading, refresh: refreshEntitlements } = useEntitlements()
+  const { credits, creditCosts, refresh: refreshEntitlements } = useEntitlements()
   const grammarCost = creditCosts?.grammar ?? DEFAULT_PRICING_CONFIG.creditCosts.grammar ?? 1
   const creditBalance = credits?.balance
   const canRun = creditBalance == null || creditBalance >= grammarCost
@@ -106,7 +106,7 @@ export default function GrammarCheckSection() {
       ) : (
         <div className="space-y-4">
           <div className="flex items-center gap-3">
-            <span className={cn('text-3xl font-black tabular-nums', scoreColor(result.score))}>{result.score}</span>
+            <span className={cn('text-3xl font-semibold tabular-nums', scoreColor(result.score))}>{result.score}</span>
             <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Quality score</span>
           </div>
           <Progress

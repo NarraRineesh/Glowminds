@@ -8,15 +8,25 @@ import { LoadingScreen } from "@/components/layout/loading-screen";
 import { ResumePreview } from "@/features/resume/preview/preview";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { BuilderDock } from "./dock";
-import { fitPreviewToScreen } from "./fit-to-screen";
-import { DEFAULT_BUILDER_PREVIEW_PAGE_LAYOUT, getNextBuilderPreviewPageLayout } from "./page-layout";
+import { fitPreviewToScreen, type FitMode } from "./fit-to-screen";
+import {
+	DEFAULT_BUILDER_PREVIEW_PAGE_LAYOUT,
+	getNextBuilderPreviewPageLayout,
+	type BuilderPreviewPageLayout,
+} from "./page-layout";
 
 /**
  * Fit the resume into the viewport once page size is known.
  * Re-runs on content resize so we don't lock in a pre-PDF measurement
  * (which grows from origin 0,0 and looks right-shifted).
  */
-function FitPreviewOnOpen({ padding = 0.95 }: { padding?: number }) {
+function FitPreviewOnOpen({
+	padding = 0.95,
+	mode = "contain",
+}: {
+	padding?: number;
+	mode?: FitMode;
+}) {
 	const controls = useControls();
 	const controlsRef = useRef(controls);
 	controlsRef.current = controls;
@@ -40,7 +50,7 @@ function FitPreviewOnOpen({ padding = 0.95 }: { padding?: number }) {
 			}
 			lastKey = key;
 			stableCount = 0;
-			fitPreviewToScreen(controlsRef.current, padding, animationTime);
+			fitPreviewToScreen(controlsRef.current, padding, animationTime, mode);
 		};
 
 		const schedule = () => {
@@ -74,14 +84,18 @@ function FitPreviewOnOpen({ padding = 0.95 }: { padding?: number }) {
 			for (const id of bootTimers) window.clearTimeout(id);
 			observer?.disconnect();
 		};
-	}, [controls.instance, padding]);
+	}, [controls.instance, mode, padding]);
 
 	return null;
 }
 
 export function PreviewPage() {
 	const isMobile = useIsMobile();
-	const [pageLayout, setPageLayout] = useState(DEFAULT_BUILDER_PREVIEW_PAGE_LAYOUT);
+	const [pageLayout, setPageLayout] = useState<BuilderPreviewPageLayout>(() =>
+		typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches
+			? "vertical"
+			: DEFAULT_BUILDER_PREVIEW_PAGE_LAYOUT,
+	);
 
 	useHotkey("Mod+S", () => {
 		toast.info(t`Your changes are saved automatically.`, { id: "auto-save", icon: <FloppyDiskIcon /> });
@@ -99,9 +113,9 @@ export function PreviewPage() {
 					wheel={{ step: 0.001 }}
 					doubleClick={{ disabled: isMobile }}
 				>
-					<FitPreviewOnOpen padding={isMobile ? 0.94 : 0.9} />
+					<FitPreviewOnOpen padding={isMobile ? 0.98 : 0.9} mode={isMobile ? "width" : "contain"} />
 					<TransformComponent wrapperClass="h-full! w-full!" contentClass="!w-max">
-						<div className={isMobile ? "px-2 py-2" : undefined}>
+						<div className={isMobile ? "py-2" : undefined}>
 							<ResumePreview showPageNumbers={!isMobile} pageLayout={pageLayout} />
 						</div>
 					</TransformComponent>

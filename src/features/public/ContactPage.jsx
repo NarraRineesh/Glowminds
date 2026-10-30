@@ -125,10 +125,10 @@ export default function ContactPage() {
         <PublicPageHeroBackdrop />
         <PublicPageContainer className="relative z-10 text-center">
           <Badge variant="secondary" className="mb-4 border-primary/20 bg-primary/10 text-primary">
-            ✦ CONTACT US
+            Contact
           </Badge>
-          <h1 className="mb-4 text-[clamp(2rem,4vw,3rem)] font-black leading-tight tracking-tight text-foreground">
-            Get in <span className="bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">Touch</span>
+          <h1 className="mb-4 text-[clamp(2rem,4vw,3rem)] font-semibold leading-tight tracking-tight text-foreground">
+            Get in <span className="text-primary">Touch</span>
           </h1>
           <p className="mx-auto max-w-xl text-sm leading-relaxed text-muted-foreground md:text-base">
             Have questions, feedback, or just want to say hi? We&apos;d love to hear from you.

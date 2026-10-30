@@ -58,7 +58,7 @@ export function ToolSidebarLayout({
 
 export function ToolEmptyState({ icon: Icon, title, description }) {
   return (
-    <div className="flex flex-col items-center gap-2 py-4 text-center sm:py-8">
+    <div className="flex flex-col items-start gap-2 rounded-[var(--radius-panel)] border border-dashed border-border px-5 py-6">
       {Icon ? <Icon className="size-8 text-muted-foreground/50" /> : null}
       {title ? <p className="text-sm font-medium text-foreground">{title}</p> : null}
       {description ? <p className="max-w-sm text-sm text-muted-foreground">{description}</p> : null}

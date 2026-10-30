@@ -63,7 +63,7 @@ export default function VerifyEmailPage() {
   return (
     <>
       <SEO {...PAGE_SEO.verifyEmail} />
-      <div className="relative flex min-h-svh items-center justify-center overflow-hidden px-4">
+      <div className="relative flex min-h-svh items-center justify-center overflow-hidden px-5 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
         <div aria-hidden className="pointer-events-none absolute inset-0 bg-background" />
         <Card className="relative z-10 w-full max-w-md">
           <CardContent className="p-6 sm:p-7">
@@ -74,7 +74,7 @@ export default function VerifyEmailPage() {
               <Badge variant="outline" className="mb-3 border-primary/20 bg-primary/10 text-primary">
                 Check your email
               </Badge>
-              <h1 className="text-xl font-black">Verify your email</h1>
+              <h1 className="text-xl font-semibold">Verify your email</h1>
               <p className="mt-2 text-sm text-muted-foreground">
                 We sent a link to <strong className="text-foreground">{user?.email}</strong>. Verify it, then continue to set your target role and build your first resume. Google sign-in skips this step.
               </p>

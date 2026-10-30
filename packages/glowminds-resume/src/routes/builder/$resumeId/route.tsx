@@ -18,6 +18,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { createNoindexFollowMeta } from "@/libs/seo";
 import { cn } from "@/lib/utils/style";
 import { isEmbedded } from "@/embed/runtime";
+import { EyeIcon, PaletteIcon, PencilSimpleIcon } from "@phosphor-icons/react";
 import { BuilderHeader } from "./-components/header";
 import { BuilderSidebarLeft } from "./-sidebar/left";
 import { BuilderSidebarRight } from "./-sidebar/right";
@@ -152,7 +153,7 @@ function BuilderLayoutShell({ initialLayout }: BuilderLayoutShellProps) {
 			) : (
 				<ResizableGroup
 					orientation="horizontal"
-					className="mt-14 min-h-0 flex-1"
+					className="mt-[calc(3.5rem+env(safe-area-inset-top))] min-h-0 flex-1"
 					onLayoutChanged={onLayoutChanged}
 				>
 					<ResizablePanel
@@ -196,8 +197,11 @@ function BuilderLayoutShell({ initialLayout }: BuilderLayoutShellProps) {
 	);
 }
 
+const MOBILE_TAB_CLEARANCE = "calc(3.75rem + env(safe-area-inset-bottom))";
+
 function MobileBuilderStage() {
 	const overlay = useBuilderSidebarStore((state) => state.mobileOverlay);
+	const setMobileOverlay = useBuilderSidebarStore((state) => state.setMobileOverlay);
 
 	useEffect(() => {
 		if (!overlay) return undefined;
@@ -210,16 +214,76 @@ function MobileBuilderStage() {
 	}, [overlay]);
 
 	return (
-		<div className="relative mt-14 min-h-0 flex-1">
-			<div className="h-full min-h-0 overflow-hidden">
+		<div className="relative mt-[calc(3.5rem+env(safe-area-inset-top))] min-h-0 flex-1">
+			<div
+				className="absolute inset-x-0 top-0 min-h-0 overflow-hidden"
+				style={{ bottom: MOBILE_TAB_CLEARANCE }}
+			>
 				<Outlet />
 			</div>
 			{overlay ? (
-				<div className="absolute inset-0 z-40 flex min-h-0 flex-col bg-background">
+				<div
+					className="absolute inset-x-0 top-0 z-40 flex min-h-0 flex-col bg-background"
+					style={{ bottom: MOBILE_TAB_CLEARANCE }}
+				>
 					{overlay === "left" ? <BuilderSidebarLeft /> : <BuilderSidebarRight />}
 				</div>
 			) : null}
+			<nav
+				aria-label="Resume builder"
+				className="absolute inset-x-0 bottom-0 z-50 border-t border-border bg-background px-5 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+			>
+				<div className="grid grid-cols-3 gap-2">
+					<MobileBuilderTab
+						label="Edit"
+						icon={PencilSimpleIcon}
+						selected={overlay === "left"}
+						onSelect={() => setMobileOverlay("left")}
+					/>
+					<MobileBuilderTab
+						label="Preview"
+						icon={EyeIcon}
+						selected={overlay == null}
+						onSelect={() => setMobileOverlay(null)}
+					/>
+					<MobileBuilderTab
+						label="Design"
+						icon={PaletteIcon}
+						selected={overlay === "right"}
+						onSelect={() => setMobileOverlay("right")}
+					/>
+				</div>
+			</nav>
 		</div>
+	);
+}
+
+function MobileBuilderTab({
+	label,
+	icon: Icon,
+	selected,
+	onSelect,
+}: {
+	label: string;
+	icon: React.ComponentType<{ className?: string }>;
+	selected: boolean;
+	onSelect: () => void;
+}) {
+	return (
+		<button
+			type="button"
+			aria-pressed={selected}
+			onClick={onSelect}
+			className={cn(
+				"flex h-11 items-center justify-center gap-2 rounded-[var(--radius-panel,0.875rem)] border px-2 text-sm font-semibold",
+				selected
+					? "border-primary bg-primary text-primary-foreground"
+					: "border-border bg-card text-foreground",
+			)}
+		>
+			<Icon className="size-4" />
+			{label}
+		</button>
 	);
 }
 

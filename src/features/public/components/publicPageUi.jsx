@@ -1,8 +1,8 @@
 import { cn } from '@/components/ui'
 
 /** Shared horizontal container for marketing / legal pages */
-export const PUBLIC_CONTAINER = 'mx-auto max-w-6xl px-4 md:px-8'
-export const PUBLIC_CONTAINER_NARROW = 'mx-auto max-w-3xl px-4 md:px-8'
+export const PUBLIC_CONTAINER = 'mx-auto max-w-6xl px-5 md:px-8'
+export const PUBLIC_CONTAINER_NARROW = 'mx-auto max-w-3xl px-5 md:px-8'
 
 /** Standard vertical rhythm between page sections */
 export const PUBLIC_SECTION_PY = 'py-12 md:py-16'
@@ -30,15 +30,9 @@ export function PublicPageContainer({ children, className, narrow = false }) {
   )
 }
 
-/** Hero background gradients — wrap content in PublicPageContainer */
+/** Quiet hero ground. No glow, mesh, or blurred orbs. */
 export function PublicPageHeroBackdrop() {
-  return (
-    <>
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,color-mix(in_oklab,var(--primary)_12%,transparent),transparent)]" />
-      <div className="pointer-events-none absolute -left-20 top-1/4 size-64 rounded-full bg-primary/10 blur-3xl" />
-      <div className="pointer-events-none absolute -right-20 top-1/3 size-48 rounded-full bg-emerald-500/10 blur-3xl" />
-    </>
-  )
+  return null
 }
 
 /** Responsive 3-column comparison row (feature + 2 tiers) */

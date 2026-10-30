@@ -191,7 +191,7 @@ export default function ApplicationsSection() {
   return (
     <>
       <div className="min-w-0 space-y-4 sm:space-y-6">
-        <div className="sticky top-14 z-20 -mx-1 flex flex-wrap items-center justify-between gap-2 bg-background/95 px-1 py-2 backdrop-blur sm:static sm:top-auto sm:bg-transparent sm:py-0 sm:backdrop-blur-none">
+        <div className="sticky top-14 z-20 -mx-1 flex flex-wrap items-center justify-between gap-2 bg-background px-1 py-2 sm:static sm:top-auto sm:bg-transparent sm:py-0">
           <PageTitle
             className="mb-0 max-sm:hidden"
             title="Application Tracker"

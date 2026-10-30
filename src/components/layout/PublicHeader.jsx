@@ -51,8 +51,8 @@ export default function PublicHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/80 bg-background/85 backdrop-blur-md supports-[backdrop-filter]:bg-background/70">
-      <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4 md:px-8">
+    <header className="sticky top-0 z-50 border-b border-border bg-background pt-[env(safe-area-inset-top)]">
+      <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-5 md:px-8">
         <ChromeHomeLink className="flex min-w-0 shrink-0 items-center gap-2" aria-label="Glowminds home">
           <BrandLogo size={32} alt="" aria-hidden className="rounded-lg" />
           {isLg ? <GlowmindsWordmark className="text-sm text-foreground" /> : null}

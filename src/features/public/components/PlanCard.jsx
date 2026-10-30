@@ -112,7 +112,7 @@ export default function PlanCard({
               {plan.period || ''}
             </span>
           ) : null}
-          <CardTitle className="text-3xl font-black tracking-tight xl:text-4xl">{plan.displayPrice || '—'}</CardTitle>
+          <CardTitle className="text-3xl font-semibold tracking-tight xl:text-4xl">{plan.displayPrice || '—'}</CardTitle>
           {plan.period ? <span className="text-sm text-muted-foreground">{plan.period}</span> : null}
         </div>
         {plan.monthlyEquivalent ? (

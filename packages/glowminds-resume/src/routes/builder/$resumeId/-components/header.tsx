@@ -44,10 +44,12 @@ export function BuilderHeader() {
 	const isMobile = useIsMobile();
 
 	return (
-		<div className="absolute inset-x-0 top-0 z-50 flex h-14 shrink-0 items-center justify-between border-b bg-popover px-1.5">
+		<div className="absolute inset-x-0 top-0 z-50 border-b border-border bg-background pt-[env(safe-area-inset-top)]">
+		<div className="flex h-14 items-center justify-between px-2 sm:px-1.5">
 			<Button
 				size="icon"
 				variant="ghost"
+				className="max-sm:size-11"
 				aria-expanded={isMobile ? mobileOverlay === "left" : undefined}
 				onClick={() => toggleSidebar("left")}
 			>
@@ -83,6 +85,7 @@ export function BuilderHeader() {
 			<Button
 				size="icon"
 				variant="ghost"
+				className="max-sm:size-11"
 				aria-expanded={isMobile ? mobileOverlay === "right" : undefined}
 				onClick={() => toggleSidebar("right")}
 			>
@@ -93,6 +96,7 @@ export function BuilderHeader() {
 					</Trans>
 				</span>
 			</Button>
+		</div>
 		</div>
 	);
 }

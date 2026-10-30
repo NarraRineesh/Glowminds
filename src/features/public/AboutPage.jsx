@@ -29,18 +29,16 @@ const MISSION_HIGHLIGHTS = [
 ]
 
 const VALUE_BADGES = [
-  ['Equal Access', 'border-primary/20 bg-primary/10 text-primary'],
-  ['AI-First', 'border-emerald-500/20 bg-emerald-500/10 text-emerald-500'],
-  ['Student-Priced', 'border-amber-500/20 bg-amber-500/10 text-amber-500'],
-  ['Privacy First', 'border-violet-500/20 bg-violet-500/10 text-violet-500'],
+  ['Equal Access', 'border-border bg-card text-foreground'],
+  ['AI-First', 'border-border bg-card text-foreground'],
+  ['Student-Priced', 'border-border bg-card text-foreground'],
+  ['Privacy First', 'border-border bg-card text-foreground'],
 ]
 
 function PageHero({ badge, title, highlight, description }) {
   return (
-    <section className="relative overflow-hidden py-12 md:py-16">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,color-mix(in_oklab,var(--primary)_12%,transparent),transparent)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,color-mix(in_oklab,var(--border)_50%,transparent)_1px,transparent_1px),linear-gradient(to_bottom,color-mix(in_oklab,var(--border)_50%,transparent)_1px,transparent_1px)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]" />
-      <div className="relative z-10 mx-auto max-w-6xl px-4 text-center md:px-8">
+    <section className="relative overflow-hidden border-b border-border py-12 md:py-16">
+      <div className="relative z-10 mx-auto max-w-6xl px-5 text-center md:px-8">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: motionEase }}>
           <Badge variant="secondary" className="mb-4 border-primary/20 bg-primary/10 text-primary">
             {badge}
@@ -50,9 +48,9 @@ function PageHero({ badge, title, highlight, description }) {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: motionEase, delay: 0.1 }}
-          className="mb-4 text-4xl font-black leading-tight tracking-tight text-foreground md:text-5xl"
+          className="mb-4 text-4xl font-semibold leading-tight tracking-tight text-foreground md:text-5xl"
         >
-          {title} <span className="bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">{highlight}</span>
+          {title} <span className="text-primary">{highlight}</span>
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, y: 20 }}
@@ -92,14 +90,14 @@ export default function AboutPage() {
       />
 
       <PageHero
-        badge="✦ ABOUT US"
+        badge="About"
         title="We're Building the"
         highlight="Career Operating System"
         description="Glowminds is an AI-Powered Career Operating System — not just a resume site. Every student gets professional-grade tools: resumes, jobs, Glow (Bot), interviews, and tracking."
       />
 
       <section className="pb-12 md:pb-16">
-        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-4 px-4 md:px-8 lg:grid-cols-2">
+        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-4 px-5 md:px-8 lg:grid-cols-2">
           <motion.div initial={{ opacity: 0, x: -40 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, ease: motionEase }}>
             <Card className="h-full">
               <CardHeader>
@@ -159,7 +157,7 @@ export default function AboutPage() {
                   {aboutMetrics.map((metric, i, arr) => (
                     <div key={metric.label} className="flex items-center gap-4">
                       <div className="text-center">
-                        <div className="font-mono text-lg font-black bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">{metric.value}</div>
+                        <div className="font-mono text-lg font-semibold text-primary">{metric.value}</div>
                         <div className="text-[10px] text-muted-foreground">{metric.label}</div>
                       </div>
                       {i < arr.length - 1 && <Separator orientation="vertical" className="hidden h-8 sm:block" />}
@@ -179,10 +177,10 @@ export default function AboutPage() {
         transition={{ duration: 0.6, ease: motionEase }}
         className="pb-12 md:pb-16"
       >
-        <div className="mx-auto max-w-6xl px-4 md:px-8">
+        <div className="mx-auto max-w-6xl px-5 md:px-8">
           <Card className="relative overflow-hidden text-center">
             <CardContent className="relative py-10 md:py-12">
-              <h2 className="mb-3 text-2xl font-black text-foreground md:text-3xl">{socialProof.joinStudentsTitle || 'Join students getting hired'}</h2>
+              <h2 className="mb-3 text-2xl font-semibold text-foreground md:text-3xl">{socialProof.joinStudentsTitle || 'Join students getting hired'}</h2>
               <p className="mx-auto mb-6 max-w-md text-base text-muted-foreground">Start building your career today — completely free.</p>
               <div className="mb-3 flex flex-wrap justify-center gap-3">
                 <Button size="lg" nativeButton={false} render={<AppAuthLink to="/signup" />}>

@@ -22,7 +22,7 @@ export default function Footer() {
 
   return (
     <footer className="mt-auto border-t border-border bg-muted/30">
-      <div className="mx-auto max-w-6xl px-4 py-8 md:px-8">
+      <div className="mx-auto max-w-6xl px-5 py-8 pb-[max(2rem,env(safe-area-inset-bottom))] md:px-8">
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-3 sm:col-span-2 lg:col-span-1">
             <ChromeHomeLink className="inline-flex min-h-11 items-center gap-2">

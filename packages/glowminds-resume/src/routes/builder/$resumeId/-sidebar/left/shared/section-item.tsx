@@ -254,7 +254,7 @@ export function SectionItem<T extends CustomSectionItem | SectionItemType>({
 			className="group relative flex h-18 select-none border-b will-change-[transform,opacity]"
 		>
 			<div
-				className="flex cursor-ns-resize touch-none items-center px-1.5 opacity-40 transition-[background-color,opacity] hover:bg-secondary/40 group-hover:opacity-100"
+				className="flex min-h-11 min-w-11 cursor-ns-resize touch-none items-center justify-center opacity-100 hover:bg-secondary/40 sm:opacity-40 sm:group-hover:opacity-100"
 				onPointerDown={(e) => {
 					e.preventDefault();
 					controls.start(e);
@@ -276,7 +276,7 @@ export function SectionItem<T extends CustomSectionItem | SectionItemType>({
 			</button>
 
 			<DropdownMenu>
-				<DropdownMenuTrigger className="flex cursor-context-menu items-center px-1.5 opacity-40 transition-[background-color,opacity] hover:bg-secondary/40 focus:outline-none focus-visible:ring-1 group-hover:opacity-100">
+				<DropdownMenuTrigger className="flex min-h-11 min-w-11 cursor-context-menu items-center justify-center opacity-100 hover:bg-secondary/40 focus:outline-none focus-visible:ring-1 sm:opacity-40 sm:group-hover:opacity-100">
 					<DotsThreeVerticalIcon />
 				</DropdownMenuTrigger>
 

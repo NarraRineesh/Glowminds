@@ -464,7 +464,7 @@ export default function JobsSection() {
 
               <div className={cn('transition-opacity duration-200', isRefreshing && !isSavedBoard && 'pointer-events-none opacity-60')}>
                 {showEmpty ? (
-                  <div className="flex flex-col items-center px-2 py-8 text-center sm:px-4 sm:py-12">
+                  <div className="flex flex-col items-start rounded-[var(--radius-panel)] border border-dashed border-border px-5 py-8 text-left">
                     <AppIcon name="search" className="mb-3 size-8 opacity-40 sm:size-10" />
                     <h3 className="text-base font-bold text-foreground sm:text-lg">
                       {isSavedBoard ? 'No saved jobs' : 'No jobs found'}
@@ -478,7 +478,7 @@ export default function JobsSection() {
                             ? `Nothing matched “${search.trim()}”. Try a shorter keyword.`
                             : 'Try a role, skill, or company name.'}
                     </p>
-                    <div className="mt-4 flex flex-wrap justify-center gap-2">
+                    <div className="mt-4 flex flex-wrap gap-2">
                       {isSavedBoard ? (
                         <Button size="sm" onClick={() => setBoardTab('browse')}>Browse jobs</Button>
                       ) : bestMatchOnly ? (

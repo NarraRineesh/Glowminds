@@ -82,10 +82,11 @@ export function BrandLogo({
 }
 
 export function GlowmindsWordmark({ className, as: Tag = 'span' }) {
+  const El = Tag
   return (
-    <Tag className={cn('truncate font-bold', className)}>
+    <El className={cn('truncate font-bold', className)}>
       Glowminds
-    </Tag>
+    </El>
   )
 }
 

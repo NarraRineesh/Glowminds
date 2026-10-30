@@ -54,13 +54,12 @@ export function ThemeProvider({ children }) {
 
 export default function useTheme() {
   const ctx = useContext(ThemeContext)
-  if (ctx != null) return ctx
-
   const [fallbackTheme, setFallbackTheme] = useState(readStoredTheme)
 
   useEffect(() => {
+    if (ctx != null) return
     applyDocumentTheme(fallbackTheme)
-  }, [fallbackTheme])
+  }, [ctx, fallbackTheme])
 
   const fallbackToggle = useCallback(() => {
     setFallbackTheme((t) => (t === 'dark' ? 'light' : 'dark'))
@@ -70,5 +69,6 @@ export default function useTheme() {
     setFallbackTheme(next === 'light' ? 'light' : 'dark')
   }, [])
 
+  if (ctx != null) return ctx
   return { theme: fallbackTheme, setTheme: fallbackSet, toggleTheme: fallbackToggle }
 }

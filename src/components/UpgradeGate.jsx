@@ -55,7 +55,7 @@ export default function UpgradeGate({
           </div>
           <div className="space-y-2">
             <p className="text-xs font-bold uppercase tracking-wider text-primary">Pro feature</p>
-            <h2 className="text-xl font-black text-foreground">{title}</h2>
+            <h2 className="text-xl font-semibold text-foreground">{title}</h2>
             <p className="text-sm leading-relaxed text-muted-foreground">{body}</p>
           </div>
           {bullets.length > 0 && (

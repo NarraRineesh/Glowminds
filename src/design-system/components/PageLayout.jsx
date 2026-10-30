@@ -21,7 +21,7 @@ export function PageLayout({ children, width = 'md', className }) {
         tabIndex={-1}
         className={cn(
           'mx-auto w-full min-w-0 outline-none',
-          'px-[var(--space-4)] pt-[max(var(--space-4),env(safe-area-inset-top))]',
+          'px-[var(--gutter)] pt-[max(var(--gutter),env(safe-area-inset-top))]',
           'pb-[max(var(--space-6),env(safe-area-inset-bottom))]',
           'sm:px-[var(--space-6)]',
           WIDTH[width] || WIDTH.md,

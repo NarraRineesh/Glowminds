@@ -290,14 +290,14 @@ export default function SalaryInsightsSection() {
             </p>
             {range ? (
               <>
-                <p className="mt-2 text-3xl font-black tabular-nums text-foreground sm:text-4xl">
+                <p className="mt-2 text-3xl font-semibold tabular-nums text-foreground sm:text-4xl">
                   ₹{range[0]}–{range[1]} <span className="text-lg font-bold text-muted-foreground">LPA</span>
                 </p>
                 <p className="mt-1 text-sm text-muted-foreground">Median estimate: ₹{median} LPA</p>
               </>
             ) : (
               <div className="mt-3 space-y-2">
-                <p className="text-2xl font-black text-muted-foreground/40 blur-[2px] select-none">₹??–?? LPA</p>
+                <p className="text-2xl font-semibold text-muted-foreground/40 blur-[2px] select-none">₹??–?? LPA</p>
                 <p className="text-sm text-muted-foreground">
                   Full ranges for all role × city combinations unlock with Pro.
                 </p>
@@ -359,7 +359,7 @@ export default function SalaryInsightsSection() {
             </DashboardCard>
 
             <DashboardCard
-              titleIcon="sparkle"
+              titleIcon="trend-up"
               title="AI negotiation script"
               action={(
                 <Button

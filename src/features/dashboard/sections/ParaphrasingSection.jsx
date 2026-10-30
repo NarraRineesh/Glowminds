@@ -181,7 +181,7 @@ export default function ParaphrasingSection() {
 
   const variantsCard = (
     <DashboardCard
-      titleIcon="sparkle"
+      titleIcon="pencil"
       title="Variants"
       action={
         variants.length > 0 ? (

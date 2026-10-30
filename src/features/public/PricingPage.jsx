@@ -44,9 +44,9 @@ function PageHero({ eyebrow, title, highlight, description }) {
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: motionEase, delay: 0.1 }}
-          className="mb-4 text-4xl font-black leading-tight tracking-tight text-foreground md:text-5xl"
+          className="mb-4 text-4xl font-semibold leading-tight tracking-tight text-foreground md:text-5xl"
         >
-          {title} <span className="bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">{highlight}</span>
+          {title} <span className="text-primary">{highlight}</span>
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, y: 20 }}
@@ -142,7 +142,7 @@ export default function PricingPage() {
       {faqs.length > 0 && (
         <section className="pb-16 md:pb-20">
           <div className={cn(PUBLIC_CONTAINER, 'max-w-3xl')}>
-            <h2 className="mb-6 text-center text-2xl font-black text-foreground md:text-3xl">FAQ</h2>
+            <h2 className="mb-6 text-center text-2xl font-semibold text-foreground md:text-3xl">FAQ</h2>
             <Accordion className="space-y-2">
               {faqs.map((f, i) => (
                 <PublicFaqItem key={f.id || f.q} q={f.q} a={f.a} value={`faq-${f.id || i}`} variant="pricing" />

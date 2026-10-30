@@ -31,7 +31,7 @@ export default function CareersDemoPage() {
         <PublicPageHeroBackdrop />
         <PublicPageContainer className="relative z-10">
           <p className="m-0 text-xs font-semibold uppercase tracking-wide text-primary">Live demo</p>
-          <h1 className="mt-2 mb-2 text-3xl font-black tracking-tight md:text-4xl">
+          <h1 className="mt-2 mb-2 text-3xl font-semibold tracking-tight md:text-4xl">
             Careers & Internships
           </h1>
           <p className="mb-4 max-w-2xl text-sm text-muted-foreground md:text-base">

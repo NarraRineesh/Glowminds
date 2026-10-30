@@ -60,7 +60,7 @@ export default function LandingHeroVideo() {
         }
         className="relative will-change-transform"
       >
-        <div className="overflow-hidden rounded-xl border border-border bg-card shadow-xl shadow-black/10 dark:shadow-black/40">
+        <div className="overflow-hidden rounded-[var(--radius-panel)] border border-border bg-card shadow-none">
           <div className="flex items-center gap-2 border-b border-border bg-muted/50 px-3 py-2">
             <div className="flex gap-1.5">
               <span className="size-2 rounded-full bg-destructive/80" />
@@ -76,7 +76,7 @@ export default function LandingHeroVideo() {
             <LandingHeroUserFlow initialSceneId="resume" />
             <div
               aria-hidden
-              className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-16 bg-gradient-to-t from-background/80 to-transparent md:h-20"
+              className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-px bg-border"
             />
           </div>
         </div>

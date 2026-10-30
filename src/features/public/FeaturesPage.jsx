@@ -31,7 +31,7 @@ import {
 
 const CAPABILITY_PILLS = [
   { icon: 'target', label: 'Updated Job Database Daily' },
-  { icon: 'sparkle', label: 'AI-Powered Matching' },
+  { icon: 'robot', label: 'AI-Powered Matching' },
   { icon: 'resume', label: 'ATS Resume Optimization' },
   { icon: 'microphone', label: 'Mock Interview Practice' },
 ]
@@ -110,9 +110,9 @@ function SectionHead({ badge, badgeClass, title, highlight, description }) {
       <Badge variant="secondary" className={cn('mb-4', badgeClass)}>
         {badge}
       </Badge>
-      <h2 className="mb-3 text-3xl font-black text-foreground md:text-4xl">
+      <h2 className="mb-3 text-3xl font-semibold text-foreground md:text-4xl">
         {title}{' '}
-        <span className="bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">{highlight}</span>
+        <span className="text-primary">{highlight}</span>
       </h2>
       <p className="mx-auto max-w-2xl text-muted-foreground">{description}</p>
     </motion.div>
@@ -190,7 +190,7 @@ function PipelineVisualization() {
         ].map((k) => (
           <div key={k.l} className="rounded-xl border border-border bg-card p-3 text-center">
             <div className="text-xs font-semibold text-muted-foreground">{k.l}</div>
-            <div className={cn('text-xl font-black', k.c)}>{k.v}</div>
+            <div className={cn('text-xl font-semibold', k.c)}>{k.v}</div>
           </div>
         ))}
       </div>
@@ -232,9 +232,8 @@ export default function FeaturesPage() {
       />
 
       {/* Hero */}
-      <section className="relative overflow-hidden py-12 md:py-16">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,color-mix(in_oklab,var(--primary)_12%,transparent),transparent)]" />
-        <div className="relative z-10 mx-auto max-w-6xl px-4 text-center md:px-8">
+      <section className="relative overflow-hidden border-b border-border py-12 md:py-16">
+        <div className="relative z-10 mx-auto max-w-6xl px-5 text-center md:px-8">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: motionEase }}>
             <Badge variant="secondary" className="mb-4 gap-2 border-primary/20 bg-primary/10 text-primary">
               <span className="size-1.5 animate-pulse rounded-full bg-primary" />
@@ -245,10 +244,10 @@ export default function FeaturesPage() {
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease: motionEase, delay: 0.1 }}
-            className="mb-4 text-4xl font-black leading-tight tracking-tight text-foreground md:text-5xl"
+            className="mb-4 text-4xl font-semibold leading-tight tracking-tight text-foreground md:text-5xl"
           >
             Everything You Need in a{' '}
-            <span className="bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">Career Operating System</span>
+            <span className="text-primary">Career Operating System</span>
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -292,7 +291,7 @@ export default function FeaturesPage() {
 
       {/* Journey — moved up after hero */}
       <section className="border-y border-border bg-muted/30 py-12 md:py-16">
-        <div className="mx-auto max-w-6xl px-4 md:px-8">
+        <div className="mx-auto max-w-6xl px-5 md:px-8">
           <SectionHead
             badge="How It Works"
             badgeClass="border-amber-500/20 bg-amber-500/10 text-amber-500"
@@ -311,7 +310,7 @@ export default function FeaturesPage() {
               <motion.div key={s.n} variants={fadeUp} transition={{ duration: 0.5, ease: motionEase }}>
                 <Card className="h-full text-center">
                   <CardContent className="pt-6">
-                    <div className={cn('mb-2 font-mono text-3xl font-black', s.color)}>{s.n}</div>
+                    <div className={cn('mb-2 font-mono text-3xl font-semibold', s.color)}>{s.n}</div>
                     <CardTitle className="mb-2 text-base">{s.t}</CardTitle>
                     <CardDescription>{s.d}</CardDescription>
                   </CardContent>
@@ -324,7 +323,7 @@ export default function FeaturesPage() {
 
       {/* Core features — priority order */}
       <section className="py-12 md:py-16">
-        <div className="mx-auto max-w-6xl px-4 md:px-8">
+        <div className="mx-auto max-w-6xl px-5 md:px-8">
           <SectionHead
             badge="Core Features"
             badgeClass="border-primary/20 bg-primary/10 text-primary"
@@ -451,7 +450,7 @@ export default function FeaturesPage() {
                         { label: 'Technical Score', score: '9.1', c: 'text-violet-500' },
                       ].map((s) => (
                         <div key={s.label} className="rounded-xl border border-border bg-card p-3">
-                          <div className={cn('text-xl font-black', s.c)}>{s.score}</div>
+                          <div className={cn('text-xl font-semibold', s.c)}>{s.score}</div>
                           <div className="text-xs text-muted-foreground">{s.label}</div>
                         </div>
                       ))}
@@ -528,7 +527,7 @@ export default function FeaturesPage() {
 
       {/* Comparison */}
       <section className="border-y border-border bg-muted/30 py-12 md:py-16">
-        <div className="mx-auto max-w-6xl px-4 md:px-8">
+        <div className="mx-auto max-w-6xl px-5 md:px-8">
           <SectionHead
             badge="Why Glowminds"
             badgeClass="border-primary/20 bg-primary/10 text-primary"
@@ -573,7 +572,7 @@ export default function FeaturesPage() {
 
       {/* Social proof */}
       <section className="py-12 md:py-16">
-        <div className="mx-auto max-w-6xl px-4 md:px-8">
+        <div className="mx-auto max-w-6xl px-5 md:px-8">
           <SectionHead
             badge="Results"
             badgeClass="border-violet-500/20 bg-violet-500/10 text-violet-500"
@@ -590,7 +589,7 @@ export default function FeaturesPage() {
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-foreground">{item.label}</p>
-                    <p className="text-lg font-black">
+                    <p className="text-lg font-semibold">
                       <span className="text-muted-foreground line-through decoration-muted-foreground/50">{item.before}</span>
                       <span className="mx-2 text-muted-foreground">→</span>
                       <span className={item.color}>{item.after}</span>
@@ -605,7 +604,7 @@ export default function FeaturesPage() {
 
       {/* Categorized extras */}
       <section className="border-t border-border bg-muted/30 py-12 md:py-16">
-        <div className="mx-auto max-w-6xl px-4 md:px-8">
+        <div className="mx-auto max-w-6xl px-5 md:px-8">
           <SectionHead
             badge="Full Toolkit"
             badgeClass="border-emerald-500/20 bg-emerald-500/10 text-emerald-500"
@@ -637,7 +636,7 @@ export default function FeaturesPage() {
 
       {/* Exit CTA */}
       <section className="pb-12 md:pb-16">
-        <div className="mx-auto max-w-6xl px-4 md:px-8">
+        <div className="mx-auto max-w-6xl px-5 md:px-8">
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
             whileInView={{ opacity: 1, scale: 1 }}
@@ -646,7 +645,7 @@ export default function FeaturesPage() {
           >
             <Card className="relative overflow-hidden text-center">
               <CardContent className="relative py-10 md:py-12">
-                <h2 className="mb-3 text-2xl font-black text-foreground md:text-3xl">Ready to Land More Interviews?</h2>
+                <h2 className="mb-3 text-2xl font-semibold text-foreground md:text-3xl">Ready to Land More Interviews?</h2>
                 <p className="mx-auto mb-6 max-w-lg text-muted-foreground">
                   Build your resume, discover jobs, and practice interviews — all for free.
                 </p>

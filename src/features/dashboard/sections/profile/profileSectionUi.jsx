@@ -12,7 +12,7 @@ export function ProfileEmptyState({ icon, message, actionLabel, onAction, compac
   }
 
   return (
-    <div className="flex flex-col items-center gap-2 py-6 text-center">
+    <div className="flex flex-col items-start gap-2 rounded-[var(--radius-panel)] border border-dashed border-border px-5 py-6">
       <AppIcon name={icon} className="size-8 text-muted-foreground/60" />
       <p className="max-w-sm text-sm text-muted-foreground">{message}</p>
       <Button size="sm" onClick={onAction}>{actionLabel}</Button>
@@ -85,7 +85,7 @@ export function ProfileAvatarBlock({
           {photoURL && !uploadingPhoto ? <AvatarImage src={photoURL} alt="" /> : null}
           <AvatarFallback
             className={cn(
-              'bg-gradient-to-br from-primary to-emerald-500 font-bold text-primary-foreground',
+              'bg-primary font-bold text-primary-foreground',
               compact ? 'text-xl' : 'text-3xl',
             )}
           >

@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "skills": {
+    "anti-ui-slop": {
+      "source": "uizze.com",
+      "sourceUrl": "https://uizze.com",
+      "sourceType": "well-known",
+      "computedHash": "b0e7539a8896fa2ffc839ace167d99043f5e22689ebfeefebd896dc8ecdaba7a",
+      "wellKnownDigest": "sha256:96b957625dfd53ccf30e2ce19fe4f4e191a36238b7bb9033a3610c2c032db005"
+    },
+    "ui-design": {
+      "source": "uizze.com",
+      "sourceUrl": "https://uizze.com",
+      "sourceType": "well-known",
+      "computedHash": "4d1aecac162866a53afd52036101e6c7b0090d8b84bcbe2572c171688be0ef35",
+      "wellKnownDigest": "sha256:0ba439dfad3fbe3066bb5885d1f8b1128bfee698d8838fffcbe613eebd4295fe"
+    },
+    "uizze-ui": {
+      "source": "uizze/uizze",
+      "sourceType": "github",
+      "skillPath": "skills/uizze-ui/SKILL.md",
+      "computedHash": "c4a04e7f240a9583c17f9277e8c6ebd0400a7be6bc07c4b29d2c9b1446558e2b"
+    }
+  }
+}

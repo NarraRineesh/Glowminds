@@ -409,7 +409,7 @@ export default function JobDetailSection() {
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl font-black tracking-tight text-foreground">{job.title}</h1>
+            <h1 className="text-xl font-semibold tracking-tight text-foreground">{job.title}</h1>
             <JobMetaRow>
               {(job.company || job.co) && <JobMetaItem icon="buildings">{job.company || job.co}</JobMetaItem>}
               {(job.location || job.loc) && (
@@ -425,7 +425,7 @@ export default function JobDetailSection() {
           <div className="shrink-0 text-center">
             {hasMatchScore ? (
               <>
-                <div className={cn('text-2xl font-black tabular-nums', (aiFit ? scoreTone : matchScoreTone)(displayScore))}>{displayScore}%</div>
+                <div className={cn('text-2xl font-semibold tabular-nums', (aiFit ? scoreTone : matchScoreTone)(displayScore))}>{displayScore}%</div>
                 <div className="flex items-center justify-center gap-1 text-[0.68rem] text-muted-foreground">
                   <AppIcon name="target" className="size-3" />
                   {aiFit ? 'AI fit' : 'profile match'}
@@ -483,7 +483,7 @@ export default function JobDetailSection() {
 
         <div className="flex flex-wrap gap-2">
           <Button disabled={kitBusy || fitLoading || !isPro} onClick={() => void runApplyKit()}>
-            {kitBusy ? 'Building kit…' : <><AppIcon name="sparkle" className="size-4" /> Apply Kit</>}
+            {kitBusy ? 'Building kit…' : <><AppIcon name="lightning" className="size-4" /> Apply Kit</>}
           </Button>
           <Button variant="outline" disabled={fitLoading || !isPro || !canFit} onClick={() => void runJobFit()}>
             {fitLoading ? 'Analyzing…' : <><AppIcon name="target" className="size-4" /> AI Fit ({jobFitCost})</>}
@@ -535,7 +535,7 @@ export default function JobDetailSection() {
         {aiFit && (
           <section className="space-y-3 border-t border-border pt-4">
             <h2 className="flex items-center gap-1.5 text-sm font-bold text-foreground">
-              <AppIcon name="sparkle" className="size-4" />
+              <AppIcon name="lightning" className="size-4" />
               AI Job Fit · {aiFit.verdict}
             </h2>
             <p className="text-sm text-muted-foreground">{aiFit.summary}</p>

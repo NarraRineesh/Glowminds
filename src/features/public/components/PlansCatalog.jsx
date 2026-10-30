@@ -76,7 +76,7 @@ export function PlansComparisonTable({ comparison }) {
 
   return (
     <div>
-      <h2 className="mb-6 text-center text-2xl font-black tracking-tight text-foreground md:text-3xl">
+      <h2 className="mb-6 text-center text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
         {comparison.title || 'Plans Comparison'}
       </h2>
       <ComparisonTableShell className="rounded-xl border border-border bg-card">

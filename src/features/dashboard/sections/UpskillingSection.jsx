@@ -120,7 +120,7 @@ function LearningPlan({ path, progress, togglingId, onToggle }) {
                 </p>
               )}
             </div>
-            <div className="shrink-0 rounded-xl border border-primary/15 bg-background/80 px-4 py-3 text-center backdrop-blur">
+            <div className="shrink-0 rounded-[var(--radius-panel)] border border-border bg-card px-4 py-3 text-center shadow-none">
               <div className="text-2xl font-bold text-primary">{progress.percent}%</div>
               <div className="text-[11px] text-muted-foreground">complete</div>
             </div>
@@ -590,7 +590,7 @@ export default function UpskillingSection() {
       {path && !builderOpen ? (
         <div className="mb-3 flex justify-end">
           <Button onClick={startNewPath}>
-            <AppIcon name="sparkle" className="size-4" />
+            <AppIcon name="graduation" className="size-4" />
             New learning path
           </Button>
         </div>
@@ -629,7 +629,7 @@ export default function UpskillingSection() {
 
             {gap && !gapLoading && (
               <DashboardCard
-                titleIcon="sparkle"
+                titleIcon="graduation"
                 title={`Gap vs ${gap.targetRole}`}
                 action={<Badge variant="secondary">{gap.coverage}% coverage</Badge>}
               >

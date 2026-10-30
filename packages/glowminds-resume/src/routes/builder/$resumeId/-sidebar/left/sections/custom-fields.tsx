@@ -169,7 +169,7 @@ function CustomFieldItem({ field, children }: CustomFieldItemProps) {
 			<Button
 				size="icon"
 				variant="ghost"
-				className="me-2 touch-none"
+				className="me-1 size-11 shrink-0 touch-none"
 				onPointerDown={(e) => {
 					e.preventDefault();
 					controls.start(e);

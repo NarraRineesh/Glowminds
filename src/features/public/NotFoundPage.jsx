@@ -8,10 +8,10 @@ export default function NotFoundPage() {
   return (
     <>
       <SEO {...PAGE_SEO.notFound} />
-      <div className="flex flex-1 flex-col items-center justify-center px-4 py-16">
+      <div className="flex flex-1 flex-col items-center justify-center px-5 py-16 pb-[max(4rem,env(safe-area-inset-bottom))]">
         <Card className="max-w-md border-border text-center">
           <CardContent className="py-10">
-            <p className="mb-3 text-6xl font-black tabular-nums text-primary">404</p>
+            <p className="mb-3 text-6xl font-semibold tabular-nums text-primary">404</p>
             <h1 className="mb-2 text-xl font-bold text-foreground">Page not found</h1>
             <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
               That link may be broken or the page was removed. Head home or open your dashboard if you are signed in.

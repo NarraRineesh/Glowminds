@@ -22,9 +22,7 @@ export default function LandingHero({ hero, heroMetrics, trustBadges }) {
 
   return (
     <section id="hero" className="relative overflow-hidden border-b border-border pb-10 pt-8 md:pb-14 md:pt-10">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,color-mix(in_oklab,var(--primary)_10%,transparent),transparent)]" />
-
-      <div className="relative z-10 mx-auto grid w-full max-w-6xl items-center gap-8 px-4 md:px-8 lg:grid-cols-2 lg:gap-10">
+      <div className="relative z-10 mx-auto grid w-full max-w-6xl items-center gap-8 px-5 md:px-8 lg:grid-cols-2 lg:gap-10">
         <motion.div
           className="order-1 space-y-5 lg:order-1 lg:pr-2"
           initial="hidden"
@@ -85,8 +83,8 @@ export default function LandingHero({ hero, heroMetrics, trustBadges }) {
             </motion.div>
             <motion.div whileHover={reducedMotion ? {} : { y: -2, scale: 1.01 }} whileTap={reducedMotion ? {} : { y: 1 }}>
               <Button size="lg" variant="outline" render={<Link to="/features" />} className="gap-2">
-                <AppIcon name="sparkle" className="size-4" />
                 {hero?.secondaryCta || 'Explore Tools'}
+                <AppIcon name="arrow-right" className="size-4" />
               </Button>
             </motion.div>
           </motion.div>

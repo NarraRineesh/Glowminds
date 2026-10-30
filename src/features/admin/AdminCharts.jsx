@@ -71,17 +71,17 @@ export function AdminDonut({
   const total = segments.reduce((s, x) => s + (Number(x.value) || 0), 0) || 1
   const r = size / 2 - 8
   const c = 2 * Math.PI * r
-  let offset = 0
   const colors = ['#0f766e', '#d97706', '#6366f1', '#dc2626', '#64748b', '#059669']
+  const lengths = segments.map((seg) => ((Number(seg.value) || 0) / total) * c)
+  const offsets = lengths.map((_, index) => lengths.slice(0, index).reduce((sum, len) => sum + len, 0))
 
   return (
     <div className={`flex items-center gap-4 ${className}`}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--color-border, #e5e5e5)" strokeWidth={12} />
         {segments.map((seg, i) => {
-          const v = Number(seg.value) || 0
-          const len = (v / total) * c
-          const el = (
+          const len = lengths[i]
+          return (
             <circle
               key={seg.label || i}
               cx={size / 2}
@@ -91,12 +91,10 @@ export function AdminDonut({
               stroke={seg.color || colors[i % colors.length]}
               strokeWidth={12}
               strokeDasharray={`${len} ${c - len}`}
-              strokeDashoffset={-offset}
+              strokeDashoffset={-offsets[i]}
               transform={`rotate(-90 ${size / 2} ${size / 2})`}
             />
           )
-          offset += len
-          return el
         })}
         <text
           x={size / 2}

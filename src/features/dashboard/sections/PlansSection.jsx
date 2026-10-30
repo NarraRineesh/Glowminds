@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import useAppStore from '@/store/authStore'
 import useProfileStore from '@/store/profileStore'
 import useIsPro from '@/hooks/useIsPro'

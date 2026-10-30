@@ -49,7 +49,7 @@ export default function DashboardTopbar() {
         'pt-[max(0.35rem,env(safe-area-inset-top))]',
       )}
     >
-      <div className="relative flex w-full items-center gap-2 px-3 py-3 sm:gap-3 sm:px-5 sm:py-3.5 lg:pr-9 lg:pl-7">
+      <div className="relative flex w-full items-center gap-2 px-5 py-3 sm:gap-3 sm:py-3.5 lg:pr-9 lg:pl-7">
         <div className="flex min-w-0 flex-1 items-center gap-1.5">
           <SidebarTrigger className="size-11 shrink-0 md:hidden" />
           <div className="min-w-0">

@@ -59,8 +59,8 @@ export default function RefundPage() {
           <Badge variant="secondary" className="mb-4 border-primary/20 bg-primary/10 text-primary">
             REFUND POLICY
           </Badge>
-          <h1 className="mb-4 text-[clamp(2rem,4vw,3rem)] font-black leading-tight tracking-tight text-foreground">
-            Refund <span className="bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">Policy</span>
+          <h1 className="mb-4 text-[clamp(2rem,4vw,3rem)] font-semibold leading-tight tracking-tight text-foreground">
+            Refund <span className="text-primary">Policy</span>
           </h1>
           <p className="mx-auto max-w-xl text-sm text-muted-foreground md:text-base">Last updated: May 4, 2026</p>
         </PublicPageContainer>
