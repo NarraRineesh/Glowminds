@@ -2,6 +2,7 @@ import type { Template } from "@/lib/schema/templates";
 import type { DialogProps } from "@/dialogs/store";
 import type { TemplateMetadata } from "./data";
 import { useLingui } from "@lingui/react";
+import { useSyncExternalStore } from "react";
 import { Trans } from "@lingui/react/macro";
 import { LockSimpleIcon, SlideshowIcon } from "@phosphor-icons/react";
 import { Badge } from "@/lib/ui/components/badge";
@@ -11,9 +12,10 @@ import { ScrollArea } from "@/lib/ui/components/scroll-area";
 import { cn } from "@/lib/utils/style";
 import { CometCard } from "@/components/animation/comet-card";
 import { useDialogStore } from "@/dialogs/store";
-import { isEmbedded } from "@/embed/runtime";
+import { getEmbedConfig, isEmbedded, subscribeEmbedConfig } from "@/embed/runtime";
 import { useCurrentResume, useUpdateResumeData } from "@/features/resume/builder/draft";
 import { canUseTemplate } from "@/lib/plans";
+import { isTemplateAllowed } from "@/lib/template-access";
 import { templates } from "./data";
 
 export function TemplateGalleryDialog(_: DialogProps<"resume.template.gallery">) {
@@ -21,9 +23,15 @@ export function TemplateGalleryDialog(_: DialogProps<"resume.template.gallery">)
 	const resume = useCurrentResume();
 	const selectedTemplate = resume.data.metadata.template;
 	const updateResumeData = useUpdateResumeData();
+	const embedConfig = useSyncExternalStore(subscribeEmbedConfig, getEmbedConfig, getEmbedConfig);
+
+	function templateIsLocked(template: string) {
+		if (!embedConfig) return !canUseTemplate(template);
+		return !isTemplateAllowed(template, embedConfig.templateAllowance, embedConfig.isPro === true);
+	}
 
 	function onSelectTemplate(template: Template) {
-		if (!canUseTemplate(template)) return;
+		if (templateIsLocked(template)) return;
 
 		updateResumeData((draft) => {
 			draft.metadata.template = template;
@@ -56,7 +64,7 @@ export function TemplateGalleryDialog(_: DialogProps<"resume.template.gallery">)
 							metadata={metadata}
 							id={template as Template}
 							isActive={template === selectedTemplate}
-							isLocked={!canUseTemplate(template as Template)}
+							isLocked={templateIsLocked(template)}
 							onSelect={onSelectTemplate}
 						/>
 					))}
@@ -91,7 +99,7 @@ function TemplateCard({ id, metadata, isActive, isLocked, onSelect }: TemplateCa
 			className={cn(
 				"relative block aspect-page w-full overflow-hidden rounded-md bg-popover outline-none",
 				isActive && "ring-2 ring-ring ring-offset-2 ring-offset-background",
-				isLocked ? "cursor-not-allowed pointer-events-none" : "cursor-pointer",
+				isLocked ? "cursor-not-allowed" : "cursor-pointer",
 			)}
 		>
 			<img
