@@ -22,6 +22,7 @@ import {
   sanitizeLoadedEmbedResumes,
   scheduleEmbedResumeSave,
 } from '@/services/resumeStore'
+import { resolveTemplateAllowance } from '@/utils/templateAccess'
 
 const ResumeBuilderRoot = lazy(() =>
   import('glowminds-resume/embed').then((module) => ({ default: module.ResumeBuilderRoot })),
@@ -57,12 +58,16 @@ export default function GlowmindsResumeSection() {
     return () => clearCopilotTheme(host)
   }, [resolvedTheme])
 
+  const planReady = !entitlementsLoading || Boolean(entitlements)
+
   useEffect(() => {
     if (!user?.uid) {
       setCloudResumes([])
       setLoadError(null)
       return undefined
     }
+    // Don't clamp templates against a Free plan while entitlements are still loading.
+    if (!planReady) return undefined
     let cancelled = false
     setLoadError(null)
     loadEmbedResumes(user.uid)
@@ -77,7 +82,7 @@ export default function GlowmindsResumeSection() {
         }
       })
     return () => { cancelled = true }
-  }, [user?.uid, isPro])
+  }, [user?.uid, isPro, planReady])
 
   const onResumeSave = useCallback((resume) => {
     if (!user?.uid) return Promise.resolve()
@@ -98,6 +103,11 @@ export default function GlowmindsResumeSection() {
     const { uploadVaultDoc } = await import('@/services/vaultService')
     await uploadVaultDoc({ uid: user.uid, file, category: 'resumes' })
   }, [user?.uid])
+
+  const templateAllowance = useMemo(
+    () => resolveTemplateAllowance(entitlements, isPro),
+    [entitlements, isPro],
+  )
 
   const onSyncFromProfile = useCallback(async () => {
     if (!user) return null
@@ -123,13 +133,14 @@ export default function GlowmindsResumeSection() {
     resumes: cloudResumes ?? [],
     seedFromProfile: false,
     isPro,
+    templateAllowance,
     allowLocalMigration: cloudResumes !== null && cloudResumes.length === 0 && !loadError,
             onUpgrade: () => navigate('/dashboard/plans'),
     onResumeSave,
     onResumeDelete,
     onStorePdf,
     onSyncFromProfile,
-  }), [resolvedTheme, user, navigate, cloudResumes, loadError, isPro, onResumeSave, onResumeDelete, onStorePdf, onSyncFromProfile])
+  }), [resolvedTheme, user, navigate, cloudResumes, loadError, isPro, templateAllowance, onResumeSave, onResumeDelete, onStorePdf, onSyncFromProfile])
 
   return (
     <div className="flex h-[min(100dvh,100%)] min-h-0 flex-col gap-2 max-md:h-[calc(100dvh-var(--dashboard-chrome,8rem))]">

@@ -1,7 +1,7 @@
 import { i18n } from "@lingui/core";
 import { I18nProvider } from "@lingui/react";
 import { RouterProvider } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { LoadingScreen } from "@/components/layout/loading-screen";
 import type { CopilotInitPayload } from "@/libs/copilot-bridge";
 import { cn } from "@/lib/utils/style";
@@ -26,11 +26,19 @@ export function ResumeBuilderRoot(props: ResumeBuilderRootProps) {
 		[config.resumes],
 	);
 	const themeTokensKey = useMemo(() => JSON.stringify(config.themeTokens ?? {}), [config.themeTokens]);
-	const isProKey = config.isPro === true ? "pro" : "free";
+	const isPro = config.isPro === true;
+	const templateAllowance = config.templateAllowance !== undefined ? config.templateAllowance : isPro ? null : undefined;
+	const allowanceKey = JSON.stringify(templateAllowance ?? null);
 
-	useEffect(() => {
-		setEmbedConfig(config);
-	}, [resumeIdsKey, config.theme, themeTokensKey, config.user?.uid, isProKey, config.onResumeSave, config.onResumeDelete, config.onSyncFromProfile]);
+	// Publish the plan before paint so the gallery does not keep a free-plan lock
+	// from a post-commit effect that never re-renders subscribers.
+	useLayoutEffect(() => {
+		setEmbedConfig({
+			...config,
+			isPro,
+			templateAllowance,
+		});
+	}, [resumeIdsKey, config.theme, themeTokensKey, config.user?.uid, isPro, allowanceKey, config.onResumeSave, config.onResumeDelete, config.onSyncFromProfile]);
 
 	useEffect(() => {
 		if (!router) return;

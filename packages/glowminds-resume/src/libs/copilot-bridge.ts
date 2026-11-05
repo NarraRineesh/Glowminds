@@ -43,6 +43,11 @@ export type CopilotInitPayload = {
 	resumes?: CopilotEmbedResume[];
 	seedFromProfile?: boolean;
 	isPro?: boolean;
+	/**
+	 * null: every template (Pro default). string: one template. string[]: those templates.
+	 * Omit on Pro to allow every template. Do not pass the collapsed free-template id for Pro.
+	 */
+	templateAllowance?: string | string[] | null;
 	onUpgrade?: () => void;
 	onResumeCreate?: () => Promise<void>;
 	onResumeSave?: (resume: CopilotEmbedResume) => Promise<void>;
