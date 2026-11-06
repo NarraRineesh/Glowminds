@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Glowminds</string>
+    <string name="title_activity_main">Glowminds</string>
+    <string name="package_name">in.glowminds.app</string>
+    <string name="custom_url_scheme">in.glowminds.app</string>
+    <string name="splash_tagline">Career OS</string>
+</resources>
